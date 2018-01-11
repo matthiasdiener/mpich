@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.66 1995/01/03 19:44:03 gropp Exp $
+ *  $Id: init.c,v 1.70 1995/03/16 14:23:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: init.c,v 1.66 1995/01/03 19:44:03 gropp Exp $";
+static char vcid[] = "$Id: init.c,v 1.70 1995/03/16 14:23:10 gropp Exp $";
 #endif /* lint */
 
 /* 
@@ -31,6 +31,8 @@ static char vcid[] = "$Id: init.c,v 1.66 1995/01/03 19:44:03 gropp Exp $";
 #define mpir_init_flog_  MPIR_INIT_FLOG
 #define mpir_init_bottom_ MPIR_INIT_BOTTOM
 #define mpir_init_fattr_  MPIR_INIT_FATTR
+#define mpir_init_fsize_  MPIR_INIT_FSIZE
+#define mpir_get_fsize_   MPIR_GET_FSIZE
 #elif defined(FORTRANDOUBLEUNDERSCORE)
 #define mpir_init_fdtes_ mpir_init_fdtes__
 #define mpir_init_fcm_   mpir_init_fcm__
@@ -38,6 +40,8 @@ static char vcid[] = "$Id: init.c,v 1.66 1995/01/03 19:44:03 gropp Exp $";
 #define mpir_init_flog_  mpir_init_flog__
 #define mpir_init_bottom_ mpir_init_bottom__
 #define mpir_init_fattr_  mpir_init_fattr__
+#define mpir_init_fsize_  mpir_init_fsize__
+#define mpir_get_fsize_   mpir_get_fsize__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpir_init_fdtes_ mpir_init_fdtes
 #define mpir_init_fcm_   mpir_init_fcm
@@ -45,6 +49,8 @@ static char vcid[] = "$Id: init.c,v 1.66 1995/01/03 19:44:03 gropp Exp $";
 #define mpir_init_flog_  mpir_init_flog
 #define mpir_init_bottom_ mpir_init_bottom
 #define mpir_init_fattr_  mpir_init_fattr
+#define mpir_init_fsize_  mpir_init_fsize
+#define mpir_get_fsize_   mpir_get_fsize
 #endif
 
 /* Global memory management variables for fixed-size blocks */
@@ -123,6 +129,8 @@ MPI_LONG_DOUBLE_INT_struct MPI_LONG_DOUBLE_INT_var;
 
 /* Fortran datatypes */
 MPI_Datatype MPI_INTEGER; /* May be the same as MPI_INT */
+MPI_Datatype MPI_REAL;
+MPI_Datatype MPI_DOUBLE_PRECISION;
 MPI_Datatype MPIR_logical_dte;
 MPI_Datatype MPIR_int1_dte;
 MPI_Datatype MPIR_int2_dte;
@@ -167,11 +175,15 @@ int MPIR_F_TRUE = 1, MPIR_F_FALSE = 0;
 /* 
  Location of the Fortran marker for MPI_BOTTOM.  The Fortran wrappers
  must detect the use of this address and replace it with MPI_BOTTOM.
-
- The detection of MPIR_F_MPI_BOTTOM in the Fortran wrappers is not yet
- implemented.  
+ This is done by the macro MPIR_F_PTR.
  */
 void *MPIR_F_MPI_BOTTOM = 0;
+
+/* Sizes of Fortran types; computed when initialized. */
+static int MPIR_FSIZE_C = 0;
+static int MPIR_FSIZE_R = 0;
+static int MPIR_FSIZE_D = 0;
+
 /* 
    If I want to use __STDC__, I need to include the full prototypes of
    these functions ... 
@@ -189,9 +201,16 @@ extern void MPIR_BXOR();
 extern void MPIR_MAXLOC();
 extern void MPIR_MINLOC();
 
+#if (defined(__STDC__) || defined(__cpluscplus))
+extern MPI_Handler_function MPIR_Errors_are_fatal;
+extern MPI_Handler_function MPIR_Errors_return;
+extern MPI_Handler_function MPIR_Errors_warn;
+/* ( MPI_Comm *, int *, ... ); */
+#else
 extern void MPIR_Errors_are_fatal();
 extern void MPIR_Errors_return();
 extern void MPIR_Errors_warn();
+#endif
 
 MPI_Errhandler MPI_ERRORS_ARE_FATAL, MPI_ERRORS_RETURN, 
        MPIR_ERRORS_WARN;
@@ -276,8 +295,14 @@ extern void MPIR_Topology_init();
    SIGHUP, SIGINT, SIGQUIT, SIGFPE, SIGSEGV, SIGPIPE, SIGALRM, SIGTERM,
    SIGIO
 
-   -mpedbg:
+   -mpedbg switch:
    SIGQUIT, SIGILL, SIGFPE, SIGBUS, SIGSEGV, SIGSYS
+
+   Meiko CS2:
+   SIGUSR2
+
+   ch_p4 device:
+   SIGUSR1
 
 @*/
 int MPI_Init(argc,argv)
@@ -326,24 +351,65 @@ char ***argv;
 
        We still need a FORT_REAL and FORT_DOUBLE type for some systems
      */
-    if (sizeof(int) != sizeof(double)/2) {
-	MPI_INTEGER          = MPIR_Init_basic_datatype( MPIR_FORT_INT, 4 );
-	MPIR_logical_dte     = MPIR_Init_basic_datatype( MPIR_LOGICAL, 4 );
-	}
-    else {
+#ifdef MPID_NO_FORTRAN
+    MPIR_FSIZE_R = sizeof(float);
+    MPIR_FSIZE_D = sizeof(double);
+#else
+    mpir_get_fsize_();
+#endif
+    if (sizeof(int) == MPIR_FSIZE_R) {
 	MPI_INTEGER          = MPI_INT;
 	MPIR_logical_dte     = MPIR_Init_basic_datatype( MPIR_LOGICAL, 
 							 sizeof(int) );
 	}
+    else {
+	MPI_INTEGER          = MPIR_Init_basic_datatype( MPIR_FORT_INT, 
+							 MPIR_FSIZE_R );
+	MPIR_logical_dte     = MPIR_Init_basic_datatype( MPIR_LOGICAL, 
+							 MPIR_FSIZE_R );
+	}
+
     MPI_FLOAT		     = MPIR_Init_basic_datatype( MPIR_FLOAT, 
 							 sizeof(float) );
+    /* Hunt for Fortran real size */
+    if (sizeof(float) == MPIR_FSIZE_R) {
+	MPI_REAL		     = MPIR_Init_basic_datatype( MPIR_FLOAT, 
+							       sizeof(float) );
+	}
+    else if (sizeof(double) == MPIR_FSIZE_R) {
+	MPI_REAL		     = MPIR_Init_basic_datatype( MPIR_DOUBLE, 
+							      sizeof(double) );
+	}
+    else {
+	/* we'll have a problem with the reduce/scan ops */
+	MPI_REAL		     = MPIR_Init_basic_datatype( MPIR_FLOAT, 
+							      MPIR_FSIZE_R );
+	}
+
     MPI_DOUBLE		     = MPIR_Init_basic_datatype( MPIR_DOUBLE, 
-					        sizeof( double ) );
+							   sizeof( double ) );
+    if (sizeof(double) == MPIR_FSIZE_D) {
+	MPI_DOUBLE_PRECISION = MPIR_Init_basic_datatype( MPIR_DOUBLE, 
+							   sizeof( double ) );
+	}
+#if defined(HAVE_LONG_DOUBLE)
+    else if (sizeof(long double) == MPIR_FSIZE_D) {
+	MPI_DOUBLE_PRECISION = MPIR_Init_basic_datatype( 
+					    MPIR_LONGDOUBLE, MPIR_FSIZE_D );
+	}
+#endif
+    else {
+	/* we'll have a problem with the reduce/scan ops */
+	MPI_DOUBLE_PRECISION = MPIR_Init_basic_datatype( MPIR_DOUBLE, 
+							   MPIR_FSIZE_D );
+	}
+    /* These also need to use the proper types for the floating-point
+       types */
     MPIR_complex_dte	     = MPIR_Init_basic_datatype( MPIR_COMPLEX, 
-						   2 * sizeof( float ) );
+						   2 * MPIR_FSIZE_R );
     MPIR_complex_dte->align  = sizeof( float );
     MPIR_dcomplex_dte	     = MPIR_Init_basic_datatype( MPIR_DOUBLE_COMPLEX, 
-						  2 * sizeof( double ) );
+						  2 * MPIR_FSIZE_D );
     MPIR_dcomplex_dte->align = sizeof( double );
     MPI_LONG		     = MPIR_Init_basic_datatype( MPIR_LONG, 
 							 sizeof( long ) );
@@ -493,8 +559,8 @@ char ***argv;
 #ifdef POINTER_64_BITS
 	{ extern int MPIR_FromPointer();
 	int i_integer = MPIR_FromPointer(MPI_INTEGER),
-	    i_float   = MPIR_FromPointer(MPI_FLOAT),
-            i_double  = MPIR_FromPointer(MPI_DOUBLE),
+	    i_float   = MPIR_FromPointer(MPI_REAL),
+            i_double  = MPIR_FromPointer(MPI_DOUBLE_PRECISION),
 	    i_complex = MPIR_FromPointer(MPIR_complex_dte),
             i_dcomplex = MPIR_FromPointer(MPIR_dcomplex_dte),
 	    i_logical = MPIR_FromPointer(MPIR_logical_dte),
@@ -523,7 +589,7 @@ char ***argv;
                      &i_real4, &i_real8, &i_packed, &i_ub, &i_lb );
 	}
 #else    	
-    mpir_init_fdtes_( &MPI_INTEGER, &MPI_FLOAT, &MPI_DOUBLE,
+    mpir_init_fdtes_( &MPI_INTEGER, &MPI_REAL, &MPI_DOUBLE_PRECISION,
                      &MPIR_complex_dte, &MPIR_dcomplex_dte,
                      &MPIR_logical_dte, &MPI_CHAR, 
                      &MPI_BYTE, &MPI_2INTEGER, &MPIR_2real_dte, 
@@ -756,8 +822,7 @@ char ***argv;
 #endif
 #ifdef MPID_HAS_DEBUG
 		else if (strcmp((*argv)[i],"-mpichdebug") == 0) {
-		    MPID_SetSendDebugFlag( ADIctx, 1 );
-		    MPID_SetRecvDebugFlag( ADIctx, 1 );
+		    MPID_SetDebugFlag( ADIctx, 1 );
 		    }
 		else if (strcmp((*argv)[i],"-chmemdebug" ) == 0) {
 		    MPID_SetSpaceDebugFlag( ADIctx, 1 );
@@ -834,5 +899,24 @@ void mpir_init_bottom_( p )
 void *p;
 {
 MPIR_F_MPI_BOTTOM = p;
+}
+
+/* 
+   This routine computes the sizes of the Fortran data types.  It is 
+   called from a Fortran routine that passes consequtive elements of 
+   an array of the three Fortran types (character, real, double).
+   Note that Fortran REQUIRES that integers have the same size as reals.
+ */
+void mpir_init_fsize_( r1, r2, d1, d2 )
+/* char   *c1, *c2; */
+float  *r1, *r2;
+double *d1, *d2;
+{
+/* MPIR_FSIZE_C = (int)(c2 - c1); */
+/* Because of problems in passing characters, we pick the most likely size
+   for now */
+MPIR_FSIZE_C = sizeof(char);
+MPIR_FSIZE_R = (int)( (char*)r2 - (char*)r1 );
+MPIR_FSIZE_D = (int)( (char*)d2 - (char*)d1 );
 }
 #endif

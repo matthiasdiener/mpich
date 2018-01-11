@@ -2,26 +2,84 @@
 #
 # Run some of the tests.  If any arguments are provided, pass them to the
 # test programs.
-if [ -f context.out ] ; then
-	mv context.out context.out.orig
+#
+# -mvhome is needed for the ANL SP, and is ignored by others
+args="-pg -mvhome"
+#
+# If the programs are not available, run make.
+if [ ! -x attrt ] ; then
+    make 
 fi
+#
+runtests=1
+for arg in "$@" ; do
+    case $arg in 
+	-checkonly )
+	runtests=0
+	;;
+        -margs=*)
+	margs=`echo $arg | sed 's/-margs=//'`
+	args="$args $margs"
+	;;
+	-help|-u)
+	echo "runtests [-checkonly] [-margs='...']"
+	echo "run tests in this directory.  If -checkonly set, just run"
+	echo "the differences check (do NO rerun the test programs)."
+	echo "If -margs is used, these options are passed to mpirun."
+	exit 1
+	;;
+	*)
+	if test -n "$arg" ; then
+   	    echo "runtests: Unknown argument ($arg)"
+	    exit 1
+        fi
+	;;
+    esac
+done
 
-args=-pg
+testfiles=""
+if [ $runtests = 1 ] ; then
 
 #
 # Run Fortran tests ONLY if Fortran available
 if [ @HAS_FORTRAN@ = 1 ] ; then 
-    echo "FORTRAN TESTS" >> context.out
+    testfiles="$testfiles attrf.out"
+    /bin/rm -f attrf.out
     make fortran_tests
     echo '*** Testing attributes from Fortran ***'
-    echo "*** attrtest ***" >> context.out
-    mpirun $args -np 2 attrtest $* >> context.out 
-    echo "END OF FORTRAN TESTS" >> context.out
+    echo '*** Testing attributes from Fortran ***' >> attrf.out
+    mpirun $args -np 2 attrtest $* >> attr.out 2>&1
+    echo '*** Testing attributes from Fortran ***' >> attrf.out
 fi
+
+testfiles="$testfiles attr.out"
+/bin/rm -f attr.out
+echo '*** Testing attributes ***'
+echo '*** Testing attributes ***' >> attr.out
+mpirun $args -np 2 attrt $* >> attr.out 2>&1
+echo '*** Testing attributes ***' >> attr.out
+
+else
+    # Just run checks
+    testfiles=*.out
+fi
+
 echo '*** Differences from expected output ***'
 /bin/rm -f context.diff
-diff -b context.out context.std >> context.diff
+for file in $testfiles ; do
+    stdfile=`basename $file .out`.std
+    if [ -s $stdfile ] ; then
+        if diff -b $file `basename $file .out`.std > /dev/null ; then
+	    true
+        else
+	    echo "Differences in `basename $file .out`" >> context.diff
+	    diff -b $file `basename $file .out`.std >> context.diff
+	fi
+    else
+        echo "Can not find file $stdfile to compare against for test `basename $file .out`"
+    fi
+done
 if [ -s context.diff ] ; then
-    cat context.diff
+   cat context.diff
 fi
 exit 0

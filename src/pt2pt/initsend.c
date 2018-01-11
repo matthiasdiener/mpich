@@ -6,7 +6,7 @@
  */
 
 #ifndef lint
-static char vcid[] = "$Id: initsend.c,v 1.11 1995/01/03 19:43:21 gropp Exp $";
+static char vcid[] = "$Id: initsend.c,v 1.12 1995/03/05 20:15:55 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,7 +37,7 @@ int           nonblocking;
     else
 	request->shandle.dest     = comm->group->lrank_to_grank[dest];
     request->shandle.tag          = tag;
-    request->shandle.completed    = MPIR_NO;
+    MPID_Clr_completed( comm->ADIctx, request );
     request->shandle.datatype     = datatype;
     datatype->ref_count++;
     request->shandle.comm         = comm;

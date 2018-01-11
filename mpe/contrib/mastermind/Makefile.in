@@ -1,0 +1,48 @@
+
+##### User configurable options #####
+
+ARCH        = @ARCH@
+COMM        = @COMM@
+CC          = @CC@
+CLINKER     = @CC@
+MPIR_HOME   = @MPIR_HOME@
+OPTFLAGS    = -g
+#
+LIB_PATH    = @LIB_PATH@ @X_LIB@
+MPE_DIR     = @MPE_DIR@
+MPE_LIBS    = @MPE_LIBS@
+LIB_LIST    = @LIB_LIST@
+#
+INCLUDE_DIR =  -I$(MPIR_HOME)/include -I@MPE_DIR@
+
+### End User configurable options ###
+
+CFLAGS  =  @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH)
+FFLAGS =  $(INCLUDE_DIR) $(OPTFLAGS)
+LIBS = $(LIB_PATH) $(LIB_LIST)
+FLIBS = $(FLIB_PATH) $(LIB_LIST)
+EXECS =  mm gmm
+
+default: $(EXECS)
+
+gmm:	gmm.o $(MPIR_HOME)/include/mpi.h $(MPE_DIR)/mpe.h
+	$(CLINKER) $(OPTFLAGS)  -o gmm gmm.o \
+	$(LIB_PATH)  $(MPE_LIBS) $(LIB_LIST) -lm
+
+mm:	mm.o $(MPIR_HOME)/include/mpi.h $(MPE_DIR)/mpe.h
+	$(CLINKER) $(OPTFLAGS) -o mm mm.o \
+	$(LIB_PATH) $(LIB_LIST) -lm
+
+gmm.o:	gmm.c
+	$(CC) $(CFLAGS) -DUSE_GRAPHICS -c gmm.c
+
+mm.o:	gmm.c
+	$(CC) $(CFLAGS) -c -o mm.o gmm.c
+
+clean:
+	/bin/rm -f *.o *~ PI* $(EXECS) gmmlog
+
+.c.o:
+	$(CC) $(CFLAGS) -c $*.c
+.f.o:
+	$(F77) $(FFLAGS) -c $*.f

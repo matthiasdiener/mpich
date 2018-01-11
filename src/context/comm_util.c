@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_util.c,v 1.30 1994/12/19 14:16:48 doss Exp $
+ *  $Id: comm_util.c,v 1.32 1995/03/05 23:02:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,8 +37,6 @@ MPIR_COMM_TYPE comm_type;
   MPI_Errhandler_set( new_comm, comm->error_handler );
   new_comm->ref_count       = 1;
   new_comm->permanent       = 0;
-  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) 
-      return mpi_errno;
 
   if (comm_type == MPIR_INTRA) {
     new_comm->recv_context    = comm->recv_context + 1;
@@ -55,6 +53,11 @@ MPIR_COMM_TYPE comm_type;
 
   new_comm->comm_coll       = new_comm;  /* a circular reference to myself */
   comm->comm_coll           = new_comm;
+
+  /* The MPID_Comm_init routine needs the size of the local group, and
+     reads it from the new_comm structure */
+  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) 
+      return mpi_errno;
   
   MPID_THREAD_LOCK_INIT(new_comm->ADIctx,new_comm);
   return(MPI_SUCCESS);
@@ -81,7 +84,7 @@ int              *N2_prev;
 int MPIR_Dump_comm ( comm )
 MPI_Comm comm;
 {
-  int  i, rank;
+  int  rank;
 
   MPI_Comm_rank ( MPI_COMM_WORLD, &rank );
 

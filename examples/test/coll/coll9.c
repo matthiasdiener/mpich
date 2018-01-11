@@ -36,6 +36,7 @@ char **argv;
       correct_result += i;
     if (result != correct_result) errors++;
 
+    Test_Waitforall( );
     MPI_Finalize();
     if (errors)
       printf( "[%d] done with ERRORS(%d)!\n", rank, errors );

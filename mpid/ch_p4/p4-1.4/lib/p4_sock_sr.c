@@ -147,7 +147,12 @@ char *msg;
     return (sent);
 }
 
-
+/*
+   This code introduces some subtle problems.  The timeout on the select 
+   is needed to catch changes in the established connections, but in this
+   case, we need EINTR (interrupted system call) from the select to 
+   just restart the call AFTER we've recomputed the read_fds.
+ */
 struct p4_msg *socket_recv()
 {
     int i, fd, nfds;
@@ -155,21 +160,37 @@ struct p4_msg *socket_recv()
     P4BOOL found = FALSE;
     struct timeval tv;
     fd_set read_fds;
+    int    nactive;
 
     while (!found)
     {
 	tv.tv_sec = 9;
 	tv.tv_usec = 0;  /* RMB */
 	FD_ZERO(&read_fds);
+	nactive = 0;
 	for (i = 0; !tmsg && i < p4_global->num_in_proctable; i++)
 	{
 	    if (p4_local->conntab[i].type == CONN_REMOTE_EST)
 	    {
 		fd = p4_local->conntab[i].port;
 		FD_SET(fd, &read_fds);
+		nactive++;
 	    }
 	}
-	SYSCALL_P4(nfds, select(p4_global->max_connections, &read_fds, 0, 0, &tv));
+	if (!nactive)
+	{
+	    /* There are no active connections! If this is because
+	       the active connections have all died, then we should exit.
+	       Question: what if one connection has died "irregularly"? */
+	    p4_dprintf("Bailing out\n");
+            p4_wait_for_end();
+	    exit(0);
+	}
+	/* Run select; if interrupted, get read_fds (in case a connection
+	   has occurred) and restart the connection */
+	nfds = select(p4_global->max_connections, &read_fds, 0, 0, &tv);
+	if (nfds == -1 && errno == EINTR) continue;
+
 	if (nfds)
 	{
 	    for (i = 0; !tmsg && i < p4_global->num_in_proctable; i++)

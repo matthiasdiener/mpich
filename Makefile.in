@@ -27,9 +27,9 @@ DIRS     = $(MPIDIRS) mpid/$(DEVICE) @CPP_DIR@ @MPE_DIR@ \
 # 
 # This is a list of the devices that are available
 DEVICES  = mpid/chameleon mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd \
-	   mpid/ch_eui mpid/ch_meiko mpid/ch_tcp
+	   mpid/ch_eui mpid/ch_meiko mpid_ch_shmem mpid/ch_tcp
 OTHERDEVICES  = mpid/ch_nx mpid/ch_p4 mpid/ch_nc mpid/ch_cmmd mpid/ch_eui \
-		mpid/ch_meiko
+		mpid/ch_meiko mpid/ch_shmem
 # 
 # Build the device FIRST in case the device include, used in mpiimpl.h, 
 # needs to be built (e.g., ch_p4 device)
@@ -51,6 +51,7 @@ mpi:
 	$(MAKE) profile
 	$(MAKE) clean
 	$(MAKE) mpirun
+	$(MAKE) mpireconfig
 	$(MAKE) upshot
 	@echo "Completed build of MPI.  Check the output for errors"
 	@echo "Also try executing 'make testing' in examples/test"
@@ -149,7 +150,10 @@ profile:
 #
 mpirun: util/mpirun
 
+#
+# If you change this, ALSO change it in the install target!
 util/mpirun: util/mpirun.in
+	/bin/rm -f util/mpirun
 	cat util/mpirun.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
 		-e "s%\#EXECER_DIR\#%$(MPIR_HOME)/util%g" \
  		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
@@ -158,6 +162,29 @@ util/mpirun: util/mpirun.in
 		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > \
 		    util/mpirun;\
 	chmod 775 util/mpirun
+	/bin/rm -f util/tstmachines
+	cat util/tstmachines.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
+		-e "s%\#EXECER_DIR\#%$(MPIR_HOME)/util%g" \
+ 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
+		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
+		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > \
+		    util/tstmachines ;\
+	chmod 775 util/tstmachines
+	-/bin/rm -f lib/$(ARCH)/$(COMM)/mpirun lib/$(ARCH)/$(COMM)/tstmachines
+	-cp util/mpirun util/tstmachines lib/$(ARCH)/$(COMM)
+#
+# If you change this, ALSO change it in the install target!
+mpireconfig: util/mpireconfig
+util/mpireconfig: util/mpireconfig.in
+	cat util/mpireconfig.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
+			    -e "s%\#ARCH\#%$(ARCH)%g" \
+			    -e "s%\#COMM\#%$(COMM)%g" > \
+		    util/mpireconfig ;\
+	chmod 775 util/mpireconfig
+	-/bin/rm -f lib/$(ARCH)/$(COMM)/mpireconfig \
+		lib/$(ARCH)/$(COMM)/config.status 
+	-cp util/mpireconfig config.status lib/$(ARCH)/$(COMM)
 
 #
 # Make upshot from upshot.in
@@ -165,6 +192,7 @@ util/mpirun: util/mpirun.in
 upshot: profiling/upshot/bin/upshot
 
 profiling/upshot/bin/upshot: profiling/upshot/bin/upshot.in
+	/bin/rm -f profiling/upshot/bin/upshot
 	cat profiling/upshot/bin/upshot.in | sed \
 	  -e "s%\#wishloc\#%@wishloc@%g" \
 	  -e "s%\#BITMAP_DIR\#%$(MPIR_HOME)/profiling/upshot/bitmaps%g" > \
@@ -172,12 +200,28 @@ profiling/upshot/bin/upshot: profiling/upshot/bin/upshot.in
 	chmod 775 profiling/upshot/bin/upshot
 
 nupshot:
-	(cd profiling/nupshot; make )
+	(cd profiling/nupshot; $(MAKE) )
+
+#
+# If you change this, ALSO change it in the install target!
+serv_p4:
+	( cd mpid/ch_p4/p4-1.4/servers ; make serv_p4 ; \
+	  cp ../bin/serv_p4 ../../../../lib/$(ARCH)/ch_p4 )
+	/bin/rm -f util/chp4_servs
+	cat util/chp4_servs.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
+ 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
+		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
+		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > \
+		    util/chp4_servs ;\
+	chmod 775 util/chp4_servs
+	-cp util/chp4_servs lib/$(ARCH)/$(COMM)
 
 #
 # Changed clean to not remove the library, only the object files
 clean:
-	@/bin/rm -f *~ *.ln util/mpirun installtest/Makefile \
+	@/bin/rm -f *~ *.ln util/mpirun util/mpireconfig util/tstmachines \
+			    installtest/Makefile \
 	  		    profiling/upshot/bin/upshot
 	@if [ -d profiling/wrappergen ] ; then \
 	    /bin/rm -f profiling/wrappergen/*.o ; fi
@@ -187,7 +231,7 @@ clean:
 	    (cd tsuite ; $(MAKE) clean ) ; fi
 	@if [ -d bugs -a -s bugs/Makefile ] ; then \
 	    (cd bugs ; $(MAKE) clean ) ; fi
-	@for dir in $(DIRS) ;\
+	@-for dir in $(DIRS) ;\
 	  do \
 	  echo cleaning $$dir ;\
 	  (cd $$dir; $(MAKE) clean) ;\
@@ -199,6 +243,9 @@ clean:
 #		(cd $$dir ; $(MAKE) clean ) ; done
 	if [ -d mpid/chameleon ] ; then \
 	    /bin/rm -f mpid/chameleon/*.o ; fi
+	if [ -s mpid/ch_shmem/p2ptest/Makefile ] ; then \
+	    echo "cleaning mpid/ch_shmem/p2ptest" ; \
+	    (cd mpid/ch_shmem/p2ptest ; $(MAKE) clean ) ; fi
 
 realclean: clean
 	-/bin/rm -f lib/*/*/*.[oa]
@@ -206,8 +253,16 @@ realclean: clean
 	if [ -n "$(TOOLS_DIR)" ] ; then  \
 	    echo "cleaning mpid/chameleon" ; \
 	    (cd mpid/chameleon ; $(MAKE) clean )  ; fi
-	@for dir in $(OTHERDEVICES) ; do echo cleaning $$dir ; \
+	@-for dir in $(OTHERDEVICES) ; do echo cleaning $$dir ; \
 		(cd $$dir ; $(MAKE) clean ) ; done
+	if [ -s mpid/ch_p4/p4-1.4/Makefile ] ; then \
+	    (cd  mpid/ch_p4/p4-1.4 ; make realclean ) ; fi
+	@for dir in $(DIRS) ;\
+	  do \
+	  echo removing Makefile in $$dir ;\
+	  (cd $$dir; /bin/rm Makefile) ;\
+	  done
+	@/bin/rm Makefile
 	
 
 # Configure the Makefiles for some popular versions for ANL
@@ -225,20 +280,24 @@ anlp4pre: configure
 anlchp4: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg
+	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
 anltcp: configure 
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_tcp -mpe -var_pkt -mpedbg
+	-cp config.status lib/sun4/ch_tcp
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_tcp >/dev/null 2>&1
 anlchp4mem: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug
+	-cp config.status lib/sun4/ch_p4
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
 anlp4sgi: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=IRIX -comm=p4 -bopt=g -device=chameleon \
 	-devicedir=/home/gropp/tools.n -transportdir=/usr/local/p4-1.4 -mpe \
-	-no_short_longs
+		-no_short_longs
+	-cp config.status lib/IRIX/p4
 	@-chmod g+ws lib lib/IRIX lib/IRIX/p4 >/dev/null 2>&1
 anlchp4sgi: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
@@ -259,25 +318,26 @@ anlp4ibm: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=rs6000 -comm=p4 -bopt=g -device=chameleon \
-	-devicedir=/home/gropp/tools.n -transportdir=/usr/local/p4-1.4a -mpe
+	-devicedir=/home/gropp/tools.n -transportdir=/usr/local/p4-1.4a -mpe \
+	-no_short_longs
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/p4 >/dev/null 2>&1
 anlchp4ibm: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
-	configure -arch=rs6000 -comm=ch_p4 -device=ch_p4 -mpe
+	configure -arch=rs6000 -comm=ch_p4 -device=ch_p4 -mpe -no_short_longs
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/p4 >/dev/null 2>&1
 # euih is similar to the release 1 MPLp for the SP1.
 anleuih: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=rs6000 -comm=euih -bopt=O -device=chameleon \
-	-devicedir=/home/gropp/tools.n  -mpe -opt="-O" -nodevdebug
+		-devicedir=/home/gropp/tools.n  -mpe -opt="-O" -nodevdebug
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/euih >/dev/null 2>&1
 anlcheuih: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=rs6000 -device=ch_eui -comm=ch_euih -mpe -opt="-O" \
-	-no_mpegraphics -nodevdebug
+		-no_mpegraphics -nodevdebug
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_euih >/dev/null 2>&1
 # mpi is for release 2 MPL for the SPx
 anlmpl: configure
@@ -285,49 +345,49 @@ anlmpl: configure
 		echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=rs6000 -comm=eui -bopt=O -device=chameleon \
 	-devicedir=/home/gropp/tools.n  -mpe -opt="-O" -nodevdebug \
-	-no_short_longs -limited_buffers
+		-no_short_longs -limited_buffers
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/eui >/dev/null 2>&1
 anlchmpl: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-O" \
-	-limited_buffers -no_mpegraphics -nodevdebug -no_short_longs
+		-limited_buffers -no_mpegraphics -nodevdebug -no_short_longs
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_eui >/dev/null 2>&1
 anlchmplg: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-g" \
-	-limited_buffers -no_mpegraphics -no_short_longs -mpedbg
+		-limited_buffers -no_mpegraphics -no_short_longs -mpedbg
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_eui >/dev/null 2>&1
 # This is for testing the rendevous code
 anlchmplrndv: configure
 	@if [ `umask` != 002 -a `umask` != 0002 ] ; then \
 		echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=rs6000 -device=ch_eui -comm=ch_eui -mpe -opt="-g" \
-	-no_mpegraphics -use_rndv -no_short_longs
+		-no_mpegraphics -use_rndv -no_short_longs
 	@-chmod g+ws lib lib/rs6000 lib/rs6000/ch_eui >/dev/null 2>&1
 anlpvm: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -comm=pvm -bopt=g -device=chameleon \
-	-devicedir=/home/gropp/tools.n -transportdir=/home/gropp/pvm -mpe
+	    -devicedir=/home/gropp/tools.n -transportdir=/home/gropp/pvm -mpe
 	@-chmod g+ws lib lib/sun4 lib/sun4/pvm >/dev/null 2>&1
 anlpvm3: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -comm=pvm3 -bopt=g -device=chameleon \
-	-devicedir=/home/gropp/tools.n -transportdir=/home/gropp/pvm3 -mpe
+	    -devicedir=/home/gropp/tools.n -transportdir=/home/gropp/pvm3 -mpe
 	@-chmod g+ws lib lib/sun4 lib/sun4/pvm3 >/dev/null 2>&1
 # This is intended to be cross-compiled on, say, a Sun
 anlnx: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=intelnx -comm=nx -device=ch_nx -mpe -no_mpegraphics \
-	-opt="-O" -nodevdebug
+		-opt="-O" -nodevdebug
 	@-chmod g+ws lib lib/intelnx lib/intelnx/nx >/dev/null 2>&1
 #
 # This version allows us to build a version for profiling
 anlchp4pg: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 \
-	-mpe -opt="-pg -O" -nodevdebug -var_pkt -mpedbg
+		-mpe -opt="-pg -O" -nodevdebug -var_pkt -mpedbg
 	-@chmod g+ws lib lib/sun4 lib/sun4/p4 >/dev/null 2>&1
 
 INSTALLDIR = /usr/local/mpi
@@ -361,6 +421,13 @@ install:
 	cat util/mpiman.in \
 	    | sed -e "s%\#INSTALL_DIR\#%$(PREFIX)%g" > $(PREFIX)/bin/mpiman
 	chmod 755 $(PREFIX)/bin/mpiman
+	cat util/tstmachines.in \
+	    | sed -e "s%\#INSTALL_DIR\#%$(PREFIX)%g" > \
+		$(PREFIX)/bin/tstmachines
+	chmod 755 $(PREFIX)/bin/tstmachines
+	cat util/chp4_servs.in \
+	    | sed -e "s%\#INSTALL_DIR\#%$(PREFIX)%g" > $(PREFIX)/bin/chp4_servs
+	chmod 755 $(PREFIX)/bin/chp4_servs
 	/bin/rm -f $(PREFIX)/bin/upshot
 	cat profiling/upshot/bin/upshot.in | \
 	    sed -e "s%\#BITMAP_DIR\#%$(PREFIX)/lib/bitmaps%g" > \
@@ -371,17 +438,44 @@ install:
 	    sed -e "s%\#MPIR_HOME\#%$(PREFIX)%g" \
 		-e "s%\#EXECER_DIR\#%$(PREFIX)/bin%g" \
  		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+ 		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
+		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
 		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" >$(PREFIX)/bin/mpirun
 	chmod 755 $(PREFIX)/bin/mpirun	
+	/bin/rm -f $(PREFIX)/bin/tstmachines
+	cat util/tstmachines.in | \
+	    sed -e "s%\#MPIR_HOME\#%$(PREFIX)%g" \
+		-e "s%\#EXECER_DIR\#%$(PREFIX)/bin%g" \
+ 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
+		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
+		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" >$(PREFIX)/bin/tstmachines
+	chmod 755 $(PREFIX)/bin/tstmachines
+	/bin/rm -f $(PREFIX)/bin/mpireconfig
+	cat util/mpireconfig.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
+		    -e "s%\#ARCH\#%$(ARCH)%g" \
+		    -e "s%\#COMM\#%$(COMM)%g" > \
+		    util/mpireconfig ;\
+	chmod 775 util/mpireconfig
 	/bin/rm -f $(PREFIX)/bin/execer
 	cp util/execer $(PREFIX)/bin/execer
 	chmod 755 $(PREFIX)/bin/execer
+	cat util/chp4_servs.in | sed -e "s%\#MPIR_HOME\#%$(MPIR_HOME)%g" \
+ 		-e "s%\#DEFAULT_DEVICE\#%$(DEVICE)%g" \
+		-e "s%\#RSH_COMMAND\#%$(RSH_COMMAND)%g" \
+		-e "s%\#DEFAULT_MACHINE\#%$(DEFAULT_MACHINE)%g" \
+		-e "s%\#DEFAULT_ARCH\#%$(ARCH)%g" > \
+		    util/chp4_servs ;\
+	chmod 775 util/chp4_servs
+	-cp util/chp4_servs lib/$(ARCH)/$(COMM)
 #	@if [ ! -d $(PREFIX)/util/machines.anl ] ; then \
 #	    mkdir $(PREFIX)/util/machines.anl ; fi
 #	$(CPRP) -r util/machines $(PREFIX)/util/machines.anl
 	$(CPRP) -r util/machines $(PREFIX)/util/machines
 	$(CPRP) -r profiling/upshot/bitmaps $(PREFIX)/lib/bitmaps
 	cp include/mpi.h $(PREFIX)/include
+	cp include/mpi++.h $(PREFIX)/include
+	cp include/mpi++P.h $(PREFIX)/include
 	cp include/mpif.h $(PREFIX)/include
 	cp include/mpi_errno.h $(PREFIX)/include
 	cp include/binding.h $(PREFIX)/include
@@ -394,6 +488,7 @@ install:
 	$(CPRP) -r doc $(PREFIX)
 	cp ref/adiman.ps.Z $(PREFIX)/doc
 	cp ref/mpiman.ps.Z $(PREFIX)/doc
+	cp installtest/Makefile.in $(PREFIX)/examples
 	@cat installtest/makefile.proto | sed \
 		-e "s%\#ARCH\#%@ARCH@%g" \
 		-e "s%\#COMM\#%@COMM@%g" \
@@ -412,6 +507,8 @@ install:
 	cp installtest/pi3.f $(PREFIX)/examples
 	cp installtest/cpilog.c $(PREFIX)/examples
 	cp installtest/Makefile $(PREFIX)/examples
+	(cd $(PREFIX)/examples ; /bin/rm -f mpirun ; \
+	  ln -s ../bin/mpirun )
 	cp config.status $(PREFIX)
 	rm -f $(PREFIX)/examples/mpif.h
 	ln -s $(PREFIX)/include/mpif.h $(PREFIX)/examples/mpif.h

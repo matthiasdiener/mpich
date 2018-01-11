@@ -1,0 +1,17 @@
+***************
+*** 3,9 ****
+  clean:
+  	/bin/rm -f $(EXECS) $(OBJS)
+  	for dir in $(DIRS) ; do \
+! 	if [ -s $$dir ] ; then ( cd $$dir ; make clean ) ; fi ; done
+  
+  # Here is what we need to run programs in this directory
+  
+--- 3,9 ----
+  clean:
+  	/bin/rm -f $(EXECS) $(OBJS)
+  	for dir in $(DIRS) ; do \
+! 	if [ -s $$dir ] ; then ( cd $$dir ; $(MAKE) clean ) ; fi ; done
+  
+  # Here is what we need to run programs in this directory
+  

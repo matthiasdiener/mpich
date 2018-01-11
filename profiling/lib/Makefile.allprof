@@ -4,6 +4,7 @@
 # Add $(PROF_LIB) to the link line, after the main code but before -lmpi
 # Add $(PROF_CLN) to the clean line
 
+WGEN_DIR  = $(MPIR_HOME)/profiling/wrappergen
 PROF_DIR  = $(MPIR_HOME)/profiling/lib
 PROF_DEF  = $(PROF_DIR)/time_wrappers.w $(PROF_DIR)/visual_mess.w \
 	    $(PROF_DIR)/message_prof.w  $(PROF_DIR)/log_wrappers.w

@@ -25,9 +25,10 @@
 #define DEBUG 0
 #define DEBUG_NO_CONFIG 0
 
+
 /* Sorry about this kludge, but our ANSI C compiler on our suns has broken
    header files */
-#if defined(sparc) && defined(__STDC__)
+#ifdef GCC_WALL
 int sscanf( char *, const char *, ... );
 #endif
 
@@ -49,8 +50,8 @@ int sscanf( char *, const char *, ... );
 #define DEF_TIMELBL_COLOR_FG "snow"
 
   /* default font */
-#define DEF_TIMELBL_FONT "7x13bold"
-
+/* #define DEF_TIMELBL_FONT "7x13bold" */
+/* just use the canvas default font, 7x13bold does not convert to PostScript */
 
 
 static Tk_ConfigSpec configSpecs[] = {
@@ -70,9 +71,11 @@ static Tk_ConfigSpec configSpecs[] = {
      TK_CONFIG_MONO_ONLY, (Tk_CustomOption*)NULL},
   {TK_CONFIG_SYNONYM, "-bg", "background", (char*)0,
      (char*)0, 0, 0, (Tk_CustomOption*)0},
+/*
   {TK_CONFIG_STRING, "-font", "font", "Font",
      DEF_TIMELBL_FONT, Tk_Offset( timelbl, font ),
      0, (Tk_CustomOption*)NULL},
+*/
   {TK_CONFIG_END, (char*)0, (char*)0, (char*)0,
      (char*)0, 0, 0, (Tk_CustomOption*)NULL}
 };
@@ -84,22 +87,91 @@ static Tk_ConfigSpec configSpecs[] = {
 #define ARGS(x) ()
 #endif
 
-
+/*
+   Create a timelbl widget.
+*/
 static int TimeLbl_create ARGS((ClientData  clientData, Tcl_Interp *interp,
 			  int argc, char *argv[]));
-static int CalcLblSize ARGS(( timelbl* ));
-static int Set ARGS(( timelbl*, int argc, char *argv[] ));
-static int Copy ARGS(( Tcl_Interp*, timelbl*, int argc, char *argv[] ));
-static int CreateHash ARGS(( timelbl*, int hashNo, timelbl_hashmark * ));
-static int UpdateHash ARGS(( timelbl*, int hashNo, timelbl_hashmark * ));
-static int DeleteHash ARGS(( timelbl*, timelbl_hashmark * ));
-static int Configure ARGS(( timelbl *lbl, int argc, char **argv ));
-static int EraseAllHashes ARGS(( timelbl* ));
-static int Recalc ARGS(( timelbl*, int totalUnits, int windowUnits ));
+
+/*
+   Called on resize events.  Recalculate and redraw all labels.
+*/
 static int Resize ARGS(( timelbl*, int width, int height ));
+
+/*
+   Call Tk_ConfigurreWidget, and any other configuration needed (none).
+*/
+static int Configure ARGS(( timelbl *lbl, int argc, char **argv ));
+
+
+/*
+   Get the default font from the options database.
+*/
+/* static int GetFont ARGS(( Tcl_Interp*, char *canvas )); */
+
+/*
+   Try drawing some numbers on the canvas and see how big they
+   are.  Set lbl->height.
+*/
+static int CalcLblSize ARGS(( timelbl* ));
+
+/*
+   Called to set new 'left' and 'span' values.
+   If the span has changed, recalculate and redraw all.  Other wise,
+   just shift the view and draw/erase.
+*/
+static int Set ARGS(( timelbl*, double left, double span ));
+
+/*
+   Used when printing.  Copy the timelbl to a different canvas.
+*/
+static int Copy ARGS(( Tcl_Interp*, timelbl*, int argc, char *argv[] ));
+
+/*
+   Create a new hash mark.
+*/
+static int CreateHash ARGS(( timelbl*, int hashNo, timelbl_hashmark * ));
+
+/*
+   Move and put a different time on an existing hash mark.
+*/
+static int UpdateHash ARGS(( timelbl*, int hashNo, timelbl_hashmark * ));
+
+/*
+   Delete a hash mark.
+*/
+static int DeleteHash ARGS(( timelbl*, timelbl_hashmark * ));
+
+/*
+   Delete all hash marks.
+*/
+static int EraseAllHashes ARGS(( timelbl* ));
+
+/*
+   Given the visWidth, span, and left, recalculate and redraw
+   anything necessary.
+*/
+static int Recalc ARGS(( timelbl* ));
+
+/*
+   Try out a new hashIncrement by drawing a few of the longest labels.
+   If the hashes will fit OK, return 1, otherwise 0.
+*/
 static int HashesWillFit ARGS(( timelbl *lbl ));
+
+/*
+   Calculate lbl->firstHashTime, and lbl->format_str.
+*/
 static int FiggerHashDrawingInfo ARGS(( timelbl *lbl, int ndec ));
+
+/*
+   Convert a hash # to an x coordinate.
+*/
 static double LblHashNo2X ARGS(( timelbl*, int hashNo ));
+
+/*
+   Convert an time to an x coordinate.
+*/
 static double LblTime2X ARGS(( timelbl*, double time ));
 
   /* Tcl_CmdProc */
@@ -115,7 +187,7 @@ static void TimeLblEvents ARGS(( ClientData data, XEvent *eventPtr ));
 
 
 
-int time_lblAppInit( interp )
+int Timelbl_Init( interp )
 Tcl_Interp *interp;
 {
   Tcl_CreateCommand( interp, "time_lbl", TimeLbl_create,
@@ -141,6 +213,8 @@ char *argv[];
     return TCL_ERROR;
   }
 
+  lbl->interp = interp;
+
     /* convert the arguments from strings, put them in the widget record */
   if (TCL_OK != ConvertArgs( interp,
 		 "time_lbl <window name> <from time> <to time>",
@@ -155,18 +229,9 @@ char *argv[];
     goto failed_1;
   }
 
-    /* set to NULL so nobody tries to free() */
-  lbl->format_str = 0;
-
-    /* grab pointer to interpreter */
-  lbl->interp = interp;
-
     /* this string won't last, better make a copy */
   lbl->windowName = STRDUP( lbl->windowName );
 
-    /* build canvas name */
-  lbl->canvasName = (char*)malloc( strlen(lbl->windowName)+3 );
-  sprintf( lbl->canvasName, "%s.c", lbl->windowName );
 
     /* create the Tk window */
   lbl->win = Tk_CreateWindowFromPath( interp, (Tk_Window)clientData,
@@ -179,14 +244,12 @@ char *argv[];
 
   Tk_SetClass( lbl->win, "time_lbl" );
 
-    /* set default colors and font */
+    /* set default colors */
   Configure( lbl, argc-4, argv+4 );
 
-/*
-  lbl->fg = "white";
-  lbl->bg = "red";
-  lbl->font = "7x13";
-*/
+    /* build canvas name */
+  lbl->canvasName = (char*)malloc( strlen(lbl->windowName)+3 );
+  sprintf( lbl->canvasName, "%s.c", lbl->windowName );
 
     /* call Tcl to create the canvas */
   sprintf( cmd, "canvas %s -bg %s -relief sunken -scrollincrement 1",
@@ -199,29 +262,31 @@ char *argv[];
     /* and return any error code */
   if (TCL_OK != Tcl_Eval( interp, cmd )) goto failed_3;
 
-    /* calculate the height and width of the labels, and thus the height
-       of the canvas and the minimum space between label centers */
-  CalcLblSize( lbl );
+    /* calculate the height of the labels, and thus the height
+       of the canvas */
+  if (CalcLblSize( lbl )!= TCL_OK) goto failed_3;
 
     /* request the neccessary height, but dunno about width */
   Tk_GeometryRequest( lbl->win, 1, lbl->height );
-
     /* tell Tcl the size the widget wants */
   sprintf( cmd, "%s config -height %d",
 	   lbl->canvasName, lbl->height );
     /* and return any error code */
   if (TCL_OK != Tcl_Eval( interp, cmd )) goto failed_3;
 
-    /* set to invalid values so that when values are assigned,
-       the values will definitely change */
-  lbl->scroll_total = -1;
-  lbl->scroll_visible = -1;
+  lbl->totaltime = lbl->endtime - lbl->starttime;
 
-    /* cannot be computed until both a resize and a set command */
-  lbl->width = 0;
-    /* mark as invalid so set() won't die if it is called
-       before the first resize */
-  lbl->visWidth = -1;
+  lbl->visWidth = 1;
+  lbl->width = 1;
+
+  lbl->left = -1;
+  lbl->span = 0;
+  lbl->lastSpan = -1;
+  lbl->lastVisWidth = -1;
+
+    /* set to NULL so nobody tries to free() */
+  lbl->format_str = 0;
+
   lbl->xview = 0;
 
     /* clear the linked list of hash marks */
@@ -283,11 +348,18 @@ char **argv;
   timelbl *lbl;
   Tcl_DString cmd;
   int i, returnVal;
+  double left, span;
 
   lbl = (timelbl*)clientData;
 
-  if (!strcmp( argv[1], "set" )) {
-    return Set( lbl, argc, argv );
+  if (!strcmp( argv[1], "setview" )) {
+    if (ConvertArgs( lbl->interp, "timelbl set <left> <span>",
+		     "2 ff", argc, argv, &left, &span )
+	!= TCL_OK) {
+      return TCL_ERROR;
+    } else {
+      return Set( lbl, left, span );
+    }
   }
 
   if (!strcmp( argv[1], "copy" )) {
@@ -330,13 +402,8 @@ timelbl *lbl;
 int width, height;
 {
   lbl->visWidth = width;
-    /* mark as invalid so a recalc will definitely be done */
-  lbl->scroll_total = lbl->scroll_visible = -1;
 
-  /* this assumes that a Set() will always follow a resize */
-  /*         *cross fingers*   *check reference documentation*      */
-
-  return 0;
+  return Recalc( lbl );
 }
 
 
@@ -360,6 +427,7 @@ char **argv;
 
 
 
+#if 0
 static int GetFont( interp, canvas )
 Tcl_Interp *interp;
 char *canvas;
@@ -372,6 +440,7 @@ char *canvas;
     return TCL_OK;
   }
 }
+#endif
 
 
 
@@ -379,23 +448,29 @@ char *canvas;
 static int CalcLblSize( lbl )
 timelbl *lbl;
 {
-  char cmd[TMP_CMD_LEN], *font;
+  char cmd[TMP_CMD_LEN];
   int tmp_text_id, top, bottom, height;
 
+ 
+/*
   if (TCL_OK != GetFont( lbl->interp, lbl->canvasName )) {
     goto err;
   }
+*/
 
+/*
   font = STRDUP( lbl->interp->result );
+*/
 
     /* create temporary object on the canvas */
   if (TCL_OK != Tcl_VarEval( lbl->interp, lbl->canvasName,
-			     " create text 0 0 -text 8 -font ", font,
-			     (char*)0 )) {
+			     " create text 0 0 -text 8 ", (char*)0 )) {
     goto err;
   }
 
+/*
   free( font );
+*/
 
     /* grab the id of the text created */
   tmp_text_id = atoi( lbl->interp->result );
@@ -420,86 +495,328 @@ timelbl *lbl;
 
 
 
-
-static int Set( lbl, argc, argv )
+static int Set( lbl, left, span )
 timelbl *lbl;
-int argc;
-char **argv;
+double left, span;
 {
-  double leftEdgeTime, rightEdgeTime;
-    /* time values at the left and right edges of the visible range */
-  timelbl_hashmark *freeList, *firstExisting, *freeListTail, *node, *last;
-  char cmd[TMP_CMD_LEN];
-                   
-  int hashNo;
+  if (span <= 0) {
+    Tcl_SetResult( lbl->interp, "invalid span", TCL_STATIC );
+    return TCL_ERROR;
+  }
 
+  lbl->left = left;
+  lbl->span = span;
+
+  return Recalc( lbl );
+}
+
+
+
+
+
+static int CreateHash( lbl, hashNo, node )
+timelbl *lbl;
+int hashNo;
+timelbl_hashmark *node;
+{
+  char cmd[TMP_CMD_LEN], lbl_str[100];
+  double xpos;
+
+#if DEBUG>2
+  fprintf( stderr, "Creating hash # %d\n", hashNo );
+#endif
+
+  xpos = LblHashNo2X( lbl, hashNo );
+  node->lbl_idx = hashNo;
+
+    /* create the hash line */
+  sprintf( cmd, "%s create line %.17g 0 %.17g %d -fill %s -tags color_fg",
+	   lbl->canvasName, xpos, xpos, HASH_LEN, lbl->fg );
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
+    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
+  sscanf( lbl->interp->result, "%d", &node->hashMark_canvas_idx );
+
+    /* create the text label */
+  sprintf( lbl_str, lbl->format_str, lbl->firstHashTime +
+	   lbl->hashIncrement * hashNo );
+  sprintf( cmd, "%s create text %.17g %d -anchor n -text %s -fill %s -tags color_fg",
+	   lbl->canvasName, xpos, HASH_LEN+SPACE_HASH_LBL, lbl_str,
+	   lbl->fg );
+    /*  -font %s, lbl->font,  */
+#if DEBUG>2
+  fprintf( stderr, "%s\n", cmd );
+#endif
+
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
+    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
+  sscanf( lbl->interp->result, "%d", &node->text_canvas_idx );
+
+  return 0;
+}
+
+  
+
+static int UpdateHash( lbl, hashNo, node )
+timelbl *lbl;
+int hashNo;
+timelbl_hashmark *node;
+{
+  char cmd[TMP_CMD_LEN], lbl_str[100];
+  double xpos;
+
+#if DEBUG>2
+  fprintf( stderr, "Updating hash # %d from %d\n", hashNo,
+	   node->lbl_idx );
+#endif
+
+  xpos = LblHashNo2X( lbl, hashNo );
+  node->lbl_idx = hashNo;
+  sprintf( cmd, "%s coords %d %.17g 0 %.17g %d",
+	   lbl->canvasName, node->hashMark_canvas_idx, xpos, xpos,
+	   HASH_LEN );
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
+    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
+
+  /* Shouldn't have to redefine the fill color
+  sprintf( cmd, "%s itemconfig %d -fill %s",
+	   lbl->canvasName, node->hashMark_canvas_idx, lbl->fg );
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
+    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
+  */
+
+  sprintf( lbl_str, lbl->format_str, lbl->firstHashTime +
+	   lbl->hashIncrement * hashNo );
+  sprintf( cmd, "%s coords %d %.17g %d", lbl->canvasName,
+	   node->text_canvas_idx, xpos,
+	   HASH_LEN+SPACE_HASH_LBL );
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
+    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
+
+  sprintf( cmd, "%s itemconfig %d -anchor n -text %s -fill %s",
+	   lbl->canvasName, node->text_canvas_idx, lbl_str,
+	   lbl->fg );
+  /* -font %s lbl->font,  */
+#if DEBUG>2
+  fprintf( stderr, "%s\n", cmd );
+#endif
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
+    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
+
+  return 0;
+}
+
+
+static int DeleteHash( lbl, node )
+timelbl *lbl;
+timelbl_hashmark *node;
+{
+  char cmd[TMP_CMD_LEN];
+
+    /* delete the hash line */
+  sprintf( cmd, "%s delete %d", lbl->canvasName,
+	   node->hashMark_canvas_idx );
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
+    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
+
+    /* delete the text label */
+  sprintf( cmd, "%s delete %d", lbl->canvasName, node->text_canvas_idx );
+  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
+    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
+
+  return 0;
+}
+
+
+
+
+  /* erase all existing hash marks */
+static int EraseAllHashes( lbl )
+timelbl *lbl;
+{
+  timelbl_hashmark *node, *next;
+
+    /* traverse the linked list of hash marks */
+  node = lbl->head;
+  while (node) {
+      /* delete each one from the canvas */
+    DeleteHash( lbl, node );
+
+      /* delete each one from the linked list */
+    next = node->next;
+    free( (char*)node );
+    node = next;
+  }
+
+  lbl->head = lbl->tail = 0;
+  return 0;
+}
+
+
+
+  /* recalculate where the labels go and how to format them */
+  /* this routine sets lbl->hashIncrement, lbl->firstHashTime, and
+     lbl->format_str */
+static int Recalc( lbl )
+timelbl *lbl;
+{
+    /* text_width - the actual width of the text that makes up an average
+       label */
+
+    /* configure event hasn't been sent yet, so don't do anything */
+  if (lbl->visWidth == -1) return TCL_OK;
+
+    /* nobody has set me, so don't do anything */
+  if (lbl->span == 0) return TCL_OK;
+
+  if (lbl->left > lbl->endtime) {
+    lbl->left = lbl->endtime;
+  } else if (lbl->left < lbl->starttime) {
+    lbl->left = lbl->starttime;
+  }
+  if (lbl->span > lbl->totaltime) {
+    lbl->span = lbl->totaltime;
+  }
+
+
+#if DEBUG>1
+  fprintf( stderr, "Start recalc\n" );
+  fprintf( stderr, "span: %f, width: %f\n", lbl->span, lbl->width );
+  fprintf( stderr, "time: %f to %f\n", lbl->starttime, lbl->endtime );
+#endif
+
+  if (lbl->span != lbl->lastSpan || lbl->visWidth != lbl->lastVisWidth) {
+
+    lbl->lastSpan = lbl->span;
+    lbl->lastVisWidth = lbl->visWidth;
+
+    RecalcSpan( lbl );
+    if (EraseAllHashes( lbl )!=TCL_OK) return TCL_ERROR;
+  }
+  RecalcLeft( lbl );
+  if (Redraw( lbl )!=TCL_OK) return TCL_ERROR;
+
+  return TCL_OK;
+}
+
+
+/*
+   Recalculate width and hashIncrement.
+*/
+int RecalcSpan( lbl )
+timelbl *lbl;
+{
+  int max_nlbls, ndec, try_again;
+
+    /* recalculate the width of the canvas */
+  lbl->width = lbl->visWidth * (lbl->totaltime) / lbl->span;
+
+    /* minimum magnitude of the difference between hash marks */
+  /* diffMag = log10( lbl->totaltime ); */
+    
+    /* estimate 5 pixels as the narrowest a label could get */
+    /* set how many labels can be displayed */
+  max_nlbls = lbl->width / (5 + SPACE_LBL_LBL);
+  if (max_nlbls == 0) max_nlbls = 1;
+
+    /* calculate the difference between hash marks */
+  lbl->hashIncrement =
+    pow( 10.0, ceil( log10( lbl->totaltime ) -
+		     log10( (double) max_nlbls ) ) );
+
+    /* start at a really small increment, and keep multiplying it by
+       10 until the hashes required to draw it will actually fit */
+  do {
+    try_again = 0;
+      /* figger the number of decimal places in each label */
+    ndec = lbl->hashIncrement >= 1
+      ? 0
+	: (int)(-log10( lbl->hashIncrement )+.5);
+      
+      /* calculate lbl->firstHashTime, and lbl->format_str */
+    FiggerHashDrawingInfo( lbl, ndec );
+      /* if the hashes won't fit, spread them out by a factor of
+	 10 and try again */
+    if (!HashesWillFit( lbl )) {
+      lbl->hashIncrement *= 10.0;
+      try_again = 1;
+    }
+  } while (try_again);
+  
+    /* try 4 subdivisions */
+  lbl->hashIncrement /= 4.0;
+    /* if the number of decimal places is already > 0,
+       increment by 2, otherwise, if the hash increment
+       is >= 100, leave at 0, for 10 -> 1, for <10, set to 2 */
+  ndec = (ndec) ? ndec+2 :
+    (lbl->hashIncrement >= 100.0) ? 0 :
+      (lbl->hashIncrement >= 10.0) ? 1 : 2;
+  FiggerHashDrawingInfo( lbl, ndec );
+
+  if (!HashesWillFit( lbl )) {
+      /* if 4 won't fit, try 2 */
+    lbl->hashIncrement *= 2.0;
+    ndec -= (ndec) ? 1 : 0;
+    FiggerHashDrawingInfo( lbl, ndec );
+    if (!HashesWillFit( lbl )) {
+        /* if 2 won't fit, just go back to what it was */
+      lbl->hashIncrement *= 2.0;
+      ndec -= (ndec) ? 1 : 0;
+      FiggerHashDrawingInfo( lbl, ndec );
+    }
+  }
+
+#if DEBUG
+  fprintf( stderr, "labels with text of the form %s will be placed at intervals of %f starting at %f, first one at %f, x-intervals of %f\n",
+	   lbl->format_str, lbl->hashIncrement,
+	   lbl->firstHashTime, LblHashNo2X( lbl, 0),
+	   LblHashNo2X( lbl, 1 ) -  LblHashNo2X( lbl, 0) );
+#endif
+
+  return TCL_OK;
+}
+
+
+
+int RecalcLeft( lbl )
+timelbl *lbl;
+{
+  lbl->xview = (lbl->left - lbl->starttime) / lbl->totaltime * lbl->width;
+
+  return TCL_OK;
+}
+
+
+
+int Redraw( lbl )
+timelbl *lbl;
+{
+  char *cmd;
   int firstVisibleHash, lastVisibleHash;
     /* indices of the first and last visible hash */
 
-    /* the numbers will be something like 41, 19, 0, 20 */
-  int totalUnits, windowUnits, firstUnit, lastUnit;
+  int hashNo;
+  timelbl_hashmark *freeList, *last, *node, *freeListTail;
+  timelbl_hashmark *firstExisting;
 
-  if (TCL_OK != ConvertArgs( lbl->interp,
-	   "timelbl set <totalUnits> <windowUnits> <firstUnit> <lastUnit>",
-			     "2 dddd", argc, argv, &totalUnits, &windowUnits,
-			     &firstUnit, &lastUnit ))
-    return TCL_ERROR;
+  cmd = malloc( strlen(lbl->canvasName) + 50 );
 
-    /* What's up with widowUnits? */
-  windowUnits = lastUnit - firstUnit + 1;
-
-  if (lbl->visWidth == -1) {
-      /* configure event hasn't been sent yet, so don't do anything */
-    return TCL_OK;
-  }
-
-  if (totalUnits != lbl->scroll_total ||
-      windowUnits != lbl->scroll_visible) {
-
-      /* if the window has changed, recalculate the horizontal
-	 sizing stuff */
-      /* recalculate the width of the canvas */
-      /* will be something like 'width = 140 / 70 * 700' */
-    lbl->width = (double)totalUnits * lbl->visWidth / windowUnits;
-
-    Recalc( lbl, totalUnits, windowUnits );
-    EraseAllHashes( lbl );
-    lbl->scroll_total = totalUnits;
-    lbl->scroll_visible = windowUnits;
-  }
-
-    /* move the display over so the existing correct elements
-       can be in place quickly */
-
-  lbl->xview = lbl->width * firstUnit / totalUnits;
   sprintf( cmd, "%s xview %d", lbl->canvasName, lbl->xview );
   if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
     fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
 
-    /* recalc the times at the far left and far right edges of the display */
-  leftEdgeTime = firstUnit * (lbl->endtime - lbl->starttime) /
-    (totalUnits-1) + lbl->starttime;
-  rightEdgeTime = (lastUnit+1) * (lbl->endtime - lbl->starttime) /
-    (totalUnits-1) + lbl->starttime;
-
-/*
-  fprintf( stderr, "time_lbl: left %f, right %f\n",
-	   leftEdgeTime, rightEdgeTime );
-*/
-
     /* figure out the indices of the hashes at the far left and right
        edges */
-  firstVisibleHash = (int)((leftEdgeTime - lbl->starttime) / 
+  firstVisibleHash = (int)((lbl->left - lbl->starttime) / 
 			   lbl->hashIncrement + .5);
-  lastVisibleHash = (int)((rightEdgeTime - lbl->starttime) / 
+  lastVisibleHash = (int)((lbl->left + lbl->span - lbl->starttime) / 
 			  lbl->hashIncrement + .5);
-
+	       
 #if DEBUG>1
   fprintf( stderr, "(left,right)(time,hash): %f %d %f %d\n",
 	   leftEdgeTime, firstVisibleHash, rightEdgeTime,
 	   lastVisibleHash );
 #endif
-
+  
 
     /* get the necessary hashes drawn */
 
@@ -687,10 +1004,12 @@ char **argv;
     freeList = last;
   }
 
+  free( cmd );
+
 #if DEBUG>2
   {
     timelbl_hashmark *node;
-    fprintf( stderr, "*End of call to Set(), node list:\n" );
+    fprintf( stderr, "*End of call to Redraw(), node list:\n" );
     node = lbl->head;
     while (node) {
       fprintf( stderr, "hash idx: %d, canvas idxs: %d %d\n",
@@ -704,226 +1023,8 @@ char **argv;
 
   return TCL_OK;
 }
-
-
-static int CreateHash( lbl, hashNo, node )
-timelbl *lbl;
-int hashNo;
-timelbl_hashmark *node;
-{
-  char cmd[TMP_CMD_LEN], lbl_str[100];
-  double xpos;
-
-#if DEBUG>2
-  fprintf( stderr, "Creating hash # %d\n", hashNo );
-#endif
-
-  xpos = LblHashNo2X( lbl, hashNo );
-  node->lbl_idx = hashNo;
-
-    /* create the hash line */
-  sprintf( cmd, "%s create line %.17g 0 %.17g %d -fill %s -tags color_fg",
-	   lbl->canvasName, xpos, xpos, HASH_LEN, lbl->fg );
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
-  sscanf( lbl->interp->result, "%d", &node->hashMark_canvas_idx );
-
-    /* create the text label */
-  sprintf( lbl_str, lbl->format_str, lbl->firstHashTime +
-	   lbl->hashIncrement * hashNo );
-  sprintf( cmd, "%s create text %.17g %d -anchor n -text %s -font %s -fill %s -tags color_fg",
-	   lbl->canvasName, xpos, HASH_LEN+SPACE_HASH_LBL, lbl_str,
-	   lbl->font, lbl->fg );
-#if DEBUG>2
-  fprintf( stderr, "%s\n", cmd );
-#endif
-
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
-  sscanf( lbl->interp->result, "%d", &node->text_canvas_idx );
-
-  return 0;
-}
-
   
 
-static int UpdateHash( lbl, hashNo, node )
-timelbl *lbl;
-int hashNo;
-timelbl_hashmark *node;
-{
-  char cmd[TMP_CMD_LEN], lbl_str[100];
-  double xpos;
-
-#if DEBUG>2
-  fprintf( stderr, "Updating hash # %d from %d\n", hashNo,
-	   node->lbl_idx );
-#endif
-
-  xpos = LblHashNo2X( lbl, hashNo );
-  node->lbl_idx = hashNo;
-  sprintf( cmd, "%s coords %d %.17g 0 %.17g %d",
-	   lbl->canvasName, node->hashMark_canvas_idx, xpos, xpos,
-	   HASH_LEN );
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
-
-  /* Shouldn't have to redefine the fill color
-  sprintf( cmd, "%s itemconfig %d -fill %s",
-	   lbl->canvasName, node->hashMark_canvas_idx, lbl->fg );
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
-  */
-
-  sprintf( lbl_str, lbl->format_str, lbl->firstHashTime +
-	   lbl->hashIncrement * hashNo );
-  sprintf( cmd, "%s coords %d %.17g %d", lbl->canvasName,
-	   node->text_canvas_idx, xpos,
-	   HASH_LEN+SPACE_HASH_LBL );
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
-
-  sprintf( cmd, "%s itemconfig %d -anchor n -text %s -font %s -fill %s",
-	   lbl->canvasName, node->text_canvas_idx, lbl_str,
-	   lbl->font, lbl->fg );
-#if DEBUG>2
-  fprintf( stderr, "%s\n", cmd );
-#endif
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
-
-  return 0;
-}
-
-
-static int DeleteHash( lbl, node )
-timelbl *lbl;
-timelbl_hashmark *node;
-{
-  char cmd[TMP_CMD_LEN];
-
-    /* delete the hash line */
-  sprintf( cmd, "%s delete %d", lbl->canvasName,
-	   node->hashMark_canvas_idx );
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
-
-    /* delete the text label */
-  sprintf( cmd, "%s delete %d", lbl->canvasName, node->text_canvas_idx );
-  if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
-    fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
-
-  return 0;
-}
-
-
-
-
-  /* erase all existing hash marks */
-static int EraseAllHashes( lbl )
-timelbl *lbl;
-{
-  timelbl_hashmark *node, *next;
-
-    /* traverse the linked list of hash marks */
-  node = lbl->head;
-  while (node) {
-      /* delete each one from the canvas */
-    DeleteHash( lbl, node );
-
-      /* delete each one from the linked list */
-    next = node->next;
-    free( (char*)node );
-    node = next;
-  }
-
-  lbl->head = lbl->tail = 0;
-  return 0;
-}
-
-
-
-  /* recalculate where the labels go and how to format them */
-  /* this routine sets lbl->hashIncrement, lbl->firstHashTime, and
-     lbl->format_str */
-static int Recalc( lbl, totalUnits, windowUnits )
-timelbl *lbl;
-int totalUnits, windowUnits;
-{
-  double diffMag;
-  double max_nlbls;		/* maximum number of labels */
-  int ndec;
-  int try_again;
-    /* text_width - the actual width of the text that makes up an average
-       label */
-
-#if DEBUG>1
-  fprintf( stderr, "Start recalc\n" );
-  fprintf( stderr, "total: %d, win: %d\n", totalUnits, windowUnits );
-  fprintf( stderr, "time: %f to %f\n", lbl->starttime, lbl->endtime );
-#endif
-
-    /* minimum magnitude of the difference between hash marks */
-  diffMag = log10( lbl->endtime - lbl->starttime );
-  
-    /* estimate 5 pixels as the narrowest a label could get */
-    /* set how many labels can be displayed */
-  max_nlbls = lbl->width / (5 + SPACE_LBL_LBL);
-
-    /* calculate the difference between hash marks */
-  lbl->hashIncrement = pow( 10.0,
-		  ceil( log10( lbl->endtime - lbl->starttime ) -
-		        log10( (double) max_nlbls ) ) );
-
-  do {
-    try_again = 0;
-      /* figger the number of decimal places in each label */
-    ndec = lbl->hashIncrement >= 1
-      ? 0
-      : (int)(-log10( lbl->hashIncrement )+.5);
-
-      /* calculate lbl->firstHashTime, and lbl->format_str */
-    FiggerHashDrawingInfo( lbl, ndec );
-      /* if the hashes won't fit, spread them out by a factor of
-	 10 and try again */
-    if (!HashesWillFit( lbl )) {
-      lbl->hashIncrement *= 10.0;
-      try_again = 1;
-    }
-  } while (try_again);
-
-    /* try 4 subdivisions */
-  lbl->hashIncrement /= 4.0;
-    /* if the number of decimal places is already > 0,
-       increment by 2, otherwise, if the hash increment
-       is >= 100, leave at 0, for 10 -> 1, for <10, set to 2 */
-  ndec = (ndec) ? ndec+2 :
-         (lbl->hashIncrement >= 100.0) ? 0 :
-         (lbl->hashIncrement >= 10.0) ? 1 : 2;
-  FiggerHashDrawingInfo( lbl, ndec );
-
-  if (!HashesWillFit( lbl )) {
-      /* if 4 won't fit, try 2 */
-    lbl->hashIncrement *= 2.0;
-    ndec -= (ndec) ? 1 : 0;
-    FiggerHashDrawingInfo( lbl, ndec );
-    if (!HashesWillFit( lbl )) {
-        /* if 2 won't fit, just go back to what it was */
-      lbl->hashIncrement *= 2.0;
-      ndec -= (ndec) ? 1 : 0;
-      FiggerHashDrawingInfo( lbl, ndec );
-    }
-  }
-
-#if DEBUG
-  fprintf( stderr, "labels with text of the form %s will be placed at intervals of %f starting at %f, first one at %f, x-intervals of %f\n",
-	   lbl->format_str, lbl->hashIncrement,
-	   lbl->firstHashTime, LblHashNo2X( lbl, 0),
-	   LblHashNo2X( lbl, 1 ) -  LblHashNo2X( lbl, 0) );
-#endif
-
-  return 0;
-}
 
 
 /*
@@ -953,14 +1054,15 @@ timelbl *lbl;
 {
   char cmd[TMP_CMD_LEN], sample_num[100];
   int test_item_index, left, right, text_width;
-  
+
     /* the endtime is goint to be the longest possible number displayed */
     /* for example, over the range 1.0 to 100.0 */
   sprintf( sample_num, lbl->format_str, lbl->endtime );
 
     /* create the text item */
-  sprintf( cmd, "%s create text 0 0 -text %s -font %s", lbl->canvasName,
-	   sample_num, lbl->font );
+  sprintf( cmd, "%s create text 0 0 -text %s", lbl->canvasName,
+	   sample_num );
+    /*  -font %s , lbl->font */
   if (TCL_OK != Tcl_Eval( lbl->interp, cmd ))
     fprintf( stderr, "%s, %d: %s\n", __FILE__, __LINE__, lbl->interp->result );
   sscanf( lbl->interp->result, "%d", &test_item_index );
@@ -987,6 +1089,9 @@ timelbl *lbl;
 	  LblHashNo2X( lbl, 1 ) );
 #endif
 
+    /* if just this label is wider than the entire window, let it go */
+  if (text_width > lbl->width) return 1;
+
   if (text_width + SPACE_LBL_LBL >
       LblHashNo2X( lbl, 1 ) -  LblHashNo2X( lbl, 0)) {
       /* return 0 if the labels are too closely packed */
@@ -1012,8 +1117,7 @@ static double LblTime2X( lbl, time )
 timelbl *lbl;
 double time;
 {
-  return (time - lbl->starttime) / (lbl->endtime - lbl->starttime) *
-    lbl->width;
+  return (time - lbl->starttime) / (lbl->totaltime) * lbl->width;
 }
 
 
@@ -1030,32 +1134,34 @@ char **argv;
   char bbox[100];
   char dest_coords[100];
 
-  if (TCL_OK != ConvertArgs( interp,
-			     "<window> copy <dest_canvas> <x> <y>",
-			     "2 sdd", argc, argv, &dest_canvas, &x, &y )) {
+  if (ConvertArgs( interp, "<window> copy <dest_canvas> <x> <y>",
+		   "2 sdd", argc, argv, &dest_canvas, &x, &y )
+      != TCL_OK) {
     return TCL_ERROR;
   }
 
   first_idx = lbl->head->lbl_idx;
   x0 = LblHashNo2X( lbl, first_idx );
   x1 = LblHashNo2X( lbl, first_idx+1 );
-  
+
     /* If the hash mark of the first label is visible, grab the whole
        label (set left chop point to halfway between lbl(0) and lbl(-1)).
        If it is not visible, chop it out of view entirely */
-  left_chop = (x0 < lbl->xview) ? (int)((x0 + x1)/2) : (int)(x0 - (x1 - x0)/2);
+  left_chop = (x0 < lbl->xview) ? (int)((x0 + x1)/2)
+                                         : (int)(x0 - (x1 - x0)/2);
 
   last_idx = lbl->tail->lbl_idx;
   x0 = LblHashNo2X( lbl, last_idx-1 );
   x1 = LblHashNo2X( lbl, last_idx );
 
     /* similar deal with chopping off the last label */
-  right_chop = (x1 > lbl->xview + lbl->visWidth) ?
+  right_chop = (x1 > lbl->xview + lbl->visWidth ) ?
     (int)((x0 + x1)/2) : (int)(x1 + (x1 - x0)/2);
 
   sprintf( bbox, "%d %d %d %d", left_chop, 0, right_chop, lbl->height );
   sprintf( dest_coords, "%d %d", x - lbl->xview + left_chop, y );
   return Tcl_VarEval( interp, "CopyCanvas ", lbl->canvasName, " {", bbox,
-		      "} ", dest_canvas, " {", dest_coords, "}", (char*)0 );
+		      "} ", dest_canvas, " {", dest_coords, "} color_bg",
+		      (char*)0 );
 }
 

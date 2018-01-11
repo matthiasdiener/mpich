@@ -48,16 +48,16 @@ linktest: default clean
 
 all: testing
 
-timers: timers.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o timers $(DEVICE_MAIN) timers.o $(LIBS)
-baseattr: baseattr.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o baseattr $(DEVICE_MAIN) baseattr.o $(LIBS)
+timers: timers.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o timers timers.o test.o $(LIBS)
+baseattr: baseattr.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o baseattr baseattr.o test.o $(LIBS)
 baseattrf: baseattrf.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(FLINKER) $(OPTFLAGS) -o baseattrf $(DEVICE_MAIN) baseattrf.o $(LIBS)
-errhand: errhand.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o errhand $(DEVICE_MAIN) errhand.o $(LIBS)
-sigchk: sigchk.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o sigchk $(DEVICE_MAIN) sigchk.o $(LIBS)
+	$(FLINKER) $(OPTFLAGS) -o baseattrf baseattrf.o $(LIBS)
+errhand: errhand.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o errhand errhand.o test.o $(LIBS)
+sigchk: sigchk.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o sigchk sigchk.o test.o $(LIBS)
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core *.out *.orig
 

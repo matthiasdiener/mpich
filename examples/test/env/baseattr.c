@@ -33,6 +33,7 @@ if (!flag || ((vval < 0 || vval >= size) && vval != MPI_ANY_SOURCE &&
     err++;
     fprintf( stderr, "Could not get IO or got invalid value\n" );
     }
+Test_Waitforall( );
 MPI_Finalize( );
 
 return err;

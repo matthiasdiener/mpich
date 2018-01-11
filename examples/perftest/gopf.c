@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;MPI_Status _mpi_status;static int _n;
+extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
 
 
 #if HAVE_STDLIB_H
@@ -166,12 +166,6 @@ if (SYArgHasName( argc, argv, 1, "-colxex" )) {
     strcpy( test_name, "colxex" );
     strcpy( units, "(ints)" );
     }
-if (SYArgHasName( argc, argv, 1, "-native" )) {
-    use_native = 1;
-    }
-else {
-    strcat( test_name, "-not native" );
-    }
 
 /* Convert operation and dtype to routine */
 f = 0;
@@ -260,8 +254,6 @@ PrintGOPHelp()
   fprintf( stderr, "-ring   : use a ring algorithm\n" );
   fprintf( stderr, "-tree   : use a tree algorithm\n" );
   fprintf( stderr, "-line   : use a linear algorithm\n" );
-  fprintf( stderr, "-native : use the native routines (if available)\n" );
-
   fprintf( stderr, "\nOptions for collective algorithms\n" );
   fprintf( stderr, "-pkt len stride cnt : use packets of length len\n" );
   fprintf( stderr, 

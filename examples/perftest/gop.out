@@ -1,0 +1,45 @@
+set default
+set font variable
+set curve window y 0.15 0.90
+title left 'time (us)', bottom 'Processes',
+      top 'Comm Perf for MPI (0.)',
+ 'type = scatter'
+
+#np time (us) for various sizes
+2 0.000000 89.200000 99.300000 110.160000 120.560000 
+set default
+set font variable
+set curve window y 0.15 0.90
+title left 'time (us)', bottom 'Processes',
+      top 'Comm Perf for MPI (0.)',
+ 'type = scatter'
+
+#np time (us) for various sizes
+2 0.000000 89.700000 99.520000 110.571116 120.883212 
+4 0.000000 238.660000 271.700000 304.902439 337.325424 
+6 0.000000 238.580000 271.180000 304.778116 337.210169 
+8 0.000000 253.200000 292.560000 333.996678 374.642857 
+10 0.000000 310.940000 357.780000 401.429150 444.290179 
+12 0.000000 312.620000 356.880000 400.461847 443.546667 
+14 0.000000 386.320000 442.580000 497.605000 551.511111 
+16 0.000000 388.100000 442.400000 499.407960 551.670391 
+# Model complexity is (6.669296e-05 + n * 2.372361e-07)
+# startup = 66.69 usec and transfer rate = 4.22 Mbytes/sec
+set limits ymin 0
+set order x d d d d y
+plot square
+join '1024'
+set order x d d d y d
+plot square
+join '768'
+set order x d d y d d
+plot square
+join '512'
+set order x d y d d d
+plot square
+join '256'
+set order x y d d d d
+plot square
+join '0'
+wait
+new page

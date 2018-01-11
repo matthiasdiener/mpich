@@ -14,20 +14,23 @@
 
    These are not yet fully integrated into the code.  
 
-   Also note that the connection definitions are wrapped within
-   a MPID_MSG_PASSING; this allows other systems to provide an
-   alternative implementation at the connection level.
+   This file is designed for use with vendor message-passing systems through
+   the Chameleon definitions.  Other systems should REPLACE this file.
+   See mpid/ch_tcp and mpid/ch_shmem for examples.  Note also that once
+   NewDevice creates a device, the local mpid.h is not modified, so that
+   changes to packets.h can be accomplised by #defines
 
    In addition, we provide a simple way to log the "channel" operations
    If MPID_TRACE_FILE is set, we write information on the operation (both
    start and end) to the given file.  In order to simplify the code, we
-   use the macro MPID_TRACE_CODE(name,channel)
+   use the macro MPID_TRACE_CODE(name,channel).  Other implementations
+   of channel.h are encourage to provide the trace calls; note that as macros,
+   they can be completely removed at compile time for more 
+   performance-critical systems.
 
  */
 /* Do we need stdio here, or has it already been included? */
 
-#define MPID_MSG_PASSING
-#if defined(MPID_MSG_PASSING)
 #define MPID_MyWorldRank \
     __MYPROCID
 #define MPID_WorldSize \
@@ -47,6 +50,37 @@
     { MPID_TRACE_CODE("BSendControl",channel);\
       _nwrite(pkt,size,channel,MPID_PT2PT_TAG,&__N3FLAG);\
       MPID_TRACE_CODE("ESendControl",channel);}
+#if defined(MPID_USE_SEND_BLOCK) && ! defined(MPID_SendControlBlock)
+/* 
+   SendControlBlock allows the send to wait until the message is 
+   received (but does NOT require it).  This can simplify some buffer 
+   handling.
+ */
+#define MPID_SendControlBlock( pkt, size, channel ) \
+    { MPID_TRACE_CODE("BSendControl",channel);\
+      _nwrite(pkt,size,channel,MPID_PT2PT_TAG,&__N3FLAG);\
+      MPID_TRACE_CODE("ESendControl",channel);}
+#endif
+/* If we did not  SendControlBlock, make it the same as SendControl */
+#if !defined(MPID_SendControlBlock)
+#define MPID_SendControlBlock(pkt,size,channel) \
+      MPID_SendControl(pkt,size,channel)
+#endif
+/* Because a common operation is to send a control block, and decide whether
+   to use SendControl or SendControlBlock based on whether the send is 
+   non-blocking, we include a definition for it here: 
+ */
+#ifdef MPID_USE_SEND_BLOCK
+#define MPID_SENDCONTROL(mpid_send_handle,pkt,len,dest) \
+if (mpid_send_handle->is_non_blocking) \
+    MPID_SendControl( pkt, len, dest );\
+else \
+    MPID_SendControlBlock( pkt, len, dest );
+#else
+#define MPID_SENDCONTROL(mpid_send_handle,pkt,len,dest) \
+MPID_SendControl( pkt, len, dest );
+#endif
+
 #define MPID_SendChannel( buf, size, channel ) \
     { MPID_TRACE_CODE("BSend",channel);\
       _nwrite(buf,size,channel,MPID_PT2PT2_TAG(__MYPROCID),&__N3FLAG);\
@@ -78,27 +112,70 @@
     ;\
     MPID_TRACE_CODE("EWSend",channel);}
 
-/* These are the RR versions (channel is ready and buffer is prepared). 
-   This kind of channel COULD use remote put/get by using the remote address
-   as the 'channel' id */
-#define MPID_IRRSendChannel( buf, size, channel, partner, id ) \
-    {MPID_TRACE_CODE("BIRRSend",channel);\
-     id =0;_nwrite(buf,size,partner,MPID_PT2PT2_TAG(channel),&__N3FLAG);\
-     MPID_TRACE_CODE("EIRRSend",channel);}
-#define MPID_WRRSendChannel( buf, size, channel, partner, id ) \
-    {MPID_TRACE_CODE("BWRRSend",channel);\
-    ;\
-    MPID_TRACE_CODE("EWRRSend",channel);}
-
-/*
-   The syntax of this WILL change
- */
-#define MPID_NewChannel( partner, channel ) *(channel) = CurTag++
 /*
    We also need an abstraction for out-of-band operations.  These could
    use transient channels or some other operation.  This is essentially for
    performing remote memory operations without local intervention; the need
    to determine completion of the operation requires some sort of handle.
+   Here are the ones that we've chosen. Rather than call them transient 
+   channels, we  "transfers", which are split operations.  Both 
+   receivers and senders may create a transfer.
+
+   Note that the message-passing version of this uses the 'ready-receiver'
+   version of the operations.
  */
-/* ... not designed yet ... */
+#define MPID_CreateSendTransfer( buf, size, partner, id ) {*(id) = 0;}
+#define MPID_CreateRecvTransfer( buf, size, partner, id ) \
+       {*(id) = CurTag++;TagsInUse++;}
+
+#ifndef PI_NO_NRECV
+#define MPID_StartRecvTransfer( buf, size, partner, id, rid ) \
+    {MPID_TRACE_CODE("BIRRRecv",id);\
+     rid =0;\
+     MPID_TRACE_CODE("EIRRRecv",id);}
+#define MPID_EndRecvTransfer( buf, size, partner, id, rid ) \
+    {MPID_TRACE_CODE("BIWRRecv",id);\
+     __N3FROM=-1;__N3TYPE=MPID_PT2PT2_TAG(id);nread(buf,size,&__N3FROM,&__N3TYPE,&__N3LEN);\
+     MPID_TRACE_CODE("EIWRRecv",id);\
+     if (--TagsInUse == 0) CurTag = 1024; else if (id == CurTag-1) CurTag--;}
+#define MPID_TestRecvTransfer( rid ) \
+    1
+#else
+/* Put the tag value into rid so that we can probe it ... */
+#define MPID_StartRecvTransfer( buf, size, partner, id, rid ) \
+    {MPID_TRACE_CODE("BIRRRecv",id);\
+     rid = MPID_PT2PT2_TAG(id);\
+     MPID_TRACE_CODE("EIRRRecv",id);}
+#define MPID_EndRecvTransfer( buf, size, partner, id, rid ) \
+    {MPID_TRACE_CODE("BIWRRecv",id);\
+     __N3FROM=-1;__N3TYPE=MPID_PT2PT2_TAG(id);nread(buf,size,&__N3FROM,&__N3TYPE,&__N3LEN);\
+     MPID_TRACE_CODE("EIWRRecv",id);\
+     if (--TagsInUse == 0) CurTag = 1024; else if (id == CurTag-1) CurTag--;}
+#define MPID_TestRecvTransfer( rid ) \
+    (__N3FROM=-1,__N3TYPE=rid ,ntest(&__N3FROM,rid )>=0)
+
 #endif
+#ifdef PI_NO_NSEND
+#define MPID_StartSendTransfer( buf, size, partner, id, sid ) \
+    {MPID_TRACE_CODE("BIRRSend",id);\
+     _nwrite(buf,size,partner,MPID_PT2PT2_TAG(id),&__N3FLAG);\
+     sid = 1;\
+     MPID_TRACE_CODE("EIRRSend",id);}
+#define MPID_EndSendTransfer( buf, size, partner, id, sid ) \
+    {MPID_TRACE_CODE("BWRRSend",id);\
+    MPID_TRACE_CODE("EWRRSend",id);}
+#define MPID_TestSendTransfer( sid ) \
+    1
+#else
+#define MPID_StartSendTransfer( buf, size, partner, id, sid ) \
+    {MPID_TRACE_CODE("BIRRSend",id);\
+     sid =0;_nwrite(buf,size,partner,MPID_PT2PT2_TAG(id),&__N3FLAG);\
+     MPID_TRACE_CODE("EIRRSend",id);}
+#define MPID_EndSendTransfer( buf, size, partner, id, sid ) \
+    {MPID_TRACE_CODE("BWRRSend",id);\
+    ;\
+    MPID_TRACE_CODE("EWRRSend",id);}
+#define MPID_TestSendTransfer( sid ) \
+    1
+#endif
+/* Probably also need a test for completion */

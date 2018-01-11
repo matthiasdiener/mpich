@@ -15,18 +15,13 @@
 #ifndef _STATES_H_
 #define _STATES_H_
 
-/*
-#include "draw.h"
-*/
 #include "vis.h"
-/*
-#include "idx.h"
-*/
 #include "expandingList.h"
 
 
 typedef struct stateDefInfo_ {
   char *name, *color, *bitmap;
+  int ninst;			/* # of instances of this state */
 } stateDefInfo;
 
 
@@ -171,7 +166,13 @@ int State_End ARGS(( stateData *, int stateType, int proc,
   /* return the number of state instances logged */
 int State_N ARGS(( stateData * ));
 
-  /* Get info on state instance */
+/* return the # of instances logged of the given state type. */
+int State_TypeNinst ARGS(( stateData*, int typeno ));
+
+  /* Get info on state instance.  If parent is -1, this state had no parent.
+     If parent is -2, this state has a parent, but the parent has not
+     exited yet.  If nonnegative, parent is the index of the parent's canvas
+     ID. */
 int State_Get ARGS(( stateData *, int stateNum, int *type, int *proc,
 		     double *startTime, double *endTime,
 		     int *parent, int *firstChild, int *overlapLevel ));

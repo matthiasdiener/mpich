@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.41 1995/01/14 19:41:11 gropp Exp $
+ *  $Id: mpi.h,v 1.44 1995/03/05 20:23:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -36,7 +36,7 @@ extern MPI_Datatype MPI_FLOAT_INT, MPI_DOUBLE_INT, MPI_LONG_INT, MPI_SHORT_INT,
                     MPIR_2complex_dte, MPIR_2dcomplex_dte, MPIR_logical_dte, 
                     MPIR_int1_dte, 
                     MPIR_int2_dte, MPIR_int4_dte, MPIR_real4_dte, 
-                    MPIR_real8_dte;
+                    MPIR_real8_dte, MPI_REAL, MPI_DOUBLE_PRECISION;
 /* 
    The layouts for the types MPI_DOUBLE_INT etc are simply
    struct { 
@@ -105,7 +105,7 @@ typedef long MPI_Aint;
 
 
 #if (defined(__STDC__) || defined(__cpluscplus))
-typedef void (MPI_Handler_function)( MPI_Comm comm, int *code, ...);
+typedef void (MPI_Handler_function)( MPI_Comm *, int *, ... );
 #else
 typedef void (MPI_Handler_function)();
 #endif
@@ -124,7 +124,7 @@ extern MPI_Errhandler MPI_ERRORS_ARE_FATAL, MPI_ERRORS_RETURN,
 typedef union MPIR_HANDLE *MPI_Request;
 
 /* User combination function */
-#ifdef __STDC__
+#if defined(__STDC__) || defined(__cplusplus)
 typedef void (MPI_User_function)( void *invec, void *inoutvec, int *len,  
 				   MPI_Datatype *datatype); 
 #else
@@ -132,7 +132,7 @@ typedef void (MPI_User_function)();
 #endif
 
 /* MPI Attribute copy and delete functions */
-#ifdef __STDC__
+#if defined(__STDC__) || defined(__cplusplus)
 typedef int (MPI_Copy_function)( MPI_Comm *oldcomm, int *keyval, void *extra_state,
 			       void *attr_in, void **attr_out, int *flag);
 typedef int (MPI_Delete_function)( MPI_Comm *comm, int *keyval, void *attr_val,

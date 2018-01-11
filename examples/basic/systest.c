@@ -76,7 +76,7 @@ int GlobalReadInteger()
     return value;
 }
 
-static void Hello()
+void Hello()
 /*
   Everyone exchanges a hello message with everyone else.
   The hello message just comprises the sending and target nodes.
@@ -114,7 +114,7 @@ static void Hello()
     }
 }
 
-static void Ring()       /* Time passing a message round a ring */
+void Ring()       /* Time passing a message round a ring */
 {
     int nproc, me;
     MPI_Status status;

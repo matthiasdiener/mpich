@@ -21,10 +21,11 @@ sed -e 's/MPID_CH/MPID_CMMD/g' ../chameleon/channel.h > channel.h
     sed -e 's%/\* #CMMD DECLARATION# \*/%#include <sys/file.h>%g' > cmmdinit.c
 ../chameleon/rmhetero ../chameleon/chprobe.c > cmmdprobe.c
 ../chameleon/rmhetero ../chameleon/chsync.c  > cmmdsync.c
+../chameleon/rmhetero ../chameleon/chrndv.c  > cmmdrndv.c
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -cm5 cmmdinit.c
 for file in cmmdevent.c cmmdrecv.c cmmdsend.c cmmdprobe.c cmmdsync.c \
-	dmcmmd.h packets.h channel.h ; do
+	cmmdrndv.c dmcmmd.h packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -cm5 $file
 done
 #

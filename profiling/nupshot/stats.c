@@ -20,7 +20,7 @@
 
 /* Sorry about this kludge, but our ANSI C compiler on our suns has broken
    header files */
-#if defined(sparc) && defined(__STDC__)
+#ifdef GCC_WALL
 int fprintf( FILE *, const char *, ... );
 #endif
 

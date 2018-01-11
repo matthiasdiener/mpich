@@ -230,6 +230,9 @@ typedef LOCK *MD_lock_t;
 #if defined(BALANCE) || defined(SYMMETRY) || defined(SYMMETRY_PTX)
 
 #include <parallel/parallel.h>
+#if defined(SYMMETRY_PTX)
+#include <sys/timers.h>          /* for getclock */
+#endif
 
 typedef slock_t MD_lock_t;
 

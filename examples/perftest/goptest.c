@@ -11,7 +11,7 @@ int __NUMNODES, __MYPROCID  ;
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;MPI_Status _mpi_status;static int _n;
+extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
 
 
 #if HAVE_STDLIB_H
@@ -160,6 +160,8 @@ int  first,last,incr, svals[3];
 char     units[32];         /* Name of units of length */
 
 MPI_Init( &argc, &argv );
+MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
+MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
 ;
 strcpy( units, "" );
 
@@ -481,6 +483,12 @@ combinations of\n" );
                -autoreps\n\
   -rthresh d   Fractional threshold used to determine when minimum time\n\
                has been found.  The default is 0.05.\n\
+\n" );
+  fprintf( stderr, "\n\
+  Output options\n\
+  -nohead      Do not print graphics header info\n\
+  -notail      Do not print graphics tail info\n\
+  -noinfo      Print neither head nor tail\n\
 \n" );
 fprintf( stderr, "  -gop [ options ]:\n" );
 PrintGOPHelp();

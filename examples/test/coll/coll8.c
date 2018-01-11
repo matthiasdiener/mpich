@@ -33,6 +33,7 @@ char **argv;
     MPI_Bcast  ( &result, 1, MPI_INT, 0, MPI_COMM_WORLD );
     if (result != (size-1)) errors++;
 
+    Test_Waitforall( );
     MPI_Finalize();
     if (errors)
       printf( "[%d] done with ERRORS(%d)!\n", rank, errors );

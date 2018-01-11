@@ -1,0 +1,60 @@
+#!/bin/csh -f 
+# Instructions on creating a new device from the Chameleon version (bugs 
+# are fixed in the Chameleon version in directory mpid/chameleon; the 
+# device instantiations are derived from that code by Chameleon translation
+# tools).
+#
+set do_raw = 0
+while ($#argv > 0) 
+    switch ($1)
+    case -help:
+    echo "NewDevice [ -raw ]"
+    echo "Make a new device.  If -raw is used, does NOT process as"
+    echo "Chameleon code"
+    exit 0
+    breaksw
+    case -raw:
+    shift
+    set do_raw = 1
+    breaksw
+    default:
+    echo "Building new device $1"
+    breaksw
+    endsw
+end
+# We use the NX version as the source for dm<device> because that version 
+# MAY be different from the Chameleon version;
+# For -raw, we use the shared memory code (ch_shmem)
+umask 2
+if (! -d ch_$1) mkdir ch_$1
+chmod g+ws ch_$1
+cd ch_$1
+set Upcase = `echo $1 | tr '[a-z]' '[A-Z]'`
+if ($do_raw == 1) then
+ sed -e "s/shmem/$1/g" -e "s/SHMEM/$Upcase/g" ../ch_shmem/makeshmem > make$1
+ sed "s/SHMEM/$Upcase/g" ../ch_shmem/dmshmem.h > dm$1.h
+ sed "s/shmem/$1/g" ../ch_shmem/mpid.h > mpid.h
+ sed "s/shmem/$1/g" ../ch_shmem/makeinclude > makeinclude
+ sed "s/shmem/$1/g" ../ch_shmem/Makefile.in > Makefile.in
+else
+ sed -e "s/nx/$1/g" -e "s/NX/$Upcase/g" ../ch_nx/makenx > make$1
+ sed "s/NX/$Upcase/g" ../ch_nx/dmnx.h > dm$1.h
+ sed "s/nx/$1/g" ../ch_nx/mpid.h > mpid.h
+ sed "s/nx/$1/g" ../ch_nx/makeinclude > makeinclude
+ sed "s/nx/$1/g" ../ch_nx/Makefile.in > Makefile.in
+endif
+ chmod a+x make$1
+ make$1
+echo "You need to look at the files"
+echo "channel.h, make$1, and mpid.h"
+if ($do_raw == 1) then
+    echo "Also, the file $1priv.c must be replaced."
+endif
+#
+# You will need to edit makeinclude and Makefile.in by hand; you may also
+# need to edit dm<device>.h
+# 
+# When done, add the device to the list of devices that confgure knows about
+# (mpich/configure.in).  Also modify mpich/Makefile.in so that an example
+# configure line for this device is present.  Modify the mpich/README to
+# include the device in the list.

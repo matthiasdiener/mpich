@@ -133,7 +133,11 @@ int skt;
     flags = fcntl(skt2, F_GETFL, 0);
     if (flags < 0)
 	p4_error("net_accept fcntl1", flags);
+#   if defined(HP)
+    flags |= O_NONBLOCK;
+#   else
     flags |= O_NDELAY;
+#   endif
 #   if defined(RS6000)
     flags |= O_NONBLOCK;
 #   endif
@@ -195,7 +199,11 @@ int port, num_tries;
     flags = fcntl(s, F_GETFL, 0);
     if (flags < 0)
 	p4_error("net_conn_to_listener fcntl1", flags);
+#   if defined(HP)
+    flags |= O_NONBLOCK;
+#   else
     flags |= O_NDELAY;
+#   endif
 #   if defined(RS6000)
     flags |= O_NONBLOCK;
 #   endif
@@ -218,6 +226,7 @@ int size;
     struct timeval tv;
     fd_set read_fds;
 
+    p4_dprintfl( 99, "Beginning net_recv of %d on fd %d\n", size, fd );
     while (recvd < size)
     {
 	read_counter++;
@@ -242,7 +251,11 @@ int size;
 	}
 	if (n < 0)
 	{
+#           if defined(HP)
+	    if (errno == EAGAIN)
+#           else
 	    if (errno == EWOULDBLOCK)
+#           endif
 	    {
 		block_counter++;
 		continue;
@@ -252,6 +265,7 @@ int size;
 	}
 	recvd += n;
     }
+    p4_dprintfl( 99, "Ending net_recv of %d on fd %d\n", size, fd );
     return (recvd);
 }
 
@@ -270,6 +284,7 @@ int flag;
     int write_counter = 0;
     int block_counter = 0;
 
+    p4_dprintfl( 99, "Starting net_send of %d on fd %d\n", size, fd );
     while (sent < size)
     {
 	write_counter++;		/* for debugging */
@@ -277,7 +292,11 @@ int flag;
 	SYSCALL_P4(n, write(fd, buf + sent, size - sent));
 	if (n < 0)
 	{
+#           if defined(HP)
+	    if (errno == EAGAIN)
+#           else
 	    if (errno == EWOULDBLOCK)
+#           endif
 	    {
 		block_counter++;
 		if (flag)
@@ -298,6 +317,7 @@ int flag;
 	}
 	sent += n;
     }
+    p4_dprintfl( 99, "Ending net_send of %d on fd %d\n", size, fd );
     return (sent);
 }
 

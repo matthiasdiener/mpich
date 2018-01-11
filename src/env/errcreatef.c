@@ -33,11 +33,19 @@ extern void MPIR_RmPointer();
 #endif
 
 void mpi_errhandler_create_( function, errhandler, __ierr )
+#ifdef FORTRAN_SPECIAL_FUNCTION_PTR
+MPI_Handler_function **function;
+#else
 MPI_Handler_function *function;
+#endif
 MPI_Errhandler       *errhandler;
 int *__ierr;
 {
 MPI_Errhandler new;
+#ifdef FORTRAN_SPECIAL_FUNCTION_PTR
+*__ierr = MPI_Errhandler_create( *function, &new );
+#else
 *__ierr = MPI_Errhandler_create( function, &new );
+#endif
 *(int *)errhandler = MPIR_FromPointer(new);
 }

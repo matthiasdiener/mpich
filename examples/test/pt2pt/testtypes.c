@@ -34,5 +34,6 @@ main(argc, argv)
   printf("MPI_Type_size (MPI_LONG_DOUBLE) = %d\n", i_size);
 #endif
 
+  Test_Waitforall( );
   MPI_Finalize();
 }

@@ -47,10 +47,47 @@ default: $(EXECS)
 
 all: default
 
-#include $(MPIR_HOME)/profiling/lib/Makefile.timing
-include $(MPIR_HOME)/profiling/lib/Makefile.logging
-#include $(MPIR_HOME)/profiling/lib/Makefile.vismess
-#include $(MPIR_HOME)/profiling/lib/Makefile.allprof
+#
+# BSD 4.4 derived systems have a make which is INCOMPATIBLE with all other
+# versions of make (!!!).  FreeBSD is one such system.  In these systems,
+# the 'include' keyword has been DELETED and replaced with #include (Heaven
+# help you if you expected # to start comments!).  Because of this
+# inconsistant behavior, we can't use include to simplify the creation 
+# of makefiles
+#
+ # include $(MPIR_HOME)/profiling/lib/Makefile.timing
+ # include $(MPIR_HOME)/profiling/lib/Makefile.logging
+ # include $(MPIR_HOME)/profiling/lib/Makefile.vismess
+ # include $(MPIR_HOME)/profiling/lib/Makefile.allprof
+# The following is the contents of $(MPIR_HOME)/profiling/lib/Makefile.logging
+# If you think that this is ridiculous, then contact the BSD 4.4 people and
+# ask them to conform to existing practice.
+# (eventually we'll make configure determine if 'include' is broken and
+# add a @ MAKEINCLUDE @ substitution.)
+
+# Add $(PROF_OBJ) to the dependency line
+# Add $(PROF_FLG) to the compile line
+# Add $(PROF_LIB) to the link line, after the main code but before -lmpi
+# Add $(PROF_CLN) to the clean line
+
+WGEN_DIR  = $(MPIR_HOME)/profiling/wrappergen
+PROF_DIR  = $(MPIR_HOME)/profiling/lib
+PROF_DEF  = $(PROF_DIR)/log_wrappers.w
+PROF_ARG  = -w $(PROF_DIR)/log_wrappers.w -f $(PROF_DIR)/pt2pt_fn
+PROF_SRC  = log_wrappers.c
+PROF_CLN  = $(PROF_SRC) *.log
+PROF_OBJ  = log_wrappers.o
+PROF_FLG  = -I$(MPIR_HOME)/profiling/lib -I$(MPE_DIR)
+PROF_LIB  = $(PROF_OBJ) -lpmpi -lmpe
+
+$(WGEN_DIR)/wrappergen:
+	(cd $(WGEN_DIR); make wrappergen)
+
+$(PROF_SRC): $(PROF_DEF) $(WGEN_DIR)/wrappergen
+	$(WGEN_DIR)/wrappergen $(PROF_ARG) -o $(PROF_SRC)
+
+# End of $(MPIR_HOME)/profiling/lib/Makefile.logging 
+
 
 systest: systest.o $(MPIR_HOME)/include/mpir.h $(PROF_OBJ) $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o systest systest.o \

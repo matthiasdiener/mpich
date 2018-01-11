@@ -7,13 +7,13 @@
 #
 ##### User configurable options #####
 
-ARCH        = sun4
-COMM        = pvm3
+ARCH        = rs6000
+COMM        = p4
 DEVICE      = chameleon
 BOPT        = g
-P4_DIR      = 
+P4_DIR      = /usr/local/p4-1.4a
 TOOLS_DIR   = /home/gropp/tools.n
-MPIR_HOME   = /tmp_mnt/Net/alriga/alriga9/MPI/mpich
+MPIR_HOME   = /home/MPI/mpich
 INCLUDE_DIR = -I/home/gropp/tools.n -Impid/chameleon -Iinclude
 
 ### End User configurable options ###

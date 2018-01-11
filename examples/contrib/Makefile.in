@@ -1,9 +1,5 @@
-DIRS = usingmpi life C++ nuclei
+DIRS = usingmpi life C++ nuclei mandel-pvm
 
-clean:
-	/bin/rm -f $(EXECS) $(OBJS)
-	for dir in $(DIRS) ; do \
-	if [ -s $$dir ] ; then ( cd $$dir ; make clean ) ; fi ; done
 
 # Here is what we need to run programs in this directory
 
@@ -30,7 +26,7 @@ INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include
 DEVICE      = @DEVICE@
 
 ### End User configurable options ###
-
+SHELL	= /bin/sh
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 CCFLAGS = $(CFLAGS)
 #FFLAGS = '-qdpc=e' 
@@ -54,3 +50,7 @@ isendtst: isendtst.o $(MPILIB)
 structtest: structtest.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o structtest structtest.o $(LIBS)
 
+clean:
+	/bin/rm -f $(EXECS) $(OBJS)
+	for dir in $(DIRS) ; do \
+	if [ -s $$dir ] ; then ( cd $$dir ; $(MAKE) clean ) ; fi ; done

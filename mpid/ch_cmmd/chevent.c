@@ -1,12 +1,12 @@
 /*
- *  $Id: chevent.c,v 1.10 1994/10/24 22:03:22 gropp Exp $
+ *  $Id: chevent.c,v 1.10 1994/10/24 22:03:22 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char SCCSid[] = "%W% %G%";
+static char vcid[] = "$Id$";
 #endif
 
 #include "mpid.h"
@@ -37,13 +37,14 @@ return MPI_SUCCESS;
 int MPID_CMMD_Cancel( r )
 MPIR_COMMON *r;
 {
-MPIR_RHANDLE *rh;
 MPIR_SHANDLE *sh;
+#ifndef PI_NO_NSEND
 MPID_SHANDLE *sdh;
+#endif
 	
 /* Once completed, the cancel fails because the message has already
    been delivered */
-if (r->completed) return MPI_SUCCESS;
+if (MPID_Test_handle( r )) return MPI_SUCCESS;
 
 /* Otherwise, we can try to eliminate it.
    One potential problem: synchronous sends.  We want a cancel to be

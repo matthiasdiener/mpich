@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend_init.c,v 1.14 1995/01/03 22:15:14 gropp Exp $
+ *  $Id: ssend_init.c,v 1.15 1995/03/05 20:17:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -49,10 +49,14 @@ MPI_Request   *request;
     handleptr                       = *request;
     MPIR_SET_COOKIE(&handleptr->shandle,MPIR_REQUEST_COOKIE)
     handleptr->type                 = MPIR_SEND;
-    if (dest == MPI_PROC_NULL)
+    if (dest == MPI_PROC_NULL) {
 	handleptr->shandle.dest     = dest;
-    else
+	MPID_Set_completed( comm->ADIctx, handleptr );
+	}
+    else {
 	handleptr->shandle.dest     = comm->group->lrank_to_grank[dest];
+	MPID_Clr_completed( comm->ADIctx, handleptr );
+	}
     handleptr->shandle.tag          = tag;
     handleptr->shandle.contextid    = comm->send_context;
     handleptr->shandle.comm         = comm;
@@ -61,7 +65,6 @@ MPI_Request   *request;
     handleptr->shandle.datatype     = datatype;
     handleptr->shandle.bufadd       = buf;
     handleptr->shandle.count        = count;
-    handleptr->shandle.completed    = MPIR_NO;
     handleptr->rhandle.persistent  = 1;
     handleptr->rhandle.active      = 0;
 #ifdef MPID_HAS_HETERO

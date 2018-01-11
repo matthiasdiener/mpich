@@ -23,6 +23,7 @@ if (tick > 1.0 || tick < 0.0) {
     err++;
     fprintf( stderr, "MPI_Wtick gave a strange result: (%f)\n", tick );
     }
+Test_Waitforall( );
 MPI_Finalize( );
 
 return err;

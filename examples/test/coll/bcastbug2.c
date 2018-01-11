@@ -21,5 +21,6 @@ char **argv;
 */
       MPI_Barrier(MPI_COMM_WORLD);
       }
+   Test_Waitforall( );
    MPI_Finalize();
 }

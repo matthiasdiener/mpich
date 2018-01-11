@@ -1,5 +1,5 @@
 #ifndef lint
-static char vcid[] = "$Id: sigchk.c,v 1.1 1994/11/07 16:58:57 gropp Exp $";
+static char vcid[] = "$Id: sigchk.c,v 1.1 1994/11/07 16:58:57 gropp Exp gropp $";
 #endif
 
 /* This file provides routines to check for the use of signals by software */
@@ -163,6 +163,7 @@ char **argv;
 int err;
 MPI_Init( &argc, &argv );
 err = SYCheckSignals( stdout );
+Test_Waitforall( );
 MPI_Finalize();
 return err;
 }

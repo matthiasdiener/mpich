@@ -57,7 +57,7 @@ extern long mypart(long *, long *);
 #define Prism_STR_MACHINE "IRIX"
 #endif
 
-#if !define(Prism_STR_MACHINE)
+#if !defined(Prism_STR_MACHINE)
 #define Prism_STR_MACHINE "Unknown"
 #endif
 

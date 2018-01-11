@@ -31,9 +31,10 @@ C. Find out the number of processes
 
       FazAttr = 120
       call MPI_attr_put (MPI_COMM_WORLD, FazTag, FazAttr, Error)
-   
-      print 1, ' Proc=',PM_Rank_self, ' ATTR=', FazAttr
 
+      if (FazAttr .ne. 120) then
+          print 1, ' Proc=',PM_Rank_self, ' ATTR=', FazAttr
+      endif
 C. Duplicate the Communicator and it's cached attributes
 
       call MPI_Comm_Dup (MPI_COMM_WORLD, Faz_WORLD, Error)
@@ -43,7 +44,9 @@ C. Duplicate the Communicator and it's cached attributes
      &                    FazFlag, Error)
 
       if (FazFlag) then
-        print 1, ' T-Flag, Proc=',PM_Rank_self,' ATTR=', FazAttr
+        if (FazAttr .ne. 121) then 
+            print 1, ' T-Flag, Proc=',PM_Rank_self,' ATTR=', FazAttr
+        endif
       else
          print 1, ' F-Flag, Proc=',PM_Rank_self,' ATTR=',FazAttr
       end if

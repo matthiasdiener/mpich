@@ -52,12 +52,12 @@ proc Print_Canvas {log canvas x y width height} {
 proc Print_CreateGrayColormap {log colormap_var} {
    upvar $colormap_var colormap
 
-   set nstates [logfile $log nstatedefs]
+   set nstates [$log nstatedefs]
    set interval [expr {1.0 / ($nstates-1)}]
    set level 0.0
 
    for {set state_no 0} {$state_no < $nstates} {incr state_no} {
-      set colormap([lindex [logfile $log get_statedef $state_no] 1]) \
+      set colormap([lindex [$log getstatedef $state_no] 1]) \
 	    "$level $level $level setrgbcolor"
       set level [expr {$level + $interval}]
       if {$level > 1.0} {
@@ -75,14 +75,14 @@ proc Print_GetOpts {} {
    if [info exists env(PRINTER)] {
       set printOpts(lprname) $env(PRINTER)
    } else {
-      set printOpts(lprname) [GetDefault print_lprname ""]
+      set printOpts(lprname)  [GetDefault print_lprname ""]
    }
    global progName
    set printOpts(filename)    [GetDefault print_file $progName.ps]
-   set printOpts(colormode)    [GetDefault print_colormode color]
+   set printOpts(colormode)   [GetDefault print_colormode color]
    set printOpts(isLandscape) [GetDefault print_isLandscape 1]
-   set printOpts(pageWidth)   [GetDefault print_pageWidth 8.5]
-   set printOpts(pageHeight)  [GetDefault print_pageHeight 11]
+   set printOpts(pageWidth)   [GetDefault print_pageWidth 7.5]
+   set printOpts(pageHeight)  [GetDefault print_pageHeight 10]
    set printOpts(units)       [GetDefault print_units i]
 }
 

@@ -1,4 +1,4 @@
-.TH MPE_Open_graphics 4 "12/24/1994" " " "MPE"
+.TH MPE_Open_graphics 4 "2/12/1995" " " "MPE"
 .SH NAME
 MPE_Open_graphics \- (collectively) opens an X Windows display
 
@@ -43,6 +43,11 @@ X window server allows.  Not yet implemented.
 .B handle 
 - Graphics handle to be given to other MPE graphics routines.
 .PD 1
+
+.SH NOTES
+This is a collective routine.  All processes in the given communicator
+must call it, and it has the same semantics as MPI_Barrier (that is,
+other collective operations can not cross this routine).
 .SH SYNOPSIS
 .nf
 #include <stdio.h>

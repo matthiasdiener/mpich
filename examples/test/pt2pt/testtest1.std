@@ -1,5 +1,4 @@
 *** Testing MPI_Test ***
 Received terminate message
-About to send
-About to send 'done'
+All processes completed test
 *** Testing MPI_Test ***

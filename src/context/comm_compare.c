@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_compare.c,v 1.8 1994/12/15 16:36:11 gropp Exp $
+ *  $Id: comm_compare.c,v 1.9 1995/03/05 23:02:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,7 +26,6 @@ MPI_Comm  comm2;
 int       *result;
 {
   int       mpi_errno = MPI_SUCCESS;
-  int       size1, size2;
   MPI_Group group1, group2;
 
   /* Check for bad arguments */

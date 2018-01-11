@@ -57,6 +57,7 @@ char **argv;
 	MPI_Issend( buffer, act_size, MPI_INT, dest, 2, MPI_COMM_WORLD, &r2 );
 	MPI_Wait( &r1, &status );
 	MPI_Wait( &r2, &status );
+	Test_Waitforall( );
 	MPI_Finalize();
 
     } else if (rank == dest) {
@@ -79,6 +80,7 @@ char **argv;
 	MPI_Recv( buffer, act_size, MPI_INT, src, 1, MPI_COMM_WORLD, &status );
 	MPI_Recv( buffer, act_size, MPI_INT, src, 2, MPI_COMM_WORLD, &status );
 
+	Test_Waitforall( );
 	MPI_Finalize();
 	{
 	    int rval = Summarize_Test_Results(); /* Returns number of tests;

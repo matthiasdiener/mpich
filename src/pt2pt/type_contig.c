@@ -1,12 +1,12 @@
 /*
- *  $Id: type_contig.c,v 1.13 1994/12/30 17:20:48 gropp Exp $
+ *  $Id: type_contig.c,v 1.14 1995/02/22 16:21:30 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_contig.c,v 1.13 1994/12/30 17:20:48 gropp Exp $";
+static char vcid[] = "$Id: type_contig.c,v 1.14 1995/02/22 16:21:30 doss Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -34,12 +34,18 @@ MPI_Datatype *newtype;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
-   ( (count   <= 0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
+   ( (count   <  0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
    ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
    ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
 					  "Error in MPI_TYPE_CONTIGUOUS" );
 	
+  /* Are we making a null datatype? */
+  if (count == 0) {
+      (*newtype) = MPI_DATATYPE_NULL;
+      return (mpi_errno);
+  }
+
   /* Create and fill in the datatype */
   dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)

@@ -47,3 +47,5 @@ to p4_error.c, and globally change (int) to (P4_Aint) (WITH the parenthesis,
 that is, make that casts use P4_Aint, not int).
 
 
+There are also changes to server/Makefile.in to make the server available
+to MPI.

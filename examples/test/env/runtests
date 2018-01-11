@@ -2,29 +2,98 @@
 #
 # Run some of the tests.  If any arguments are provided, pass them to the
 # test programs.
-if [ -f env.out ] ; then
-	mv env.out env.out.orig
+#
+# -mvhome is needed for the ANL SP, and is ignored by others
+args="-pg -mvhome"
+#
+# If the programs are not available, run make.
+if [ ! -x sigchk ] ; then
+    make 
+fi
+#
+runtests=1
+for arg in "$@" ; do
+    case $arg in 
+	-checkonly )
+	runtests=0
+	;;
+        -margs=*)
+	margs=`echo $arg | sed 's/-margs=//'`
+	args="$args $margs"
+	;;
+	-help|-u)
+	echo "runtests [-checkonly] [-margs='...']"
+	echo "run tests in this directory.  If -checkonly set, just run"
+	echo "the differences check (do NO rerun the test programs)."
+	echo "If -margs is used, these options are passed to mpirun."
+	exit 1
+	;;
+	*)
+	if test -n "$arg" ; then
+   	    echo "runtests: Unknown argument ($arg)"
+	    exit 1
+        fi
+	;;
+    esac
+done
+
+testfiles=""
+if [ $runtests = 1 ] ; then
+
+testfiles="$testfiles timers.out"
+/bin/rm -f timers.out
+echo "*** Timer tests ***"
+echo "*** Timer tests ***" >> timers.out
+mpirun $args -np 1 timers $* >> timers.out
+echo "*** Timer tests ***" >> timers.out
+
+testfiles="$testfiles baseattr.out"
+/bin/rm -f baseattr.out
+echo "*** Basic attributes ***"
+echo "*** Basic attributes ***" >> baseattr.out
+mpirun $args -np 1 baseattr $* >> baseattr.out
+echo "*** Basic attributes ***" >> baseattr.out
+
+testfiles="$testfiles errhand.out"
+/bin/rm -f errhand.out
+echo "*** Tests of error handling ***" 
+echo "*** Tests of error handling ***" >>errhand.out
+mpirun $args -np 1 errhand $* >> errhand.out
+echo "*** Tests of error handling ***" >>errhand.out
+
+testfiles="$testfiles sigchk.out"
+/bin/rm -f sigchk.out
+echo "*** Tests of signals used ***"
+echo "*** Tests of signals used ***" >> sigchk.out
+mpirun $args -np 1 sigchk $* >> sigchk.out
+echo "*** Tests of signals used ***" >> sigchk.out
+
+else
+    # Just run checks
+    testfiles=*.out
+    if test "$testfiles" eq "*.out" ; then
+	echo "No output files remain from previous test!"
+	exit 1
+    fi
 fi
 
-args=-mr_pg
-
-echo "Tests of environment routines"
-echo "*** Timer tests ***"
-echo "Timer tests" >> env.out
-mpirun $args -np 1 timers $* >> env.out
-echo "*** Basic attributes ***"
-echo "Basic attributes test" >>env.out
-mpirun $args -np 1 baseattr $* >> env.out
-echo "*** Tests of error handling ***"
-echo "Error handling test" >>env.out
-mpirun $args -np 1 errhand $* >> env.out
-echo "Signal test" >>env.out
-mpirun $args -np 1 sigchk $* >> env.out
-
+#
 echo '*** Differences from expected output ***'
 /bin/rm -f env.diff
-diff -b env.out env.std >> env.diff
+for file in $testfiles ; do
+    stdfile=`basename $file .out`.std
+    if [ -s $stdfile ] ; then
+        if diff -b $file `basename $file .out`.std > /dev/null ; then
+	    true
+        else
+	    echo "Differences in `basename $file .out`" >> env.diff
+	    diff -b $file `basename $file .out`.std >> env.diff
+	fi
+    else
+        echo "Can not find file $stdfile to compare against for test `basename $file .out`"
+    fi
+done
 if [ -s env.diff ] ; then
-    cat env.diff
+   cat env.diff
 fi
 exit 0

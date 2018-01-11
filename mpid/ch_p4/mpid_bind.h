@@ -56,7 +56,7 @@ extern int MPID_P4_Copy_body
 extern int MPID_P4_Copy_body_unex
     ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *, int));
 extern int MPID_P4_Ack_Request 
-    ANSI_ARGS(( MPID_RHANDLE *, int, MPID_Aint ));
+    ANSI_ARGS(( MPIR_RHANDLE *, int, MPID_Aint, int ));
 extern int MPID_P4_Complete_Rndv ANSI_ARGS(( MPID_RHANDLE * ));
 extern int MPID_P4_Do_Request ANSI_ARGS(( int, int, MPID_Aint ));
 extern void MPID_P4_Init_recv_code ANSI_ARGS((void));
@@ -64,6 +64,17 @@ extern void MPID_P4_Init_send_code  ANSI_ARGS((void));
 extern void MPID_PrintMsgDebug  ANSI_ARGS((void));
 extern void MPID_SetSyncDebugFlag  ANSI_ARGS(( void *, int ));
 
+/* These are defined only for if MPID_USE_GET is */
+extern void * MPID_SetupGetAddress ANSI_ARGS(( void *, int *, int ));
+extern void   MPID_FreeGetAddress ANSI_ARGS(( void * ));
+
+extern int MPID_P4_Do_get ANSI_ARGS(( MPIR_RHANDLE *, int, MPID_PKT_GET_T * ));
+
 #endif /* MPID_DEVICE_CODE */
 #endif /* _MPID_BIND */
+
+
+
+
+
 

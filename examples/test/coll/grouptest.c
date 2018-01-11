@@ -1,7 +1,7 @@
-/* 	$Id: grouptest.c,v 1.9 1995/01/08 17:09:20 gropp Exp $	 */
+/* 	$Id: grouptest.c,v 1.10 1995/02/06 22:21:39 gropp Exp $	 */
 
 #ifndef lint
-static char vcid[] = "$Id: grouptest.c,v 1.9 1995/01/08 17:09:20 gropp Exp $";
+static char vcid[] = "$Id: grouptest.c,v 1.10 1995/02/06 22:21:39 gropp Exp $";
 #endif /* lint */
 #include "mpi.h"
 
@@ -63,7 +63,7 @@ char **argv;
     /* Free the communicator */
     if (newcomm != MPI_COMM_NULL)
 	MPI_Comm_free( &newcomm );
-    printf("Successful.\n");
+    Test_Waitforall( );
     MPI_Finalize();
     return 0;
 }

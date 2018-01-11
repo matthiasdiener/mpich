@@ -17,13 +17,15 @@ MPI_Init( &argc, &argv );
 MPI_Comm_rank( MPI_COMM_WORLD, &myid );
 MPI_Comm_size( MPI_COMM_WORLD, &np );
 
+/* dest writes out the received stats; for the output to be
+   consistant (with the final check), it should be procees 0 */
 if (argc > 1 && argv[1] && strcmp( "-alt", argv[1] ) == 0) {
-    src  = np - 1;
-    dest = 0;
-    }
-else {
     dest = np - 1;
     src  = 0;
+    }
+else {
+    src  = np - 1;
+    dest = 0;
     }
 
 if (myid == src) {
@@ -31,11 +33,15 @@ if (myid == src) {
     len  = 1;
     tag = 2000;
     data = 100;
+#ifdef VERBOSE
     printf( "About to send\n" );
+#endif
     MPI_Send( &data, 1, MPI_INT, to, tag, MPI_COMM_WORLD );
     tag = 2001;
     data = 0;
+#ifdef VERBOSE
     printf( "About to send 'done'\n" );
+#endif
     MPI_Send( &data, 1, MPI_INT, to, tag, MPI_COMM_WORLD );
     }
 else {
@@ -70,5 +76,6 @@ else {
 	}
     }
 MPI_Barrier( MPI_COMM_WORLD );
+Test_Waitforall( );
 MPI_Finalize();
 }

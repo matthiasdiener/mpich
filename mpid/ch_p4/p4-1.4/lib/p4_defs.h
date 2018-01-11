@@ -44,7 +44,7 @@ struct p4_global_data {
     int listener_fd;
     int max_connections;
     int cube_msgs_out;    /* i860 msgs not yet msgwait'ed on */
-    long reference_time;  /* used in p4_initenv and p4_clock */
+    unsigned long reference_time;  /* used in p4_initenv and p4_clock */
     int hi_cluster_id;
     int low_cluster_id;
     P4VOID *cluster_shmem;

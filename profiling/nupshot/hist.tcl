@@ -5,8 +5,11 @@
 # hist() structure:
 #  (all fields except $w,data are linked to the C structure held by $w,data)
 #
+#   $w,window - name of the window
+#   $w,canvas - name of the canvas
+#   $w,time_lbl - name of the time_lbl
+#   $w,xscrollbar - name of the horizontal scrollbar
 #   $w,data - token for the C side of the histogram stuff
-#   $w,canvas - canvas window
 #   $w,nbins - # of bins
 #   $w,maxbin - size of a bin that will fill the canvas vertically
 #               (used to set vertical scale)
@@ -47,9 +50,11 @@ proc Hist_Open {log state_no args} {
    toplevel $w
    wm minsize $w 10 10
 
-   set hist($w,stateName) [lindex [logfile $log get_statedef $state_no] 0]
+      # get the name of the state, use it for the title
+   set hist($w,stateName) [lindex [$log getstatedef $state_no] 0]
    wm title $w "state $hist($w,stateName) lengths"
 
+      # build user interface
    frame $w.help
    pack $w.help -side bottom -fill x -padx 5 -pady 5
       set help $w.help.t
@@ -79,9 +84,13 @@ proc Hist_Open {log state_no args} {
       set print $w.l.print
       set close $w.l.close
 
+      # open the data on the C end
    set hist($w,data) [hist open $log $state_no hist $w]
+
    set hist($w,window) $w
    set hist($w,canvas) $canvas
+   set hist($w,time_lbl) $time_lbl
+   set hist($w,xscrollbar) $xscroll
    set hist($w,nbins)  25
    set hist($w,maxbin)  25
 
@@ -93,6 +102,12 @@ proc Hist_Open {log state_no args} {
       return
    }
 
+
+      # Initially, I wanted to set the view to center at the
+      # average state length, and to one standard deviation to either
+      # side of that, but it never worked out real well.  Just do it
+      # to the far end on either side
+   if 0 {
    set center $hist($w,average)
 
    set hist($w,left) [expr $center - $hist($w,std_dev)]
@@ -103,23 +118,27 @@ proc Hist_Open {log state_no args} {
    if {$hist($w,right) > $hist($w,longest)} {
       set hist($w,right) $hist($w,longest)
    }
+   }
 
-   set bins [hist $hist($w,data) bins $hist($w,nbins) \
+   set hist($w,left) $hist($w,shortest)
+   set hist($w,right) $hist($w,longest)
+
+      # Figure the bins, get the tallest one, and scale according to it.
+      # Don't worry about recomputing the bins again to draw, the C
+      # routines will notice the repeated request and reuse the data
+      # computed in this call.
+   hist $hist($w,data) bins $hist($w,nbins) \
 	 $hist($w,left) $hist($w,right) \
-	 tallest_bin]
-
-   # puts "in Hist_Open: bins = $bins, tallest = $tallest_bin"
-
+	 tallest_bin
    set hist($w,maxbin) [expr $tallest_bin * 1.05]
-
-   # eval Hist_Config $w $args
 
    set hist($w,width) 400
    set hist($w,height) 250
 
-   SplitList [logfile $log get_statedef $state_no] \
+   SplitList [$log getstatedef $state_no] \
 	 [list hist($w,name) hist($w,color) hist($w,bitmap)]
 
+      # set the fill color/stipple pattern
    global bw
    set hist($w,bw) $bw
    if $bw {
@@ -131,6 +150,7 @@ proc Hist_Open {log state_no args} {
    }
    set hist($w,outlineColor) $color(fg)
 
+      # put help message to the bottom
    text $help -height 4 -relief groove -borderwidth 2
    $help insert 1.0 "Drag any button to stretch histograms vertically.\n"
    $help insert 1.0 "Drag right button to stretch out right side of\
@@ -139,35 +159,42 @@ proc Hist_Open {log state_no args} {
    $help insert 1.0 "Drag left button to stretch out left side of\
 	 histogram display.\n"
 
+      # create the canvas on which everything will be drawn
    canvas $canvas -height $hist($w,height) -width $hist($w,width) \
 	 -bg $color(disp_bg)
+      # capture resize requests
    bind $canvas <Configure> "Hist_Resize $w %w %h"
-
+      # open a time_lbl at the bottom
    time_lbl $time_lbl $hist($w,shortest) $hist($w,longest)
+      # create close button
    button $close -text "Close" -command "Hist_Close $w"
+      # create scrollbar at the bottom
    scrollbar $xscroll -orient horiz -command "Hist_Xview $w"
 
+      # create cursor position display
    label $cursor_lbl -text "Cursor:"
    set hist($w,cursor) 0
    label $cursor_val -textvariable hist($w,cursor) -width 12
 
+      # show the current # of states and what percentage of the total that is
    label $nstates_lbl -text "# of states:"
    set hist($w,vis_n) 0
    label $nstates_val -textvariable hist($w,vis_n)
    label $nstates_pct -textvariable hist($w,percent)
 
+      # create #-of-bins slider bar
    label $bin_lbl -text "# of bins:"
-   scale $bin_control \
-	 -show 1 \
-	 -from 1 \
-	 -to 200 \
-	 -command "Hist_SetNbins $w" \
+   scale $bin_control -show 1 -from 1 -to 200 -command "Hist_SetNbins $w" \
 	 -orient horiz
+      # set inital value of slider
    $bin_control set $hist($w,nbins)
 
+      # additional buttons
+      # I want to add a 'Reset-view' button
    button $resize_to_fit -text "Resize to fit" -command "Hist_ResizeToFit $w"
    button $print -text "Print" -command "Print_Hist_Dialog $log $w"
 
+      # pack everybody
    pack $help -fill x
    pack $cursor_lbl -side left -padx 5 -pady 5
    pack $cursor_val -fill x -padx 5 -pady 5
@@ -182,9 +209,6 @@ proc Hist_Open {log state_no args} {
 
    pack $xscroll $time_lbl -side bottom -fill x
    pack $canvas -fill both -expand 1
-
-   set hist($w,xscrollcommand) "Hist_XScroll $w"
-
 
    Hist_Draw $w
 
@@ -290,7 +314,8 @@ proc Hist_Draw {w} {
    # hist $h boundary $canvas $hist($w,outlineColor) hist
    # Hist_Boundary $canvas $pointlist $hist($w,outlineColor) hist
 
-   hist $hist($w,data) scroll
+   # hist $hist($w,data) scroll
+   Hist_SetScroll $w
 
    set hist($w,vis_n) $hist($w,vis_n)
    set hist($w,percent) "[expr int( 100*$hist($w,vis_n)/$hist($w,n))]%"
@@ -324,7 +349,7 @@ proc Hist_Boundary {canvas pointList color tags} {
 
 proc Hist_XScroll {w tu wu fu lu} {
    $w.r.xsc set $tu $wu $fu $lu
-   $w.r.t set $tu $wu $fu $lu
+   #$w.r.t set $tu $wu $fu $lu
 }
 
 
@@ -332,22 +357,21 @@ proc Hist_XScroll {w tu wu fu lu} {
 proc Hist_SetScroll {w} {
    global hist
 
-   if {$hist($w,xscrollcommand) == ""} return
+   return [hist $hist($w,data) setscroll]
 
-   set totalWidth [expr 1.0 * $hist($w,width) * \
-	 ($hist($w,longest) - $hist($w,shortest)) / \
-	 ($hist($w,right) - $hist($w,left))]
-   set totalUnits [expr int($totalWidth)]
-   set windowUnits [expr int($hist($w,width))]
-   set firstUnit [expr int( 1.0 * $totalWidth * \
-	 ($hist($w,left) - $hist($w,shortest)) / \
+   set time_lbl $w.r.t
+   set xscroll $w.r.xsc
+
+   set left $hist($w,left) 
+   set span [expr $hist($w,right) - $hist($w,left)]
+   $time_lbl setview $left $span
+   set hist($w,windowUnits) [expr int(10000.0 * $span / \
 	 ($hist($w,longest) - $hist($w,shortest)) )]
-   set lastUnit [expr int( 1.0 * $totalWidth * \
-	 ($hist($w,right) - $hist($w,shortest)) / \
+   set l [expr int(10000.0*($left-$hist($w,shortest)) / \
 	 ($hist($w,longest) - $hist($w,shortest)) )]
-   # puts "Tcl: $totalUnits $windowUnits $firstUnit $lastUnit"
-   eval $hist($w,xscrollcommand) $totalUnits $windowUnits \
-	 $firstUnit $lastUnit
+   set r [expr $l+$hist($w,windowUnits)]
+   $xscroll set 10000 $hist($w,windowUnits) $l $r
+   return
 }
 
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.38 1994/12/21 14:40:15 gropp Exp $
+ *  $Id: mpir.h,v 1.39 1995/03/05 20:23:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -59,7 +59,8 @@ typedef struct {
     int         contextid;
     int         partner;        /* source or destination, depending on type */
     int         tag;
-    MPIR_BOOL   completed;
+    int         completer;      /* index of routine to complete, 
+				   or 0 if done */
     MPI_Datatype datatype;
     MPI_Comm    comm;           /* The communicator this request is 
 				   on. Needed for MPI_Start in
@@ -88,7 +89,8 @@ typedef struct {
     int         contextid;  /* context id */
     int         dest;       /* destination process for message */
     int         tag;        /* tag */
-    MPIR_BOOL   completed;  /* whether operation is completed or not */
+    int         completer;      /* index of routine to complete, 
+				   or 0 if done */
     MPI_Datatype datatype;  /* basic or derived datatype */
     MPI_Comm    comm;
     int         persistent;
@@ -119,7 +121,8 @@ typedef struct {
     int         contextid;  /* context id */
     int         source;     /* source process message */
     int         tag;        /* tag */
-    MPIR_BOOL   completed;  /* Whether this receive has been completed */
+    int         completer;      /* index of routine to complete, 
+				   or 0 if done */
     MPI_Datatype datatype;  /* basic or derived datatype */
     MPI_Comm    comm;
     int         persistent;
@@ -140,6 +143,27 @@ typedef struct {
     MPID_RHANDLE dev_rhandle;   /* device's version of recv handle */
 } MPIR_RHANDLE;
 
+/* This is an "extension" handle and is NOT part of the MPI standard.
+   Defining it, however, introduces no problems with the standard, and
+   it allows us to easily extent the request types.
+
+   Note that this is not yet compatible with the essential fields of
+   MPIR_COMMON.
+ */
+typedef struct {
+    MPIR_OPTYPE handle_type;    /* send or receive */
+    MPIR_COOKIE             /* Cookie to help detect valid item */
+    int         completer;      /* index of routine to complete, 
+				   or 0 if done */
+    int         active;
+    int         (*create_ureq)();
+    int         (*free_ureq)();
+    int         (*wait_ureq)();
+    int         (*test_ureq)();
+    int         (*start_ureq)();
+    void        *private_data;
+} MPIR_UHANDLE;
+
 #define MPIR_HANDLES_DEFINED
 
 union MPIR_HANDLE {
@@ -147,6 +171,7 @@ union MPIR_HANDLE {
     MPIR_COMMON  chandle;       /* common fields */
     MPIR_SHANDLE shandle;
     MPIR_RHANDLE rhandle;
+    MPIR_UHANDLE uhandle;
 };
 
 

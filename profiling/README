@@ -59,6 +59,8 @@ To use these Makefile fragments:
   1. (optional) Add $(PROF_OBJ) to your application's dependency list:
         myapp:  myapp.o $(PROF_OBJ)
 
+  2. Define WGEN_DIR to 
+
   2. Add $(PROF_FLG) to your compile line (CFLAGS):
         CFLAGS = -O $(PROF_FLG)
 

@@ -14,6 +14,7 @@ char **argv;
 {
 MPI_Init( &argc, &argv );
 test_communicators();
+Test_Waitforall( );
 MPI_Finalize();
 return 0;
 }
@@ -48,12 +49,12 @@ int test_communicators()
 {
 MPI_Comm dup_comm_world, lo_comm, rev_comm, dup_comm, split_comm, world_comm;
 MPI_Group world_group, lo_group, rev_group;
+void *vvalue;
 int ranges[1][3];
 int flag, world_rank, world_size, rank, size, n, key_1, key_3, value;
-
-/*      integer n, result,
+int color, key, result;
+/*      integer n, ,
      .        key_2
-     .        color, key
 
   */
 
@@ -108,7 +109,7 @@ else {
 	}
     }
       
-MPI_Barrier(world_comm );
+MPI_Barrier(world_comm);
 /*
      Check Comm_dup by adding attributes to lo_comm & duplicating
  */
@@ -133,7 +134,13 @@ if (lo_comm != MPI_COMM_NULL) {
 
     MPI_Comm_dup(lo_comm, &dup_comm );
 
-    MPI_Attr_get(dup_comm, key_1, (void **)&value, &flag );
+    /* Note that if sizeof(int) < sizeof(void *), we can't use
+       (void **)&value to get the value we passed into Attr_put.  To avoid 
+       problems (e.g., alignment errors), we recover the value into 
+       a (void *) and cast to int. Note that this may generate warning
+       messages from the compiler.  */
+    MPI_Attr_get(dup_comm, key_1, (void **)&vvalue, &flag );
+    value = (int)vvalue;
 
     if (! flag) {
 	printf( "dup_comm key_1 not found on %d\n", world_rank );
@@ -157,7 +164,8 @@ if (lo_comm != MPI_COMM_NULL) {
            MPI_Abort(MPI_COMM_WORLD, 3007 );
 	   }
  */
-    MPI_Attr_get(dup_comm, key_3, (void **)&value, &flag );
+    MPI_Attr_get(dup_comm, key_3, (void **)&vvalue, &flag );
+    value = (int)vvalue;
     if (flag) {
         printf( "dup_comm key_3 found!\n" );
 	MPI_Abort(MPI_COMM_WORLD, 3008 );
@@ -168,83 +176,79 @@ c        MPI_Keyval_free(&key_2 )
  */
     MPI_Keyval_free(&key_3 );
     }
-#ifdef FOO
 /* 
      Split the world into even & odd communicators with reversed ranks.
  */
-      if (world_rank == 0) then
-         print *, '    Comm_split'
-         end if
+      if (world_rank == 0) 
+	  printf( "    Comm_split\n" );
 
-      color = MOD(world_rank, 2)
-      key   = world_size - world_rank
+      color = world_rank % 2;
+      key   = world_size - world_rank;
 
-      MPI_Comm_split(dup_comm_world, color, key, split_comm )  
-      MPI_Comm_size(split_comm, size )
-      MPI_Comm_rank(split_comm, rank )
-      if (rank .ne. ((size - world_rank/2) - 1)) then
-         print *, 'incorrect split rank: ', rank
-         MPI_Abort(MPI_COMM_WORLD, 3009 )
-         end if
+      MPI_Comm_split(dup_comm_world, color, key, &split_comm );
+      MPI_Comm_size(split_comm, &size );
+      MPI_Comm_rank(split_comm, &rank );
+      if (rank != ((size - world_rank/2) - 1)) {
+	  printf( "incorrect split rank: %d\n", rank );
+	  MPI_Abort(MPI_COMM_WORLD, 3009 );
+	  }
 
-      MPI_Barrier(split_comm )
-c
-c     Test each possible Comm_compare result
-c
-c     if (world_rank == 0) then
-c        print *, '    Comm_compare'
-c        end if
+      MPI_Barrier(split_comm );
+/*
+     Test each possible Comm_compare result
+ */
+      if (world_rank == 0) 
+         printf( "    Comm_compare\n" );
 
-c     MPI_Comm_compare(world_comm, world_comm, result )
-c     if (result .ne. MPI_IDENT) then
-c        print *, 'incorrect ident result: ', result
-c        MPI_Abort(MPI_COMM_WORLD, 3010 )
-c        end if
+      MPI_Comm_compare(world_comm, world_comm, &result );
+      if (result != MPI_IDENT) {
+         printf( "incorrect ident result: %d\n", result );
+         MPI_Abort(MPI_COMM_WORLD, 3010 );
+	 }
 
-c     if (lo_comm .ne. MPI_COMM_NULL) then
-c        MPI_Comm_compare(lo_comm, dup_comm, result )
-c        if (result .ne. MPI_CONGRUENT) then
-c           print *, 'incorrect congruent result: ', result
-c           MPI_Abort(MPI_COMM_WORLD, 3011 )
-c           end if
-c        end if
+      if (lo_comm != MPI_COMM_NULL) {
+         MPI_Comm_compare(lo_comm, dup_comm, &result );
+         if (result != MPI_CONGRUENT) {
+            printf( "incorrect congruent result: %d\n", result );
+            MPI_Abort(MPI_COMM_WORLD, 3011 );
+	    }
+	 }
 
-c     ranges(1,1) = world_size - 1
-c     ranges(2,1) = 0
-c     ranges(3,1) = -1
+      ranges[0][0] = world_size - 1;
+      ranges[0][1] = 0;
+      ranges[0][2] = -1;
 
-c     MPI_Group_range_incl(world_group, 1, ranges, rev_group )  
-c     MPI_Comm_create(world_comm, rev_group, rev_comm )
-c     MPI_Comm_compare(world_comm, rev_comm, result )
-c     if (result .ne. MPI_SIMILAR) then
-c        print *, 'incorrect similar result: ', result
-c        MPI_Abort(MPI_COMM_WORLD, 3012 )
-c        end if
+      MPI_Group_range_incl(world_group, 1, ranges, &rev_group );
+      MPI_Comm_create(world_comm, rev_group, &rev_comm );
+      MPI_Comm_compare(world_comm, rev_comm, &result );
+      if (result != MPI_SIMILAR) {
+         printf( "incorrect similar result: %d\n", result );
+         MPI_Abort(MPI_COMM_WORLD, 3012 );
+	 }
 
-c     MPI_Comm_compare(world_comm, lo_comm, result )
-c     if (result .ne. MPI_UNEQUAL) then
-c        print *, 'incorrect unequal result: ', result
-c        MPI_Abort(MPI_COMM_WORLD, 3013 )
-c        end if
-c
-c     Free all communicators created
-c
-#endif
+      MPI_Comm_compare(world_comm, lo_comm, &result );
+      if (result != MPI_UNEQUAL) {
+         printf( "incorrect unequal result: %d\n", result );
+         MPI_Abort(MPI_COMM_WORLD, 3013 );
+	 }
+/*
+     Free all communicators created
+ */
     if (world_rank == 0) 
 	printf( "    Comm_free\n" );
 
-MPI_Comm_free(&world_comm );
-/* c     MPI_Comm_free(rev_comm ) */
-/*       MPI_Comm_free(split_comm ) */
+     MPI_Comm_free( &world_comm );
+     MPI_Comm_free( &dup_comm_world );
 
-MPI_Group_free(&world_group );
-/* 
-c     MPI_Group_free(rev_group )
+     MPI_Comm_free( &rev_comm );
+     MPI_Comm_free( &split_comm );
 
-c     if (lo_comm .ne. MPI_COMM_NULL) then
-c        MPI_Comm_free(lo_comm )
-c        MPI_Comm_free(dup_comm )
-c        end if
- */
+     MPI_Group_free( &world_group );
+     MPI_Group_free( &rev_group );
+
+     if (lo_comm != MPI_COMM_NULL) {
+        MPI_Comm_free( &lo_comm );
+        MPI_Comm_free( &dup_comm );
+	}
 }
 

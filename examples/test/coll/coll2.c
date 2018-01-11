@@ -57,6 +57,7 @@ char **argv;
       }
     } 
 
+    Test_Waitforall( );
     MPI_Finalize();
     if (errors)
       printf( "[%d] done with ERRORS(%d)!\n", rank, errors );

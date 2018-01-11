@@ -32,7 +32,7 @@ MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS = $(MPILIB) $(DEVICE_LIB)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-TESTDIRS = pt2pt coll env context
+TESTDIRS = pt2pt coll topol env context 
 SUBDIRS = pt2pt coll topol env context
 
 default: subdirs
@@ -43,7 +43,7 @@ subdirs:
 		do \
 			echo " " ;\
 			echo Making in directory $$dir ;\
-			(cd $$dir; make) ;\
+			(cd $$dir; $(MAKE)) ;\
 		done
 
 linktest:
@@ -51,7 +51,7 @@ linktest:
 		do \
 			echo " " ;\
 			echo Making linktest in directory $$dir ;\
-			(cd $$dir; make linktest) ;\
+			(cd $$dir; $(MAKE) linktest) ;\
 		done
 
 testing: $(MPIR_HOME)/util/mpirun
@@ -59,7 +59,7 @@ testing: $(MPIR_HOME)/util/mpirun
 		do \
 			echo " " ;\
 			echo Making testing in directory $$dir ;\
-			(cd $$dir; make testing) ;\
+			(cd $$dir; $(MAKE) testing) ;\
 		done
 
 clean:
@@ -67,8 +67,8 @@ clean:
 		do \
 			echo " " ;\
 			echo Making clean in directory $$dir ;\
-			(cd $$dir; make clean) ;\
+			(cd $$dir; $(MAKE) clean) ;\
 		done
 
 $(MPIR_HOME)/util/mpirun:
-	(cd $(MPIR_HOME) ; make mpirun )
+	(cd $(MPIR_HOME) ; $(MAKE) mpirun )

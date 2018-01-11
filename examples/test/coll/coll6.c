@@ -53,21 +53,31 @@ char **argv;
 		     &table[0][0], recv_counts, displs, 
 		     MPI_INT, MPI_COMM_WORLD);
 
-      /* Everybody should have the same table now,  */
-      /* This test does not in any way guarantee there are no errors */
-      /* Print out a table or devise a smart test to make sure it's correct */
+      /* Everybody should have the same table now.
+
+	 The entries are:
+	 Table[i][j] = (i/block_size) + 10;
+       */
       for (i=0; i<MAX_PROCESSES;i++) 
 	if ( (table[i][0] - table[i][MAX_PROCESSES-1] !=0) ) 
 	  errors++;
       for (i=0; i<MAX_PROCESSES;i++) {
-	printf("\n");
-	for (j=0; j<MAX_PROCESSES; j++)
-	  printf("  %d",table[i][j]);
-      }
-      printf("\n");
-
+	  for (j=0; j<MAX_PROCESSES;j++) {
+	      if (table[i][j] != (i/block_size) + 10) errors++;
+	      }
+	  }
+      if (errors) {
+	  /* Print out table if there are any errors */
+	  for (i=0; i<MAX_PROCESSES;i++) {
+	      printf("\n");
+	      for (j=0; j<MAX_PROCESSES; j++)
+		  printf("  %d",table[i][j]);
+	      }
+	  printf("\n");
+	  }
     } 
 
+    Test_Waitforall( );
     MPI_Finalize();
     if (errors)
       printf( "[%d] done with ERRORS(%d)!\n", rank, errors );

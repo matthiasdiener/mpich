@@ -11,7 +11,7 @@ ARCH        = intelnx
 COMM        = nx
 DEVICE      = ch_nx
 BOPT        = 
-MPIR_HOME   = /tmp_mnt/Net/alriga/alriga9/MPI/mpich
+MPIR_HOME   = /Net/alriga/alriga9/MPI/mpich
 INCLUDE_DIR =  -Impid/ch_nx -Iinclude
 CC          = icc
 AR          = ar860 crl
@@ -23,12 +23,12 @@ OPTFLAGS    = -O
 ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =  -nx  -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+CFLAGS   =  -nx   -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPID_DEVICE_CODE  -DMPID_DEBUG_NONE -DMPID_STAT_NONE -Dinteldelta
-SOURCE   = nxevent.c nxrecv.c nxsend.c nxinit.c nxprobe.c nxsync.c
+SOURCE   = nxevent.c nxrecv.c nxsend.c nxinit.c nxprobe.c nxsync.c nxrndv.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = nxevent.o nxrecv.o nxsend.o nxinit.o nxprobe.o nxsync.o
+MPI_OBJECTS = nxevent.o nxrecv.o nxsend.o nxinit.o nxprobe.o nxsync.o nxrndv.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

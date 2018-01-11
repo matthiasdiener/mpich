@@ -41,11 +41,11 @@ default:$(P)
 	then\
 		echo NOT making any monitors pgms on $(P4ARCH) ;\
 	else\
-		make $(MFLAGS) addtwo.ask addtwo.gs grid.shmem ;\
+		$(MAKE) $(MFLAGS) addtwo.ask addtwo.gs grid.shmem ;\
 	fi
 
 all:$(P)
-	make $(MFLAGS) addtwo.ask addtwo.gs adquad grid.shmem gridlog.shmem
+	$(MAKE) $(MFLAGS) addtwo.ask addtwo.gs adquad grid.shmem gridlog.shmem
 
 grid.shmem:$(P)	grid.shmem.o $(LIBDIR)/libp4.a
 	$(CLINKER) $(CFLAGS) -o grid.shmem grid.shmem.o $(LIBS)

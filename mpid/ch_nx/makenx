@@ -17,10 +17,12 @@ sed -e 's/MPID_CH/MPID_NX/g' ../chameleon/channel.h > channel.h
 ../chameleon/rmhetero ../chameleon/chinit.c  > nxinit.c
 ../chameleon/rmhetero ../chameleon/chprobe.c > nxprobe.c
 ../chameleon/rmhetero ../chameleon/chsync.c  > nxsync.c
+../chameleon/rmhetero ../chameleon/chrndv.c  > nxrndv.c
+../chameleon/rmhetero ../chameleon/chcoll.c  > nxcoll.c
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -nx nxinit.c
-for file in nxevent.c nxrecv.c nxsend.c nxprobe.c nxsync.c dmnx.h \
-	packets.h channel.h ; do
+for file in nxevent.c nxrecv.c nxsend.c nxprobe.c nxsync.c nxrndv.c nxcoll.c \
+	dmnx.h packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -nx $file
 done
 #

@@ -1,13 +1,53 @@
-proc NewWin {win is_main_win {logfile {}}} {
+#
+# Main window control for Upshot
+#
+# Ed Karrels
+# Argonne National Laboratory
+#
+
+#
+# mainwin structure:
+#
+# index format: <id>,<fieldName>
+#   id: the window name of the toplevel window
+#   fieldName: one of the following:
+#
+#   log - logfile widget this window is associated with
+#   needs_menus - whether this window needs menus to be created yet
+#   empty - whether this window is currently empty; without a
+#           logfile or display
+#   is_root_win - whether this is the main window, which must remain
+#                 open through the life of the program.  If it is, the
+#                 last option in the <logfile> menu will be 'Exit Nupshot',
+#                 as opposed to 'Close frame' for all other toplevel windows.
+#   scrollers - list of all the windows that need to be sent
+#               horizontal scroll information
+#   displays - list of displays currently visible.  For example,
+#              {timeline mtn {msgq recv 3}}
+#   endTime, startTime - from the logfile
+#   totalTime - legth of the logfile: endTime - startTime
+#   span - time span of the current visible range
+#   left - time displayed at the far left of the current visible range
+#      * note *  these are referred to in 
+#   totalUnits, windowUnits - saved for scrollbars, these depict the
+#      ratio between the time span visible and the total length of the
+#      logfile
+
+
+
+proc NewWin {win is_root_win {logfile {}}} {
       # $logfile will be the default file open
 
-   global win_info color
+   global mainwin color
 
       # initialize data for this window
 
-   set win_info($win,log) 0
-   set win_info($win,empty) 1
-   set win_info($win,is_main_win) $is_main_win
+   if [info exists mainwin($win,log)] {
+      unset mainwin($win,log)
+   }
+   set mainwin($win,empty) 1
+   set mainwin($win,needs_menus) 1
+   set mainwin($win,is_root_win) $is_root_win
 
    if {$logfile == ""} {
       set title "Upshot"
@@ -15,7 +55,7 @@ proc NewWin {win is_main_win {logfile {}}} {
       set title "Upshot - $logfile"
    }
 
-   if !$is_main_win {
+   if !$is_root_win {
       toplevel $win
       wm title $win $title
    }
@@ -37,14 +77,14 @@ proc NewWin {win is_main_win {logfile {}}} {
       # if a logfile was specified, load it
    if {$logfile != ""} {
       OpenFile $win $logfile [GuessFormat $logfile] \
-	    [GetDefault displays timeline]
+	    [GetDefault displays Timelines]
    }
 
 }
 
 
 proc AddLogfileMenu {id win} {
-   global win_info
+   global mainwin
    # id is the index id for any neccessary data
    # win the the window to create
 
@@ -66,7 +106,7 @@ proc AddLogfileMenu {id win} {
 
       # pick one of two exit options.  If this is the main window,
       # the user should know that destroying it will close the app
-   if $win_info($id,is_main_win) {
+   if $mainwin($id,is_root_win) {
       $logmenu add command -label "Exit Nupshot" -command ExitUpshot
    } else {
       $logmenu add command -label "Close frame" -command "CloseFile $id"
@@ -75,7 +115,7 @@ proc AddLogfileMenu {id win} {
 
 
 proc EnablePrintMenu {log w} {
-   global win_info
+   global mainwin
 
    # be sure to adjust this if the menus get moved
    $w.menu.logfile.menu entryconfigure 2 \
@@ -108,17 +148,50 @@ proc AddZoomMenu {id win} {
 
       # add menu items
    menu $win.menu
+   set menu $win.menu
    $win.menu add command -label "Zoom in horiz" -command \
-	 "Zoom $id horiz 2"
-   $win.menu add command -label "Zoom out horiz" -command \
-	 "Zoom $id horiz .5"
+	 "Zoom $id $id.displays horiz 2"
+   $menu add command -label "Zoom out horiz" -command \
+	 "Zoom $id $id.displays horiz .5"
+   $menu add command -label "Reset view" -command \
+	 "Zoom $id $id.displays reset"
 
    # These should not be here.  They should be on each widget.
-   $win.menu add command -label "Zoom in vert" -command \
-	 "Zoom $id vert 2"
-   $win.menu add command -label "Zoom out vert" -command \
-	 "Zoom $id vert .5"
+   # $menu add command -label "Zoom in vert" -command \
+	 "Zoom $id $id.displays vert 2"
+   # $menu add command -label "Zoom out vert" -command \
+	 "Zoom $id $id.displays vert .5"
 }
+
+
+proc AddDisplayMenu {id win} {
+   # id is the index id in mainwin() for any neccessary data
+   # win the the window to create
+
+      # create menu button
+   menubutton $win -text "Display" -menu $win.menu
+
+      # add menu items
+   menu $win.menu
+   set menu $win.menu
+
+   proc bill {name} {
+      return Bill
+   }
+   proc joe {name} {
+      return Joe
+   }
+   proc ed {name} {
+      return Ed
+   }
+   $menu add command -label "Configure" -command \
+	 "Display_Dialog $id.displays"
+   # $menu add command -label "Add" -command \
+	 "Display_Add $id"
+   # $menu add command -label "Remove" -command \
+	 "Display_Remove $id"
+}
+
 
 
 proc SelectFile {win} {
@@ -127,14 +200,16 @@ proc SelectFile {win} {
 }
 
 proc SelectedFile {win filename format} {
-   OpenFile $win $filename $format [GetDefault displays timeline]
+   OpenFile $win $filename $format [GetDefault displays Timelines]
 }
 
 
 proc OpenFile {w logfile format displays} {
-   global win_info
+   global mainwin
 
-   # w is used to index into win_info(), as well as the toplevel window name
+   # puts "OpenFile $w $logfile $format $displays"
+
+   # w is used to index into mainwin(), as well as the toplevel window name
 
    # display is a list of display widgets that should be used to display
    # this file.  For example:
@@ -147,72 +222,104 @@ proc OpenFile {w logfile format displays} {
    # Better way to do this?
    set left_gap [GetDefault display_left_gap 40]
 
-      # close the old logfile
-   if {$win_info($w,log) != "0"} {
-      logfile $win_info($w,log) close
+      # reset zoom point
+   if [info exists mainwin($w,zoom_time)] {unset mainwin($w,zoom_time)}
+
+      # if a logfile hasn't already been loaded in this window
+
+   if {$mainwin($w,needs_menus)} {
+      AddLogManipulationButtons $w
+      set mainwin($w,needs_menus) 0
    }
 
+   if {!$mainwin($w,empty)} {
+         # be sure to close the controls and stuff before closing the logfile
+
+         # destroy the displays first, since if the other stuff is destroyed
+         # first, the displays will notice they have more space, a
+         # <Configure> event will be triggered, and they will waste time
+         # recalculating to fill the new space.  Grrr...
+      destroy $w.displays
+      destroy $w.controls
+      destroy $w.legend
+      destroy $w.bottom
+      update idletasks
+   }
+
+      # close the old logfile
+   if {[info exists mainwin($w,log)]} {
+      $mainwin($w,log) close
+      unset mainwin($w,log)
+   }
+
+      # turn on hourglass cursor
+   LookBusy $w
+
       # open the new logfile
-   set openStatus [catch "logfile open $logfile $format" win_info($w,log)]
+   set openStatus [catch "logfile $w.log $logfile $format" err]
+
    if {$openStatus} {
       # if there was an error, let the user know
       set errwin .[GetUniqueWindowID]
-      message $errwin -aspect 200 -text "Error opening logfile: \
-	    $win_info($w,log)"
+      toplevel $errwin
+      wm title $errwin "Error"
+      message $errwin.m -aspect 400 -text "Error opening logfile: \
+	    $err"
+      button $errwin.b -text "Cancel" -command "destroy $errwin"
+      pack $errwin.m $errwin.b
       return -1
    }
 
+   set mainwin($w,log) $w.log
+   set log $mainwin($w,log)
+
+   set mainwin($w,startTime) [$log starttime]
+   set mainwin($w,endTime) [$log endtime]
+   set mainwin($w,totalTime) [expr [$log endtime] - [$log starttime]]
+
+      # set initial visible range
+   set mainwin($w,left) $mainwin($w,startTime)
+   set mainwin($w,span) $mainwin($w,totalTime)
+
       # set the title of the window to the name of the logfile
-   if $win_info($w,is_main_win) {
+   if $mainwin($w,is_root_win) {
       wm title . "nupshot - $logfile"
    } else {
       wm title $w "nupshot - $logfile"
    }
 
-      # if a logfile hasn't already been loaded in this window
+   # set font [option get $w font Font]
 
-   if {$win_info($w,empty)} {
-      set win_info($w,empty) 0
-      AddLogManipulationButtons $w
-   } else {
-         # close any existing displays
-      destroy $w.controls
-      # destroy $w.sep
-      destroy $w.legend
-      destroy $w.displays
-      destroy $w.bottom
-   }
-
-   set font [option get $w font Font]
-
-   EnablePrintMenu $win_info($w,log) $w
+   EnablePrintMenu $mainwin($w,log) $w
 
       # get the requested display widget width and height
    set widget_width [GetDefault "display widget width" 700]
    # set widget_height [GetDefault "display widget height" 300]
 
-   Create_Controls $w.controls $w $win_info($w,log)
+   Create_Controls $w.controls $w $mainwin($w,log)
    # frame $w.sep -height 4 -relief raised -borderwidth 2
 
    # The names of the windows used in this procedure are highly
    # depended on by stuff in print.tcl.  Change those if
    # you change these.
 
-   Legend_Create $w.legend $win_info($w,log) $widget_width
+   Legend_Create $w.legend $mainwin($w,log) $widget_width
 
 
    frame $w.bottom
 
+      # these names are assumed int SetScrollsLeft and SetScrollsSpan
+      # if you change the names here, change them there
+
       # attach time labels and a scrollbar to the whole mess
-   time_lbl $w.bottom.tlbl \
-	 [logfile $win_info($w,log) starttime] \
-	 [logfile $win_info($w,log) endtime] \
-	 -font $font
-   scrollbar $w.bottom.xscroll -command "XviewDisplays $w" -orient horiz
+   time_lbl $w.bottom.tlbl [$log starttime] [$log endtime]
+      # -font $font
+
+   scrollbar $w.bottom.xscroll -command "SetXview $w" -orient horiz
       # create list of windows that are scrollable
 
-   set win_info($w,scrollers) [list $w.bottom.tlbl $w.bottom.xscroll]
-   # set win_info($w,scrollers) {}
+   set mainwin($w,scrollers) [list $w.bottom.tlbl $w.bottom.xscroll]
+   # set mainwin($w,scrollers) {}
 
    # Let's hope this doesn't change much
    set scroll_width 19
@@ -231,47 +338,52 @@ proc OpenFile {w logfile format displays} {
    pack $w.legend -fill x
    pack $w.bottom -side bottom -fill x
 
-   update
-   update
-   update
+      # why did I put this here?  Ah, so the reqheight's and stuff
+      # will work.
+   update idletasks
 
-      # create frame for all displays
-   frame $w.displays
-
-   set ndisplays [llength $displays]
    set maxheight [expr ([winfo screenheight .] - \
 	 [winfo reqheight $w.menu] - \
 	 [winfo reqheight $w.controls] - \
 	 [winfo reqheight $w.legend] - \
-	 [winfo reqheight $w.bottom] - 40) / $ndisplays]
+	 [winfo reqheight $w.bottom] - 40) / [llength $displays]]
    # fudge factor of 40 for the window manager's border
    # What to do if this is really small?
 
-   set i 0
-      # open up each display and attach it to the logfile
+   # xscrollcommand - command that everyone should call to update the scrollbar
+   # -xscrollcommand "ScrollDisplays $w" 
+   #   * removed *
+
+   # timevar - variable that everyone should set to represent the current time
+   #           the cursor is hovering over
+   # setzoomptcmd - command that anyone can call if the user selects
+   #                a new zoom point (in time)
+   # maxheight - maximum height for any of the displays
+   # scan - command that every should call to update the horizontal 
+   #        position of other displays if the display gets scanned
+
+
+      # Open a display widget
+   display $w.displays $w $log \
+	 -timevar "ptrtime($w)" \
+	 -setzoomptcmd "Zoom_SetTime $w" \
+	 -maxheight $maxheight \
+	 -scan "SetLeft $w"
+
+   # open up each display and pack 'em into the display widget
+
    foreach display $displays {
       # have each display send scroll commands to a central
       # point, attach to the same log, and tell a certain
       # 'ptrtime($w)' variable what time the pointer
       # is over
 
-      OpenDisplay $w.displays.$i "$display -width $widget_width \
-	    -xscrollcommand {ScrollDisplays $w} -timevar ptrtime($w) \
-	    -setZoomPtCmd {Zoom_SetPoint $w} \
-	    -maxheight $maxheight" \
-	    $win_info($w,log)
-	    
-      pack $w.displays.$i -expand 1 -fill both
-      incr i
+      $w.displays add $display end {}
    }
-      # remember what displays are shown in this frame
-   set win_info($w,displays) $displays
-      # remember how many displays to update when scrolling & stuff
-   set win_info($w,ndisplays) $i
 
    pack $w.displays -fill both -expand 1
 
-   if $win_info($w,is_main_win) {
+   if $mainwin($w,is_root_win) {
       set win .
    } else {
       set win $w
@@ -287,26 +399,121 @@ proc OpenFile {w logfile format displays} {
 	       [winfo reqheight $w.legend] + \
 	       [winfo reqheight $w.bottom]]
 
-   update idletasks
+   set mainwin($w,totalTime) [expr [$log endtime] - [$log starttime]]
+   set mainwin($w,span) $mainwin($w,totalTime)
+   set mainwin($w,left) [$log starttime]
+   set mainwin($w,windowUnits) [expr [winfo reqwidth $w.displays]/10+1]
+   set mainwin($w,totalUnits) [expr $mainwin($w,windowUnits) * \
+	 $mainwin($w,totalTime) / $mainwin($w,span)]
 
-   # puts stderr "About to load"
-   logfile $win_info($w,log) load
+      # not empty anymore
+   set mainwin($w,empty) 0
+
+      # this command sets the horizontal scrollbar, time labels,
+      # and the position of each of the displays, in units of
+      # seconds
+   SetView $w $mainwin($w,left) $mainwin($w,span)
+
+      # go back to normal cursor
+   LookBored $w
+   update idletasks
 }
 
 
-   # send an 'xview' command to each of the display widgets, keeping
-   # them all in sync
-   #
-   # win_info($id,ndisplays) should be set to the number of displays
-   # The displays should be the windows $id.display.[0 -> (n-1)]
 
-proc XviewDisplays {id xview} {
-   global win_info
+proc SetXview {win xview} {
+   global mainwin
 
-   set n $win_info($id,ndisplays)
-   for {set i 0} {$i<$n} {incr i} {
-      # puts "$id.displays.$i xview $xview"
-      $id.displays.$i xview $xview
+   # The scrollbars have this funny notion that every is speaking in terms
+   # of 10000 units.  Change their words around to seconds before anyone
+   # think the scrollbars are loony.  Then tell everyone else the new
+   # left edge.
+
+   if {$xview < 0} {set xview 0}
+   if {$xview > 10000-$mainwin($win,windowUnits)} {
+      set xview [expr 10000-$mainwin($win,windowUnits)]
+   }
+   set left [expr $xview*$mainwin($win,totalTime)/10000.0+ \
+	 $mainwin($win,startTime)]
+   SetLeft $win $left
+}
+
+
+proc SetLeft {win left} {
+   global mainwin
+   set mainwin($win,left) $left
+
+   SetScrollsLeft $win $left
+   foreach disp [$win.displays list] {
+      $disp setleft $left
+   }
+   $win.bottom.tlbl setview $left $mainwin($win,span)
+}
+
+
+proc SetView {win left span} {
+   global mainwin
+   set mainwin($win,left) $left
+   set mainwin($win,span) $span
+
+   SetScrollsView $win $left $span
+   foreach disp [$win.displays list] {
+      $disp setview $left $span
+   }
+   $win.bottom.tlbl setview $left $span
+}
+
+
+proc SetScrollsLeft {win x} {
+   global mainwin
+
+   set log $mainwin($win,log)
+   set l [expr int(10000.0*($x-$mainwin($win,startTime)) / \
+	 ($mainwin($win,totalTime)))]
+   set r [expr $l+$mainwin($win,windowUnits)]
+
+   # puts "telling the scrollbars 10000 $mainwin($win,windowUnits) $l $r"
+
+   $win.bottom.xscroll set 10000 $mainwin($win,windowUnits) $l $r
+}
+
+
+proc SetScrollsView {win left span} {
+   global mainwin
+
+   # always set totalUnits to 10000
+   if 0 {
+      set w [expr int([winfo width $win]/10)+1]
+      set t [expr int($w*$mainwin($win,totalTime)/$span)]
+   }
+   
+   set mainwin($win,windowUnits) \
+	 [expr int(10000.0*$span/$mainwin($win,totalTime))]
+   set l [expr int(10000.0*($left-$mainwin($win,startTime)) / \
+	 ($mainwin($win,totalTime)))]
+   set r [expr $l+$mainwin($win,windowUnits)]
+   
+
+   # puts "telling the scrollbars 10000 $mainwin($win,windowUnits) $l $r"
+
+   $win.bottom.xscroll set 10000 $mainwin($win,windowUnits) $l $r
+}
+
+
+
+#
+# send an 'xview' command to each of the display widgets, keeping
+# them all in sync
+#
+# mainwin($id,ndisplays) should be set to the number of displays
+# The displays should be the windows $id.display.[0 -> (n-1)]
+#
+proc XviewAll {id xview} {
+   global mainwin
+
+   foreach disp [$id.displays list] {
+      # puts "$disp xview $xview"
+      $disp xview $xview
    }
 }
 
@@ -315,9 +522,9 @@ proc XviewDisplays {id xview} {
    # send a 'set' command to all the x-scrolling widgets on this window
 
 proc ScrollDisplays {id t w l r} {
-   global win_info
+   global mainwin
 
-   foreach scroller $win_info($id,scrollers) {
+   foreach scroller $mainwin($id,scrollers) {
       # puts "$scroller set $t $w $l $r"
       $scroller set $t $w $l $r
    }
@@ -329,6 +536,8 @@ proc OpenDisplay {frame cmd log} {
    set args [lrange $cmd 1 end]
    set widget [lindex $cmd 0]
 
+   # puts "OpenDisplay $frame $cmd $log"
+
    eval $widget $frame $log $args
 }
 
@@ -338,13 +547,16 @@ proc ExitUpshot {} {
 }
 
 proc CloseFile win {
+   displays, display_left_gap, display widget width
+
    destroy $win
 }
 
 
 proc AddLogManipulationButtons {win} {
    AddZoomMenu $win $win.menu.zoom
-   pack $win.menu.zoom -side left
+   AddDisplayMenu $win $win.menu.display
+   pack $win.menu.display $win.menu.zoom -side left
 }
 
 
@@ -361,11 +573,20 @@ proc Create_Controls {frame win log} {
 
       # zoom buttons
    frame $frame.z
-   button $frame.z.ih -bitmap zoom_in_horiz  -command "Zoom $win horiz 2"
-   button $frame.z.oh -bitmap zoom_out_horiz -command "Zoom $win horiz .5"
-   button $frame.z.iv -bitmap zoom_in_vert   -command "Zoom $win vert 2"
-   button $frame.z.ov -bitmap zoom_out_vert  -command "Zoom $win vert .5"
-   pack $frame.z.ih $frame.z.oh $frame.z.iv $frame.z.ov -side left
+   button $frame.z.ih -bitmap zoom_in_horiz  -command \
+	 "Zoom $win $win.displays horiz 2"
+   button $frame.z.oh -bitmap zoom_out_horiz -command \
+	 "Zoom $win $win.displays horiz .5"
+   # button $frame.z.iv -bitmap zoom_in_vert   -command \
+	 "Zoom $win $win.displays vert 2"
+   # button $frame.z.ov -bitmap zoom_out_vert  -command \
+	 "Zoom $win $win.displays vert .5"
+   # pack $frame.z.ih $frame.z.oh $frame.z.iv $frame.z.ov -side left
+
+   button $frame.z.r -text "Reset view" -command \
+	 "Zoom $win $win.displays reset"
+   pack $frame.z.ih $frame.z.oh -side left -padx 5
+   pack $frame.z.r -side left -padx 5
 
    pack $frame.time $frame.units $frame.z -side left -padx 5 -pady 3
 }

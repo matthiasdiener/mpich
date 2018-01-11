@@ -5,6 +5,7 @@
 ##### User configurable options #####
 
 ARCH        = @ARCH@
+MAKE        = @MAKE@
 COMM        = @COMM@
 BOPT        = @BOPT@
 MPIR_HOME   = @MPIR_HOME@
@@ -116,5 +117,7 @@ dbxtest: dbxtest.o $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a
 	$(LIB_PATH) $(LIB_LIST)
 clean:
 	/bin/rm -f *.o *~ $(EXECS)
-	(cd contrib/mandel ; make clean)
+	(cd contrib/mandel ; $(MAKE) clean)
+	(cd contrib/mastermind ; make clean)
+
 

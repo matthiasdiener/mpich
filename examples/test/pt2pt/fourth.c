@@ -59,5 +59,6 @@ char **argv;
       MPI_Isend( &data, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, &handle );
       MPI_Wait( &handle, &status );
     }
+    Test_Waitforall( );
     MPI_Finalize();
 }

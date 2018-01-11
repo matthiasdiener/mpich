@@ -87,6 +87,11 @@ int MPE_logicArray[] = {
 
     Output Parameter:
 .   handle - Graphics handle to be given to other MPE graphics routines.
+
+    Notes:
+    This is a collective routine.  All processes in the given communicator
+    must call it, and it has the same semantics as MPI_Barrier (that is,
+    other collective operations can not cross this routine).
 @*/
 int MPE_Open_graphics( handle, comm, display, x, y, w, h, is_collective )
 MPE_XGraph *handle;
@@ -763,6 +768,37 @@ MPE_Color color;
 		        graph->xwin->gc.set, centerx-radius, centery-radius, 
 		        radius*2, radius*2, 0, 360*64 );
   return MPE_Xerror( returnVal, "MPE_DrawCircle" );
+}
+
+
+
+/*@
+   MPE_Fill_circle - Fills a circle
+
+  Input Parameters:
+. graph - MPE graphics handle
+. centerx - horizontal center point of the circle
+. centery - vertical center point of the circle
+. radius - radius of the circle
+. color - color of the circle
+@*/
+int MPE_Fill_circle( graph, centerx, centery, radius, color )
+MPE_XGraph graph;
+int centerx, centery, radius;
+MPE_Color color;
+{
+  int returnVal;
+
+  if (graph->Cookie != MPE_G_COOKIE) {
+    fprintf( stderr, "Handle argument is incorrect or corrupted\n" );
+    return MPE_ERR_BAD_ARGS;
+  }
+
+  XBSetPixVal( graph->xwin, graph->xwin->cmapping[color] );
+  returnVal = XFillArc( graph->xwin->disp, XBDrawable(graph->xwin),
+		        graph->xwin->gc.set, centerx-radius, centery-radius, 
+		        radius*2, radius*2, 0, 360*64 );
+  return MPE_Xerror( returnVal, "MPE_FillCircle" );
 }
 
 

@@ -8,17 +8,17 @@
 #include "tcl.h"
 #include "tk.h"
 #include "log.h"
-#include "log_widget.h"
 #include "timelines.h"
 #include "tclptr.h"
 #include "str_dup.h"
 #include "tcl_callargv.h"
 #include "cvt_args.h"
+#include "feather.h"
 
 
 /* Sorry about this kludge, but our ANSI C compiler on our suns has broken
    header files */
-#if defined(sparc) && defined(__STDC__)
+#ifdef GCC_WALL
 int sscanf( char *, const char *, ... );
 #endif
 
@@ -36,16 +36,12 @@ int sscanf( char *, const char *, ... );
   /* length to use for temporary Tcl commands */
 #define TMP_CMD_LEN 200
 
-  /* macro for calling a Tcl function manually, checking the return,
-     and printing an error message on failure.  No return, no exit(). */
-
-
-#define Pix2Time( tl, pix )  ((pix)  * (tl)->pix2time + (tl)->starttime)
-#define Time2Pix( tl, time ) (((time) - (tl)->starttime) / (tl)->pix2time)
-#define Pix2Proc( tl, pix )  ((pix)  * (tl)->pix2proc)
-#define Proc2Pix( tl, proc ) ((proc) / (tl)->pix2proc)
-
-
+#define Pix2Time( tl, pix )  ((pix)  * (tl)->totalTime / (tl)->width \
+                              + (tl)->startTime)
+#define Time2Pix( tl, time ) (((time) - (tl)->startTime) / (tl)->totalTime * \
+                              (tl)->width )
+#define Pix2Proc( tl, pix )  ((pix)  * (tl)->np / (tl)->height)
+#define Proc2Pix( tl, proc ) ((proc) / (tl)->np * (tl)->height)
 
 #ifdef __STDC__
 #define ARGS(x) x
@@ -53,57 +49,109 @@ int sscanf( char *, const char *, ... );
 #define ARGS(x) ()
 #endif
 
-/*
-   The function that is called by the tcl routine "timeline".
-   Widget creation command.  clientData is (Tk_Window)mainWin.
-*/
-static int Timeline_Init ARGS((ClientData  clientData, Tcl_Interp *interp,
-			   int argc, char *argv[]));
 
 /*
    Link all the variable in the tl structure to Tcl variables.
 */
-static int LinkVars ARGS(( Tcl_Interp *interp, timeLineInfo *tl,
-			   char *array_name, char *idx_prefix ));
+static int LinkVars ARGS(( Tcl_Interp *interp, timeLineInfo *tl ));
 
+/*
+   Link all the variable in the tl structure to Tcl variables.
+*/
+static int UnlinkVars ARGS(( timeLineInfo *tl ));
+
+/*
+   Grab the ClientData from a logfile command as a logFile*.
+*/
+logFile *logCmd2Ptr ARGS(( Tcl_Interp *interp, char *logCmd ));
 
 static int SetOverlap ARGS(( xpandList /*int*/ *list2 ));
-static int StateOnScreen ARGS(( timeLineInfo *tl, int type, int proc ));
 
 /*
    Draw one state.
    The void *data is a timeLineInfo*.
 */
+/*  Obsolete
 static int TimeLineDrawState ARGS(( void *data, int idx, int type, int proc,
 				    double startTime, double endTime,
 				    int parent, int firstChild,
 				    int overlapLevel ));
+*/
+
+
+/*
+   Do the C side of a new timeline initialization.
+*/
+static int Timeline_Open ARGS(( ClientData  clientData, Tcl_Interp *interp,
+			  int argc, char *argv[] ));
+
+/*
+   Tcl hook for calling C canvas commands.
+*/
+static int Cmd ARGS(( ClientData clientData, Tcl_Interp *interp,
+		      int argc, char *argv[] ));
+
+/*
+   Allocate Feather_Color's and stuff.  Needed before any drawing
+   is done.  Should only be called once.
+*/
+static int AllocColors ARGS(( timeLineInfo* ));
+
+
+/*
+   Free colors allocated by AllocColors.
+*/
+static int FreeColors ARGS(( timeLineInfo* ));
+
+
+/*
+   Draw all states/messages/etc. that have not been drawn yet.
+*/
+static int Draw ARGS(( timeLineInfo* ));
+
+
+/*
+   Draw background lines.
+*/
+static int DrawBgLines ARGS(( timeLineInfo* ));
+
+
+/*
+   Draw events.
+*/
+static int DrawEvents ARGS(( timeLineInfo *tl, void *canvasPtr,
+			     Tk_Window canvasWin ));
+/*
+   Draw states.
+*/
+static int DrawStates ARGS(( timeLineInfo *tl, void *canvasPtr,
+			     Tk_Window canvasWin ));
+/*
+   Draw messages.
+*/
+static int DrawMsgs ARGS(( timeLineInfo *tl, void *canvasPtr,
+			   Tk_Window canvasWin ));
+
+
 
 /*
    Get timeLineInfo* from a window name.  $timeline($win,tl)
 */
+/*
 static timeLineInfo *TlPtrFromWindow ARGS(( Tcl_Interp *interp,
 					    char *win ));
-
-#if 0
-/*
-   The function that is called by Tcl scripts for all the timeline
-   widget commands.
 */
-static int Timeline_Cmd ARGS(( ClientData, Tcl_Interp *, int argc,
-			      char **argv ));
-#endif
 
 /*
    Return descripion of current item.
 */
-static int CurrentItem ARGS(( ClientData, Tcl_Interp *, int argc,
-			       char **argv ));
+static int CurrentItem ARGS(( timeLineInfo *tl ));
+
 
 /*
    Passed to Tk_EventuallyFree to close the widget record.
 */
-static int Destroy ARGS(( ClientData, Tcl_Interp*, int, char** ));
+static int Destroy ARGS(( timeLineInfo *tl ));
 
 
 #if DEBUG
@@ -127,47 +175,65 @@ char *argv[];
 }
 
 
+static int UnsquishCmd( clientData, interp, argc, argv )
+ClientData clientData;
+Tcl_Interp *interp;
+int argc;
+char **argv;
+{
+  void *canvasPtr;
+  Tk_Window canvasWin;
+  
+  if (argc != 2) {
+    Tcl_SetResult( interp, "unsquish <canvas>", TCL_STATIC );
+    return TCL_ERROR;
+  }
 
-int timelineAppInit( interp )
+  if (Feather_GetCanvasPtr( interp, argv[1], &canvasPtr, &canvasWin )
+      != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  return Feather_ReconfigArrows( canvasPtr );
+}
+
+
+
+int Timeline_Init( interp )
 Tcl_Interp *interp;
 {
-  Tcl_CreateCommand( interp, "Timeline_C_Init", Timeline_Init,
-		     (ClientData)0, (Tcl_CmdDeleteProc*) 0 );
-
-/*
-  Tcl_CreateCommand( interp, "Timeline_C_Cmd", Timeline_Cmd,
-		     (ClientData)0, (Tcl_CmdDeleteProc*) 0 );
-*/
-
-  Tcl_CreateCommand( interp, "Timeline_CurrentItem", CurrentItem,
-		     (ClientData)0, (Tcl_CmdDeleteProc*) 0 );
-
-  Tcl_CreateCommand( interp, "Timeline_C_Destroy", Destroy,
+  Tcl_CreateCommand( interp, "Timeline_C_Init", Timeline_Open,
 		     (ClientData)0, (Tcl_CmdDeleteProc*) 0 );
 
   Tcl_CreateCommand( interp, "SegFault", SegFaultCmd,
 		     (ClientData)0, (Tcl_CmdDeleteProc*) 0 );
 
+  Tcl_CreateCommand( interp, "Timeline_C_Draw", Cmd,
+		     (ClientData)0, (Tcl_CmdDeleteProc*) 0 );
+
+  Tcl_CreateCommand( interp, "unsquish", UnsquishCmd,
+		     (ClientData)0, (Tcl_CmdDeleteProc*) 0 );
   return 0;
 }
 
 
 
 
-static int Timeline_Init( clientData, interp, argc, argv )
+static int Timeline_Open( clientData, interp, argc, argv )
 ClientData clientData;
 Tcl_Interp *interp;
 int argc;
 char *argv[];
 {
   int i, n;
-  logWidget *log;
   timeLineInfo *tl;
-  char *logToken, *windowName, *varName;
+  char *logCmd, *canvas_name, *array_name, *idx_prefix;
+  char *cmd_name;
 
     /* convert the arguments from strings, put them in the widget record */
-  if (TCL_OK != ConvertArgs( interp, "timeline <window> <logfile token>", 
-		   "1 ss", argc, argv, &windowName, &logToken )) {
+  if (TCL_OK != ConvertArgs( interp, "timeline <cmd_name> <log> <canvas> <array name> <array index prefix>", 
+		   "1 sssss", argc, argv, &cmd_name, &logCmd, &canvas_name,
+			     &array_name, &idx_prefix )) {
     goto failed_1;
   }
 
@@ -181,24 +247,31 @@ char *argv[];
     /* grab pointer to interpreter */
   tl->interp = interp;
 
-    /* save copy of my window name */
-  tl->windowName = STRDUP( windowName );
+    /* save copy of the canvas name */
+  tl->canvasName = STRDUP( canvas_name );
 
-    /* build canvas name, save copy */
-  tl->canvasName = (char *)malloc( strlen(tl->windowName)+3 );
-  sprintf( tl->canvasName, "%s.c", tl->windowName );
+  tl->array_name = STRDUP( array_name );
+  tl->idx_prefix = STRDUP( idx_prefix );
 
-    /* convert the logfile token to a string, get the logData* */
-  if (!(log = LogToken2Ptr( interp, logToken ))) {
-      /* LogToken2Ptr sets interp->result */
+    /* convert the logfile token to a string, get the logFile* */
+  if (!(tl->log = LogCmd2Ptr( interp, logCmd ))) {
+      /* LogCmd2Ptr sets interp->result */
     goto failed_2;
   }
 
-    /* keep pointer to logfile data structure */
-  tl->log = log->data;
+  tl->width = tl->height = -1;
+  tl->visWidth = tl->visHeight = -1;
+  tl->lastVisWidth = tl->lastVisHeight = -1;
 
-  tl->starttime = Log_StartTime( tl->log );
-  tl->endtime = Log_EndTime( tl->log );
+  tl->xleft = tl->xspan = tl->lastXspan = -1;
+  tl->xview = -1;
+  tl->ytop = tl->yspan = tl->lastYspan = -1;
+  tl->yview = -1;
+
+  tl->startTime = Log_StartTime( tl->log );
+  tl->endTime = Log_EndTime( tl->log );
+  tl->np = Log_Np( tl->log );
+  tl->totalTime = tl->endTime - tl->startTime;
 
     /* create visiblity definitions such that everything is visible */
     /* might want to declare a special case for the visible object for
@@ -228,28 +301,41 @@ char *argv[];
        a state bar if is is overlapping X other states */
   SetOverlap( &tl->overlap.halfWidths );
 
+  tl->outlineColor = 0;
+  tl->msgColor = 0;
+  tl->bg = 0;
+  tl->bw = 0;
+
+    /* Mark the timelines as not being drawn yet.  Every time new data, like
+       visWidth or xspan comes in, Draw() will be called.  If there is not
+       enough information to draw, it will just return.  The first time
+       that enough data has been provided to draw, it will be drawn.  Every
+       time after that it will simply stretch or slide the canvas to
+       match changes. */
+  tl->isdrawn = 0;;
+
     /* create list for for state drawing information */
     /* don't forget we still need to add messages and events */
   ListCreate( tl->stateList, tl_stateInfo, 100 );
 
-    /* add this timeline display to the list of function to be called
-       whenever a new state is read */
-  tl->drawStateToken = 
-    Log_AddDrawState( tl->log, TimeLineDrawState, (void*)tl );
+  tl->msgIds = 0;
 
-    /* create variables like timeline(.f.1.ge.sdf,fg) */
-  varName = (char*) malloc( strlen(windowName) + 11 + 20 );
+    /* lists of state drawing information.  Leave empty until needed */
+  tl->fillColors = 0;
+  tl->fillStipples = 0;
+  tl->stateTags = 0;
+  tl->procTags = 0;
 
-  tl->bg = 0;
-  tl->outlineColor = 0;
-  tl->pix2time = tl->pix2proc = 1;
-  tl->bw = 42;
+    /* allow Tcl to access width, height, visHeight, visWidth, xleft,
+       xspan, ytop, yspan,
+       bg, outlineColor, msgColor, bw, startTime, totalTime, and endTime */
+  LinkVars( interp, tl );
 
-    /* allow Tcl to control height, width, fg, bg, the scrollbar-like setting,
-       starttime, endtime, and the pix2time, pix2proc conversion factors */
-  LinkVars( interp, tl, "timeline", tl->windowName );
-
-  sprintf( interp->result, "%d", AllocTclPtr( (void*)tl ) );
+    /* create a command by which the functions int timelines.tcl can
+       call me directly (more convenient to put timeLineInfo* in ClientData
+       than in some TclPtr) */
+  Tcl_CreateCommand( interp, cmd_name, Cmd, (ClientData)tl,
+		     (Tcl_CmdDeleteProc*)0 );
 
     /* like, wow, no errors! */
   return TCL_OK;
@@ -265,7 +351,7 @@ char *argv[];
 
 
 #define LINK_ELEMENT( str_name, name, type ) \
-  sprintf( tmp, "%s(%s,%s)", array_name, idx_prefix, str_name ); \
+  sprintf( tmp, "%s(%s,%s)", tl->array_name, tl->idx_prefix, str_name ); \
   Tcl_LinkVar( interp, tmp, (char*)&tl->name, type );
 /*
   fprintf( stderr, "Linking tl->%s at address %p.\n", \
@@ -273,11 +359,9 @@ char *argv[];
 */
 
 
-static int LinkVars( interp, tl, array_name, idx_prefix )
+static int LinkVars( interp, tl )
 Tcl_Interp *interp;
 timeLineInfo *tl;
-char *array_name;
-char *idx_prefix;
 {
   char *tmp;
   int i = TCL_LINK_INT;
@@ -291,37 +375,72 @@ char *idx_prefix;
 
   int max_element_len = 12;  /* "windowUnits" */
 
-  tmp = malloc( strlen(array_name) + 1 + strlen(idx_prefix) + 1 +
+  tmp = malloc( strlen(tl->array_name) + 1 + strlen(tl->idx_prefix) + 1 +
 	        max_element_len + 1 + 1 );
-  /*
-    width i
-    height i
-    bg s
-    outlineColor s
-    totalUnits i
-    windowUnits i
-    firstUnit i
-    lastUnit i
-    pix2time f
-    pix2proc f
-    bw i
-    starttime f
-    endtime f
-  */
+
+  tl->lineColor = 0;
+  tl->outlineColor = 0;
+  tl->msgColor = 0;
 
   LINK_ELEMENT( "width", width, f );
   LINK_ELEMENT( "height", height, f );
+  LINK_ELEMENT( "visWidth", visWidth, i );
+  LINK_ELEMENT( "visHeight", visHeight, i );
+  LINK_ELEMENT( "xleft", xleft, f );
+  LINK_ELEMENT( "xspan", xspan, f );
+  LINK_ELEMENT( "ytop", ytop, f );
+  LINK_ELEMENT( "yspan", yspan, f );
   LINK_ELEMENT( "bg", bg, s );
+  LINK_ELEMENT( "lineColor", lineColor, s );
   LINK_ELEMENT( "outlineColor", outlineColor, s );
-  LINK_ELEMENT( "totalUnits", totalUnits, i );
-  LINK_ELEMENT( "windowUnits", windowUnits, i );
-  LINK_ELEMENT( "firstUnit", firstUnit, i );
-  LINK_ELEMENT( "lastUnit", lastUnit, i );
-  LINK_ELEMENT( "pix2time", pix2time, f );
-  LINK_ELEMENT( "pix2proc", pix2proc, f );
+  LINK_ELEMENT( "msgColor", msgColor, s );
   LINK_ELEMENT( "bw", bw, i );
-  LINK_ELEMENT( "starttime", starttime, f );
-  LINK_ELEMENT( "endtime", endtime, f );
+  LINK_ELEMENT( "startTime", startTime, f );
+  LINK_ELEMENT( "totalTime", totalTime, f );
+  LINK_ELEMENT( "endTime", endTime, f );
+  LINK_ELEMENT( "np", np, i );
+
+  free( tmp );
+
+  return 0;
+}
+
+
+#define UNLINK_ELEMENT( str_name ) \
+  sprintf( tmp, "%s(%s,%s)", tl->array_name, tl->idx_prefix, str_name ); \
+  Tcl_UnlinkVar( tl->interp, tmp );
+
+static int UnlinkVars( tl )
+timeLineInfo *tl;
+{
+  char *tmp;
+
+  /* tmp will get filled with something like "tl(.win.0,stuff)",
+     or ("%s(%s,%s)", tl->array_name, tl->idx_prefix, element_name ), to
+     be exact.
+  */
+  int max_element_len = 12;  /* "outlineColor" */
+
+  tmp = malloc( strlen(tl->array_name) + 1 + strlen(tl->idx_prefix) + 1 +
+	        max_element_len + 1 + 1 );
+
+  UNLINK_ELEMENT( "width" );
+  UNLINK_ELEMENT( "height" );
+  UNLINK_ELEMENT( "visWidth" );
+  UNLINK_ELEMENT( "visHeight" );
+  UNLINK_ELEMENT( "xleft" );
+  UNLINK_ELEMENT( "xspan" );
+  UNLINK_ELEMENT( "ytop" );
+  UNLINK_ELEMENT( "yspan" );
+  UNLINK_ELEMENT( "bg" );
+  UNLINK_ELEMENT( "lineColor" );
+  UNLINK_ELEMENT( "outlineColor" );
+  UNLINK_ELEMENT( "msgColor" );
+  UNLINK_ELEMENT( "bw" );
+  UNLINK_ELEMENT( "startTime" );
+  UNLINK_ELEMENT( "totalTime" );
+  UNLINK_ELEMENT( "endTime" );
+  UNLINK_ELEMENT( "np" );
 
   free( tmp );
 
@@ -330,6 +449,7 @@ char *idx_prefix;
 
 
 
+#if 0
 static timeLineInfo *TlPtrFromToken( interp, token )
 Tcl_Interp *interp;
 char *token;
@@ -367,84 +487,23 @@ char *win;
     return 0;
   }
 }
+#endif
 
 
 
-static int Destroy( data, interp, argc, argv )
-ClientData data;
-Tcl_Interp *interp;
-int argc;
-char *argv[];
+static int Destroy( tl )
+timeLineInfo *tl;
 {
-  timeLineInfo *tl;
-  char *varName;
-
-  if (argc != 2) {
-    Tcl_AppendResult( interp, "wrong # of args: ", argv[0], " <token>",
-		      (char*)0 );
-    return TCL_ERROR;
-  }
-
-    /* convert data pointer to my widget record pointer */
-  tl = TlPtrFromToken( interp, argv[1] );
-  if (!tl) {
-    return TCL_ERROR;
-  }
-
   ListDestroy( tl->stateList, tl_stateInfo );
 
-    /* create variables like timeline(.f.1.ge.sdf,fg) */
-  varName = (char*) malloc( strlen(tl->windowName) + 11 + 20 );
+  UnlinkVars( tl );
 
-
-  sprintf( varName, "timeline(%s,width)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,height)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,bg)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-  if (tl->bg) {
-    free(tl->bg);
-    tl->bg = 0;
-  }
-
-  sprintf( varName, "timeline(%s,outlineColor)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-  if (tl->outlineColor) {
-    free(tl->outlineColor);
-    tl->outlineColor = 0;
-  }
-
-  sprintf( varName, "timeline(%s,totalUnits)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,windowUnits)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,firstUnit)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,lastUnit)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,pix2time)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,pix2proc)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,bw)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,starttime)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  sprintf( varName, "timeline(%s,endtime)", tl->windowName );
-  Tcl_UnlinkVar( interp, varName );
-
-  free( varName );
+  if (tl->bg) free( tl->bg );
+  if (tl->outlineColor) free( tl->outlineColor );
+  if (tl->msgColor) free( tl->msgColor );
+  if (tl->canvasName) free( tl->canvasName );
+  if (tl->array_name) free( tl->array_name );
+  if (tl->idx_prefix) free( tl->idx_prefix );
 
   Vis_close( tl->procVis );
   Vis_close( tl->eventVis );
@@ -452,11 +511,10 @@ char *argv[];
   Vis_close( tl->msgVis );
   tl->procVis = tl->eventVis = tl->stateVis = tl->msgVis = 0;
 
-  free( tl->windowName );	/* STRDUP'd */
-  free( tl->canvasName );	/* malloc()'d */
-  tl->windowName = tl->canvasName = 0;
+     /* free colors allocated for this display */
+  FreeColors( tl );
 
-  free( (void*)tl );			/* malloc()'d */
+  free( (char*)tl );			/* malloc()'d */
 
   return TCL_OK;
 }
@@ -485,260 +543,480 @@ xpandList *list2;
 
 
 
-static int StateOnScreen( tl, type, proc )
-timeLineInfo *tl;
-int type, proc;
-{
-  /* return 0 if the state is definitely not visible, 1 if it
-     may be partially visible */
-
-  /* for now, return everything as visible */
-
-  return 1;
-
-}
-
-
-
-
-
-static int TimeLineDrawState( data_v, idx, type, proc, startTime, endTime,
-			      parent, firstChild, overlapLevel )
-void *data_v;
-int idx;
-int type, proc, parent, firstChild, overlapLevel;
-double startTime, endTime;
-{
-  static int update_count = 0;
-
-  char *argv[20], tags[50];
-  char nums[4][50];		/* temp storage for stringized numbers */
-
-  timeLineInfo *tl;
-  double l, r, t, b;
-  int visibleProcIdx, firstChildCanvasId;
-    /* corners of the state: left, right, top, bottom */
-  char cmd[1000];
-  tl_stateInfo state_info;
-  char *state_name, *state_color, *state_bitmap;
-  logData *log_copy;
-
-  Tcl_CmdInfo cmd_info;
-
-    /* nothing special to do after the last state */
-  if (idx == -1) return 0;
-
-    /* reset the counter if this is a new logfile */
-  if (idx == 0) update_count = 0;
-
-#if DEBUG>1
-  fprintf( stderr, "TimeLineDrawState sent state #%d.\n", idx );
-  fprintf( stderr, "%f to %f, proc %d, type %d, overlapLevel %d\n",
-	   startTime, endTime, proc,
-	   type, overlapLevel );
-#endif
-
-
-  tl = (timeLineInfo *) data_v;
-
-  if (StateOnScreen( tl, type, proc )) {
-
-    Log_GetStateDef( tl->log, type, &state_name, &state_color,
-		     &state_bitmap );
-
-      /* get the first child's canvas Id */
-    firstChildCanvasId = (firstChild == -1) ? -1 :
-      ListItem( tl->stateList, tl_stateInfo, firstChild ).canvasId1;
-
-      /* convert process number to its index in the list of VISIBLE
-	 processes */
-    visibleProcIdx = Vis_x2i( tl->procVis, proc );
-
-    l = Time2Pix( tl, startTime );
-    r = Time2Pix( tl, endTime );
-      /* the overlap.halfWidth is a number from 0 to 100; how much
-	 of the alloted space to fill up */
-    t = Proc2Pix( tl, visibleProcIdx + .5 * (100 -
-      ListItem( tl->overlap.halfWidths, int, overlapLevel ))/100.0 );
-    b = Proc2Pix( tl, visibleProcIdx + .5 + .5 * 
-      ListItem( tl->overlap.halfWidths, int, overlapLevel )/100.0 );
-
-      /* get data necessary for calling the canvas' command directly */
-      /* to elimiate time spent parsing arguments, which is significant, */
-      /* at least on my machine */
-
-    Tcl_GetCommandInfo( tl->interp, tl->canvasName, &cmd_info );
-
-    sprintf( nums[0], "%.17g", l );
-    sprintf( nums[1], "%.17g", t );
-    sprintf( nums[2], "%.17g", r );
-    sprintf( nums[3], "%.17g", b );
-
-    argv[0] = tl->canvasName;
-    argv[1] = "create";
-    argv[2] = "rect";
-    argv[3] = nums[0];
-    argv[4] = nums[1];
-    argv[5] = nums[2];
-    argv[6] = nums[3];
-    argv[7] = "-tags";
-    /*
-       If this is color, we want this to be the main rectangle, thus
-       the tag should be color_%d.  If this is b&w, this rectangle is
-       the coverup rectangle, and should be color_bg.
-
-       Unfortunately, when it comes time to print the color ones in
-       b&w, they again need the masking rectangle.  Grrr.
-    */
-    argv[8] = "color_bg";
-    argv[9] = "-fill";
-    argv[10] = tl->bg;
-    argv[11] = 0;
-
-/*
-fprintf( stderr, "TimeLineDrawState: %s %s %s %s %s %s %s %s %s %s %s\n",
-	 argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6],
-	 argv[7], argv[8], argv[9], argv[10] );
-*/
-      
-      /* call the canvas command manually */
-    Tcl_CallArgv( cmd_info, tl->interp, 11, argv );
-    
-      /* get canvas id */
-    sscanf( tl->interp->result, "%d", &state_info.canvasId1 );
-
-    sprintf( tags, "color_%d", type );
-
-    argv[8] = tags;
-    if (tl->bw) {
-      /* argv[9] = "-fill"; */
-      argv[10] = tl->outlineColor;
-      argv[11] = "-stipple";
-      argv[12] = state_bitmap;
-      argv[13] = "-outline";
-      argv[14] = tl->outlineColor;
-      argv[15] = 0;
-    
-        /* call the canvas command manually */
-      Tcl_CallArgv( cmd_info, tl->interp, 15, argv );
-
-    } else {
-      /* argv[9] = "-fill"; */
-      argv[10] = state_color;
-      argv[11] = "-outline";
-      argv[12] = tl->outlineColor;
-      argv[13] = 0;
-    
-        /* call the canvas command manually */
-      Tcl_CallArgv( cmd_info, tl->interp, 13, argv );
-    }
-
-      /* get canvas id */
-    sscanf( tl->interp->result, "%d", &state_info.canvasId2 );
-
-      /* if this state has children, drop it below their rectangles */
-    if (firstChildCanvasId != -1) {
-
-      sprintf( nums[0], "%d", state_info.canvasId2 );
-      sprintf( nums[1], "%d", firstChildCanvasId );
-      argv[1] = "lower";
-      argv[2] = nums[0];
-      argv[3] = nums[1];
-      argv[4] = 0;
-
-        /* drop this rectangle below its first child */
-      Tcl_CallArgv( cmd_info, tl->interp, 4, argv );
-
-      sprintf( nums[1], "%d", state_info.canvasId1 );
-      argv[2] = nums[1];
-      argv[3] = nums[0];
-
-        /* drop coverup rectangle below the real rectangle that was
-	   just put beneath its first child */
-      Tcl_CallArgv( cmd_info, tl->interp, 4, argv );
-    }
-
-  } else {
-
-    /* if the state is not visible */
-    state_info.canvasId1 = TL_STATE_NOT_VISIBLE;
-  }
-
-  ListAddItem( tl->stateList, tl_stateInfo, state_info );
-  log_copy = tl->log;
-
-#if 0
-    /* just to keep things moving */
-    /* leave out TK_IDLE_EVENTS since we want to give everything a chance
-       except the canvas redraw */
-  while (Tk_DoOneEvent( TK_DONT_WAIT | TK_X_EVENTS | TK_FILE_EVENTS |
-		        TK_TIMER_EVENTS )) {
-  }
-#endif
-
-
-  update_count++;
-  if (update_count == UPDATES_EVERY_N_STATES) {
-    strcpy( cmd, "update" );
-
-      /* right here, we might get deleted.  Better watch out.  */
-    Tcl_Eval( tl->interp, cmd );
-
-    update_count = 0;
-  }
-
-  return Log_Halted( log_copy );
-}
-
-
-#if DEBUG
-static int PrintStates( tl )
-timeLineInfo *tl;
-{
-  int i, n;
-  tl_stateInfo *state;
-
-  state = ListHeadPtr( tl->stateList, tl_stateInfo );
-  n = ListSize( tl->stateList, tl_stateInfo );
-
-  for (i=0; i<n; i++,state++) {
-    fprintf( stderr, "%d\n", state->canvasId1 );
-  }
-  return TCL_OK;
-}
-#endif
-
-
-
-  /* get the current item from the canvas, figure out what kind of
-     object it is (state, event, or message) and return the type
-     and index of the item, for example, {state 35} */
-
-
-static int CurrentItem( data, interp, argc, argv )
-ClientData data;
+static int Cmd( clientData, interp, argc, argv )
+ClientData clientData;
 Tcl_Interp *interp;
 int argc;
 char *argv[];
 {
-  int i, n;
-  int canvas_id;
-  char cmd[TMP_CMD_LEN];
   timeLineInfo *tl;
-  tl_stateInfo *statePtr;
 
-  if (argc != 2) {
-    Tcl_AppendResult( interp, "wrong # of arguments: Timeline_CurrentItem ",
-		      "<win>", (char*)0 );
-    return TCL_ERROR;
-  }
+  tl = (timeLineInfo*)clientData;
 
-  tl = TlPtrFromWindow( interp, argv[1] );
-  if (!tl) {
-    Tcl_AppendResult( interp, "window ", argv[1], " is not a timeline.",
+  if (!strcmp( argv[1], "draw" )) {
+    if (argc != 2) {
+      Tcl_AppendResult( interp, "wrong # of args: ", argv[0], " draw",
+		        (char*)0 );
+      return TCL_ERROR;
+    }
+
+    return Draw( tl );
+
+  } else if (!strcmp( argv[1], "destroy" )) {
+    if (argc != 2) {
+      Tcl_AppendResult( interp, "wrong # of args: ", argv[0], " destroy",
+		        (char*)0 );
+      return TCL_ERROR;
+    }
+
+    return Destroy( tl );
+
+  } else if (!strcmp( argv[1], "currentitem" )) {
+    if (argc != 2) {
+      Tcl_AppendResult( interp, "wrong # of args: ", argv[0], " currentitem",
+		        (char*)0 );
+      return TCL_ERROR;
+    }
+
+    return CurrentItem( tl );
+
+  } else {
+    Tcl_AppendResult( interp, argv[1], " -- unknown command for timeline",
 		      (char*)0 );
     return TCL_ERROR;
   }
+}
+
+
+
+/*
+   Slide the canvas with xview and yview commands so that it is
+   in the correct position.
+*/
+int Slide( tl )
+timeLineInfo *tl;
+{
+  char cmd[200];
+  int xview, yview;
+
+  xview = (tl->xleft - tl->startTime) / tl->totalTime * tl->width;
+
+  if (xview != tl->xview) {
+    tl->xview = xview;
+    sprintf( cmd, "%s xview %d", tl->canvasName, xview );
+    if (Tcl_Eval( tl->interp, cmd ) != TCL_OK) return TCL_ERROR;
+  }
+
+  yview = tl->ytop / tl->np * tl->height;
+
+  if (yview != tl->yview) {
+    tl->yview = yview;
+    sprintf( cmd, "%s yview %d", tl->canvasName, yview );
+    if (Tcl_Eval( tl->interp, cmd ) != TCL_OK) return TCL_ERROR;
+  }
+
+  return TCL_OK;
+}
+
+
+
+/*
+   Stretch the canvas to fit the display settings requested.
+*/
+int Stretch( tl )
+timeLineInfo *tl;
+{
+  char cmd[200];
+  double width, height;
+  
+  width =  tl->visWidth  * tl->totalTime / tl->xspan;
+  height = tl->visHeight * tl->np        / tl->yspan;
+
+  if (width != tl->width || height != tl->height) {
+      /* unsquish calls Feather_ReconfigArrows, which unsquishes any
+	 arrows that got squished by the scale */
+    sprintf( cmd, "%s scale all 0 0 %.17g %.17g; unsquish %s", tl->canvasName,
+	     width / tl->width, height / tl->height, tl->canvasName );
+    if (Tcl_Eval( tl->interp, cmd ) != TCL_OK) return TCL_ERROR;
+    sprintf( cmd, "%s config -scrollregion {0 0 %.17g %.17g}",
+	     tl->canvasName, width, height );
+    if (Tcl_Eval( tl->interp, cmd ) != TCL_OK) return TCL_ERROR;
+    tl->width = width;
+    tl->height = height;
+  }
+
+  return Slide( tl );
+}
+
+
+
+
+
+
+static int Draw( tl )
+timeLineInfo *tl;
+{
+  Tk_Window canvasWin;
+  void *canvasPtr;
+  char cmd[200];
+
+  if (TCL_OK != Feather_GetCanvasPtr( tl->interp, tl->canvasName, &canvasPtr,
+				      &canvasWin )) {
+    return TCL_ERROR;
+  }
+
+  if (tl->visWidth == -1 || tl->visHeight == -1 ||
+      tl->xspan == -1 || tl->yspan == -1) {
+      /* Cannot draw--no dimensions yet */
+    return TCL_OK;
+  }
+
+    /* If the display has already been drawn and hasn't been stretched or
+       anything, just slide it a bit. */
+  if (tl->isdrawn &&
+      tl->visWidth == tl->lastVisWidth &&
+      tl->visHeight == tl->lastVisHeight &&
+      tl->xspan == tl->lastXspan &&
+      tl->yspan == tl->lastYspan) {
+    return Slide( tl );
+  }
+
+  tl->lastVisWidth = tl->visWidth;
+  tl->lastVisHeight = tl->visHeight;
+  tl->lastXspan = tl->xspan;
+  tl->lastYspan = tl->yspan;
+
+    /* if it's already been drawn, I'll just stretch it to fit. */
+  if (tl->isdrawn) {
+    return Stretch( tl );
+  }
+
+  /* well, looks like we'll actually have to draw it. */
+
+    /* set the canvas scroll region to match what I want */
+  tl->width  = tl->visWidth  * tl->totalTime / tl->xspan;
+  tl->height = tl->visHeight * tl->np        / tl->yspan;
+
+  sprintf( cmd, "%s config -scrollregion {0 0 %.17g %.17g}",
+	   tl->canvasName, tl->width, tl->height );
+  if (Tcl_Eval( tl->interp, cmd ) != TCL_OK) return TCL_ERROR;
+
+    /* allocate Feather_Colors and stuff */
+  AllocColors( tl );
+
+  if (DrawBgLines( tl ) != TCL_OK ||
+      DrawEvents( tl, canvasPtr, canvasWin ) != TCL_OK ||
+      DrawStates( tl, canvasPtr, canvasWin ) != TCL_OK ||
+      DrawMsgs( tl, canvasPtr, canvasWin ) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  tl->isdrawn = 1;
+
+    /* make sure everyone is in the right position */
+  return Slide( tl );
+}
+
+
+
+/*
+   Draw the lines that all the state bars sit on.
+*/
+static int DrawBgLines( tl )
+timeLineInfo *tl;
+{
+  int i;
+  double y;
+  char cmd[200];
+
+  for (i=0; i<tl->np; i++) {
+    y = Proc2Pix( tl, i+.5 );
+    sprintf( cmd, "%s create line 0 %f %f %f -fill %s -tags {%s}",
+		  tl->canvasName, y, tl->width, y,
+		  tl->lineColor, "color_timeline" );
+    if (Tcl_Eval( tl->interp, cmd ) != TCL_OK) return TCL_ERROR;
+  }
+
+  return TCL_OK;
+}
+
+
+  
+
+
+
+static int DrawEvents( tl, canvasPtr, canvasWin )
+timeLineInfo *tl;
+void *canvasPtr;
+Tk_Window canvasWin;
+{
+
+/*
+  printf( "%d events to draw\n", Log_Nevents( tl->log ) );
+
+  n = Log_Nevents( tl->log );
+  for (i=tl->lastEventDrawn; i<n; i++) {}
+  tl->lastEventDrawn = i;
+*/
+  
+  return TCL_OK;
+}
+
+
+
+/*
+   The Feather_CreateRect() command wants allocated colors and bitmaps
+   and stuff.  Allocate them once with this procedure.
+*/
+static int AllocColors( tl )
+timeLineInfo *tl;
+{
+  int nstates, np, i;
+  char *name, *color, *bitmap;
+  char tag[50];
+
+  nstates = Log_NstateDefs( tl->log );
+  np = Log_Np( tl->log );
+
+  tl->fillColors =
+    (Feather_Color*) malloc( sizeof(Feather_Color) * nstates );
+  tl->fillStipples =
+    (Feather_Bitmap*) malloc( sizeof(Feather_Bitmap) * nstates );
+  tl->stateTags =
+    (Tk_Uid*) malloc( sizeof(Tk_Uid) * nstates );
+  tl->colorTags =
+    (Tk_Uid*) malloc( sizeof(Tk_Uid) * nstates );
+  tl->procTags =
+    (Tk_Uid*) malloc( sizeof(Tk_Uid) * np );
+
+  Feather_GetCanvasPtr( tl->interp, tl->canvasName,
+		        &tl->canvasPtr, &tl->canvasWin );
+
+  tl->outlineCol = Feather_GetColor( tl->interp, tl->canvasWin, None,
+				     Tk_GetUid( tl->outlineColor ) );
+
+  tl->bgCol = Feather_GetColor( tl->interp, tl->canvasWin, None,
+				Tk_GetUid( tl->bg ) );
+
+  tl->msgCol = Feather_GetColor( tl->interp, tl->canvasWin, None,
+				 Tk_GetUid( tl->msgColor ) );
+
+  tl->colorBgTag =      Tk_GetUid( "color_bg" );
+  tl->colorOutlineTag = Tk_GetUid( "color_outline" );
+  tl->colorArrowTag =   Tk_GetUid( "color_arrow" );
+
+  for (i=0; i<nstates; i++) {
+    Log_GetStateDef( tl->log, i, &name, &color, &bitmap );
+    sprintf( tag, "state_%d", i );
+    tl->stateTags[i] = Tk_GetUid( tag );
+    sprintf( tag, "color_%d", i );
+    tl->colorTags[i] = Tk_GetUid( tag );
+    tl->fillColors[i] = Feather_GetColor( tl->interp, tl->canvasWin, None,
+					  Tk_GetUid( color ) );
+    tl->fillStipples[i] = Feather_GetBitmap( tl->interp, tl->canvasWin,
+					     Tk_GetUid( bitmap ) );
+  }
+
+  for (i=0; i<np; i++) {
+    sprintf( tag, "proc_%d", i );
+    tl->procTags[i] = Tk_GetUid( tag );
+  }
+
+  return TCL_OK;
+}
+
+
+/*
+   Free colors and stuff allocated in AllocColor.
+*/
+static int FreeColors( tl )
+timeLineInfo *tl;
+{
+  int nstates, i;
+
+  nstates = Log_NstateDefs( tl->log );
+
+  Feather_FreeColor( tl->outlineCol );
+  Feather_FreeColor( tl->bgCol );
+  Feather_FreeColor( tl->msgCol );
+
+  for (i=0; i<nstates; i++) {
+    Feather_FreeColor( tl->fillColors[i] );
+    Feather_FreeBitmap( tl->fillStipples[i] );
+  }
+  
+  return 0;
+}
+
+
+
+static int DrawStates( tl, canvasPtr, canvasWin )
+timeLineInfo *tl;
+void *canvasPtr;
+Tk_Window canvasWin;
+{
+  Feather_RectInfo rectInfo;
+  unsigned long rectMask;
+  int n, id,  i;
+  double x1, y1, x2, y2;
+  Tk_Uid tags[3];
+  tl_stateInfo state_info;
+
+    /* state info */
+  int type, proc, parent, firstChild, overlapLevel;
+  double startTime, endTime;
+    
+/*
+  printf( "%d states to draw\n", Log_Nstates( tl->log ) );
+*/
+
+  rectInfo.tagList = tags;
+
+  n = Log_Nstates( tl->log );
+  for (i=0; i<n; i++) {
+    Log_GetState( tl->log, i, &type, &proc, &startTime, &endTime,
+		  &parent, &firstChild, &overlapLevel );
+
+      /* set horizontal start and end points */
+    x1 = Time2Pix( tl, startTime );
+    x2 = Time2Pix( tl, endTime );
+
+      /* set the top and bottom coordinates of the bar*/
+      /* the overlap.halfWidth is a number from 0 to 100; how much
+	 of the alloted space to fill up */
+    y1 = Proc2Pix( tl, proc + .5 * (100 -
+      ListItem( tl->overlap.halfWidths, int, overlapLevel ))/100.0 );
+    y2 = Proc2Pix( tl, proc + .5 + .5 *
+      ListItem( tl->overlap.halfWidths, int, overlapLevel )/100.0 );
+
+
+      /* give it tags like "proc_%d", "state_%d", and "color_bg" */
+    tags[0] = tl->colorBgTag;
+/*
+    tags[1] = tl->procTags[proc];
+    tags[2] = tl->stateTags[type];
+*/
+    rectInfo.ntags = 1;
+      /* process and state tags are not used right now--don't assign them */
+
+      /* fill with background color -- this is the coverup rectangle */
+    rectInfo.fillColor = tl->bgCol;
+
+    rectMask = FEATHER_FILLCOLOR | FEATHER_TAGLIST;
+
+    id = Feather_CreateRect( tl->interp, tl->canvasPtr,
+			     x1, y1, x2, y2, &rectInfo, rectMask );
+    if (id == -1) return TCL_ERROR;
+    state_info.canvasId1 = id;
+
+      /* give it tags like "color_%d" and "color_outline" */
+    tags[0] = tl->colorTags[type];
+    tags[1] = tl->colorOutlineTag;
+    rectInfo.ntags = 2;
+    rectMask = FEATHER_TAGLIST;
+    
+    if (tl->bw) {
+        /* if in b&w, fill it in a stipple pattern with the outline color */
+      rectInfo.fillColor = tl->outlineCol;
+      rectInfo.fillStipple = tl->fillStipples[type];
+      rectInfo.outlineColor = tl->outlineCol;
+      rectMask |= FEATHER_FILLCOLOR | FEATHER_FILLSTIPPLE |
+	FEATHER_OUTLINECOLOR;
+    } else {
+      rectInfo.fillColor = tl->fillColors[type];
+      rectInfo.outlineColor = tl->outlineCol;
+      rectMask |= FEATHER_FILLCOLOR | FEATHER_OUTLINECOLOR;
+    }
+    id = Feather_CreateRect( tl->interp, tl->canvasPtr,
+			     x1, y1, x2, y2, &rectInfo, rectMask );
+
+    if (id == -1) return TCL_ERROR;
+    state_info.canvasId2 = id;
+
+      /* if this state has a firstChild */
+    if (firstChild >= 0) {
+        /* put the rectangle below this state's first child */
+      id = ListItem( tl->stateList, tl_stateInfo, firstChild ).canvasId1;
+      Feather_Lower( tl->interp, tl->canvasPtr, state_info.canvasId2, id );
+      Feather_Lower( tl->interp, tl->canvasPtr,
+		     state_info.canvasId1, state_info.canvasId2 );
+    }
+
+      /* keep track of the canvas id's of each state bar */
+    ListAddItem( tl->stateList, tl_stateInfo, state_info );
+  }
+  
+  return TCL_OK;
+}
+
+
+
+static int DrawMsgs( tl, canvasPtr, canvasWin )
+timeLineInfo *tl;
+void *canvasPtr;
+Tk_Window canvasWin;
+{
+  Feather_LineInfo lineInfo;
+  unsigned long lineMask;
+  Tk_Uid tags[3];
+  int n, i;
+  double points[4], sendTime, recvTime;
+  int type, sender, receiver, size;
+
+/*
+  printf( "%d messages to draw.\n", Log_Nmsgs( tl->log ) );
+*/
+  n = Log_Nmsgs( tl->log );
+  if (!n) return TCL_OK;
+
+  tl->msgIds = (int*)malloc( sizeof(int) * n );
+
+  lineInfo.tagList = tags;
+
+  tags[0] = tl->colorArrowTag;
+  lineInfo.ntags = 1;
+  
+  lineInfo.fg = tl->msgCol;
+  lineInfo.arrow = last;
+  lineMask = FEATHER_FILLCOLOR | FEATHER_TAGLIST | FEATHER_ARROW;
+
+  for (i=0; i<n; i++) {
+    Log_GetMsg( tl->log, i, &type, &sender, &receiver, &sendTime,
+	        &recvTime, &size );
+
+    points[0] = Time2Pix( tl, sendTime );
+    points[1] = Proc2Pix( tl, sender + .5 );
+    points[2] = Time2Pix( tl, recvTime );
+    points[3] = Proc2Pix( tl, receiver + .5 );
+
+/*
+    printf( "arrow from (%d,%f) to (%d,%f)\n",
+	    sender, sendTime, receiver, recvTime );
+*/
+
+    tl->msgIds[i] = Feather_CreateLine( tl->interp, tl->canvasPtr,
+				        2, points, 0, &lineInfo, lineMask );
+    if (tl->msgIds[i] == -1) {
+      return TCL_ERROR;
+    }
+  }
+
+  return TCL_OK;
+}
+
+
+/*
+   Get the current item from the canvas, figure out what kind of
+   object it is (state, event, or message) and return the type
+   and index of the item, for example, {state 35}
+*/
+static int CurrentItem( tl )
+timeLineInfo *tl;
+{
+  int i, n;
+  int canvas_id;
+  char cmd[TMP_CMD_LEN];
+  tl_stateInfo *statePtr;
 
   sprintf( cmd, "%s find withtag current", tl->canvasName );
   if (TCL_OK != Tcl_Eval( tl->interp, cmd )) {
@@ -770,48 +1048,3 @@ char *argv[];
 }
 
 
-#if 0
-
-static int UpdateStateList( tl, list, n )
-timeLineInfo *tl;
-int *list, n;
-{
-  int i, type, proc, parent, firstChild, overlapLevel;
-  double startTime, endTime;
-  tl_stateInfo *state;
-
-  for (i=0; i < n; i++) {
-      /* if we're beyond the list of drawn states, stop */
-    if (list[i] >= ListSize( tl->stateList, tl_stateInfo )) {
-      break;
-    }
-
-      /* get handy pointer to the state */
-    state = ListHeadPtr( tl->stateList, tl_stateInfo ) + list[i];
-
-      /* if the state has already been drawn, skip it */
-    if (state->canvasId1 < 0) {
-
-        /* if not visible, draw it */
-      if (state->canvasId1 == TL_STATE_NOT_VISIBLE) {
-	  /* get stats on the state */
-	Log_GetState( tl->log, list[i], &type, &proc, &startTime, &endTime,
-		      &parent, &firstChild, &overlapLevel );
-	
-#if DEBUG_UPDATE
-	fprintf( stderr, "drawing state %d from %f to %f\n",
-		 list[i], startTime,
-		 endTime );
-#endif
-
-	  /* draw it */
-	TimeLineDrawState( (void*)tl, list[i], type, proc, startTime,
-			  endTime, parent, firstChild, overlapLevel );
-      }
-    }
-  }
-
-  return 0;
-}
-
-#endif

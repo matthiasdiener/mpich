@@ -1,5 +1,5 @@
 /*
- *  $Id: testany.c,v 1.22 1995/01/14 18:13:13 gropp Exp $
+ *  $Id: testany.c,v 1.23 1995/03/07 16:18:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,7 +54,7 @@ MPI_Status  *status;
         request = array_of_requests[i];
 	if ( !request  || !request->chandle.active ) continue;
 
-  	if ( request->chandle.completed == MPIR_YES) {
+  	if (MPID_Test_request( MPID_Ctx( request ), request )) {
 	    found         = 1;
 	    *index        = i;
 	    if ( request->type == MPIR_SEND ) {
@@ -94,7 +94,7 @@ MPI_Status  *status;
 		}
 	    else {
 		request->chandle.active	   = 0;
-		request->chandle.completed = MPIR_NO;
+		MPID_Clr_completed( MPID_Ctx( request ), request );
 		if (request->type == MPIR_RECV) {
 		    MPID_Reuse_recv_handle( request->rhandle.comm->ADIctx,
 					    &request->rhandle.dev_rhandle );

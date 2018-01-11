@@ -1,12 +1,12 @@
 /*
- *  $Id: sbcnst.c,v 1.10 1994/12/11 16:53:05 gropp Exp $
+ *  $Id: sbcnst.c,v 1.12 1995/03/05 23:01:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char SCCSid[] = "%W% %G%";
+static char vcid[] = "$Id: sbcnst.c,v 1.12 1995/03/05 23:01:43 gropp Exp $";
 #endif
 
 #include <stdio.h>
@@ -108,6 +108,7 @@ void MPIR_SBfree( sb, ptr )
 MPIR_SBHeader *sb;
 void     *ptr;
 {
+MPID_THREAD_LOCK(0,0);
 ((MPIR_SBblock *)ptr)->next = (char *)(sb->avail);
 sb->avail              = (MPIR_SBblock *)ptr;
 #ifdef DEBUG
@@ -116,6 +117,7 @@ sb->avail              = (MPIR_SBblock *)ptr;
 #endif
 sb->nbfree++;
 sb->nballoc--;
+MPID_THREAD_UNLOCK(0,0);
 }
 
 /*
@@ -186,11 +188,13 @@ void *MPIR_SBalloc( sb )
 MPIR_SBHeader *sb;
 {
 MPIR_SBblock *p;
-	
+
+MPID_THREAD_LOCK(0,0);	
 if (!sb->avail) {
     MPIR_SBiAllocate( sb, sb->sizeb, sb->sizeincr );   /* nbincr instead ? */
     if (!sb->avail) {
 	MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, "Not enough space" );
+	MPID_THREAD_UNLOCK(0,0);
 	return 0;
 	}
     }
@@ -207,6 +211,7 @@ sb->avail = (MPIR_SBblock *)(p->next);
 sb->nballoc++;
 sb->nbfree--;
 /* printf( "Allocating a block at address %x\n", (char *)p ); */
+MPID_THREAD_UNLOCK(0,0);
 return (void *)p;
 }	
 
@@ -242,6 +247,7 @@ MPIR_SBHeader *sb;
 {
 MPIR_SBiAlloc *p, *pn;
 
+MPID_THREAD_LOCK(0,0);	
 p = sb->blocks;
 while (p) {
     pn = p->next;
@@ -249,6 +255,7 @@ while (p) {
     p = pn;
     }
 FREE( sb );
+MPID_THREAD_UNLOCK(0,0);
 }
 
 /* Decrement the use count for the block containing p */
@@ -257,9 +264,11 @@ MPIR_SBHeader *sb;
 void     *ptr;
 {
 char *p = (char *)ptr;
-MPIR_SBiAlloc *b = sb->blocks;
+MPIR_SBiAlloc *b;
 char *first, *last;
 
+MPID_THREAD_LOCK(0,0);	
+b = sb->blocks;
 /* printf( "Releasing a block at address %x\n", (char *)ptr ); */
 while (b) {
     first = ((char *)b) + sizeof(MPIR_SBiAlloc) - 1;
@@ -270,6 +279,7 @@ while (b) {
 	}
     b = b->next;
     }
+MPID_THREAD_UNLOCK(0,0);
 }
 
 /* Release any unused chuncks */
@@ -278,6 +288,7 @@ MPIR_SBHeader *sb;
 {
 MPIR_SBiAlloc *b, *bnext, *bprev = 0;
 
+MPID_THREAD_LOCK(0,0);	
 b = sb->blocks;
 while (b) {
     bnext = b->next;
@@ -291,6 +302,7 @@ while (b) {
 	bprev = b;
     b = bnext;
     }
+MPID_THREAD_UNLOCK(0,0);
 }
 
 /* Print the allocated blocks */
@@ -312,6 +324,7 @@ MPIR_SBHeader *sb;
 {
 MPIR_SBblock *p, *pnext;
 	
+MPID_THREAD_LOCK(0,0);	
 p         = sb->avail;
 while (p) {
     pnext = (MPIR_SBblock *)(p->next);
@@ -320,6 +333,7 @@ while (p) {
     MPIR_SBrelease( sb, p );
     p     = pnext;
     }
+MPID_THREAD_UNLOCK(0,0);
 }
 
 #ifdef DEBUG

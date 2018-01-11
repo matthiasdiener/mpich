@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.25 1994/12/11 16:51:26 gropp Exp $
+ *  $Id: finalize.c,v 1.26 1995/03/05 20:18:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -76,6 +76,8 @@ int MPI_Finalize()
     DBG(fprintf( stderr, "About to free dtes\n" ); fflush( stderr );)
     MPI_Type_free( &MPI_INT );
     MPI_Type_free( &MPI_FLOAT );
+    MPI_Type_free( &MPI_REAL );
+    MPI_Type_free( &MPI_DOUBLE_PRECISION );
     MPI_Type_free( &MPI_DOUBLE );
     MPI_Type_free( &MPI_LONG );
     MPI_Type_free( &MPIR_complex_dte );

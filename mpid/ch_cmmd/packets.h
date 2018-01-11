@@ -108,15 +108,19 @@
    compiler generates good code for that!).
    In the cases where the packed is a control packet (neither long nor short),
    the first bit does NOT mean long/short.
+
+   NOTE: YOU MUST CHECK MPID_PKT_IS_MSG WHEN CHANGING THESE!!!
  */
 typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1, MPID_PKT_SHORT_SYNC=2,
 	       MPID_PKT_LONG_SYNC=3, MPID_PKT_SHORT_READY=4, 
                MPID_PKT_LONG_READY=5, 
                MPID_PKT_REQUEST_SEND=6,
 	       MPID_PKT_REQUEST_SEND_READY=7,
-               MPID_PKT_OK_TO_SEND=8, MPID_PKT_SYNC_ACK=9, 
-	       MPID_PKT_READY_ERROR=10, 
-	       MPID_PKT_COMPLETE_SEND=11, MPID_PKT_COMPLETE_RECV=12 } 
+	       MPID_PKT_DO_GET=8, MPID_PKT_DO_GET_SYNC=9,
+               MPID_PKT_OK_TO_SEND=10, MPID_PKT_SYNC_ACK=11, 
+	       MPID_PKT_READY_ERROR=12, 
+               MPID_PKT_DONE_GET = 13, MPID_PKT_CONT_GET = 14,
+	       MPID_PKT_COMPLETE_SEND=15, MPID_PKT_COMPLETE_RECV=16 }
     MPID_Pkt_t;
 
 /* Comments on packets */
@@ -164,28 +168,79 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_LONG=1, MPID_PKT_SHORT_SYNC=2,
  */
    
 #ifdef MPID_HAS_HETERO
-#define MPID_PKT_XDR_DECL int has_xdr;
+#define MPID_PKT_XDR_DECL int has_xdr:32;
 #else
 #define MPID_PKT_XDR_DECL 
 #endif
 
+/*
+   When used with message - passing interfaces, the packets do NOT include
+   their own length since this information is carried in the message-passing
+   systems envelope.  However, for direct network and stream interfaces
+   it can be valuable to have an explicit length field as the second 32
+   bit entry.
+ */
+#ifdef MPID_PKT_INCLUDE_LEN
+#define MPID_PKT_LEN_DECL     int pkt_len:32;
+#define MPID_PKT_LEN_SET(p,l) (p)->pkt_len = l
+#define MPID_PKT_LEN_GET(p,l) l = (p)->pkt_len
+#else
+#define MPID_PKT_LEN_DECL 
+#define MPID_PKT_LEN_SET(p,l) 
+#define MPID_PKT_LEN_GET(p,l) ????
+#endif
+
+#ifdef MPID_PKT_INCLUDE_LINK
+#define MPID_PKT_LINK_DECL union _MPID_PKT_T *next;
+#else
+#define MPID_PKT_LINK_DECL 
+#endif
+
+#ifdef MPID_PKT_INCLUDE_SRC
+#define MPID_PKT_SRC_DECL int src:32;
+#else
+#define MPID_PKT_SRC_DECL
+#endif
+
+#ifndef MPID_PKT_PRIVATE
+#define MPID_PKT_PRIVATE
+#endif
+
 #ifdef MPID_PKT_COMPRESSED
-#define MPID_PKT_MODE  unsigned mode:4;
+#define MPID_PKT_MODE  \
+    MPID_PKT_PRIVATE   \
+    unsigned mode:5;   \
+    MPID_PKT_LEN_DECL  \
+    MPID_PKT_LINK_DECL \
+    MPID_PKT_SRC_DECL
 #define MPID_PKT_BASIC \
-    unsigned mode:4;             /* Contains MPID_Pkt_t */             \
+    MPID_PKT_PRIVATE   \
+    unsigned mode:5;             /* Contains MPID_Pkt_t */             \
     unsigned context_id:16;      /* Context_id */                      \
-    unsigned lrank:12;           /* Local rank in sending context */   \
-    int      tag;                /* tag is full sizeof(int) */         \
-    int      len; \
+    unsigned lrank:11;           /* Local rank in sending context */   \
+    MPID_PKT_LEN_DECL            /* size of packets in bytes */        \
+    MPID_PKT_LINK_DECL           /* link to 'next' packet    */        \
+    MPID_PKT_SRC_DECL            /* Source of packet */                \
+    int      tag:32;             /* tag is full sizeof(int) */         \
+    int      len:32;             /* Length of DATA */                  \
     MPID_PKT_XDR_DECL
 #else
-#define MPID_PKT_MODE  int mode;
+#define MPID_PKT_MODE  \
+    MPID_PKT_PRIVATE   \
+    MPID_Pkt_t mode;   \
+    MPID_PKT_LEN_DECL  \
+    MPID_PKT_LINK_DECL \
+    MPID_PKT_SRC_DECL
 #define MPID_PKT_BASIC \
-    MPID_Pkt_t  mode;       \
-    int         context_id; \
-    int         lrank;      \
-    int         tag;  \
-    int         len; \
+    MPID_PKT_PRIVATE           \
+    MPID_Pkt_t  mode;          \
+    MPID_PKT_LEN_DECL          \
+    MPID_PKT_LINK_DECL         \
+    MPID_PKT_SRC_DECL          \
+    int         context_id:32; \
+    int         lrank:32;      \
+    int         tag:32;        \
+    int         len:32;        \
     MPID_PKT_XDR_DECL
 #endif
 
@@ -210,7 +265,7 @@ extern int MPID_PKT_DATA_SIZE;
 #define MPID_PKT_DATA_SIZE MPID_PKT_MAX_DATA_SIZE
 #endif
 
-#define MPID_PKT_IS_MSG(mode) ((mode) <= MPID_PKT_REQUEST_SEND_READY)
+#define MPID_PKT_IS_MSG(mode) ((mode) <= 9)
 /* 
    One unanswered question is whether it is better to send the length of
    a short message in the short packet types, or to compute it from the
@@ -264,22 +319,46 @@ typedef struct {
     } MPID_PKT_COMPLETE_RECV_T;
 typedef struct {
     MPID_PKT_BASIC
-    MPID_Aint send_id;
+    MPID_Aint   send_id;         /* Id to return when ok to send */
+    MPID_RNDV_T send_handle;     /* additional data for receiver */
     } MPID_PKT_REQUEST_SEND_T;
 typedef struct {
     MPID_PKT_BASIC
-    MPID_Aint send_id;
+    MPID_Aint   send_id;
+    MPID_RNDV_T send_handle;
     } MPID_PKT_REQUEST_SEND_READY_T;
 typedef struct {
     MPID_PKT_MODE
-    MPID_Aint send_id;
-    int use_tag;
+    MPID_Aint   send_id;        /* Id sent by REQUEST_SEND */
+    MPID_RNDV_T recv_handle;    /* additional data for sender */
     } MPID_PKT_OK_TO_SEND_T;
+
 typedef struct {
     MPID_PKT_BASIC
     } MPID_PKT_READY_ERROR_T;
 
-typedef union {
+/* Note that recv_id, len_avail, and cur_offset are needed only for
+   partial transfers; sync_id is redundant (but eliminating it requires
+   some additional code in chget) */
+typedef struct {
+    MPID_PKT_BASIC
+    MPID_Aint    send_id;       /* Id sent by SENDER, identifies MPI_Request */
+    MPID_Aint    recv_id;       /* Used by receiver for partial gets */
+    int          len_avail;     /* Actual length available */
+    int          cur_offset;    /* Offset (for sender to use) */
+    MPID_Aint    sync_id;       /* Sync id; we should use send_id instead.
+				   This is just to get started */
+    void         *address;      /* Location of data ON SENDER */
+    } MPID_PKT_GET_T;
+/* Get done is the same type with a different mode */
+
+/* We may want to make all of the packets an exact size (e.g., memory/cache
+   page.  This is done by defining a pad */
+#ifndef MPID_PKT_PAD
+#define MPID_PKT_PAD 8
+#endif
+
+typedef union _MPID_PKT_T {
     MPID_PKT_HEAD_T          head;
     MPID_PKT_SHORT_T         short_pkt;
     MPID_PKT_SHORT_SYNC_T    short_sync_pkt;
@@ -297,6 +376,8 @@ typedef union {
     MPID_PKT_COMPLETE_SEND_T send_pkt;
     MPID_PKT_COMPLETE_RECV_T recv_pkt;
     MPID_PKT_READY_ERROR_T   error_pkt;
+    MPID_PKT_GET_T           get_pkt;
+    char                     pad[MPID_PKT_PAD];
     } MPID_PKT_T;
 
 #define MPID_PKT_HAS_XDR(pkt) (pkt)->head.has_xdr
@@ -362,11 +443,32 @@ extern FILE *MPID_TRACE_FILE;
 #define MPID_TRACE_CODE(name,channel) {if (MPID_TRACE_FILE){\
 fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
          name, channel, __FILE__, __LINE__ ); fflush( MPID_TRACE_FILE );}}
+#define MPID_TRACE_CODE_PKT(name,channel,mode) {if (MPID_TRACE_FILE){\
+fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d (type %d) at %s:%d\n", \
+	 MPID_MyWorldRank, name, channel, mode, __FILE__, __LINE__ ); \
+	 fflush( MPID_TRACE_FILE );}}
 #else
 #define MPID_TRACE_CODE(name,channel)
+#define MPID_TRACE_CODE_PKT(name,channel,mode)
 #endif
 
 #include "channel.h"
+
+/*
+   The packets may be allocated off a routines stack or dynamically allocated
+   by a packet - management routine.  In order to represent both forms
+   efficiently, we'll eventually want to use macros for accessing the
+   fields in the packet, with different definitions for local and dynamic 
+   packets. 
+
+   Special notes on MPID_PKT_..._FREE
+
+   Some operations, after receiving a packet, may return that packet to the
+   sender.  In this case, the receiver must not then free() the packet.  
+   To manage this case, the macro MPID_PKT_..._CLR(pkt) is used;
+   this should somehow mark the packet (for free()) as already taken
+   care of.
+ */
 
 #if defined(MPID_PKT_PRE_POST)
 /* Single buffer for now. Note that this alloc must EITHER be in the
@@ -383,7 +485,13 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
 #define MPID_PKT_GALLOC \
     static MPID_PKT_T     pkt; \
     static CMMD_mcb  pktid;
-#define MPID_PKT_LALLOC 
+#define MPID_PKT_RECV_DECL(type,pkt)
+#define MPID_PKT_RECV_GET(pkt,field) (pkt).field
+#define MPID_PKT_RECV_SET(pkt,field,val) (pkt).field = val
+#define MPID_PKT_RECV_ADDR(pkt) &(pkt)
+#define MPID_PKT_RECV_FREE(pkt)
+#define MPID_PKT_RECV_CLR(pkt)
+
 #define MPID_PKT_INIT() MPID_PKT_POST()
 #define MPID_PKT_CHECK()  \
     MPID_RecvStatus( pktid )
@@ -393,8 +501,9 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
     &pktid=CMMD_receive_async(CMMD_ANY_NODE,MPID_PT2PT_TAG,(char*)(&pkt),sizeof(MPID_PKT_T),(void*(*)())0,(void*)0)
 #define MPID_PKT_POST_AND_WAIT() \
     MPID_RecvAnyControl( &pkt, sizeof(MPID_PKT_T), &from )
-#define MPID_PKT_FREE()
-#define MPID_PKT (pkt)
+ 
+/* #define MPID_PKT_FREE() */
+/* #define MPID_PKT (pkt) */
 
 #elif defined(MPID_PKT_PREALLOC)
 /* Preallocate the buffer, but use blocking operations to access it.
@@ -404,7 +513,14 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
  */
 #define MPID_PKT_GALLOC \
     static MPID_PKT_T     *pkt = 0; 
-#define MPID_PKT_LALLOC 
+#define MPID_PKT_RECV_DECL(type,pkt)
+#define MPID_PKT_RECV_GET(pkt,field) (pkt)->field
+#define MPID_PKT_RECV_SET(pkt,field,val) (pkt)->field = val
+#define MPID_PKT_RECV_ADDR(pkt) (pkt)
+#define MPID_PKT_RECV_FREE(pkt) \
+    {if (pkt) free(pkt);}
+#define MPID_PKT_RECV_CLR(pkt) pkt = 0;
+
 #define MPID_PKT_INIT() \
     pkt = (MPID_PKT_T *)malloc(sizeof(MPID_PKT_T));
 #define MPID_PKT_CHECK()  \
@@ -414,13 +530,43 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
 #define MPID_PKT_POST_AND_WAIT() \
     {CMMD_receive_block(CMMD_ANY_NODE,MPID_PT2PT_TAG,(char*)(pkt),sizeof(MPID_PKT_T)); \
 	 from = CMMD_msg_sender() ; }
-#define MPID_PKT_FREE() \
-    free(pkt)
-#define MPID_PKT (*pkt)
+/* #define MPID_PKT_FREE() \
+    free(pkt) */
+/* #define MPID_PKT (*pkt) */
+
+#elif defined(MPID_PKT_DYNAMIC_RECV)
+/* The recv routines RETURN the packet */
+#define MPID_PKT_RECV_DECL(type,pkt) type *pkt=0
+#define MPID_PKT_RECV_GET(pkt,field) (pkt)->field
+#define MPID_PKT_RECV_SET(pkt,field,val) (pkt)->field = val
+#define MPID_PKT_RECV_ADDR(pkt) (pkt)
+#ifndef MPID_PKT_RECV_FREE
+#define MPID_PKT_RECV_FREE(pkt) ???
+#define MPID_PKT_RECV_CLR(pkt)  ???
+#endif
+
+#define MPID_PKT_GALLOC 
+#define MPID_PKT_INIT()
+#define MPID_PKT_CHECK()  \
+    MPID_ControlMsgAvail()
+#define MPID_PKT_WAIT() MPID_PKT_POST_AND_WAIT()
+#define MPID_PKT_POST() 
+/* This is still OK, but in this case, the ADDRESS of the pointer to the
+   packet is passed (and the pointer is ASSIGNED) */
+#define MPID_PKT_POST_AND_WAIT() \
+    MPID_RecvAnyControl( &pkt, sizeof(MPID_PKT_T), &from )
+/* #define MPID_PKT_FREE() */
+/* #define MPID_PKT (pkt) */
 
 #else
 /* Just use blocking send/recieve operations */
-#define MPID_PKT_LALLOC MPID_PKT_T pkt;
+#define MPID_PKT_RECV_DECL(type,pkt) type pkt
+#define MPID_PKT_RECV_GET(pkt,field) (pkt).field
+#define MPID_PKT_RECV_SET(pkt,field,val) (pkt).field = val
+#define MPID_PKT_RECV_ADDR(pkt) &(pkt)
+#define MPID_PKT_RECV_FREE(pkt)
+#define MPID_PKT_RECV_CLR(pkt)
+
 #define MPID_PKT_GALLOC 
 #define MPID_PKT_INIT()
 #define MPID_PKT_CHECK()  \
@@ -429,8 +575,29 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d at %s:%d\n", MPID_MyWorldRank, \
 #define MPID_PKT_POST() 
 #define MPID_PKT_POST_AND_WAIT() \
     MPID_RecvAnyControl( &pkt, sizeof(MPID_PKT_T), &from )
-#define MPID_PKT_FREE()
-#define MPID_PKT (pkt)
+/* #define MPID_PKT_FREE() */
+/* #define MPID_PKT (pkt) */
+#endif
+
+/* These macros allow SEND packets to be allocated dynamically or statically */
+#ifdef MPID_PKT_DYNAMIC_SEND
+#define MPID_PKT_SEND_DECL(type,pkt) type *pkt
+#define MPID_PKT_SEND_SET(pkt,field,val) (pkt)->field = val
+#define MPID_PKT_SEND_GET(pkt,field) (pkt)->field
+#define MPID_PKT_SEND_ADDR(pkt) (pkt)
+#ifndef MPID_PKT_SEND_ALLOC
+#define MPID_PKT_SEND_ALLOC(type,pkt) ???
+#endif
+#define MPID_PKT_SEND_FREE(pkt)
+
+#else
+/* Packets allocated off of routines stack ... */
+#define MPID_PKT_SEND_DECL(type,pkt) type pkt
+#define MPID_PKT_SEND_SET(pkt,field,val) (pkt).field = val
+#define MPID_PKT_SEND_GET(pkt,field) (pkt).field
+#define MPID_PKT_SEND_ADDR(pkt) &(pkt)
+#define MPID_PKT_SEND_ALLOC(type,pkt)
+#define MPID_PKT_SEND_FREE(pkt)
 #endif
 
 #endif

@@ -38,6 +38,10 @@ case $arg in
      p4echo=`echo $arg|sed 's/-p4echo=//'`
      echo $p4echo
      ;;
+  -p4make=*)
+     p4make=`echo $arg|sed 's/-p4make=//'`
+     echo Setting p4make to $p4make
+     ;;
   -alog=*)
      p4alog=`echo $arg|sed 's/-alog=//'`
      echo Setting p4alog to $p4alog
@@ -70,11 +74,10 @@ esac
 done
 P4ARCH="unknown"
 MAKE=make
-CC=cc
-FC=f77
-CLINKER=cc
-FLINKER=f77
-RANLIB=ranlib
+CC=${CC:-cc}
+FC=${FC:-f77}
+CLINKER=$CC
+FLINKER=$FC
 AR="ar lruv"
 RM=/bin/rm
 MDEP_LIBS=
@@ -138,10 +141,30 @@ esac
 # Save the original args to write them into config.status later.
 configure_args="$*"
 
+if test -z "$RANLIB"; then
+  # Extract the first word of `ranlib', so it can be a program name with args.
+  set dummy ranlib; word=$2
+  echo checking for $word
+  IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+  for dir in $PATH; do
+    test -z "$dir" && dir=.
+    if test -f $dir/$word; then
+      RANLIB="ranlib"
+      break
+    fi
+  done
+  IFS="$saveifs"
+fi
+test -z "$RANLIB" && RANLIB=":"
+test -n "$RANLIB" && test -n "$verbose" && echo "	setting RANLIB to $RANLIB"
+
 grep $p4arch MACHINES > /dev/null 2>&1
 if test $? != 0 ; then
 echo Invalid arch $p4arch
 exit
+fi
+if test -n "$p4make"; then
+MAKE=$p4make
 fi
 if test -n "$p4arch_SUN"; then
 P4ARCH=SUN
@@ -152,20 +175,175 @@ fi
 if test -n "$p4arch_LINUX"; then
 P4ARCH=LINUX
 fi
+if test -n "$p4arch_KSR"; then
+P4ARCH=KSR
+RANLIB=true
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lrpc"
+have_lib=""
+echo checking for -lrpc
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lrpc
+else
+   :; 
+fi
+
+fi
 if test -n "$p4arch_SUN_SOLARIS"; then
 P4ARCH=SUN_SOLARIS
 AR="ar ruv"
 RANLIB=true
-MDEP_LIBS="-lsocket -lnsl  -lthread"
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lsocket"
+have_lib=""
+echo checking for -lsocket
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lsocket
+else
+   :; 
+fi
+
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lnsl"
+have_lib=""
+echo checking for -lnsl
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS="$MDEP_LIBS -lnsl"
+else
+   :; 
+fi
+
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lthread"
+have_lib=""
+echo checking for -lthread
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS="$MDEP_LIBS -lthread"
+else
+   :; 
+fi
+
 fi
 if test -n "$p4arch_HP"; then
 P4ARCH=HP
 RANLIB=true
-MDEP_LIBS="-lV3 -lU77"
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lV3"
+have_lib=""
+echo checking for -lV3
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lV3
+else
+   :; 
+fi
+
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lU77"
+have_lib=""
+echo checking for -lU77
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS="$MDEP_LIBS -lU77"
+else
+   :; 
+fi
+
 MDEP_FFLAGS=+U77
 fi
 if test -n "$p4arch_ALPHA"; then
 P4ARCH=ALPHA
+fi
+if test -n "$p4arch_CRAY"; then
+P4ARCH=CRAY
+AR='ar ruv'
+CC=cc
+FC=cf77
+CLINKER=cc
+FLINKER=cf77
+RANLIB=true
+fi
+if test -n "$p4arch_NEXT"; then
+P4ARCH=NEXT
+MDEP_CFLAGS=""                        # Black hardware, with NeXTstep
+#MDEP_CFLAGS="-arch i386"             # for 486's running NeXTstep
+#MDEP_CFLAGS="-arch m68k -arch i386"  # fat binaries, for both
 fi
 if test -n "$p4arch_DEC5000"; then
 P4ARCH=DEC5000
@@ -175,7 +353,29 @@ P4ARCH=RS6000
 FC=xlf
 FLINKER=xlf
 RANLIB=true
-MDEP_LIBS=-lbsd
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lbsd"
+have_lib=""
+echo checking for -lbsd
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lbsd
+else
+   :; 
+fi
+
 MDEP_CFLAGS=-D_ALL_SOURCE
 fi
 if test -n "$p4arch_SP1"; then
@@ -183,7 +383,29 @@ P4ARCH=SP1
 FC=xlf
 FLINKER=xlf
 RANLIB=true
-MDEP_LIBS=-lbsd
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lbsd"
+have_lib=""
+echo checking for -lbsd
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lbsd
+else
+   :; 
+fi
+
 fi
 if test -n "$p4arch_SP1_EUI"; then
 P4ARCH=SP1_EUI
@@ -192,7 +414,29 @@ CC=mpcc
 FLINKER=xlf
 CLINKER=mpcc
 RANLIB=true
-MDEP_LIBS=-lbsd
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lbsd"
+have_lib=""
+echo checking for -lbsd
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lbsd
+else
+   :; 
+fi
+
 MDEP_CFLAGS = -I/usr/lpp/poe/include
 fi
 if test -n "$p4arch_SP1_EUI"; then
@@ -202,19 +446,85 @@ CC=cc
 FLINKER="xlf -bimport:/usr/lpp/euih/eui/eui.exp"
 CLINKER="xlc -bimport:/usr/lpp/euih/eui/eui.exp -e main"
 RANLIB=true
-MDEP_LIBS=-lbsd
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lbsd"
+have_lib=""
+echo checking for -lbsd
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lbsd
+else
+   :; 
+fi
+
 MDEP_CFLAGS=-D_ALL_SOURCE
 fi
 if test -n "$p4arch_SGI"; then
 P4ARCH=SGI
 RANLIB=true
-MDEP_LIBS=-lsun
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lsun"
+have_lib=""
+echo checking for -lsun
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lsun
+else
+   :; 
+fi
+
 MDEP_CFLAGS=-cckr
 fi
 if test -n "$p4arch_SGI_MP"; then
 P4ARCH=SGI_MP
 RANLIB=true
-MDEP_LIBS=-lsun
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lsun"
+have_lib=""
+echo checking for -lsun
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lsun
+else
+   :; 
+fi
+
 MDEP_CFLAGS=-cckr
 fi
 if test -n "$p4arch_SGI_CH"; then
@@ -228,6 +538,25 @@ P4ARCH=SGI_CH64
 RANLIB=true
 MDEP_CFLAGS="-cckr -64 -mips4 -woff 1552,1174"
 MDEP_FFLAGS="-cckr -64 -mips4 -woff 1552,1174"
+fi
+if test -n "$p4arch_SYMMETRY"; then
+P4ARCH=SYMMETRY
+FILE_LINK=ln 
+FC=fortran
+CLINKER="cc -Z1000000"
+FLINKER="fortran -Z1000000"
+MDEP_LIBS="-lpps -lseq"
+MDEP_CFLAGS=
+MDEP_FFLAGS=
+fi
+if test -n "$p4arch_SYMMETRY_PTX"; then
+P4ARCH=SYMMETRY_PTX
+FILE_LINK=ln
+FC=fortran
+FLINKER=fortran 
+RANLIB=true
+MDEP_LIBS="-lpps -lseq -lrpc -lsocket -linet -lnsl"
+MDEP_CFLAGS="-Wc,-seq"
 fi
 /bin/rm -f mpdepcflags
 echo $MDEP_CFLAGS > mdepcflags
@@ -246,6 +575,54 @@ fi
 if test -n "$p4listener_pathname"; then
 LISTENER_PATHNAME="$p4listener_pathname"
 fi
+#
+# Look for netinet/in.h and sys/socketvar.h
+for hdr in netinet/in.h sys/socketvar.h
+do
+trhdr=HAVE_`echo $hdr | tr '[a-z]./' '[A-Z]__'`
+echo checking for ${hdr}
+echo checking how to run the C preprocessor
+if test -z "$CPP"; then
+  # This must be in double quotes, not single quotes, because CPP may get
+  # substituted into the Makefile and ``${CC-cc}'' will simply confuse
+  # make.  It must be expanded now.
+  CPP="${CC-cc} -E"
+  cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <stdio.h>
+Syntax Error
+EOF
+err=`eval "($CPP conftest.c >/dev/null) 2>&1"`
+if test -z "$err"; then
+  :
+else
+  rm -rf conftest*
+  CPP=/lib/cpp
+fi
+rm -f conftest*
+fi
+test ".${verbose}" != "." && echo "	setting CPP to $CPP"
+
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <${hdr}>
+EOF
+err=`eval "($CPP conftest.c >/dev/null) 2>&1"`
+if test -z "$err"; then
+  rm -rf conftest*
+  
+{
+test -n "$verbose" && \
+echo "	defining ${trhdr}"
+echo "#define" ${trhdr} 1 >> confdefs.h
+DEFS="$DEFS -D${trhdr}=1"
+}
+
+
+fi
+rm -f conftest*
+done
+
 # Set default prefixes.
 if test -n "$prefix"; then
   test -z "$exec_prefix" && exec_prefix='${prefix}'
@@ -287,6 +664,8 @@ do
 done
 
 trap 'rm -f Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile lib/p4_config.h; exit 1' 1 3 15
+RANLIB='$RANLIB'
+CPP='$CPP'
 P4ARCH='$P4ARCH'
 MAKE='$MAKE'
 CC='$CC'
@@ -294,7 +673,6 @@ FC='$FC'
 CLINKER='$CLINKER'
 FLINKER='$FLINKER'
 AR='$AR'
-RANLIB='$RANLIB'
 RM='$RM'
 P4_OBJ='$P4_OBJ'
 MDEP_LIBS='$MDEP_LIBS'
@@ -334,6 +712,8 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   sed -e "
 $prsub
 $extrasub
+s%@RANLIB@%$RANLIB%g
+s%@CPP@%$CPP%g
 s%@P4ARCH@%$P4ARCH%g
 s%@MAKE@%$MAKE%g
 s%@CC@%$CC%g
@@ -341,7 +721,6 @@ s%@FC@%$FC%g
 s%@CLINKER@%$CLINKER%g
 s%@FLINKER@%$FLINKER%g
 s%@AR@%$AR%g
-s%@RANLIB@%$RANLIB%g
 s%@RM@%$RM%g
 s%@P4_OBJ@%$P4_OBJ%g
 s%@MDEP_LIBS@%$MDEP_LIBS%g

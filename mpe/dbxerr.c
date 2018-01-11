@@ -20,6 +20,26 @@ extern int free();
 #endif
 #endif
 
+#if (defined(__STDC__) || defined(__cpluscplus))
+#define MPIR_USE_STDARG
+#include <stdarg.h>
+
+/* Place to put varargs code, which should look something like
+
+   void mpir_errors_are_fatal( MPI_Comm *comm, int *code, ... )
+   {
+   va_list Argp;
+
+   va_start( Argp, code );
+   string = va_arg(Argp,char *);
+   file   = va_arg(Argp,char *);
+   line   = va_arg(Argp,int *);
+   va_end( Argp );
+   ... 
+   }
+ */
+#endif
+
 
 #if defined(SIGSTOP)
 /* 
@@ -67,6 +87,22 @@ int child, i;
 }
 
 /* This is the actual error handler */
+#ifdef MPIR_USE_STDARG
+void MPE_Errors_to_dbx( MPI_Comm *comm, int * code, ... )
+{
+  char buf[MPI_MAX_ERROR_STRING];
+  int  myid, result_len; 
+  char *string, *file;
+  int  *line;
+  va_list Argp;
+  int child;
+
+  va_start( Argp, code );
+  string = va_arg(Argp,char *);
+  file   = va_arg(Argp,char *);
+  line   = va_arg(Argp,int *);
+  va_end( Argp );
+#else
 void MPE_Errors_to_dbx( comm, code, string, file, line )
 MPI_Comm *comm;
 int      *code, *line;
@@ -75,6 +111,7 @@ char     *string, *file;
   char buf[MPI_MAX_ERROR_STRING];
   int  myid, result_len; 
   int child;
+#endif
 
   if (MPI_COMM_WORLD) MPI_Comm_rank( MPI_COMM_WORLD, &myid );
   else myid = -1;
@@ -98,6 +135,14 @@ char     *string, *file;
    This allows things like "xterm -e dbx pgm pid", or 
    "xdbx -geometry +%d+%d pgm pid".  The list should be null terminated.
    (The %d %d format is not yet supported).
+
+    Notes:
+    You may need to ignore some signals, depending on the signals that
+    the MPICH and underlying communications code is using.  You can
+    do this in dbx by adding "ignore signal-name" to your .dbxinit file.
+    For example, to ignore SIGUSR1, use "ignore USR1".
+
+    Currently, there is no Fortran interface for this routine.
 @*/
 void MPE_Errors_call_debugger( pgm, dbg, args )
 char *pgm, *dbg, **args;
@@ -245,6 +290,13 @@ MPE_Start_debugger( );
     This invokes the MPE error handler which prints some information
     about the signal and then attempts to start the debugger.  Some
     systems will not support calling the debugger.
+
+    You may need to ignore some signals, depending on the signals that
+    the MPICH and underlying communications code is using.  You can
+    do this in dbx by adding "ignore signal-name" to your .dbxinit file.
+    For example, to ignore SIGUSR1, use "ignore USR1".
+
+    Currently, there is no Fortran interface for this routine.
 @*/
 MPE_Signals_call_debugger()
 {

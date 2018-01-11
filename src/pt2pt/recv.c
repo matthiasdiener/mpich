@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.24 1995/01/03 19:43:25 gropp Exp $
+ *  $Id: recv.c,v 1.26 1995/03/05 22:53:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: recv.c,v 1.24 1995/01/03 19:43:25 gropp Exp $";
+static char vcid[] = "$Id: recv.c,v 1.26 1995/03/05 22:53:49 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -35,7 +35,7 @@ MPI_Status       *status;
 {
     MPI_Request request;
     MPIR_RHANDLE rhandle;
-    int         mpi_errno, is_available;
+    int         mpi_errno;
 
     /* 
        Because this is a very common routine, we show how it can be
@@ -61,7 +61,7 @@ MPI_Status       *status;
 	datatype->ref_count ++;
 	rhandle.bufadd	   = buf;
 	rhandle.count	   = count;
-	rhandle.completed  = MPIR_NO;
+	MPID_Clr_completed( comm->ADIctx, request );
 	rhandle.persistent = 0;
 #ifdef MPID_HAS_HETERO
 	rhandle.msgrep     = MPIR_MSGREP_UNKNOWN;

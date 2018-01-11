@@ -101,25 +101,7 @@ char **argv;
             continue;
         }
 
-	if (!strcmp(*a, "-pg")      ||
-	    !strcmp(*a, "-pg")      ||
-	    !strcmp(*a, "-dbg")     ||
-	    !strcmp(*a, "-ssport")  ||
-	    !strcmp(*a, "-rdbg")    ||
-	    !strcmp(*a, "-gm")      ||
-	    !strcmp(*a, "-dmn")     ||
-	    !strcmp(*a, "-out")     ||
-	    !strcmp(*a, "-rout")    ||
-	    !strcmp(*a, "-log")     ||
-	    !strcmp(*a, "-norem")   ||
-	    !strcmp(*a, "-version") ||
-	    !strcmp(*a, "-help"))
-	{
-	    printf("Warning: %s should be -p4%s\n",*a,(*a)+1);
-	}
-
-
-	if (!strcmp(*a, "-p4pg")  ||  !strcmp(*a, "-pg"))
+	if (!strcmp(*a, "-p4pg"))
 	{
 	    if (bad_arg(a[1]))
 		usage();
@@ -127,7 +109,7 @@ char **argv;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-	if (!strcmp(*a, "-p4dbg") ||  !strcmp(*a, "-dbg"))
+	if (!strcmp(*a, "-p4dbg"))
 	{
 	    if (bad_arg(a[1]))
 		usage();
@@ -135,7 +117,7 @@ char **argv;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-	if (!strcmp(*a, "-p4ssport") ||  !strcmp(*a, "-ssport"))
+	if (!strcmp(*a, "-p4ssport"))
 	{
 	    if (bad_arg(a[1]))
 		usage();
@@ -143,7 +125,7 @@ char **argv;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-	if (!strcmp(*a, "-p4rdbg") ||  !strcmp(*a, "-rdbg"))
+	if (!strcmp(*a, "-p4rdbg"))
 	{
 	    if (bad_arg(a[1]))
 		usage();
@@ -151,7 +133,7 @@ char **argv;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-	if (!strcmp(*a, "-p4gm") ||  !strcmp(*a, "-gm"))
+	if (!strcmp(*a, "-p4gm"))
 	{
 	    if (bad_arg(a[1]))
 		usage();
@@ -159,7 +141,7 @@ char **argv;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-	if (!strcmp(*a, "-p4dmn") ||  !strcmp(*a, "-dmn"))
+	if (!strcmp(*a, "-p4dmn"))
 	{
 	    if (bad_arg(a[1]))
 		usage();
@@ -167,7 +149,7 @@ char **argv;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-	if (!strcmp(*a, "-p4out") ||  !strcmp(*a, "-out"))
+	if (!strcmp(*a, "-p4out"))
 	{
 	    if (bad_arg(a[1]))
 		usage();
@@ -175,7 +157,7 @@ char **argv;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-	if (!strcmp(*a, "-p4rout") ||  !strcmp(*a, "-rout"))
+	if (!strcmp(*a, "-p4rout"))
 	{
 	    if (bad_arg(a[1]))
 		usage();
@@ -183,25 +165,25 @@ char **argv;
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-	if (!strcmp(*a, "-p4log") ||  !strcmp(*a, "-log"))
+	if (!strcmp(*a, "-p4log"))
 	{
 	    strip_out_args(a, argc, &c, 1);
 	    logging_flag = TRUE;
 	    continue;
 	}
-	if (!strcmp(*a, "-p4norem") ||  !strcmp(*a, "-norem"))
+	if (!strcmp(*a, "-p4norem"))
 	{
 	    strip_out_args(a, argc, &c, 1);
 	    hand_start_remotes = TRUE;
 	    continue;
 	}
-	if (!strcmp(*a, "-p4version") ||  !strcmp(*a, "-version"))
+	if (!strcmp(*a, "-p4version"))
 	{
 	    strip_out_args(a, argc, &c, 1);
 	    print_version_info();
 	    continue;
 	}
-	if (!strcmp(*a, "-p4help") ||  !strcmp(*a, "-help"))
+	if (!strcmp(*a, "-p4help"))
 	    usage();
     }
     if (procgroup_file[0] == '\0')

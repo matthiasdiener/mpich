@@ -1,12 +1,12 @@
 /*
- *  $Id: type_struct.c,v 1.17 1994/12/21 14:33:27 gropp Exp $
+ *  $Id: type_struct.c,v 1.19 1995/02/23 16:49:36 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_struct.c,v 1.17 1994/12/21 14:33:27 gropp Exp $";
+static char vcid[] = "$Id: type_struct.c,v 1.19 1995/02/23 16:49:36 doss Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -40,7 +40,7 @@ MPI_Datatype *newtype;
   int             i, mpi_errno = MPI_SUCCESS;
   int             ub_marker, lb_marker;
   MPIR_BOOL       ub_found = MPIR_NO, lb_found = MPIR_NO;
-  int pad, size;
+  int pad, size, total_count;
 
   /* Check for bad arguments */
   if ( count < 0 )
@@ -49,7 +49,9 @@ MPI_Datatype *newtype;
     
   /* Check blocklens and old_types arrays and find number of bound */
   /* markers */
+  total_count = 0;
   for (i=0; i<count; i++) {
+    total_count += blocklens[i];
     if ( blocklens[i] < 0)
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER,
                         "Negative block length in MPI_TYPE_STRUCT");
@@ -59,6 +61,10 @@ MPI_Datatype *newtype;
     if (MPIR_TEST_IS_DATATYPE( MPI_COMM_WORLD, old_types[i] ))
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_TYPE,
 			 "Invalid old datatype in MPI_TYPE_STRUCT" );
+  }
+  if (total_count == 0) {
+      (*newtype) = MPI_DATATYPE_NULL;
+      return (mpi_errno);
   }
     
   /* Create and fill in the datatype */

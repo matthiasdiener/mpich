@@ -150,9 +150,11 @@ int memsize;
 P4VOID MD_initenv()
 {
 
-    /* next 2 should stay together -> used in MD_clock */
+    /* next 2 should stay together -> used in MD_clock 
     p4_global->reference_time = 0; 
     p4_global->reference_time = MD_clock();
+    */
+    MD_set_reference_time();
 
 #if defined(FX2800_SWITCH)
     sw_attach(p4_global->application_id);
@@ -1227,17 +1229,51 @@ char **argv;
 /* endif for ifdef ipsc860 or cm5 */
 #endif 
 
+MD_set_reference_time()
+{
+/* We want MD_clock to deal with small numbers */
+
+#if defined(SYMMETRY_PTX)
+/* reference time will be in seconds */
+    struct timespec tp;
+    getclock(TIMEOFDAY,&tp);
+    p4_global->reference_time = tp.tv_sec;
+#endif
+
+#if defined(SUN)   || defined(RS6000)     || defined(DEC5000) \
+ || defined(NEXT)  || defined(KSR)        || defined(CM5)     \
+ || defined(SYMMETRY) || defined(BALANCE) || defined(LINUX)   \
+ || defined(GP_1000)  || defined(TC_2000) || defined(CRAY)    \
+ || defined(TITAN)    || defined(ALLIANT) || defined(SGI)     \
+ || defined(NCUBE)    || defined(SP1_EUI) || defined(SP1_EUIH)\
+ || defined(MULTIMAX) || defined(IBM3090) || defined(HP)      \
+ || defined(FREEBSD)
+/* reference time will be in seconds */
+    struct timeval tp;
+    struct timezone tzp;
+
+    gettimeofday(&tp, &tzp);
+    p4_global->reference_time = tp.tv_sec;
+#endif
+
+#if defined(IPSC860)  &&  !defined(MEIKO_CS2)
+/* reference time will be in milliseconds */
+    p4_global->reference_time = (unsigned long) (mclock());
+#endif
+    
+}
 
 int MD_clock()
 {
+    /* returns value in milleseconds */
     int i;
 
 #if defined(SYMMETRY_PTX)
-    time_t t;
-
-    time(&t);
-    i = (int) (t - p4_global->reference_time);
-    i = i * 1000;
+    struct timespec tp;
+    getclock(TIMEOFDAY,&tp);
+    i = (int) (tp.tv_sec - p4_global->reference_time);
+    i *= 1000;
+    i += (int) (tp.tv_nsec / 1000000); /* On PTX the second field is nanosec */
 #endif
 
 #if defined(SUN)   || defined(RS6000)     || defined(DEC5000) \

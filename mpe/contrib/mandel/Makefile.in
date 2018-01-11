@@ -2,6 +2,7 @@ ALL: default
 ##### User configurable options #####
 
 ARCH        = @ARCH@
+MAKE        = @MAKE@
 COMM        = @COMM@
 BOPT        = @BOPT@
 P4_DIR      = @P4_DIR@

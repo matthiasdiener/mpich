@@ -6,14 +6,14 @@
 
 
 /*
- *  $Id: chsend.c,v 1.28 1995/01/03 19:40:42 gropp Exp $
+ *  $Id: chsend.c,v 1.30 1995/02/06 22:12:43 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char SCCSid[] = "%W% %G%";
+static char vcid[] = "$Id: chsend.c,v 1.30 1995/02/06 22:12:43 gropp Exp gropp $";
 #endif
 
 #include "mpid.h"
@@ -38,17 +38,59 @@ static char SCCSid[] = "%W% %G%";
    internal buffering for the user.
  */
 
-/***************************************************************************/
-/* These routines enable the debugging output                              */
-/***************************************************************************/
-static int DebugFlag = 0;   /* Set to 0 for no debug output */
+/* Here are some definitions to simplify debugging */
+#ifdef MPID_DEBUG_ALL  
+                       /* #DEBUG_START# */
+#ifdef MEMCPY
+#undef MEMCPY
+#endif
+#define MEMCPY(a,b,c)\
+{if (MPID_DebugFlag) {\
+    fprintf( MPID_DEBUG_FILE, \
+	    "[%d]R About to copy to %d from %d (n=%d) (%s:%d)...\n", \
+	    MPID_MyWorldRank, a, b, c, __FILE__, __LINE__ );\
+    fflush( MPID_DEBUG_FILE ); }\
+memcpy( a, b, c );}
 
-void MPID_SetSendDebugFlag( ctx, f )
-void *ctx;
-int f;
-{
-DebugFlag = f;
-}
+#define DEBUG_PRINT_SEND_PKT(msg,pkt)\
+    {if (MPID_DebugFlag) {\
+	fprintf( MPID_DEBUG_FILE,\
+"[%d]%s of tag = %d, dest = %d, ctx = %d, len = %d, mode = ", \
+	       MPID_MyWorldRank, msg, MPID_PKT_SEND_GET(pkt,tag), dest, \
+	       MPID_PKT_SEND_GET(pkt,context_id), \
+	       MPID_PKT_SEND_GET(pkt,len) );\
+	MPID_Print_mode( MPID_DEBUG_FILE, MPID_PKT_SEND_ADDR(pkt) );\
+	fprintf( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );\
+	fflush( MPID_DEBUG_FILE );\
+	}}
+
+#define DEBUG_PRINT_MSG(msg)\
+{if (MPID_DebugFlag) {\
+    fprintf( MPID_DEBUG_FILE, "[%d]%s (%s:%d)\n", \
+	    MPID_MyWorldRank, msg, __FILE__, __LINE__ );\
+    fflush( MPID_DEBUG_FILE );}}
+	    
+                       /* #DEBUG_END# */
+     
+#else
+#define DEBUG_PRINT_PKT(pkt)
+#define DEBUG_PRINT_MSG(msg)
+#define DEBUG_PRINT_SEND_PKT(msg,pkt)
+
+#endif
+
+/***************************************************************************/
+/* Some operations are completed in several stages.  To ensure that a      */
+/* process does not exit from MPID_End while requests are pending, we keep */
+/* track of how many are outstanding                                      */
+/***************************************************************************/
+extern int MPID_n_pending;  /* Number of uncompleted split requests */
+
+/***************************************************************************/
+/* This variable controls debugging output                                 */
+/***************************************************************************/
+extern int MPID_DebugFlag;
+
 /***************************************************************************/
 
 /* This routine is a hook for eventually allowing pre-initialized packets */
@@ -70,36 +112,29 @@ MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
 int len;
 {
-MPID_PKT_SHORT_T pkt;
+MPID_PKT_SEND_DECL(MPID_PKT_SHORT_T,pkt);
 int              dest;
 
+MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_T,pkt);
 /* These references are ordered to match the order they appear in the 
    structure */
 dest             = dmpi_send_handle->dest;
-pkt.mode	 = MPID_PKT_SHORT; 
-pkt.context_id	 = dmpi_send_handle->contextid;
-pkt.lrank	 = dmpi_send_handle->lrank;
-pkt.tag		 = dmpi_send_handle->tag;
-pkt.len          = len;
+MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SHORT);
+MPID_PKT_SEND_SET(pkt,context_id,dmpi_send_handle->contextid);
+MPID_PKT_SEND_SET(pkt,lrank,dmpi_send_handle->lrank);
+MPID_PKT_SEND_SET(pkt,tag,dmpi_send_handle->tag);
+MPID_PKT_SEND_SET(pkt,len,len);
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( 
- "[%d]S Starting a send of tag = %d, len = %d, ctx = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, pkt.tag, pkt.len, pkt.context_id, dest );
-    MPID_Print_mode( stdout, (MPID_PKT_T*)&pkt );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SEND_PKT("S Sending",pkt)
 
+MPID_PKT_PACK( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), dest );
 
 if (len > 0) {
-    MEMCPY( pkt.buffer, mpid_send_handle->start, len );
+    MEMCPY( MPID_PKT_SEND_GET(pkt,buffer), mpid_send_handle->start, len );
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-    if (DebugFlag) {
+    if (MPID_DebugFlag) {
 	MPID_NX_Print_pkt_data( "S Getting data from mpid->start", 
-			        pkt.buffer, len );
+			        MPID_PKT_SEND_GET(pkt,buffer), len );
 	}
 #endif                  /* #DEBUG_END# */
     }
@@ -107,104 +142,73 @@ if (len > 0) {
    (May fail with systems that do not provide adequate
    buffering.  These systems should switch to non-blocking sends)
  */
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( "[%d]S Sending message in a single packet (%s:%d)...\n", 
-	   MPID_MyWorldRank, __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T*)&pkt );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SEND_PKT("S Sending message in a single packet",pkt)
+
 /* In case the message is marked as non-blocking, indicate that we don't
    need to wait on it.  We may also want to use nonblocking operations
    to send the envelopes.... */
 mpid_send_handle->sid = 0;
-#ifdef MPID_TINY_BUFFERS
-/* In the event that any blocking send might block until the message is
-   received rather than until the message is buffered, check incoming 
-   messages.  Do this only for non_blocking messages. */
-if (mpid_send_handle->is_non_blocking) 
-    while (MPID_NX_check_incoming( MPID_NOTBLOCKING ) != -1) ;
-#endif
-MPID_SendControl( &pkt, len + sizeof(MPID_PKT_HEAD_T), dest );
-DMPI_mark_send_completed( dmpi_send_handle );
+MPID_DRAIN_INCOMING_FOR_TINY(mpid_send_handle->is_non_blocking)
+MPID_SENDCONTROL( mpid_send_handle, MPID_PKT_SEND_ADDR(pkt), 
+		      len + sizeof(MPID_PKT_HEAD_T), dest );
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( "[%d]S Sent message in a single packet (%s:%d)...\n", 
-	    MPID_MyWorldRank, __FILE__, __LINE__ );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DMPI_mark_send_completed( dmpi_send_handle );
+MPID_PKT_SEND_FREE(pkt);
+
+DEBUG_PRINT_MSG("S Sent message in a single packet")
+
 return MPI_SUCCESS;
 }
 
 /* Long message */
+#ifdef MPID_USE_GET
+#elif !defined(MPID_USE_RNDV)
+/* Message-passing or channel version of send long message */
 int MPID_NX_post_send_long( dmpi_send_handle, mpid_send_handle, len ) 
 MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
 int len;
 {
 char             *address;
-#ifdef MPID_USE_RNDV
-MPID_PKT_REQUEST_SEND_T pkt;
-#else
-MPID_PKT_LONG_T  pkt;
-#endif
+int              pkt_len;
+MPID_PKT_SEND_DECL(MPID_PKT_LONG_T,pkt);
 int              dest;
 
-#ifdef MPID_USE_RNDV
-pkt.mode       = MPID_PKT_REQUEST_SEND;
-pkt.send_id    = (MPID_Aint) dmpi_send_handle;
-#else
-pkt.mode       = MPID_PKT_LONG; 
-#endif
-pkt.context_id = dmpi_send_handle->contextid;
-pkt.lrank      = dmpi_send_handle->lrank;
-pkt.tag	       = dmpi_send_handle->tag;
-pkt.len	       = len;
+MPID_PKT_SEND_ALLOC(MPID_PKT_LONG_T,pkt);
+MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_LONG);
+pkt_len = sizeof(MPID_PKT_LONG_T); 
+MPID_PKT_SEND_SET(pkt,context_id,dmpi_send_handle->contextid);
+MPID_PKT_SEND_SET(pkt,lrank,dmpi_send_handle->lrank);
+MPID_PKT_SEND_SET(pkt,tag,dmpi_send_handle->tag);
+MPID_PKT_SEND_SET(pkt,len,len);
 dest           = dmpi_send_handle->dest;
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( 
- "[%d]S Starting a send of tag = %d, len = %d, ctx = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, pkt.tag, pkt.len, pkt.context_id, dest );
-    MPID_Print_mode( stdout, (MPID_PKT_T*)&pkt );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SEND_PKT("S Sending",pkt)
 
+MPID_PKT_PACK( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), dest );
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
+if (MPID_DebugFlag) {
     printf( 
 	   "[%d]S Getting data from mpid->start, first int is %d (%s:%d)\n",
 	   MPID_MyWorldRank, *(int *)mpid_send_handle->start, 
 	   __FILE__, __LINE__ );
     printf( "[%d]S Sending extra-long message (%s:%d)...\n", 
 	    MPID_MyWorldRank, __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T*)&pkt );
+    MPID_Print_packet( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
     fflush( stdout );
     }
 #endif                  /* #DEBUG_END# */
 /* Send as packet only */
-#ifdef MPID_TINY_BUFFERS
-/* In the event that any blocking send might block until the message is
-   received rather than until the message is buffered, check incoming 
-   messages.  */
-if (mpid_send_handle->is_non_blocking) 
-    while (MPID_NX_check_incoming( MPID_NOTBLOCKING ) != -1) ;
-#endif
-MPID_SendControl( &pkt, sizeof(MPID_PKT_LONG_T), dest );
+MPID_DRAIN_INCOMING_FOR_TINY(mpid_send_handle->is_non_blocking)
+MPID_SENDCONTROL( mpid_send_handle, MPID_PKT_SEND_ADDR(pkt), pkt_len, dest );
 
-#ifndef MPID_USE_RNDV
 /* Send the body of the message */
 address    = ((char*)mpid_send_handle->start);
 #ifndef PI_NO_NSEND
 if (mpid_send_handle->is_non_blocking) {
     MPID_ISendChannel( address, len, dest, mpid_send_handle->sid );
+    dmpi_send_handle->completer = MPID_CMPL_SEND_NB;
     }
 else 
 #endif
@@ -213,46 +217,55 @@ else
     MPID_SendChannel( address, len, dest );
     DMPI_mark_send_completed( dmpi_send_handle );
     }
-#endif
+MPID_PKT_SEND_FREE(pkt);
 return MPI_SUCCESS;
 }
+#endif
+
+#ifndef PI_NO_NSEND
+MPID_NX_Cmpl_send_nb( dmpi_send_handle )
+MPIR_SHANDLE *dmpi_send_handle;
+{
+MPID_SHANDLE *mpid_send_handle = &dmpi_send_handle->dev_shandle;
+if (mpid_send_handle->sid)  {
+    /* Before we do the wait, try to clear all pending messages */
+    (void)MPID_NX_check_incoming( MPID_NOTBLOCKING );
+    MPID_NX_isend_wait( dmpi_send_handle );
+    }
+}
+#endif
 
 int MPID_NX_post_send_sync_short( dmpi_send_handle, mpid_send_handle, len ) 
 MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
 int len;
 {
-MPID_PKT_SHORT_SYNC_T pkt;
+MPID_PKT_SEND_DECL(MPID_PKT_SHORT_SYNC_T,pkt);
 int                   dest;
+
+MPID_PKT_SEND_ALLOC(MPID_PKT_SHORT_SYNC_T,pkt);
 
 /* These references are ordered to match the order they appear in the 
    structure */
 dest             = dmpi_send_handle->dest;
-pkt.mode	 = MPID_PKT_SHORT_SYNC; 
-pkt.context_id	 = dmpi_send_handle->contextid;
-pkt.lrank	 = dmpi_send_handle->lrank;
-pkt.tag		 = dmpi_send_handle->tag;
-pkt.len          = len;
-pkt.sync_id      = MPID_NX_Get_Sync_Id( dmpi_send_handle, mpid_send_handle );
+MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SHORT_SYNC); 
+MPID_PKT_SEND_SET(pkt,context_id,dmpi_send_handle->contextid);
+MPID_PKT_SEND_SET(pkt,lrank,dmpi_send_handle->lrank);
+MPID_PKT_SEND_SET(pkt,tag,dmpi_send_handle->tag);
+MPID_PKT_SEND_SET(pkt,len,len);
+MPID_PKT_SEND_SET(pkt,sync_id,
+		  MPID_NX_Get_Sync_Id( dmpi_send_handle, mpid_send_handle ));
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( 
- "[%d]S Starting a send of tag = %d, len = %d, ctx = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, pkt.tag, pkt.len, pkt.context_id, dest );
-    MPID_Print_mode( stdout, (MPID_PKT_T*)&pkt );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SEND_PKT("S Sending",pkt)
 
+MPID_PKT_PACK( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), dest );
 
 if (len > 0) {
-    MEMCPY( pkt.buffer, mpid_send_handle->start, len );
+    MEMCPY( MPID_PKT_SEND_GET(pkt,buffer), mpid_send_handle->start, len );
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-    if (DebugFlag) {
+    if (MPID_DebugFlag) {
 	MPID_NX_Print_pkt_data( "S Getting data from mpid->start", 
-			        pkt.buffer, len );
+			        MPID_PKT_SEND_GET(pkt,buffer), len );
 	}
 #endif                  /* #DEBUG_END# */
     }
@@ -261,75 +274,60 @@ if (len > 0) {
    buffering.  These systems should switch to non-blocking sends, or use
    blocking if the message itself is in blocking mode.)
  */
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( "[%d]S Sending message in a single packet (%s:%d)...\n", 
-	   MPID_MyWorldRank, __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T*)&pkt );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_SEND_PKT("S Sending message in a single packet",pkt)
+
 /* In case the message is marked as non-blocking, indicate that we don't
    need to wait on it */
 mpid_send_handle->sid = 0;
-MPID_SendControl( &pkt, 
+MPID_SendControlBlock( MPID_PKT_SEND_ADDR(pkt), 
                   len + (sizeof(MPID_PKT_SHORT_SYNC_T)-MPID_PKT_MAX_DATA_SIZE),
 		  dest );
+dmpi_send_handle->completer = MPID_CMPL_SEND_SYNC;
+DEBUG_PRINT_MSG("S Sent message in a single packet")
 
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( "[%d]S Sent message in a single packet (%s:%d)...\n", 
-	    MPID_MyWorldRank, __FILE__, __LINE__ );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
 return MPI_SUCCESS;
 }
 
 /* Long message */
+#ifdef MPID_USE_GET
+#else
 int MPID_NX_post_send_sync_long( dmpi_send_handle, mpid_send_handle, len ) 
 MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
 int len;
 {
 char                 *address;
-MPID_PKT_LONG_SYNC_T pkt;
+MPID_PKT_SEND_DECL(MPID_PKT_LONG_SYNC_T,pkt);
 int                  dest;
 
-pkt.mode       = MPID_PKT_LONG_SYNC; 
-pkt.context_id = dmpi_send_handle->contextid;
-pkt.lrank      = dmpi_send_handle->lrank;
-pkt.tag	       = dmpi_send_handle->tag;
-pkt.len	       = len;
+MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_LONG_SYNC); 
+MPID_PKT_SEND_SET(pkt,context_id,dmpi_send_handle->contextid);
+MPID_PKT_SEND_SET(pkt,lrank,dmpi_send_handle->lrank);
+MPID_PKT_SEND_SET(pkt,tag,dmpi_send_handle->tag);
+MPID_PKT_SEND_SET(pkt,len,len);
+MPID_PKT_SEND_SET(pkt,sync_id,
+		  MPID_NX_Get_Sync_Id( dmpi_send_handle, mpid_send_handle ));
 dest           = dmpi_send_handle->dest;
-pkt.sync_id    = MPID_NX_Get_Sync_Id( dmpi_send_handle, mpid_send_handle );
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( 
- "[%d]S Starting a send of tag = %d, len = %d, ctx = %d, dest = %d, mode=",
-	    MPID_MyWorldRank, pkt.tag, pkt.len, pkt.context_id, dest );
-    MPID_Print_mode( stdout, (MPID_PKT_T*)&pkt );
-    fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
-
-
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
+if (MPID_DebugFlag) {
+    DEBUG_PRINT_SEND_PKT("S Sending ",pkt)
     printf( 
 	   "[%d]S Getting data from mpid->start, first int is %d (%s:%d)\n",
 	   MPID_MyWorldRank, *(int *)&mpid_send_handle->start, 
 	   __FILE__, __LINE__ );
     printf( "[%d]S Sending extra-long message (%s:%d)...\n", 
 	    MPID_MyWorldRank, __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T*)&pkt );
+    MPID_Print_packet( stdout, (MPID_PKT_T*)MPID_PKT_SEND_ADDR(pkt) );
     fflush( stdout );
     }
 #endif                  /* #DEBUG_END# */
+
+MPID_PKT_PACK( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_HEAD_T), dest );
+
 /* Send as packet only */
-MPID_SendControl( &pkt, sizeof(MPID_PKT_LONG_SYNC_T), dest );
+MPID_SendControlBlock( MPID_PKT_SEND_ADDR(pkt), 
+		       sizeof(MPID_PKT_LONG_SYNC_T), dest );
 
 /* Send the body of the message */
 address    = ((char*)mpid_send_handle->start);
@@ -343,13 +341,35 @@ else
     mpid_send_handle->sid = 0;
     MPID_SendChannel( address, len, dest );
     }
+dmpi_send_handle->completer = MPID_CMPL_SEND_SYNC;
 return MPI_SUCCESS;
 }
+#endif
 
+int MPID_NX_Cmpl_send_sync( dmpi_send_handle )
+MPIR_SHANDLE *dmpi_send_handle;
+{
+MPID_SHANDLE *mpid_send_handle = &dmpi_send_handle->dev_shandle;
+#ifndef PI_NO_NSEND
+if (mpid_send_handle->sid)  {
+    /* Before we do the wait, try to clear all pending messages */
+    (void)MPID_NX_check_incoming( MPID_NOTBLOCKING );
+    MPID_NX_isend_wait( dmpi_send_handle );
+    }
+#endif
+
+DEBUG_PRINT_MSG("S Entering complete send while loop")
+while (!MPID_Test_handle(dmpi_send_handle)) {
+    /* This waits for the completion of a synchronous send, since at
+       this point, we've finished waiting for the =_isend(,,,,0) to complete,
+       or for a incremental get */
+    (void)MPID_NX_check_incoming( MPID_BLOCKING );
+    }
+DEBUG_PRINT_MSG("S Exiting complete send")
+}
 
 /*
-   This implementation immediately sends the data.
-
+   This sends the data.
    It takes advantage of being provided with the address of the user-buffer
    in the contiguous case.
  */
@@ -357,39 +377,60 @@ int MPID_NX_post_send( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
 MPID_SHANDLE *mpid_send_handle;
-int         actual_len;
+int         actual_len, rc;
 
 mpid_send_handle = &dmpi_send_handle->dev_shandle;
 actual_len       = mpid_send_handle->bytes_as_contig;
 
 if (actual_len > MPID_PKT_DATA_SIZE) 
-    return MPID_NX_post_send_long( dmpi_send_handle, mpid_send_handle, 
+#ifdef MPID_USE_GET
+    rc = MPID_NX_post_send_long_get( dmpi_send_handle, mpid_send_handle, 
 				   actual_len );
+#elif defined(MPID_USE_RNDV)
+    rc = MPID_NX_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, 
+				      actual_len );
+#else
+    rc = MPID_NX_post_send_long( dmpi_send_handle, mpid_send_handle, 
+				   actual_len );
+#endif
 else
-    return MPID_NX_post_send_short( dmpi_send_handle, mpid_send_handle, 
+    rc = MPID_NX_post_send_short( dmpi_send_handle, mpid_send_handle, 
 				    actual_len );
+
+/* Poke the device in case there is data ... */
+MPID_DRAIN_INCOMING;
+
+return rc;
 }
 
 int MPID_NX_post_send_sync( dmpi_send_handle ) 
 MPIR_SHANDLE *dmpi_send_handle;
 {
 MPID_SHANDLE *mpid_send_handle;
-int         actual_len;
+int         actual_len, rc;
 
 mpid_send_handle = &dmpi_send_handle->dev_shandle;
 actual_len       = mpid_send_handle->bytes_as_contig;
 
 if (actual_len > MPID_PKT_DATA_SIZE) 
 #ifdef MPID_USE_RNDV
-    return MPID_NX_post_send_long( dmpi_send_handle, mpid_send_handle, 
-				   actual_len );
+    rc = MPID_NX_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, 
+				      actual_len );
+#elif defined(MPID_USE_GET)
+    rc = MPID_NX_post_send_sync_long_get( dmpi_send_handle, mpid_send_handle, 
+					  actual_len );
 #else
-    return MPID_NX_post_send_sync_long( dmpi_send_handle, mpid_send_handle, 
-				        actual_len );
+    rc = MPID_NX_post_send_sync_long( dmpi_send_handle, mpid_send_handle, 
+				      actual_len );
 #endif
 else
-    return MPID_NX_post_send_sync_short( dmpi_send_handle, mpid_send_handle, 
+    rc = MPID_NX_post_send_sync_short( dmpi_send_handle, mpid_send_handle, 
 					 actual_len );
+
+/* Poke the device in case there is data ... */
+MPID_DRAIN_INCOMING;
+
+return rc;
 }
 
 int MPID_NX_Blocking_send( dmpi_send_handle )
@@ -432,7 +473,7 @@ if (mpid_send_handle->sid) {
     while (!msgdone(mpid_send_handle->sid))
 	(void) MPID_NX_check_incoming( MPID_NOTBLOCKING );
 #endif
-    MPID_WSendChannel( (void *)0, mpid_send_handle->len, -1,
+    MPID_WSendChannel( (void *)0, mpid_send_handle->bytes_as_contig, -1,
 		       mpid_send_handle->sid );
     mpid_send_handle->sid = 0;
     }
@@ -461,50 +502,39 @@ return MPI_SUCCESS;
 int MPID_NX_complete_send( dmpi_send_handle ) 
 MPIR_SHANDLE *dmpi_send_handle;
 {
-MPID_SHANDLE *mpid_send_handle = &dmpi_send_handle->dev_shandle;
-
 /* Check to see if we need to complete the send. */
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-	printf( "[%d]S Entering complete send (%s:%d)...\n", 
-	        MPID_MyWorldRank, __FILE__, __LINE__ );
-	fflush( stdout );
-	}
-#endif                  /* #DEBUG_END# */
+DEBUG_PRINT_MSG("S Entering complete send")
 
-/* If we have rendevous send, then we may need to first wait until the
-   message has been requested; then wait on the send to complete... */
+switch (dmpi_send_handle->completer) {
+    case 0: 
+         /* Message already completed */
+         break;
 #ifdef MPID_USE_RNDV
-while (!dmpi_send_handle->completed && mpid_send_handle->sid == 0)
-    /* This can be a BLOCKING check because we must wait until
-       an "ok to send" message arrives */
-    (void) MPID_NX_check_incoming( MPID_BLOCKING );
+    case MPID_CMPL_SEND_RNDV:
+	 MPID_NX_Cmpl_send_rndv( dmpi_send_handle );
+         break;
 #endif
+#ifdef MPID_USE_GET
+    case MPID_CMPL_SEND_GET:
+	 MPID_NX_Cmpl_send_get( dmpi_send_handle );
+         break;
+#endif
+#ifndef PI_NO_NSEND
+    case MPID_CMPL_SEND_NB:
+	 MPID_NX_Cmpl_send_nb( dmpi_send_handle );
+         break;
+#endif
+    case MPID_CMPL_SEND_SYNC:
+	 /* Also does non-blocking sync sends */
+	 MPID_NX_Cmpl_send_sync( dmpi_send_handle );
+	 break;
+    default:
+	 fprintf( stdout, "[%d]* Unexpected send completion mode %d\n", 
+	          MPID_MyWorldRank, dmpi_send_handle->completer );
+	 break;
+    }
+DEBUG_PRINT_MSG("S Exiting complete send")
 
-if (mpid_send_handle->sid)  {
-    /* Before we do the wait, try to clear all pending messages */
-    (void)MPID_NX_check_incoming( MPID_NOTBLOCKING );
-    MPID_NX_isend_wait( dmpi_send_handle );
-    }
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-	printf( "[%d]S Entering complete send while loop (%s:%d)...\n", 
-	        MPID_MyWorldRank, __FILE__, __LINE__ );
-	fflush( stdout );
-	}
-#endif                  /* #DEBUG_END# */
-while (!dmpi_send_handle->completed) {
-    /* This waits for the completion of a synchronous send, since at
-       this point, we've finished waiting for the =_isend(,,,,0) to complete */
-    (void)MPID_NX_check_incoming( MPID_BLOCKING );
-    }
-#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
-    printf( "[%d]S Exiting complete send (%s:%d)...\n", 
-	   MPID_MyWorldRank, __FILE__, __LINE__ );
-    fflush( stdout );
-    }
-#endif                  /* #DEBUG_END# */
 return MPI_SUCCESS;
 }
 
@@ -554,6 +584,18 @@ switch (pkt->short_pkt.mode) {
     case MPID_PKT_READY_ERROR:
     fputs( "ready error", fp );
     break;
+    case MPID_PKT_DO_GET:
+    fputs( "do get", fp );
+    break; 
+    case MPID_PKT_DO_GET_SYNC:
+    fputs( "do get sync", fp );
+    break; 
+    case MPID_PKT_DONE_GET:
+    fputs( "done get", fp );
+    break;
+    case MPID_PKT_CONT_GET:
+    fputs( "continue get", fp );
+    break;
     default:
     fprintf( fp, "Mode %d is unknown!\n", pkt->short_pkt.mode );
     break;
@@ -575,16 +617,34 @@ int MPID_NX_Test_send( dmpi_send_handle )
 MPIR_SHANDLE *dmpi_send_handle;
 {
 #ifdef MPID_USE_RNDV
-if (!dmpi_send_handle->completed && dmpi_send_handle->dev_shandle.sid) {
-    if (PInstatis(  dmpi_send_handle->dev_shandle.sid )) {
+if (!MPID_Test_handle(dmpi_send_handle) && dmpi_send_handle->dev_shandle.sid) {
+    if (MPID_TestSendTransfer( dmpi_send_handle->dev_shandle.sid )) {
 	/* If it is done, go ahead and mark the operation completed */
-	msgwait(dmpi_send_handle->dev_shandle.sid );
+	MPID_EndSendTransfer( dmpi_send_handle->dev_shandle.start, 
+			dmpi_send_handle->dev_shandle.bytes_as_contig, 
+			     dmpi_send_handle->dest,
+			     dmpi_send_handle->dev_shandle.recv_handle, 
+	   dmpi_send_handle->dev_shandle.sid );
 	dmpi_send_handle->dev_shandle.sid = 0;
-	dmpi_send_handle->completed	  = 1;
+	DMPI_mark_send_completed(dmpi_send_handle);
 	}
     }
 #endif
-return dmpi_send_handle->completed;
+return MPID_Test_handle(dmpi_send_handle);
+}
+
+/* 
+   This routine makes sure that we complete all pending requests
+
+   Note: We should make it illegal here to receive anything put
+   things like DONE_GET and COMPLETE_SEND.
+ */
+int MPID_NX_Complete_pending()
+{
+while (MPID_n_pending) {
+    (void)MPID_NX_check_incoming( MPID_BLOCKING );
+    }
+return MPI_SUCCESS;
 }
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
@@ -607,11 +667,26 @@ switch (pkt->head.mode) {
 fprintf( fp, "\
 \tlen        = %d\n\
 \ttag        = %d\n\
-\tcontent_id = %d\n\
+\tcontext_id = %d\n\
 \tlrank      = %d\n\
 \tmode       = ", 
 	pkt->head.len, pkt->head.tag, pkt->head.context_id, pkt->head.lrank );
     break;
+#ifdef MPID_USE_RNDV
+    case MPID_PKT_REQUEST_SEND:
+    case MPID_PKT_REQUEST_SEND_READY:
+    case MPID_PKT_OK_TO_SEND:
+    MPID_NX_Rndv_print_pkt( fp, pkt );
+    break;
+#endif
+#ifdef MPID_USE_GET
+    case MPID_PKT_DO_GET:
+    case MPID_PKT_DO_GET_SYNC:
+    case MPID_PKT_DONE_GET:
+    case MPID_PKT_CONT_GET:
+    MPID_NX_Get_print_pkt( fp, pkt );
+    break;
+#endif
     default:
     fprintf( fp, "\n" );
     }

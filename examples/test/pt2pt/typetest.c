@@ -177,6 +177,7 @@ char **argv;
 	else
 	    Test_Passed("Type Free test");
 	
+	Test_Waitforall( );
 	MPI_Finalize();
     } else {
 	MPI_Recv(&dummy2, 1, struct2_t, 0, 2000, MPI_COMM_WORLD, &Status);
@@ -206,6 +207,7 @@ return message.");
 	else
 	    Test_Passed("Type Free test");
 	
+	Test_Waitforall( );
 	MPI_Finalize();
     }
     (void)Summarize_Test_Results();

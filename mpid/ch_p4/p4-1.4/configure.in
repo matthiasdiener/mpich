@@ -46,6 +46,10 @@ case $arg in
      p4echo=`echo $arg|sed 's/-p4echo=//'`
      echo $p4echo
      ;;
+  -p4make=*)
+     p4make=`echo $arg|sed 's/-p4make=//'`
+     echo Setting p4make to $p4make
+     ;;
   -alog=*)
      p4alog=`echo $arg|sed 's/-alog=//'`
      echo Setting p4alog to $p4alog
@@ -78,11 +82,10 @@ esac
 done
 P4ARCH="unknown"
 MAKE=make
-CC=cc
-FC=f77
-CLINKER=cc
-FLINKER=f77
-RANLIB=ranlib
+CC=${CC:-cc}
+FC=${FC:-f77}
+CLINKER=$CC
+FLINKER=$FC
 AR="ar lruv"
 RM=/bin/rm
 MDEP_LIBS=
@@ -98,6 +101,7 @@ DEFINE_P4_DPRINTFL="#define P4_DPRINTFL"
 LISTENER_PATHNAME=""
 ]
 AC_PREPARE()
+AC_PROG_RANLIB()
 dnl check for valid architecture
 grep $p4arch MACHINES > /dev/null 2>&1
 if test $? != 0 ; then
@@ -105,6 +109,9 @@ echo Invalid arch $p4arch
 exit
 fi
 dnl Now substitute the variables
+if test -n "$p4make"; then
+MAKE=$p4make
+fi
 dnl						Sun running SunOS
 if test -n "$p4arch_SUN"; then
 P4ARCH=SUN
@@ -117,25 +124,52 @@ dnl						486 running Linux
 if test -n "$p4arch_LINUX"; then
 P4ARCH=LINUX
 fi
+dnl                                             KSR
+if test -n "$p4arch_KSR"; then
+P4ARCH=KSR
+RANLIB=true
+AC_HAVE_LIBRARY(rpc,MDEP_LIBS=-lrpc)
+fi
 dnl						Sun running Solaris
 if test -n "$p4arch_SUN_SOLARIS"; then
 P4ARCH=SUN_SOLARIS
 AR="ar ruv"
 RANLIB=true
-MDEP_LIBS="-lsocket -lnsl  -lthread"
+AC_HAVE_LIBRARY(socket,MDEP_LIBS=-lsocket)
+AC_HAVE_LIBRARY(nsl,MDEP_LIBS="$MDEP_LIBS -lnsl")
+AC_HAVE_LIBRARY(thread,MDEP_LIBS="$MDEP_LIBS -lthread")
 dnl #MDEP_LIBS = /usr/ucblib/libucb.a -lsocket -lnsl  # for fortran
 fi
 dnl						HP workstation
 if test -n "$p4arch_HP"; then
 P4ARCH=HP
 RANLIB=true
-MDEP_LIBS="-lV3 -lU77"
+AC_HAVE_LIBRARY(V3,MDEP_LIBS=-lV3)
+AC_HAVE_LIBRARY(U77,MDEP_LIBS="$MDEP_LIBS -lU77")
+dnl MDEP_LIBS="-lV3 -lU77"
 dnl -lV3 is for sighold, etc.
 MDEP_FFLAGS=+U77
 fi
 dnl						DEC Alpha workstation
 if test -n "$p4arch_ALPHA"; then
 P4ARCH=ALPHA
+fi
+dnl                                             CRAY
+if test -n "$p4arch_CRAY"; then
+P4ARCH=CRAY
+AR='ar ruv'
+CC=cc
+FC=cf77
+CLINKER=cc
+FLINKER=cf77
+RANLIB=true
+fi
+dnl                                             NeXT workstation
+if test -n "$p4arch_NEXT"; then
+P4ARCH=NEXT
+MDEP_CFLAGS=""                        # Black hardware, with NeXTstep
+#MDEP_CFLAGS="-arch i386"             # for 486's running NeXTstep
+#MDEP_CFLAGS="-arch m68k -arch i386"  # fat binaries, for both
 fi
 dnl						DEC 5000 workstation
 if test -n "$p4arch_DEC5000"; then
@@ -147,7 +181,7 @@ P4ARCH=RS6000
 FC=xlf
 FLINKER=xlf
 RANLIB=true
-MDEP_LIBS=-lbsd
+AC_HAVE_LIBRARY(bsd,MDEP_LIBS=-lbsd)
 MDEP_CFLAGS=-D_ALL_SOURCE
 fi
 dnl						SP using TCP
@@ -156,7 +190,7 @@ P4ARCH=SP1
 FC=xlf
 FLINKER=xlf
 RANLIB=true
-MDEP_LIBS=-lbsd
+AC_HAVE_LIBRARY(bsd,MDEP_LIBS=-lbsd)
 fi
 dnl						SP with MPL
 if test -n "$p4arch_SP1_EUI"; then
@@ -166,7 +200,7 @@ CC=mpcc
 FLINKER=xlf
 CLINKER=mpcc
 RANLIB=true
-MDEP_LIBS=-lbsd
+AC_HAVE_LIBRARY(bsd,MDEP_LIBS=-lbsd)
 MDEP_CFLAGS = -I/usr/lpp/poe/include
 fi
 dnl						SP with EUIH (obsolete)
@@ -177,21 +211,21 @@ CC=cc
 FLINKER="xlf -bimport:/usr/lpp/euih/eui/eui.exp"
 CLINKER="xlc -bimport:/usr/lpp/euih/eui/eui.exp -e main"
 RANLIB=true
-MDEP_LIBS=-lbsd
+AC_HAVE_LIBRARY(bsd,MDEP_LIBS=-lbsd)
 MDEP_CFLAGS=-D_ALL_SOURCE
 fi
 dnl						SGI workstations
 if test -n "$p4arch_SGI"; then
 P4ARCH=SGI
 RANLIB=true
-MDEP_LIBS=-lsun
+AC_HAVE_LIBRARY(sun,MDEP_LIBS=-lsun)
 MDEP_CFLAGS=-cckr
 fi
 dnl						SGI multiprocessors, like Onyx
 if test -n "$p4arch_SGI_MP"; then
 P4ARCH=SGI_MP
 RANLIB=true
-MDEP_LIBS=-lsun
+AC_HAVE_LIBRARY(sun,MDEP_LIBS=-lsun)
 MDEP_CFLAGS=-cckr
 fi
 dnl						SGI Challenge Series
@@ -209,6 +243,27 @@ dnl MDEP_CFLAGS="-cckr -64 -mips4 -non_shared -woff 1552,1174"
 dnl MDEP_FFLAGS="-cckr -64 -mips4 -non_shared -woff 1552,1174"
 MDEP_CFLAGS="-cckr -64 -mips4 -woff 1552,1174"
 MDEP_FFLAGS="-cckr -64 -mips4 -woff 1552,1174"
+fi
+dnl                                              Symmetry with Dynix
+if test -n "$p4arch_SYMMETRY"; then
+P4ARCH=SYMMETRY
+FILE_LINK=ln 
+FC=fortran
+CLINKER="cc -Z1000000"
+FLINKER="fortran -Z1000000"
+MDEP_LIBS="-lpps -lseq"
+MDEP_CFLAGS=
+MDEP_FFLAGS=
+fi
+dnl                                              Symmetry with PTX
+if test -n "$p4arch_SYMMETRY_PTX"; then
+P4ARCH=SYMMETRY_PTX
+FILE_LINK=ln
+FC=fortran
+FLINKER=fortran 
+RANLIB=true
+MDEP_LIBS="-lpps -lseq -lrpc -lsocket -linet -lnsl"
+MDEP_CFLAGS="-Wc,-seq"
 fi
 dnl dump copy of MDEP_CFLAGS into file for other system to pick up
 /bin/rm -f mpdepcflags
@@ -229,6 +284,9 @@ fi
 if test -n "$p4listener_pathname"; then
 LISTENER_PATHNAME="$p4listener_pathname"
 fi
+#
+# Look for netinet/in.h and sys/socketvar.h
+AC_HAVE_HEADERS(netinet/in.h sys/socketvar.h)
 dnl Variables used by Makefile.in's:
 AC_SUBST(P4ARCH)dnl
 AC_SUBST(MAKE)dnl

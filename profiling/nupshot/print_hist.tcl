@@ -63,7 +63,7 @@ proc Print_Hist {log w pwin} {
    set y [lindex [$pc bbox $title_id] 3]
 
    CopyCanvas $canvas [list 0 0 [expr $width - 1] [expr $hist_height - 1]] \
-	 $pc [list 1 [expr $y+1]]
+	 $pc [list 1 [expr $y+1]] color_disp_bg
    $pc create rect 0 $y [expr $width + 1] [expr $y + $hist_height + 1] \
 	 -outline $fg -fill ""
 
@@ -113,9 +113,9 @@ proc Print_Hist_Recolor {canvas log bw} {
 
       # $canvas config -bg $color(bw_timelinebg)
 
-      set n [logfile $log nstatedefs]
+      set n [$log nstatedefs]
       for {set i 0} {$i < $n} {incr i} {
-	 set st_bitmap [lindex [logfile $log get_statedef $i] 2]
+	 set st_bitmap [lindex [$log getstatedef $i] 2]
 	 $canvas itemconfig color_$i -stipple $st_bitmap -fill $fg
       }
    } else {
@@ -125,9 +125,9 @@ proc Print_Hist_Recolor {canvas log bw} {
 
       # $canvas config -bg $color(color_timelinebg)
 
-      set n [logfile $log nstatedefs]
+      set n [$log nstatedefs]
       for {set i 0} {$i < $n} {incr i} {
-	 set st_color [lindex [logfile $log get_statedef $i] 1]
+	 set st_color [lindex [$log getstatedef $i] 1]
 	 $canvas itemconfig color_$i -stipple "" -fill $st_color
       }
    }

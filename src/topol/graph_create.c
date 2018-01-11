@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_create.c,v 1.12 1994/12/15 17:36:51 gropp Exp $
+ *  $Id: graph_create.c,v 1.13 1995/03/05 20:21:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -74,6 +74,8 @@ MPI_Comm *comm_graph;
   MPI_Comm_group ( comm_old, &group_old );
   MPI_Group_range_incl ( group_old, 1, range, &group );
   MPI_Comm_create  ( comm_old, group, comm_graph );
+  MPI_Group_free( &group_old );
+  MPI_Group_free( &group );
 
   /* Store topology information in new communicator */
   if ( (*comm_graph) != MPI_COMM_NULL ) {

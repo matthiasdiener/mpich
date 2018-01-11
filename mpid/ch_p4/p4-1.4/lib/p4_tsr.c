@@ -185,6 +185,8 @@ int *req_type, *req_from;
     int rc, len;
     struct p4_msg *tmsg;
 
+    p4_dprintfl( 99, "Starting recv_message for type = %d and sender = %d\n",
+		 *req_type, *req_from );
 #if  defined(CAN_DO_SOCKET_MSGS) && \
     !defined(CAN_DO_SHMEM_MSGS)  && \
     !defined(CAN_DO_CUBE_MSGS)   && \
@@ -587,6 +589,7 @@ struct p4_queued_msg *alloc_quel()
 	p4_dprintfl(50,"reused quel at 0x%x\n",q);
     }
     p4_unlock(&p4_global->avail_quel_lock);
+    p4_dprintfl(99,"Unlocked alloc_quel\n");
     return (q);
 }
 

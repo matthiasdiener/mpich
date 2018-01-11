@@ -1,12 +1,12 @@
 /*
- *  $Id: alltoall.c,v 1.21 1994/12/15 17:27:53 gropp Exp $
+ *  $Id: alltoall.c,v 1.22 1995/02/06 22:23:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: alltoall.c,v 1.21 1994/12/15 17:27:53 gropp Exp $";
+static char vcid[] = "$Id: alltoall.c,v 1.22 1995/02/06 22:23:23 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -85,6 +85,9 @@ MPI_Comm          comm;
 
   /* do the communication -- post *all* sends and receives: */
   for ( i=0; i<size; i++ ) { 
+      /* We'd like to avoid sending and receiving to ourselves; 
+	 however, this is complicated by the presence of different
+	 sendtype and recvtypes. */
       if ( mpi_errno=MPI_Irecv((void *)((char *)recvbuf + i*recvcnt*extent),
                            recvcnt,
                            recvtype,

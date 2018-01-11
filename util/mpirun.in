@@ -25,11 +25,13 @@ set default_device='#DEFAULT_DEVICE#'
 set execer_machine=1
 set cmdLineArgs=''
 set cmdline=''
+set CAC=''
 set use_execer = 0
 set mpirun_verbose = 0
 set nolocal = 0
 set leavePGFile = 0
 set p4pgfile = ''
+set p4ssport = ''
 set just_testing = 0
 set machineFile = ''
 set debugger=""
@@ -38,7 +40,7 @@ set rmcommandfile=""
 set rshcmd=#RSH_COMMAND#
 set mvhome=0
 set mvback=''
-set Machines = "chameleon meiko paragon p4 sp1 ibmspx anlspx ksr sgi_mp ipsc860 inteldelta cray_t3d execer"
+set Machines = "chameleon meiko paragon p4 sp1 ibmspx anlspx ksr sgi_mp ipsc860 inteldelta cray_t3d execer smp symm_ptx"
 set max_time = 15
 #
 # Special, system specific values
@@ -68,7 +70,7 @@ while ("$j" <= "$#argv")
       set nodigits = `echo $np | sed 's/^[0-9]*$//'`
       if (($nodigits != "") || ($np < 1)) then
         echo np: $np is an invalid number of processors.  Exiting.
-        exit
+        exit 1
       endif
       breaksw
     case -mr_machine:
@@ -113,6 +115,13 @@ while ("$j" <= "$#argv")
       set p4pgfile = "$argv[$j]"
       set leavePGFile = 1
       breaksw
+    case -p4ssport:
+      @ j++
+      set p4ssport = "$argv[$j]"
+      if ($p4ssport == "0" && $?MPI_P4SSPORT) then
+	set p4ssport = $MPI_P4SSPORT
+      endif
+      breaksw
     case -mr_v:
     case -v:
       set mpirun_verbose = 1
@@ -152,6 +161,14 @@ while ("$j" <= "$#argv")
 	@ j++
 	set mvback = "$argv[$j]"
 	breaksw
+    case -cac:
+	@ j++
+        set CAC = "$argv[$j]"
+        breaksw
+    case -echo:
+	# this is for debugging
+	set echo
+	breaksw
     case -usage:
     case -help:
     case -?:
@@ -178,11 +195,24 @@ while ("$j" <= "$#argv")
           endif
 	  @ j++
         end
+      else
+	echo "Warning: Command line arguments for program should be given"
+        echo "after the program name.  Assuming that ${argv[$j]} is a"
+        echo "command line argument for the program."
+        if ($use_execer) then
+            set cmdLineArgs = "$cmdLineArgs -arg=${argv[$j]}"
+        else
+            set cmdLineArgs = "$cmdLineArgs ${argv[$j]}"
+        endif	
       endif
       breaksw
   endsw
   @ j++
 end
+
+if ($?MPI_USEP4SSPORT && $?MPI_P4SSPORT) then
+    set p4ssport = $MPI_P4SSPORT
+endif
 
 # We need at least the program name
 
@@ -192,7 +222,7 @@ if ("$progname" == "") then
       echo "Program $fake_progname either does not exist, is not "
       echo "executable, or it an erroneous argument to mpirun."
   endif
-  exit
+  exit 1
 endif
 
 # Try to find the architecture.  Note that many systems do not have 
@@ -256,8 +286,13 @@ if ("$arch" == "") then
     case alpha:
       set arch="alpha"
       breaksw
-    case HP-UX
+    case hpux:
+    case hp9000s735:
+    case HP-UX:
       set arch=HP-UX
+      breaksw
+    case NeXT:
+      set arch=NeXT
       breaksw
     case AIX:
       set arch=rs6000
@@ -274,6 +309,10 @@ if ("$arch" == "") then
       breaksw
     case ksr:
       set arch="ksr"
+      breaksw
+    case i386:
+    case symm_ptx:
+      set arch="symm_ptx"
       breaksw
     case IP19:
     case IP21:
@@ -331,6 +370,7 @@ if ("$machine" == "") then
       breaksw
     case CRAY:
     case HP-UX:
+    case NeXT:
     case alpha:
     case IRIX:
     case freebsd:
@@ -377,6 +417,10 @@ if ("$machine" == "") then
     case ksr:
       set machine="ksr"
       breaksw
+    case symm_ptx:
+    case i386:
+      set machine="symm_ptx"
+      breaksw
     case sgi_mp:
       set machine="sgi_mp"
       breaksw
@@ -416,13 +460,14 @@ else
 endif
 
 # Get value of host
-# Should really check for hostname first....
 if ( $?HOST == 0 ) then
+    set HOST = ""
     if ($arch == "ipsc860") then
 	set HOST = `hostname`
     else
 	set HOSTNAMEPGM = "`which hostname | head -1`"
         if (-e "$HOSTNAMEPGM") set HOST = "`hostname`"
+	
     endif
     # Note that uname -n may not produce a usable hostname.  Any suggestions?
     if ("$HOST" == "") set HOST = "`uname -n`"
@@ -432,6 +477,22 @@ if ($mpirun_verbose) then
   echo "running $progname on $np ${arch} ${machine} processors"
 endif
 
+# Make sure that the application is in the .p4apps file.  Note that 
+# progname is already an absolute path
+if ("$p4ssport" != "") then
+    if (-e ~/.p4apps) then
+        grep $progname ~/.p4apps >& /dev/null
+        if ($status != 0) then 
+	    echo "$progname" >> ~/.p4apps
+            chmod 600 ~/.p4apps
+	endif
+    else
+	echo "$progname" >> ~/.p4apps
+        chmod 600 ~/.p4apps
+    endif
+    set cmdLineArgs = "$cmdLineArgs -p4ssport $p4ssport"
+endif
+#
 if (("$machine" == "execer") || ("$machine" == "p4")) then
   if ($nolocal) then
     #echo don\'t run local instance
@@ -456,21 +517,27 @@ if (("$machine" == "execer") || ("$machine" == "p4")) then
   endif
 
   if (!(-e "$machineFile" && -r "$machineFile")) then
-    echo Cannot read $machineFile.  Exiting.
-    exit 2
+    if ($nolocal != 0 || $np != 1) then
+        echo Cannot read $machineFile.  Exiting.
+        exit 1
+    endif
   endif
 
   if ($nolocal == 0) then
       set machinesfound=(`head -${np} $machineFile`)
   else
+      if ($np > 1) then
       # Remove host from the list of available machines....
       set machinesfound=(`cat $machineFile | grep -v $HOST | head -${np}`)
+      else
+      set machinesfound=""
+      endif
   endif
 
   @ nfound = $#machinesfound + $procFound
   if ($nfound < $np) then
     echo "Only $nfound ${arch}'s available.  Exiting."
-    exit
+    exit 1
   endif
 
   # Get the machine list
@@ -551,9 +618,31 @@ switch ($machine)
         @ np++
     endif
     if ($just_testing) then
-      echo $progname -p4pg "$p4pgfile"
+      echo $progname $cmdLineArgs -p4pg "$p4pgfile"
     else
-      $progname -p4pg "$p4pgfile"
+      $progname $cmdLineArgs -p4pg "$p4pgfile"
+      if ($leavePGFile) then
+        echo "P4 procgroup file is $p4pgfile."
+      else
+        /bin/rm "$p4pgfile"
+      endif
+    endif
+    breaksw
+  case symm_ptx:
+    if ("$p4pgfile" == "") then
+	set p4pgfile = "$PWD_TRIAL/PI$$"
+        @ np--
+        if ($just_testing) then
+            echo "local $np $progname"
+        else
+            echo "local $np $progname" >  "$p4pgfile"
+        endif
+        @ np++
+    endif
+    if ($just_testing) then
+      echo $progname $cmdLineArgs -p4pg "$p4pgfile"
+    else
+      $progname $cmdLineArgs -p4pg "$p4pgfile"
       if ($leavePGFile) then
         echo "P4 procgroup file is $p4pgfile."
       else
@@ -623,13 +712,24 @@ switch ($machine)
     # Create a new file
     if ($mvhome == 1) then
         set localpgm = `basename $progname`
+	# if mvhome set, and the executable does NOT exist, then
+	# remove it when we exit
+	if ( -e /sphome/$LOGNAME/$localpgm ) then
+	    set rmhome = 0
+	else
+	    set rmhome = 1
+	endif 
 	if ($just_testing) then
 	    echo cp $progname /sphome/$LOGNAME/$localpgm
 	else
+	    # If you don't remove the file first, sometimes the 
+	    # WRONG FILE (the OLD ONE) is found by the system.
+	    /bin/rm -f /sphome/$LOGNAME/$localpgm
 	    cp $progname /sphome/$LOGNAME/$localpgm
 	endif
 	set PWD_LOCAL = /sphome/$LOGNAME
     else
+	set rmhome = 0
 	set localpgm = $progname
 	set PWD_LOCAL = $PWD_TRIAL
     endif
@@ -659,15 +759,21 @@ if [ $polling_mode = 0 ] ; then
    export MP_CSS_INTERRUPT
 fi
 /bin/rm -f /sphome/$LOGNAME/job.output
-echo "About to run poe ... " >> /sphome/$LOGNAME/job.output
+if [ $mpirun_verbose = 1 ] ; then
+    echo "About to run poe ... " >> /sphome/$LOGNAME/job.output
+fi
 poe $localpgm $cmdLineArgs >> /sphome/$LOGNAME/job.output 2>&1
-echo "Poe exited ..." >> /sphome/$LOGNAME/job.output
+if [ $mpirun_verbose = 1 ] ; then
+    echo "Poe exited ..." >> /sphome/$LOGNAME/job.output
+fi
 sprelease \$JID
 exit 0
 .
     chmod a+x $PWD_LOCAL/PIrun
     # Determine CAC
-    set CAC = `whatcac | cut -d' ' -f 9 | sed -e s/\"//g -e s/://`
+    if ("$CAC" == "") then
+       set CAC = `whatcac | head -1 | cut -d' ' -f 9 | sed -e s/\"//g -e s/://`
+    endif
     if ($just_testing) then
 	echo "spsubmit <<."
 	echo $CAC
@@ -681,8 +787,11 @@ exit 0
 	echo C
 	echo .
         echo spwait
+	if ($rmhome == 1) then
+	    echo "/bin/rm /sphome/$LOGNAME/$localpgm"
+	endif
 	if ("$mvback" != "") then
-	    echo "(cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL )"
+	    echo "(cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; /bin/rm $mvback )"
         endif
     else
         # Send output to /dev/null in case we're trying to 
@@ -699,13 +808,16 @@ $PWD_LOCAL/PIrun
 C
 .
 	spwait
+	if ($rmhome == 1) then
+	   /bin/rm /sphome/$LOGNAME/$localpgm
+	endif
 	if ("$mvback" != "") then
-	    (cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL )
+	    (cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; /bin/rm $mvback )
         endif
 	if (-e /sphome/$LOGNAME/job.output) then 
 	    cat /sphome/$LOGNAME/job.output
 	else
-	    echo "No output file!  Job did not run!"
+	    echo "No output file!  Job did not run! "
 	endif
     endif
     breaksw
@@ -802,7 +914,7 @@ C
         if (!($just_testing) && \
 	    !(-e "$p4pgfile" && -r "$p4pgfile")) then
             echo Failed to write "$p4pgfile".  Exiting.
-            exit
+            exit 1
         endif
 
         if (!($just_testing) && $mpirun_verbose) then
@@ -847,65 +959,108 @@ run  $cmdLineArgs -p4pg $p4pgfile
       endif
     endif #just testing
     breaksw
+
+  case smp:
+    # ch_shmem device
+    if ($just_testing) then
+      if ("$debugger" != "") then
+          echo $debugger $progname
+      else
+          echo $progname $cmdLineArgs -np $np
+      endif
+    else
+      if ("$debugger" != "") then 
+	  cat > $PWD_TRIAL/PId$$ <<.
+run -np $np $cmdLineArgs
+.
+	  $debugger $progname $commandfile $PWD_TRIAL/PId$$
+      else
+          $progname $cmdLineArgs -np $np
+      endif
+    endif
+    breaksw
+
+  # case smt: thread version of smp code
+
   default:
     echo "This machine ($machine) is not yet supported."
     echo Exiting.
-    exit
+    exit 1
     breaksw
 endsw
 
-exit
+exit 0
 
 PrintHelp:
-echo "mpirun [mpirun_options...] <progname> [options...]"
-echo ""
-echo "  mpirun_options:"
-echo "    -arch <architecture>"
-echo "            specify the architecture (must have matching machines.<arch>"
-echo "            file in ${MPIR_HOME}/util/machines) if using the execer"
-echo "    -h      This help"
-echo "    -machine <machine name>"
-echo "            use startup procedure for <machine name>"
-echo "            Currently supported:"
+cat <<EOF
+mpirun [mpirun_options...] <progname> [options...]
+
+  mpirun_options:
+    -arch <architecture>
+            specify the architecture (must have matching machines.<arch>
+            file in ${MPIR_HOME}/util/machines) if using the execer
+    -h      This help
+    -machine <machine name>
+            use startup procedure for <machine name>
+            Currently supported:
+EOF
 foreach machine ($Machines)
   echo "              $machine"
 end
-echo ""
-echo "    -machinefile <machine-file name>"
-echo "            Take the list of possible machines to run on from the"
-echo "            file <machine-file name>"
-echo "    -np <np>"
-echo "            specify the number of processors to run on"
-echo "    -nolocal"
-echo "            don't run on the local machine (only works for "
-echo "            p4 and ch_p4 jobs)"
-echo "    -e      Use execer to start the program on workstation"
-echo "            clusters"
-echo "    -pg     Use a procgroup file to start the p4 programs, not execer"
-echo "            (default)"
-echo "    -leave_pg"
-echo "            Don't delete the P4 procgroup file after running"
-echo "    -p4pg filename"
-echo "            Use the given p4 procgroup file instead of creating one."
-echo "            Overrides -np and -nolocal, selects -leave_pg."
-echo "    -t      Testing - do not actually run, just print what would be"
-echo "            executed"
-echo "    -v      Verbose - thrown in some comments"
-echo "    -dbx    Start the first process under dbx where possible"
-echo "    -gdb    Start the first process under gdb where possible"
-echo "             (on the Meiko, selecting either of these starts prun"
-echo "             under totalview instead)"
-#echo "    -xdbx   Start the first process under xdbx where possible"
-echo "    -nopoll Do not use a polling-mode communication."
-echo "            Available only on IBM SPx."
-echo "    -mvhome Move the executable to the home directory.  This "
-echo "            is needed when all file systems are not cross-mounted"
-echo "            Currently only used by anlspx"
-echo "    -mvback files"
-echo "            Move the indicated files back to the current directory."
-echo "            Needed only when using -mvhome; has no effect otherwise."
-echo "    -maxtime min"
-echo "            Maximum job run time in minutes.  Currently used only"
-echo "            by anlspx.  Default value is $max_time"
-echo ""
+cat <<EOF
+
+    -machinefile <machine-file name>
+            Take the list of possible machines to run on from the
+            file <machine-file name>
+    -np <np>
+            specify the number of processors to run on
+    -nolocal
+            don't run on the local machine (only works for 
+            p4 and ch_p4 jobs)
+    -e      Use execer to start the program on workstation
+            clusters
+    -pg     Use a procgroup file to start the p4 programs, not execer
+            (default)
+    -leave_pg
+            Don't delete the P4 procgroup file after running
+    -p4pg filename
+            Use the given p4 procgroup file instead of creating one.
+            Overrides -np and -nolocal, selects -leave_pg.
+    -p4ssport num
+            Use the p4 secure server with port number num to start the
+            programs.  If num is 0, use the value of the 
+            environment variable MPI_P4SSPORT.  Using the server can
+            speed up process startup.  If MPI_USEP4SSPORT as well as
+            MPI_P4SSPORT are set, then that has the effect of giving
+            mpirun the -p4ssport 0 parameters.
+    -t      Testing - do not actually run, just print what would be
+            executed
+    -v      Verbose - throw in some comments
+    -dbx    Start the first process under dbx where possible
+    -gdb    Start the first process under gdb where possible
+             (on the Meiko, selecting either -dbx or -gdb starts prun
+             under totalview instead)
+    -nopoll Do not use a polling-mode communication.
+            Available only on IBM SPx.
+    -mvhome Move the executable to the home directory.  This 
+            is needed when all file systems are not cross-mounted
+            Currently only used by anlspx
+    -mvback files
+            Move the indicated files back to the current directory.
+            Needed only when using -mvhome; has no effect otherwise.
+    -maxtime min
+            Maximum job run time in minutes.  Currently used only
+            by anlspx.  Default value is $max_time
+    -cac name
+            CAC for ANL scheduler.  Currently used only by anlspx.
+            If not provided will choose some valid CAC.
+
+On exit, mpirun returns a status of zero unless mpirun detected a problem, in
+which case it returns a non-zero status (currently, all are one, but this 
+may change in the future).
+
+EOF
+
+#    -xdbx   Start the first process under xdbx where possible
+
 exit

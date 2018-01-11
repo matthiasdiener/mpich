@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_coords.c,v 1.12 1994/12/15 17:33:17 gropp Exp $
+ *  $Id: cart_coords.c,v 1.13 1995/02/03 15:04:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -30,6 +30,7 @@ int      *coords;
   int i, *dims, flag;
   int mpi_errno = MPI_SUCCESS;
   MPIR_TOPOLOGY *topo;
+  int nnodes;
 
   /* Check for valid arguments */
   if ( MPIR_TEST_COMM( comm, comm ) ||
@@ -48,10 +49,11 @@ int      *coords;
     return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_COORDS" );
 
   /* Calculate coords */
+  nnodes = topo->cart.nnodes;
   for ( i=0; (i < topo->cart.ndims) && (i < maxdims); i++ ) {
-    topo->cart.nnodes = topo->cart.nnodes / topo->cart.dims[i];
-    coords[i]         = rank / topo->cart.nnodes;
-    rank              = rank % topo->cart.nnodes;
+    nnodes    = nnodes / topo->cart.dims[i];
+    coords[i] = rank / nnodes;
+    rank      = rank % nnodes;
   }
 
   return (mpi_errno);

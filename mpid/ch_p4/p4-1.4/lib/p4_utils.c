@@ -616,14 +616,6 @@ int p4_wait_for_end()
 
 #   endif
 
-#   if defined(SYSV_IPC)
-    remove_sysv_ipc();
-#   endif
-
-#   if defined(SGI)  &&  defined(VENDOR_IPC)
-    unlink(p4_sgi_shared_arena_filename);
-#   endif
-
     if (execer_starting_remotes  &&  execer_mynodenum == 0)
     {
 	strcpy(job_filename,"/tmp/p4_");
@@ -650,6 +642,14 @@ int p4_wait_for_end()
 	p4_shfree(p4_global->shmem_msg_queues[i].m.qs);
     p4_shfree(p4_global->cluster_barrier.m.qs);
     p4_shfree(p4_global);
+
+#   if defined(SYSV_IPC)
+    remove_sysv_ipc();
+#   endif
+
+#   if defined(SGI)  &&  defined(VENDOR_IPC)
+    unlink(p4_sgi_shared_arena_filename);
+#   endif
 
     return (0);
 }
@@ -870,22 +870,27 @@ P4VOID init_usclock()
 double p4_usclock()
 {
     int elapsed_ms, q, r;
+    usc_time_t ustimer_end;
     double rc, roll, beginning, end;
 
     if (usrollover == 0)
 	return( .001*p4_clock() );
 
     elapsed_ms = p4_clock() - clock_start_ms; /* milliseconds */
+    ustimer_end = p4_ustimer();               /* terminal segment */
+
     q  =  elapsed_ms / (int)(usrollover/1000);/* num rollover-sized intervals*/
+    /* q+1 is the maximum number of rollovers that could have occurred */
+
+    if (ustimer_start <= ustimer_end)
+      q = q - 1;
+    /* now q+1 is the number of rollovers that did occur */
+
     beginning = (double)(usrollover - ustimer_start); /* initial segment */
-    end = p4_ustimer();                               /* terminal segment */
+    end = ustimer_end;                               /* terminal segment */
+
     roll = (double)(usrollover * 0.000001);           /* rollover in seconds */
-    if (q == 0)
-        if (ustimer_start < end)
-            rc = (double) ((end - (double)ustimer_start) * 0.000001);
-        else
-            rc = (double) (beginning + end);
-    else
-        rc = (double) (((beginning + end ) * 0.000001) + (q * roll));
+    rc = (double) (((beginning + end ) * 0.000001) + (q * roll));
+
     return(rc);
 }

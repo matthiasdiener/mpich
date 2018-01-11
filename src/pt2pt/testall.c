@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.11 1995/01/03 19:43:42 gropp Exp $
+ *  $Id: testall.c,v 1.14 1995/03/05 22:55:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -27,7 +27,6 @@ int        *flag;
 MPI_Status *array_of_statuses;
 {
     int i, found, mpi_errno;
-    MPI_Status status;
     MPI_Request request;
 
     MPID_Check_device( MPI_COMM_WORLD->ADIctx, 0 );
@@ -38,7 +37,7 @@ MPI_Status *array_of_statuses;
 
 	if ( request != NULL && 
 	     request->chandle.active) {
-	    if (request->chandle.completed != MPIR_YES) {
+	    if (!MPID_Test_request( MPID_Ctx( request ), request)) {
 		/* Try to complete the send or receive */
 		if (request->type == MPIR_SEND) {
 		    if (MPID_Test_send( request->shandle.comm->ADIctx, 
@@ -55,7 +54,7 @@ MPI_Status *array_of_statuses;
 			}
 		    }
 		}
-	    if ( request->chandle.completed == MPIR_YES) {
+	    if ( MPID_Test_request( MPID_Ctx( request ), request) ) {
 		if ( request->type == MPIR_RECV ) {
 		    array_of_statuses[i].MPI_SOURCE = request->rhandle.source;
 		    array_of_statuses[i].MPI_TAG    = request->rhandle.tag;
@@ -63,12 +62,13 @@ MPI_Status *array_of_statuses;
 			request->rhandle.totallen;
 #ifdef MPID_RETURN_PACKED
 		    if (request->rhandle.bufpos) 
-			mpi_errno = MPIR_UnPackMessage( 
+			if (mpi_errno = MPIR_UnPackMessage( 
 					       request->rhandle.bufadd, 
 					       request->rhandle.count, 
 					       request->rhandle.datatype, 
 					       request->rhandle.source,
-					       request );
+					       request )) 
+			    return mpi_errno;
 #endif
 		    }
 		if (!request->chandle.persistent) {
@@ -81,7 +81,7 @@ MPI_Status *array_of_statuses;
 		    }
 		else {
 		    request->chandle.active    = 0;
-		    request->chandle.completed = MPIR_NO;
+		    MPID_Clr_completed( MPID_Ctx( request ), request );
 		    if (request->type == MPIR_RECV) {
 			MPID_Reuse_recv_handle(request->rhandle.comm->ADIctx, 
 					      &request->rhandle.dev_rhandle );

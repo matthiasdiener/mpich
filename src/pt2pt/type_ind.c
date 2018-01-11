@@ -1,12 +1,12 @@
 /*
- *  $Id: type_ind.c,v 1.13 1994/12/30 17:20:19 gropp Exp $
+ *  $Id: type_ind.c,v 1.15 1995/02/22 16:34:59 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_ind.c,v 1.13 1994/12/30 17:20:19 gropp Exp $";
+static char vcid[] = "$Id: type_ind.c,v 1.15 1995/02/22 16:34:59 doss Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,15 +37,25 @@ MPI_Datatype *newtype;
   MPI_Datatype  dteptr;
   MPI_Aint      ub, lb, high, low, tmp;
   int           i, mpi_errno = MPI_SUCCESS;
+  int           total_count;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
-   ( (count    <= 0)                 && (mpi_errno = MPI_ERR_COUNT) ) ||
+   ( (count    <  0)                 && (mpi_errno = MPI_ERR_COUNT) ) ||
    ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
    ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
 					  "Error in MPI_TYPE_INDEXED" );
 	
+  /* Are we making a null datatype? */
+  total_count = 0;
+  for (i=0; i<count; i++)
+      total_count += blocklens[i];
+  if (total_count == 0) {
+      (*newtype) = MPI_DATATYPE_NULL;
+      return (mpi_errno);
+  }
+
   /* Create and fill in the datatype */
   dteptr = (*newtype) = (MPI_Datatype) MPIR_SBalloc( MPIR_dtes );
   if (!dteptr) 

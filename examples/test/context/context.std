@@ -1,7 +1,3 @@
 FORTRAN TESTS
 *** attrtest ***
- Proc=  1 ATTR=  120
- T-Flag, Proc=  1 ATTR=  121
- Proc=  0 ATTR=  120
- T-Flag, Proc=  0 ATTR=  121
- END OF FORTRAN TESTS
+END OF FORTRAN TESTS

@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;MPI_Status _mpi_status;static int _n;
+extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
 
 /*
    Utility programs for mpptest

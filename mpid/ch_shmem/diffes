@@ -1,0 +1,261 @@
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: Makefile
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: Makefile.bak
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: Makefile~
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: addtwo.ask
+diff -r p2ptest/addtwo.ask.c /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest/addtwo.ask.c
+51a52,53
+>     printf("size of msemaphore = %d\n",sizeof(struct msemaphore));
+> 
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: addtwo.ask.c~
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: addtwo.ask.o
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: amem.o
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: amem.s
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: grid.shmem
+diff -r p2ptest/grid.shmem.c /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest/grid.shmem.c
+1a2
+> #include <stdio.h>
+7,10d7
+<     double a[ROWS+2][COLUMNS+2];
+<     double b[ROWS+2][COLUMNS+2];
+<     int st[ROWS+2], pq[ROWS+1];
+<     int pqbeg, pqend, goal, nproc, rows, columns;
+12a10,13
+>     int st[ROWS+2], pq[ROWS+1];
+>     int pqbeg, pqend, goal, nproc, rows, columns;
+>     double a[ROWS+2][COLUMNS+2];
+>     double b[ROWS+2][COLUMNS+2];
+35a37
+>     int maxprocs = 20, maxmem = 8000000;
+39c41,43
+<     p2p_init(20,8000000);
+---
+>     fprintf(stderr,"init: max %d procs, %d bytes of shared memory\n",
+> 	    maxprocs,maxmem);
+>     p2p_init(maxprocs,maxmem);
+40a45,50
+>     if (maxmem < sizeof(struct globmem))
+>     {
+> 	fprintf(stderr,"not enough memory: %d needed, %d available\n",
+> 		sizeof(struct globmem), maxmem);
+> 	exit(-1);
+>     }
+41a52
+>     fprintf(stderr,"global memory is at 0x%x\n",glob);
+42a54
+>     fprintf(stderr,"calling p2p_askfor_init\n");
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: grid.shmem.c~
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: grid.shmem.o
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: mem.c
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: mem.o
+diff -r p2ptest/p2p.c /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest/p2p.c
+2a3
+> #include <stdio.h>
+19a21,30
+> #if defined(MPI_hpux)
+> #include <sys/types.h>
+> #include <sys/stat.h>
+> #include <fcntl.h>
+> 
+> void *xx_shmalloc();
+> void xx_shfree();
+> 
+> #endif
+> 
+43c54,55
+< #if defined(MPI_solaris)  &&  defined(USE_XX_SHMALLOC)
+---
+> /* USE_XX_SHMALLOC is defined in p2p.h for MPI_solaris and MPI_hpux */
+> #if defined(USE_XX_SHMALLOC)
+47c59
+<     
+---
+> #if defined(MPI_solaris)    
+49d60
+< 
+53a65,77
+> #endif
+> 
+> #if defined(MPI_hpux)
+>     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
+> 			PROT_READ|PROT_WRITE|PROT_EXEC,
+> 			MAP_SHARED|MAP_ANONYMOUS|MAP_VARIABLE, 
+> 			-1, (off_t) 0);
+> 
+>     fprintf(stderr,"memsize = %d, address = 0x%x\n",
+> 	    memsize,p2p_start_shared_area);
+> 
+> #endif
+> 
+56c80,82
+< 	p2p_error("OOPS: mmap failed: cannot map shared memory\n",memsize);
+---
+>         perror("mmap failed");
+> 	p2p_error("OOPS: mmap failed: cannot map shared memory, size=",
+> 		  memsize);
+89c115
+< #if defined(MPI_solaris)  &&  defined(USE_XX_SHMALLOC)
+---
+> #if defined(USE_XX_SHMALLOC)
+104c130
+< #if defined(MPI_solaris)  &&  defined(USE_XX_SHMALLOC)
+---
+> #if  defined(USE_XX_SHMALLOC)
+109a136,148
+> 
+> #if defined(MPI_hpux)
+> 
+> void p2p_lock_init(L) 
+> p2p_lock_t L;
+> { 
+>     L = p2p_shmalloc(sizeof(msemaphore));
+>     msem_init(L, MSEM_UNLOCKED);
+> }
+> 
+> #endif
+> 
+> 
+152a192,194
+> 
+> #if defined(MPI_hpux)
+> #endif
+216c258
+< #if defined(MPI_IRIX)
+---
+> #if defined(MPI_IRIX) || defined(MPI_hpux)
+217a260
+> #endif
+218a262
+> #if defined(MPI_IRIX)
+221a266,269
+> #if defined(MPI_hpux)
+>     gettimeofday(&tp,&tzp);
+> #endif
+> 
+244a293,294
+> #if defined(MPI_hpux)
+> #endif
+332a383,385
+> #if defined(MPI_hpux)
+>     int msemsize = sizeof(struct msemaphore);
+> #endif
+336a390,393
+> #if defined(MPI_hpux)
+>     nbytes += msemsize;
+> #endif
+> 
+368a426,429
+> #if defined(MPI_hpux)
+>     while (((int)address % msemsize) != 0)
+> 	address++;
+> #endif
+diff -r p2ptest/p2p.h /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest/p2p.h
+15,21c15,25
+< #if defined(MPI_solaris)
+< #include <sys/mman.h>
+< #include <sys/systeminfo.h>
+< #include <sys/processor.h>
+< #include <sys/procset.h>
+< #include <synch.h>
+< #endif 
+---
+> #if defined(MPI_hpux)
+> #    include <sys/mman.h>
+> #    define USE_XX_SHMALLOC
+> #    define GLOBMEMSIZE  (4*1024*1024)
+>  
+> /*****
+> typedef int p2p_lock_t[4];
+> #define p2p_lock_init(l) { *((int*)l) = 1; }
+> #define p2p_lock(l)      acquire_lock(l)
+> #define p2p_unlock(l)    release_lock(l)
+> *****/
+22a27,32
+> /*****
+>      typedef msemaphore p2p_lock_t;
+> #    define p2p_lock_init(l) msem_init(l, MSEM_UNLOCKED);
+> #    define p2p_lock(l)      msem_lock(l, 0);
+> #    define p2p_unlock(l)    msem_unlock(l,0);
+> *****/
+23a34,41
+> /*****/
+>      typedef msemaphore *p2p_lock_t;
+> #    define p2p_lock(l)      msem_lock((*l), 0);
+> #    define p2p_unlock(l)    msem_unlock((*l),0);
+> /*****/
+> 
+> #endif
+> 
+24a43,47
+> #    include <sys/mman.h>
+> #    include <sys/systeminfo.h>
+> #    include <sys/processor.h>
+> #    include <sys/procset.h>
+> #    include <synch.h>
+75c98
+< #if defined(MPI_IRIX)  ||  defined(RS6000)  ||  defined(HP)
+---
+> #if defined(MPI_IRIX)  ||  defined(MPI_hpux)
+93a117
+> 
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: p2p.o
+diff -r p2ptest/p2p_mon.c /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest/p2p_mon.c
+1a2
+> #include <stdio.h>
+10a12
+>     int rc;
+12a15,20
+>     /*****
+>     fprintf(stderr,"original lock addr is %d\n",&(m->mon_lock));
+>     fprintf(stderr,"ret from p2p_lock_init on mon_lock: %d\n",rc);
+>     if (rc != &(m->mon_lock)  &&  rc <= 0)
+> 	perror("bad ret from p2p_lock_init on mon_lock");
+>     *****/
+25a34
+>             fprintf(stderr,"about to init lock at 0x%x\n",&(q->delay_lock));
+26a36,41
+> 	    /*****
+>             fprintf(stderr,"ret from p2p_lock_init on delay lock: %d\n",rc);
+> 	    if (rc != &(q->delay_lock)  &&  rc <= 0)
+> 		perror("bad ret from p2p_lock_init on delay_lock");
+> 	    *****/
+>             fprintf(stderr,"about to lock lock at 0x%x\n",&(q->delay_lock));
+27a43
+>             fprintf(stderr,"locked lock at 0x%x\n",&(q->delay_lock));
+92a109
+>     int rc;
+95c112,113
+<     return (p2p_moninit(&(gs->m), 1));
+---
+>     rc = p2p_moninit(&(gs->m),1);
+>     return(rc);
+125a144
+>     int rc;
+127c146,148
+<     return (p2p_moninit(&(b->m), 1));
+---
+>     fprintf(stderr,"p2p_barrier_init: calling p2p_moninit\n");
+>     rc = p2p_moninit(&(b->m),1);
+>     return(rc);
+145a167
+>     int rc;
+146a169,170
+>     fprintf(stderr,"entering p2p_askfor_init\n");
+>     fprintf(stderr,"askfor monitor at 0x%x\n",af);
+148a173
+>     fprintf(stderr,"p2p_askfor_init: calling p2p_moninit\n");
+150c175,176
+<     return (p2p_moninit(&(af->m), 1));
+---
+>     rc = p2p_moninit(&(af->m),1);
+>     return(rc);
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: p2p_mon.c~
+diff -r p2ptest/p2p_mon.h /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest/p2p_mon.h
+15d14
+<     int count;
+16a16
+>     int count;
+28a29
+> 
+33a35
+> 
+Only in /home/lusk/mpitest.hp/mpich-exp/mpid/ch_shmem/p2ptest: p2p_mon.o

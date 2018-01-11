@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend_init.c,v 1.17 1995/01/03 19:42:57 gropp Exp $
+ *  $Id: bsend_init.c,v 1.19 1995/03/05 20:15:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -51,10 +51,16 @@ MPI_Request   *request;
     handleptr                       = *request;
     MPIR_SET_COOKIE(&handleptr->shandle,MPIR_REQUEST_COOKIE)
     handleptr->type                 = MPIR_SEND;
-    if (dest == MPI_PROC_NULL)
-	handleptr->shandle.dest     = dest;
-    else
-	handleptr->shandle.dest     = comm->group->lrank_to_grank[dest];
+    if (dest == MPI_PROC_NULL) {
+	handleptr->shandle.dest	  = dest;
+	MPID_Set_completed( comm->ADIctx, handleptr );
+	handleptr->shandle.active = 1;
+	}
+    else {
+	handleptr->shandle.dest	  = comm->group->lrank_to_grank[dest];
+	MPID_Clr_completed( comm->ADIctx, handleptr );
+	handleptr->shandle.active = 0;
+	}
     handleptr->shandle.tag          = tag;
     handleptr->shandle.contextid    = comm->send_context;
     handleptr->shandle.comm         = comm;
@@ -70,15 +76,13 @@ MPI_Request   *request;
 
     handleptr->shandle.bufadd       = bufp;
     handleptr->shandle.count        = count;
-    handleptr->shandle.completed    = MPIR_NO;
     handleptr->shandle.persistent   = 1;
-    handleptr->shandle.active       = 0;
 #ifdef MPID_HAS_HETERO
     handleptr->shandle.msgrep	    = MPIR_MSGREP_SENDER;
 #endif
     MPID_Alloc_send_handle( comm->ADIctx, 
 			    &((handleptr)->shandle.dev_shandle));
-    MPID_Set_send_is_nonblocking( comm->ADIct, 
+    MPID_Set_send_is_nonblocking( comm->ADIctx, 
 				 &((handleptr)->shandle.dev_shandle), 1 );
 
     return MPI_SUCCESS;

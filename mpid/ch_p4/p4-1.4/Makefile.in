@@ -49,7 +49,7 @@ p4inmpi:
 	  do \
 	  echo " " ;\
 	  echo making p4 in directory $$dir ;\
-	  (cd $$dir; make $(MFLAGS) default) ;\
+	  (cd $$dir; $(MAKE) $(MFLAGS) default) ;\
 	  done 
 	(cd lib;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) p4inmpi; cd ..)
 	(cd alog; $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) p4inmpi; cd ..)

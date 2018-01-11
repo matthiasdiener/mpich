@@ -1,5 +1,5 @@
 /*
- *  $Id: dmch.h,v 1.31 1995/01/03 19:41:22 gropp Exp $
+ *  $Id: dmch.h,v 1.32 1995/01/23 22:16:45 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -105,6 +105,15 @@ typedef long ASYNCSendId_t;
 #define MPID_Aint long
 #endif
 
+#if !defined(MPID_RNDV_T_SET)
+/* 
+   This is the datatype of the handle that is exchanged by the rendevous
+   protocol.  Some shared-memory systems might use MPID_Aint (address of
+   data).
+ */
+typedef int MPID_RNDV_T;
+#endif
+
 /* Whether an operation should block or not */
 typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
 
@@ -138,8 +147,10 @@ typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
    Currently, the completion status of a message (both send and receive) is
    determined as follows:
 
-   if dmpi_xxx_handle->completed, then message is completed and the only 
+   if dmpi_xxx_handle->completer = 0, then message is completed and the only 
    remaining "clean up" is to deallocate the ADI handle.
+   (if not zero, it is the index of the routine to call to perform the 
+   completion).
 
    Otherwise, if dev_shandle->sid or dev_rhandle->rid, then there is a 
    non-blocking operation involving that handle that needs to be completed 
@@ -156,6 +167,8 @@ typedef struct {
 				       0 if no non-blocking send used, 
 				       or if non-blocking send has 
 				       completed */
+    MPID_RNDV_T   recv_handle;      /* Holds 'transfer' handle for RNDV 
+				       operations */
     void          *pkt;             /* Some systems will require use of
 				       non-blocking sends; in these systems,
 				       the packets need to be allocated
@@ -176,11 +189,14 @@ typedef struct {
 				       sync_id for messages not received
 				       in rendevous mode (not yet 
 				       implemented) */
+    MPID_RNDV_T   recv_handle;      /* Holds 'transfer' handle for RNDV 
+				       operations */
     char          *temp;            /* Holds body of unexpected message */
     int           mode;             /* mode bits and sequence number; needed
 				       for unexpected messages */
     int           from;             /* Absolute process number that sent
-				       message; used only for SYNC ack */
+				       message; used only for SYNC ack and 
+				       in rendevous messages */
 
         /* The following describes the buffer to be received */
     void          *start;
@@ -223,7 +239,8 @@ typedef struct {
     MPID_CH_Blocking_send(dmpi_send_handle)
 #define MPID_Blocking_send_ready(ctx, dmpi_send_handle) \
     MPID_CH_Blocking_send(dmpi_send_handle)
-#define MPID_Test_send( ctx, dmpi_send_handle ) (dmpi_send_handle)->completed
+#define MPID_Test_send( ctx, dmpi_send_handle ) \
+    ((dmpi_send_handle)->completer == 0)
 
 #define MPID_Post_recv(ctx,dmpi_recv_handle, is_available ) \
     MPID_CH_post_recv(dmpi_recv_handle, is_available ) 
@@ -231,8 +248,18 @@ typedef struct {
     MPID_CH_blocking_recv(dmpi_recv_handle) 
 #define MPID_Complete_recv(ctx,dmpi_recv_handle) \
     MPID_CH_complete_recv(dmpi_recv_handle) 
-#define MPID_Test_recv( ctx, dmpi_recv_handle ) (dmpi_recv_handle)->completed
+#define MPID_Test_recv( ctx, dmpi_recv_handle ) \
+    ((dmpi_recv_handle)->completer == 0)
 
+/* This is a generic test for completion.  Note that it takes a request.
+   It returns true for completed, false if not */
+#define MPID_Ctx( request ) (request)->chandle.comm->ADIctx
+#define MPID_Test_request( ctx, request ) ((request)->chandle.completer == 0)
+#define MPID_Test_handle( request ) ((request)->completer == 0)
+#define MPID_Clr_completed( ctx, request ) \
+    (request)->chandle.completer = 1
+#define MPID_Set_completed( ctx, request ) \
+    (request)->chandle.completer = 0
 #define MPID_Check_device( ctx,blocking ) \
     MPID_CH_check_device( blocking )
 
@@ -277,9 +304,12 @@ typedef struct {
    provide any benefit.  This is still under development.
  */
 #ifdef MPID_USE_ADI_COLLECTIVE
-#define MPID_Comm_init(ctx,comm,newcomm) MPID_CH_Comm_init(comm)
+#define MPID_Comm_init(ctx,comm,newcomm) MPID_CH_Comm_init(comm,newcomm)
 #define MPID_Comm_free(ctx,comm) MPID_CH_Comm_free(comm)
 #define MPID_Barrier(ctx,comm) MPID_CH_Barrier(comm)
+/* See mpich/src/coll/reduceutil.c and reduce.c; defining MPID_Reduce
+   make reduceutil use MPID_Reduce_xxx_xxx */
+#define MPID_Reduce
 #define MPID_Reduce_sum_int(ctx,send,recv,comm) \
       MPID_CH_Reduce_sum_int(send,recv,comm)
 #define MPID_Reduce_sum_double(ctx,send,recv,comm) \
@@ -310,7 +340,49 @@ typedef struct {
 
 extern FILE *MPID_DEBUG_FILE;
 /* End of code included only when building the ADI routines */
+
+/* 
+   These macros control the conversion of packet information to a standard
+   representation.  On homogeneous systems, these do nothing.
+ */
+#ifdef MPID_HAS_HETERO
+#define MPID_PKT_PACK(pkt,size,dest) MPID_CH_Pkt_pack(pkt,size,dest)
+#define MPID_PKT_UNPACK(pkt,size,src) MPID_CH_Pkt_unpack(pkt,size,src)
+#else
+#define MPID_PKT_PACK(pkt,size,dest) 
+#define MPID_PKT_UNPACK(pkt,size,src) 
 #endif
+
+/* 
+   On message-passing systems with very small message buffers, or on 
+   systems where it is advantageous to frequently check the incoming
+   message queue, we use the MPID_DRAIN_INCOMING definition
+ */
+#define MPID_DRAIN_INCOMING \
+    while (MPID_CH_check_incoming( MPID_NOTBLOCKING ) != -1) ;
+#ifdef MPID_TINY_BUFFERS 
+#define MPID_DRAIN_INCOMING_FOR_TINY(is_non_blocking) \
+{if (is_non_blocking) MPID_DRAIN_INCOMING;}
+#else
+#define MPID_DRAIN_INCOMING_FOR_TINY(is_non_blocking)
+#endif
+
+/* Completion codes.  Make them ints so that they are easier to extend and
+   the upper-level MPICH code need not know about them */
+#define MPID_CMPL_SEND_NB   2
+#define MPID_CMPL_SEND_GET  3
+#define MPID_CMPL_SEND_RNDV 4
+#define MPID_CMPL_SEND_SYNC 5
+
+#define MPID_CMPL_RECV_NB   2
+#define MPID_CMPL_RECV_GET  3
+#define MPID_CMPL_RECV_RNDV 4
+/* sync */
+
+#endif /* MPID_DEVICE_CODE */
+
+extern void (*MPID_ErrorHandler)();
+extern void MPID_DefaultErrorHandler();
 
 /* For heterogeneous support --- NOT YET FULLY IMPLEMENTED 
    (fully means that there is some code that is not yet used).
@@ -337,9 +409,6 @@ typedef struct {
     } MPID_INFO;
 extern MPID_INFO *MPID_procinfo;
 extern MPID_H_TYPE MPID_byte_order;
-
-extern void (*MPID_ErrorHandler)();
-extern void MPID_DefaultErrorHandler();
 
 #ifdef MPID_HAS_HETERO
 extern int MPID_IS_HETERO;

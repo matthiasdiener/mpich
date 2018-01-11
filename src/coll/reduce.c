@@ -1,5 +1,5 @@
 /*
- *  $Id: reduce.c,v 1.29 1994/12/15 20:00:09 gropp Exp $
+ *  $Id: reduce.c,v 1.31 1995/03/16 20:14:43 lusk Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: reduce.c,v 1.29 1994/12/15 20:00:09 gropp Exp $";
+static char vcid[] = "$Id: reduce.c,v 1.31 1995/03/16 20:14:43 lusk Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -75,7 +75,7 @@ MPI_Comm          comm;
 #ifdef MPID_Reduce
   /* Eventually, this could apply the MPID_Reduce routine in a loop for
      counts > 1 */
-  if (comm->ADIreduce && count == 1) {
+  if (comm->ADIReduce && count == 1) {
       /* Call a routine to sort through the datatypes and operations ...
 	 This allows us to provide partial support (e.g., only SUM_DOUBLE)
        */
@@ -96,18 +96,28 @@ MPI_Comm          comm;
      node with that bit set and combine (as long as that node is within the
      group)
 
-     Note that by receiveing with source selection, we guarentee that we get
+     Note that by receiving with source selection, we guarentee that we get
      the same bits with the same input.  If we allowed the parent to receive 
      the children in any order, then timing differences could cause different
      results (roundoff error, over/underflows in some cases, etc).
 
      Because of the way these are ordered, if root is 0, then this is correct
      for both commutative and non-commutitive operations.  If root is not
-     0, then for non-communitive, we use a root of zero and then send
+     0, then for non-commutitive, we use a root of zero and then send
      the result to the root.  To see this, note that the ordering is
-     (ab)(cd)(ef)(gh)
-     ((ab)(cd))((ef)(gh))
-     (((ab)(cd))((ef)(gh)))
+     mask = 1: (ab)(cd)(ef)(gh)            (odds send to evens)
+     mask = 2: ((ab)(cd))((ef)(gh))        (3,6 send to 0,4)
+     mask = 4: (((ab)(cd))((ef)(gh)))      (4 sends to 0)
+
+     Comments on buffering.  
+     If the datatype is not contiguous, we still need to pass contiguous 
+     data to the user routine.  
+     In this case, we should make a copy of the data in some format, 
+     and send/operate on that.
+
+     In general, we can't use MPI_PACK, because the alignment of that
+     is rather vague, and the data may not be re-usable.  What we actually
+     need is a "squeeze" operation that removes the skips.
    */
   /* Make a temporary buffer */
   MPI_Type_extent ( datatype, &extent );
@@ -127,13 +137,6 @@ MPI_Comm          comm;
     }
   }
 
-  /* I rename the processes in the following way so that data flows
-     from lower numbered to higher numbered processes.  This is needed 
-     when the operation is not commutative.
-  */
-  rank = size - rank - 1;
-  root = size - root - 1;
-
   memcpy( recvbuf, sendbuf, extent*count );
   mask    = 0x1;
   if (op->commute) lroot   = root;
@@ -143,38 +146,52 @@ MPI_Comm          comm;
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
 
-  while ((mask & relrank) == 0 && mask < size) {
+  while (/*(mask & relrank) == 0 && */mask < size) {
 	/* Receive */
-	source = (relrank | mask);
-	if (source < size) {
-	  source = (source + lroot) % size;
-	  mpi_errno = MPI_Recv (buffer, count, datatype, size-source-1, 
-				MPIR_REDUCE_TAG, comm, &status);
-	  if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
-					   "Error receiving in MPI_REDUCE" );
-	  (*uop)(buffer, recvbuf, &count, &datatype);
-	}
+	if ((mask & relrank) == 0) {
+	    source = (relrank | mask);
+	    if (source < size) {
+		source = (source + lroot) % size;
+		mpi_errno = MPI_Recv (buffer, count, datatype, source, 
+				      MPIR_REDUCE_TAG, comm, &status);
+		if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
+					    "Error receiving in MPI_REDUCE" );
+		/* The sender is above us, so the received buffer must be
+		   the second argument (in the noncommutitive case). */
+		if (op->commute)
+		    (*uop)(buffer, recvbuf, &count, &datatype);
+		else {
+		    (*uop)(recvbuf, buffer, &count, &datatype);
+		    /* short term hack to keep recvbuf up-to-date */
+		    memcpy( recvbuf, buffer, extent*count );
+		    }
+		}
+	    }
+	else {
+	    /* I've received all that I'm going to.  Send my result to 
+	       my parent */
+	    source = ((relrank & (~ mask)) + lroot) % size;
+	    mpi_errno  = MPI_Send( recvbuf, count, datatype, 
+				  source, 
+				  MPIR_REDUCE_TAG, 
+				  comm );
+	    if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
+					     "Error sending in MPI_REDUCE" );
+	    break;
+	    }
 	mask <<= 1;
-  }
-  if (mask < size) {
-	source = ((relrank & (~ mask)) + lroot) % size;
-	mpi_errno  = MPI_Send( recvbuf, count, datatype, size-source-1, 
-			       MPIR_REDUCE_TAG, 
-					  comm );
-	if (mpi_errno) return MPIR_ERROR( comm, mpi_errno, 
-					 "Error sending in MPI_REDUCE" );
-  }
+	}
   FREE( buffer );
   if (!op->commute && root != 0) {
-	if (rank == 0) {
-	  mpi_errno  = MPI_Send( recvbuf, count, datatype, size-root-1, 
-						MPIR_REDUCE_TAG, comm );
-	}
-	else if (rank == root) {
-	  mpi_errno = MPI_Recv ( recvbuf, count, datatype, size-1, 
-				 MPIR_REDUCE_TAG, comm, &status);
-	}
-  }
+      if (rank == 0) {
+	  mpi_errno  = MPI_Send( recvbuf, count, datatype, root, 
+				MPIR_REDUCE_TAG, comm );
+	  }
+      else if (rank == root) {
+	  mpi_errno = MPI_Recv ( recvbuf, count, datatype, 0, /*size-1, */
+				MPIR_REDUCE_TAG, comm, &status);
+	  }
+      }
 
   /* Free the temporarily allocated recvbuf */
   if (rank != root)

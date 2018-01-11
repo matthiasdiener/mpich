@@ -19,11 +19,12 @@
 static int src = 1;
 static int dest = 0;
 
-#if defined(__STDC__) && !defined(MPI_rs6000) && !defined(MPI_IRIX)
-#define ntypes 12
+#define MAX_TYPES 12
+#if defined(__STDC__)
+static int ntypes = 12;
 static MPI_Datatype BasicTypes[12];
 #else
-#define ntypes 11
+static int ntypes = 11;
 static MPI_Datatype BasicTypes[11];
 #endif
 
@@ -59,8 +60,8 @@ int bufferlen;
 	    bufferspace[i] = malloc(bufferlen * sizeof(float));
 	else if (buffertypes[i] == MPI_DOUBLE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(double));
-#if defined(__STDC__) && !defined(MPI_rs6000) && !defined(MPI_IRIX)
-	else if (buffertypes[i] && buffertypes[i] == MPI_LONG_DOUBLE)
+#if defined(__STDC__)
+	else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE)
 	    bufferspace[i] = malloc(bufferlen * sizeof(long double));
 #endif
 	else if (buffertypes[i] == MPI_BYTE)
@@ -108,8 +109,8 @@ int bufferlen;
 		((float *)bufferspace[i])[j] = (float)j;
 	    else if (buffertypes[i] == MPI_DOUBLE)
 		((double *)bufferspace[i])[j] = (double)j;
-#if defined(__STDC__) && !defined(MPI_rs6000) && !defined(MPI_IRIX)
-	    else if (buffertypes[i] && buffertypes[i] == MPI_LONG_DOUBLE)
+#if defined(__STDC__)
+	    else if (MPI_LONG_DOUBLE && buffertypes[i] == MPI_LONG_DOUBLE)
 		((long double *)bufferspace[i])[j] = (long double)j;
 #endif
 	    else if (buffertypes[i] == MPI_BYTE)
@@ -156,8 +157,8 @@ int bufferlen;
 	} else if (buffertype == MPI_DOUBLE) {
 	    if (((double *)bufferspace)[j] != (double)j)
 		return 1;
-#if defined(__STDC__) && !defined(MPI_rs6000) && !defined(MPI_IRIX)
-	} else if (buffertype && buffertype == MPI_LONG_DOUBLE) {
+#if defined(__STDC__)
+	} else if (MPI_LONG_DOUBLE && buffertype == MPI_LONG_DOUBLE) {
 	    if (((long double *)bufferspace)[j] != (long double)j)
 		return 1;
 #endif
@@ -181,9 +182,15 @@ void SetupBasicTypes()
     BasicTypes[7] = MPI_UNSIGNED_LONG;
     BasicTypes[8] = MPI_FLOAT;
     BasicTypes[9] = MPI_DOUBLE;
-#if defined (__STDC__) && !defined(MPI_rs6000) && !defined(MPI_IRIX)
-    BasicTypes[10] = MPI_LONG_DOUBLE;
-    BasicTypes[11] = MPI_BYTE;
+#if defined (__STDC__)
+    if (MPI_LONG_DOUBLE) {
+	BasicTypes[10] = MPI_LONG_DOUBLE;
+	BasicTypes[11] = MPI_BYTE;
+	}
+    else {
+	ntypes = 11;
+	BasicTypes[10] = MPI_BYTE;
+	}
 #else
     BasicTypes[10] = MPI_BYTE;
 #endif
@@ -194,7 +201,7 @@ void SetupBasicTypes()
 void 
 SenderTest1()
 {
-    void *bufferspace[ntypes];
+    void *bufferspace[MAX_TYPES];
     int Curr_Type, i, j;
     int act_send;
     MPI_Request *requests = 
@@ -224,7 +231,7 @@ SenderTest1()
 void
 ReceiverTest1()
 {
-    void *bufferspace[ntypes];
+    void *bufferspace[MAX_TYPES];
     int Curr_Type, i, j;
     char message[81];
     MPI_Status Stat;
@@ -455,6 +462,7 @@ char **argv;
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
 	exit(-1);
     }
+    Test_Waitforall( );
     MPI_Finalize();
     if (myrank == dest) {
 	int rval;

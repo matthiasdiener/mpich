@@ -11,7 +11,7 @@
 #define DEBUG 0
 
 
-#if defined(sparc) && defined(__STDC__)
+#ifdef GCC_WALL
 int sscanf( char *, const char *, ... );
 #endif
 
@@ -84,6 +84,11 @@ va_dcl
       str = va_arg( args, char** );
       *str = argv[argNum];
       break;
+
+    default:
+      Tcl_AppendResult( interp, "Unrecognized format specifier in call ",
+		        "to ConvertArgs.", (char*)0 );
+      return TCL_ERROR;
     }
     argNum++;
     readPt++;
@@ -91,13 +96,22 @@ va_dcl
 
     /* if there were more arguments left to convert, complain */
   if (*readPt) {
-fprintf( stderr, "Not enough arguments for procedure.  Syntax: %s.\n",
-	 command );
     Tcl_AppendResult( interp, "Not enough arguments for procedure.  ",
 		      "Syntax: ", command, (char*)0 );
     va_end( args );
     return TCL_ERROR;
   }
+
+#if 0
+    /* if there are extra arguments, complain */
+  if (argNum != argc) {
+    Tcl_AppendResult( interp, "Too many arguments for procedure.  ",
+		      "Syntax: ", command, (char*)0 );
+    va_end( args );
+    return TCL_ERROR;
+  }
+#endif
+    /* no don't complain, they might be flags like -font xxx or whatever */
 
   va_end( args );
   return TCL_OK;

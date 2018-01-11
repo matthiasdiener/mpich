@@ -43,67 +43,6 @@ proc LookBored {win} {
    }
 }
 
-proc GetDefault {index default} {
-   global defaults defaultFile
-
-   if ![info exists defaults($index)] {
-      if [file readable $defaultFile] {
-	 set fileHandle [open $defaultFile r]
-	 while {[gets $fileHandle str]>=0} {
-	    scan $str "%s %\[^\n\]" readIndex readValue
-	    set defaults($readIndex) $readValue
-	 }
-	 close $fileHandle
-      } else {
-	 # puts "Cannot read $defaultFile"
-	 return $default
-      }	
-      if [info exists defaults($index)] {
-	 return $defaults($index)
-      } else {
-	 return $default
-      }
-   } else {
-      return $defaults($index)
-   }
-}
-
-
-
-proc UpdateDefaults {{newValueList {}}} {
-      # use this function to update the list of defaults and write them
-      # out to the file
-
-   global defaults defaultFile
-
-   set numValues [expr [llength $newValueList]/2]
-   for {set i 0} {$i<$numValues} {incr i} {
-      set defaults([lindex $newValueList [expr $i*2]]) \
-	    [lindex $newValueList [expr $i*2+1]]
-   }
-
-      # if we have read rights to the file, read it
-   if [file readable $defaultFile] {
-      set fileHandle [open $defaultFile r]
-      while {[gets $fileHandle str]>=0} {
-	 scan $str "%s %s" readIndex readValue
-	 if ![info exists defaults($readIndex)] {
-	    set defaults($readIndex) $readValue
-	 }
-      }
-      close $fileHandle
-   }
-
-   if {[file exists $defaultFile] ? [file writable $defaultFile] : \
-	 [file writable [file dirname $defaultFile]]} {
-      set fileHandle [open $defaultFile w]
-      foreach idx [array names defaults] {
-	 puts $fileHandle "$idx $defaults($idx)"
-      }
-      close $fileHandle
-   }
-}
-
 
 
 proc GetUniqueWindowID {} {
@@ -198,54 +137,6 @@ proc maximum {nums} {
 }
 
 
-proc ArgOpt {arg_list_var opt dest_var} {
-   set grab_next 0
-   set found 0
-
-   upvar $arg_list_var arg_list
-   upvar $dest_var dest
-
-   foreach arg $arg_list {
-      if {$grab_next} {
-	 set dest $arg
-	 set grab_next 0
-	 set found 1
-      } elseif {"$arg" == "$opt"} {
-	 set grab_next 1
-      }
-   }
-
-   return $found
-}
-
-proc ArgPresent {arg_list_var opt} {
-   upvar $arg_list_var arg_list
-
-   foreach arg $arg_list {
-      if {"$arg" == "$opt"} {
-	 return 1
-      }
-   }
-
-   return 0;
-}
-
-
-proc ArgBool {arg_list_var opt dest_var} {
-   upvar $arg_list_var arg_list
-   upvar $dest_var dest
-
-   if [ArgOpt arg_list $opt temp] {
-      if {$temp} {
-	 set dest 1
-      } else {
-	 set dest 0
-      }
-   } else {
-      return 0
-   }
-}
-
 
 proc U {lista listb} {
    if {[llength $lista]<[llength $listb]} {
@@ -293,12 +184,36 @@ proc N {lista listb} {
 }
 
 
+proc in_window {win x y} {
+   set rootx [winfo rootx $win]
+   set rooty [winfo rooty $win]
+   if [expr $x >= $rootx && $x < $rootx + [winfo width $win] && \
+	 $y >= $rooty && $y < $rooty + [winfo height $win]] {
+      return 1
+   } else {
+      return 0
+   }
+}
+
+
 proc swap {av bv} {
    upvar $av a
    upvar $bv b
    set c $a
    set a $b
    set b $c
+}
+
+
+
+proc is_int {x} {
+   if [catch "expr int($x)" result] {
+      return 0;
+   } elseif [expr $x == int($x)] {
+      return 1;
+   } else {
+      return 0;
+   }
 }
 
 

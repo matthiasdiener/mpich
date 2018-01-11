@@ -4,15 +4,12 @@
 
 ##### User configurable options #####
 
-ARCH        = @ARCH@
-BOPT        = @BOPT@
-MPIR_HOME   = @MPIR_HOME@
+SRC_DIR     = `pwd`
 CC          = @CC@
-CLINKER     = @CLINKER@
-INCLUDE_DIR = @INCLUDE_PATH@ $(TCLTK_INC)
-OPTFLAGS    = @OPTFLAGS@
-LIB_PATH    = $(TCLTK_LIB) @X_LIB@
-LIB_LIST    = -ltk -ltcl -lX11 -lm
+CLINKER     = $(CC)
+X_INC	    = @XINCLUDES@
+INCLUDE_DIR = $(X_INC) $(TCLTK_INC)
+LIBS        = $(TCLTK_LIB) -ltk -ltcl @XLIBSW@ @LIBS@ -lm
 
 # It is easier if the tcl and tcl stuff is in the same directory,
 # but if your installation has them in separate directories, so be it.
@@ -22,6 +19,7 @@ LIB_LIST    = -ltk -ltcl -lX11 -lm
 
 TCL_DIR     = @TCL_DIR@
 TK_DIR      = @TK_DIR@
+AC_FLAGS    = @DEFS@
 
 TCL_LIB     = -L$(TCL_DIR)/lib
 TK_LIB      = -L$(TK_DIR)/lib
@@ -37,37 +35,45 @@ SHELL = /bin/sh
 
 EXECS = nupshot
 
-CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH) \
-	 "-DNUPSHOT_SOURCE=\"$(MPIR_HOME)/profiling/nupshot\""
+CFLAGS = $(OPTFLAGS) $(INCLUDE_DIR) $(AC_FLAGS)\
+	 "-DNUPSHOT_SOURCE=\"$(SRC_DIR)\""
 
-COBJECTS = timelines.o msgs.o states.o events.o \
-	   alog.o log.o log_widget.o time_lbl.o hist.o cvt_args.o \
-	   tclptr.o tkAppInit.o log_common.o vis.o str_dup.o bitmaps.o \
-	   colors.o proc_varargs.o stats.o nupshot.o
+COBJECTS = timelines.o mtn.o msgs.o states.o events.o \
+	   alog.o picl.o log.o time_lbl.o hist.o cvt_args.o \
+	   tclptr.o tkAppInit.o vis.o str_dup.o bitmaps.o \
+	   colors.o proc_varargs.o stats.o nupshot.o \
+	   tkColor.o tkCanvas.o tkCanvLine.o tkRectOval.o tkBitmap.o
 
-CSOURCES = timelines.c msgs.c states.c events.c alog.c log.c log_widget.c \
-	   time_lbl.c hist.c cvt_args.c tclptr.c tkAppInit.c log_common.c \
+CSOURCES = timelines.c mtn.c msgs.c states.c events.c alog.c picl.c log.c \
+	   time_lbl.c hist.c cvt_args.c tclptr.c tkAppInit.c \
 	   vis.c str_dup.c bitmaps.c colors.c proc_varargs.c stats.c \
-	   nupshot.c
+	   nupshot.c tkColor.c tkCanvas.c tkCanvLine.c tkRectOval.c tkBitmap.c
 
-CHEADERS = timelines.h msgs.h states.h events.h alog.h log.h log_widget.h \
-	   time_lbl.h hist.h cvt_args.h tclptr.h log_common.h \
+CHEADERS = timelines.h mtn.h msgs.h states.h events.h alog.h picl.h log.h \
+	   time_lbl.h hist.h cvt_args.h tclptr.h \
 	   vis.h str_dup.h bitmaps.h colors.h proc_varargs.h stats.h \
-	   expandingList.h tcl_callargv.h
+	   expandingList.h tcl_callargv.h tkCanvas.h tkConfig.h tkInt.h \
+	   default.h feather.h heapsort.h alog_int.h
 
 TCL_SOURCES = nupshot.tcl common.tcl entries.tcl fileselect.tcl zoom.tcl \
 	      mainwin.tcl timelines.tcl legend.tcl procnums.tcl hist.tcl \
 	      print.tcl print_mainwin.tcl print_hist.tcl copy_canvas.tcl \
-	      trim_canvas.tcl
+	      trim_canvas.tcl color.tcl args.tcl defaults.tcl mtn.tcl \
+	      displays.tcl
 
 nupshot: $(COBJECTS)
-	$(CLINKER) -o nupshot $(COBJECTS) \
-	$(LIB_PATH) $(LIB_LIST)
+	$(CLINKER) -o nupshot $(COBJECTS) $(LIBS)
 
 EXPORT_DIR = /home/MPI/mpich/profiling/nupshot
+#EXPORT_DIR = /home/karrels/upshot/install
 
 export:
-	cp Makefile.in $(CSOURCES) $(CHEADERS) $(TCL_SOURCES) $(EXPORT_DIR)
+	-mkdir $(EXPORT_DIR)/compat
+	-mkdir $(EXPORT_DIR)/bitmaps
+	cp configure configure.in Makefile.in \
+	   $(CSOURCES) $(CHEADERS) $(TCL_SOURCES) $(EXPORT_DIR)
+	cp compat/* $(EXPORT_DIR)/compat
+	cp bitmaps/* $(EXPORT_DIR)/bitmaps
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

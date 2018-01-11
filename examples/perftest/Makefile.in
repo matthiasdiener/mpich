@@ -37,7 +37,7 @@ MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBS = $(LIB_PATH) $(LIB_LIST) -lm
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = mpptest goptest vectest
+EXECS = mpptest goptest vectest stress 
 
 default: $(EXECS)
 
@@ -49,6 +49,10 @@ mpptest: mpptest.o $(OBJS) $(MPILIB) $(MPELIB)
 
 goptest: goptest.o $(OBJS) $(MPILIB) $(MPELIB)
 	$(CLINKER) $(OPTFLAGS) -o goptest goptest.o $(OBJS) $(MPELIB) $(LIBS)
+
+stress: stress.o daytime.o $(OBJS) $(MPILIB) $(MPELIB)
+	$(CLINKER) $(OPTFLAGS) -o stress stress.o daytime.o \
+	$(OBJS) $(MPELIB) $(LIBS)
 
 tunepkt: tunepkt.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o tunepkt tunepkt.o $(LIBS)

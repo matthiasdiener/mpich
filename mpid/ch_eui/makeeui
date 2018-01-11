@@ -17,10 +17,12 @@ mv chsend.c  euisend.c
 mv chinit.c  euiinit.c
 mv chprobe.c euiprobe.c
 mv chsync.c  euisync.c
+mv chrndv.c  euirndv.c
+mv chcoll.c  euicoll.c
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -euih euiinit.c
 for file in euievent.c euirecv.c euisend.c euiprobe.c euisync.c dmeui.h \
-	packets.h channel.h ; do
+	euirndv.c euicoll.c packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -euih $file
 done
 #

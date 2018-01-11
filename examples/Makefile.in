@@ -23,6 +23,7 @@ INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include
 DEVICE      = @DEVICE@
 
 ### End User configurable options ###
+SHELL = /bin/sh
 
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPE_GRAPH)
 CCFLAGS = $(CFLAGS)
@@ -44,7 +45,7 @@ subdirs:
 		do \
 			echo " " ;\
 			echo Making in directory $$dir ;\
-			(cd $$dir; make) ;\
+			(cd $$dir; $(MAKE)) ;\
 		done
 
 testing:
@@ -52,7 +53,7 @@ testing:
 		do \
 			echo " " ;\
 			echo Making tests in directory $$dir ;\
-			(cd $$dir; make testing) ;\
+			(cd $$dir; $(MAKE) testing) ;\
 		done
 
 linktest:
@@ -60,7 +61,7 @@ linktest:
 		do \
 			echo " " ;\
 			echo Making linktest in directory $$dir ;\
-			(cd $$dir; make linktest) ;\
+			(cd $$dir; $(MAKE) linktest) ;\
 		done
 
 all: subdirs testing
@@ -70,5 +71,5 @@ clean:
 		do \
 			echo " " ;\
 			echo Making clean in directory $$dir ;\
-			(cd $$dir; make clean) ;\
+			(cd $$dir; $(MAKE) clean) ;\
 		done

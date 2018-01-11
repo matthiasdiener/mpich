@@ -11,7 +11,7 @@ proc Procnums_Create {win log} {
    canvas $canvas -height 1 -scrollincrement 1
    pack $canvas -fill both -expand 1
 
-   set np [logfile $log np]
+   set np [$log np]
 
    # set textSize [GetTextSize $canvas]
    # set textWidth [lindex $textSize 0]
@@ -77,7 +77,7 @@ proc Procnums_Set {win log total_units window_units \
 	    $procnums($win,wu) != $window_units} {
 
 	 set margin 5
-	 set np [logfile $log np]
+	 set np [$log np]
 	 set totalheight [expr $procnums($win,height) * 1.0 * \
 	       ($total_units - 1) / \
 	       ($window_units + 1)]
@@ -94,9 +94,9 @@ proc Procnums_Set {win log total_units window_units \
       }
    } else {
 
-      set font [option get $canvas font Font]
+      # set font [option get $canvas font Font]
       set margin 5
-      set np [logfile $log np]
+      set np [$log np]
       set totalheight [expr $procnums($win,height) * 1.0 * \
 	    ($total_units - 1) / \
 	    ($window_units + 1)]
@@ -107,7 +107,8 @@ proc Procnums_Set {win log total_units window_units \
 	 set y [expr $i * $spacing + $offset]
 	 set procnums($win,id,$i) [$canvas create text \
 	       [expr $procnums($win,width) - $margin] $y -text $i -anchor e \
-	       -fill $color(fg) -font $font -tags color_fg]
+	       -fill $color(fg) -tags color_fg]
+	    #  -font $font
       }
       set procnums($win,created) 1
    }
@@ -123,7 +124,7 @@ proc Procnums_Resize {win log height} {
    global procnums
 
    set canvas $win.c
-   set spacing [expr 1.0 * $height / [logfile $log np]]
+   set spacing [expr 1.0 * $height / [$log np]]
    set offset [expr $spacing / 2.0]
 
    # puts "Procnums_Resize called with height $height"
@@ -151,5 +152,5 @@ proc Procnums_Copy {win dest_canvas x y} {
    set bottom [expr $top + $height]
 
    CopyCanvas $canvas [list $left $top $right $bottom] $dest_canvas \
-	 [list $x $y]
+	 [list $x $y] color_bg
 }

@@ -24,10 +24,12 @@ ALL: default
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPID_DEVICE_CODE @DEVCFLAGS@
-SOURCE   = euievent.c euirecv.c euisend.c euiinit.c euiprobe.c euisync.c
+SOURCE   = euievent.c euirecv.c euisend.c euiinit.c euiprobe.c euisync.c \
+	   euirndv.c euicoll.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = euievent.o euirecv.o euisend.o euiinit.o euiprobe.o euisync.o
+MPI_OBJECTS = euievent.o euirecv.o euisend.o euiinit.o euiprobe.o euisync.o \
+	      euirndv.o euicoll.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

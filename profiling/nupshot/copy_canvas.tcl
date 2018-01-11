@@ -14,17 +14,22 @@ proc CopyCanvasAdj {coords_var xoffset yoffset} {
    set coords $new_coords
 }
 
-proc CopyCanvas {from_c bbox to_c coord} {
+
+
+proc CopyCanvas {from_c bbox to_c coord bgtag} {
    set xoffset [expr [lindex $coord 0] - [lindex $bbox 0]]
    set yoffset [expr [lindex $coord 1] - [lindex $bbox 1]]
 
    set bg [lindex [$from_c config -bg] 4]
    set bg_coords $bbox
    CopyCanvasAdj bg_coords $xoffset $yoffset
-   # eval $to_c create rect $bg_coords -fill $bg -outline $bg
+   eval $to_c create rect $bg_coords -fill $bg -outline {""} \
+	 -tags {$bgtag}
 
       # get the ids of all the objects to be copied
    eval set ids "\[$from_c find overlap $bbox]"
+
+      # copy each item
    foreach item $ids {
          # get the item type, like "rect" or "oval"
       set type [$from_c type $item]
@@ -122,7 +127,7 @@ proc CopyCanvasWindow {from_c item to_c coords tagList options} {
       set bottom [expr $top + $height]
       if {$class == "Button"} {
 	 set name [lindex [$window config -text] 4]
-	 set font [lindex [$window config -font] 4]
+	 # set font [lindex [$window config -font] 4]
 	 set fg [lindex [$window config -fg] 4]
 	 set bg [lindex [$window config -bg] 4]
 	 CopyCanvasAnchorAdj $from_c $item left top right bottom
@@ -131,7 +136,9 @@ proc CopyCanvasWindow {from_c item to_c coords tagList options} {
 	 # $to_c create rect $left $top $right $bottom -fill $bg \
 	       -outline $fg
 	 eval $to_c create text $x $y -text {$name} \
-	       -font {$font} -fill {$fg} $tagList
+	       -fill {$fg} $tagList
+	    # -font {$font} 
+
 	 return
       }
    } else {

@@ -55,7 +55,7 @@ MPI_TSOURCES = mperror.c \
                cancel.c probe.c \
 	       getcount.c \
 	       bufattach.c \
-	       type_commit.c type_count.c \
+	       type_count.c \
 	       type_extent.c type_free.c \
 	       type_lb.c type_size.c \
 	       type_ub.c type_util.c \

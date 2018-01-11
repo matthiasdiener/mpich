@@ -1,24 +1,61 @@
 #!/bin/sh
 # This version puts the output from each program into a separate file.
-#args=-pg
+# -mvhome is needed for the ANL SP, and is ignored by others
+args="-pg -mvhome"
+#
+# If the programs are not available, run make.
+if [ ! -x coll1 ] ; then
+    make 
+fi
+#
+runtests=1
+for arg in "$@" ; do
+    case $arg in 
+	-checkonly )
+	runtests=0
+	;;
+        -margs=*)
+	margs=`echo $arg | sed 's/-margs=//'`
+	args="$args $margs"
+	;;
+	-help|-u)
+	echo "runtests [-checkonly] [-margs='...']"
+	echo "run tests in this directory.  If -checkonly set, just run"
+	echo "the differences check (do NO rerun the test programs)."
+	echo "If -margs is used, these options are passed to mpirun."
+	exit 1
+	;;
+	*)
+	if test -n "$arg" ; then
+   	    echo "runtests: Unknown argument ($arg)"
+	    exit 1
+        fi
+	;;
+    esac
+done
 
 testfiles=""
+if [ $runtests = 1 ] ; then
 echo '**** Testing MPI Collective routines ****'
 
 testfiles="$testfiles barrier.out"
-/bin/rm -f barrier.out
+/bin/rm -f barrier.out barrier-0.out
 echo '*** Barrier Test ***' >> barrier.out
 echo '**** Barrier Test ****'
-mpirun $args -np 4 barrier $* >> barrier.out
+mpirun $args -np 4 -mvback "barrier-0.out" barrier $* >> barrier.out
 cat barrier-0.out >> barrier.out
+/bin/rm -f barrier-[01234].out
 echo '*** Barrier Test ***' >> barrier.out
 
 testfiles="$testfiles bcast.out"
-/bin/rm -f bcast.out
+/bin/rm -f bcast.out bcast-[0-3].out
 echo '**** Broadcast Test ****'
 echo '*** Broadcast Test ***' >> bcast.out
-mpirun $args -np 4 bcast $* >> bcast.out
+mpirun $args -np 4 \
+   -mvback "bcast-0.out bcast-1.out bcast-2.out bcast-3.out" \
+	bcast $* >> bcast.out
 cat bcast-[0123].out >> bcast.out
+/bin/rm -f bcast-[0123].out
 echo '*** Broadcast Test ***' >> bcast.out
 
 testfiles="$testfiles coll1.out"
@@ -88,30 +125,37 @@ testfiles="$testfiles coll10.out"
 /bin/rm -f coll10.out
 echo '**** coll10 ****'
 echo '*** coll10 ***' >> coll10.out
-mpirun coll10 -np 4 $args $* >> coll10.out
+mpirun -np 4 $args coll10 $* >> coll10.out
 echo '*** coll10 ***' >> coll10.out
 
 testfiles="$testfiles coll11.out"
 /bin/rm -f coll11.out
 echo '**** coll11 ****'
 echo '*** coll11 ***' >> coll11.out
-mpirun coll11 -np 4 $args $* >> coll11.out
+mpirun -np 4 $args coll11 $* >> coll11.out
 echo '*** coll11 ***' >> coll11.out
 
 testfiles="$testfiles coll12.out"
 /bin/rm -f coll12.out
 echo '**** coll12 ****'
 echo '*** coll12 ***' >> coll12.out
-mpirun $args -np 4 coll12 $args $* >> coll12.out
+mpirun -np 4 $args coll12 $* >> coll12.out
 echo '*** coll12 ***' >> coll12.out
 
 testfiles="$testfiles grouptest.out"
-/bin/rm -f grouttest.out
+/bin/rm -f grouptest.out
 echo '*** Grouptest ***'
 echo '*** grouptest ***' >> grouptest.out
 mpirun $args -np 4 grouptest  $* >> grouptest.out
 echo '*** grouptest ***' >> grouptest.out
-
+else
+    # Just run checks
+    testfiles=*.out
+    if test "$testfiles" = "\*.out" ; then
+	echo "No output files remain from previous test!"
+	exit 1
+    fi
+fi
 
 echo '*** Differences from expected output ***'
 /bin/rm -f coll.diff
@@ -121,7 +165,7 @@ for file in $testfiles ; do
         if diff -b $file `basename $file .out`.std > /dev/null ; then
 	    true
   	else
-	    echo "Diffenences in `basename $file .out`" >> coll.diff
+	    echo "Differences in `basename $file .out`" >> coll.diff
 	    diff -b $file `basename $file .out`.std >> coll.diff
 	fi
     else

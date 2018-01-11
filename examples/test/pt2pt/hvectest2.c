@@ -28,13 +28,15 @@ char **argv;
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
     MPI_Comm_size( MPI_COMM_WORLD, &size );
 
+    /* dest writes out the received stats; for the output to be
+       consistant (with the final check), it should be procees 0 */
     if (argc > 1 && argv[1] && strcmp( "-alt", argv[1] ) == 0) {
-	src  = size - 1;
-	dest = 0;
-	}
-    else {
 	dest = size - 1;
 	src  = 0;
+	}
+    else {
+	src  = size - 1;
+	dest = 0;
 	}
 
     blens[0]  = 1;
@@ -311,6 +313,7 @@ char **argv;
 	printf( "Found %d errors in the run \n", errcnt );
 	}
     MPI_Type_free( &rowtype );
+    Test_Waitforall( );
     MPI_Finalize();
 }
 

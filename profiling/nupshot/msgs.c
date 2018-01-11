@@ -65,8 +65,6 @@ static int SortRecv();
 
 
 
-static msgData *staticMsgData;
-
 static int GetTagIdx( msg_data, tag )
 msgData *msg_data;
 int tag;
@@ -120,7 +118,7 @@ msgData *msg_data;
   return ListSize( msg_data->defs, msgDefInfo );
 }
 
-int Msg_GetDef( msg_data, def_num, tag, name, color )
+int Msg_GetDef( msg_data, def_num, name, tag, color )
 msgData *msg_data;
 int def_num, *tag;
 char **name, **color;
@@ -137,7 +135,7 @@ char **name, **color;
 }
 
 
-int Msg_SetDef( msg_data, def_num, tag, name, color )
+int Msg_SetDef( msg_data, def_num, name, tag, color )
 msgData *msg_data;
 int def_num, tag;
 char *name, *color;
@@ -282,7 +280,7 @@ xpandList *q;
 int proc, tag;
 double *time;
 {
-  int tagIdx, i;
+  int i;
   double earliestTime = 0;
   int earliestIdx;
 
@@ -292,7 +290,7 @@ double *time;
   fprintf( stderr, "entered MatchingMsgPosted\n" );
 #endif
 
-  tagIdx = GetTagIdx( msg_data, tag );
+  /* tagIdx = GetTagIdx( msg_data, tag ); */
 
   earliestIdx = -1;
   for (i=0; i<q[proc]->nused; i++) {
@@ -397,7 +395,7 @@ msgData *msg_data;
   return ListSize( msg_data->list, msgInfo );
 }
 
-int Msg_Get( msg_data, n, type, size, sender, recver, sendTime, recvTime )
+int Msg_Get( msg_data, n, type, sender, recver, sendTime, recvTime, size )
 msgData *msg_data;
 int n, *type, *size, *sender, *recver;
 double *sendTime, *recvTime;
@@ -499,8 +497,6 @@ msgData *msg_data;
     ListShrinkToFit( msg_data->idx_proc_send[proc], int );
     ListShrinkToFit( msg_data->idx_proc_recv[proc], int );
   }
-
-  staticMsgData = msg_data;	/* make copy that can be acessed externally */
 
     /* sort the big lists */
 #if USE_QSORT

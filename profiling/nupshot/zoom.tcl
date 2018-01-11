@@ -1,29 +1,60 @@
-proc Zoom {id orient {factor 2.0}} {
-   global win_info
+#
+# Horizontal zoom-handling for Upshot
+#
+# Ed Karrels
+# Argonne National laboratory
+#
 
-   # id the window id
+
+#
+# display - name of display widget
+#
+# id - id of mainwin
+#
+proc Zoom {id display orient {factor 2.0}} {
+   global mainwin
    # orient is either "horiz" or "vert"
 
-      # don't try anything if there are no displays
-   if !$win_info($id,ndisplays) return
+      # vertical zooming is going to be on a per-display basis
+   if {$orient == "vert"} return
 
-   set disp $id.displays.0
+      # don't try anything if there are no displays
+   set display_list [$display list]
+   if {$display_list == ""} return
+
+   set disp [lindex $display_list 0]
+
+   if {$orient == "reset"} {
+      SetView $id $mainwin($id,startTime) $mainwin($id,totalTime)
+      return
+   }
 
    if {$orient == "horiz"} {
-      if [info exists win_info($id,zoom_time)] {
-	 set point $win_info($id,zoom_time)
+      if [info exists mainwin($id,zoom_time)] {
+	 set point $mainwin($id,zoom_time)
       } else {
-	 set left [$disp canvasx 0]
-	 set right [$disp canvasx [winfo width $disp]]
-	 set center [expr ($left + $right) / 2.0]
-	 set point [$disp pix2time $center]
+	 set point [expr $mainwin($id,left) + $mainwin($id,span)/2]
       }
 
-      set cmd zoom_time
+
+      set left [expr $point - ($point - $mainwin($id,left)) / $factor]
+      set span [expr 1.0 * $mainwin($id,span) / $factor]
+
+         # if the zoom will in any way go out of bounds, change it
+         # to fit
+      if {$span > $mainwin($id,totalTime)} {
+	 set span $mainwin($id,totalTime)
+      }
+      if {$left < $mainwin($id,startTime)} {
+	 set left $mainwin($id,startTime)
+      } elseif {$left + $span > $mainwin($id,endTime)} {
+	 set left [expr $mainwin($id,endTime) - $span]
+      }
+      SetView $id $left $span
 
    } else {
-      if [info exists win_info($id,zoom_proc)] {
-	 set point $win_info($id,zoom_proc)
+      if [info exists mainwin($id,zoom_proc)] {
+	 set point $mainwin($id,zoom_proc)
       } else {
 	 set top [$disp canvasy 0]
 	 set bottom [$disp canvasy [winfo height $disp]]
@@ -35,22 +66,16 @@ proc Zoom {id orient {factor 2.0}} {
 
    }
 
-   set n $win_info($id,ndisplays)
-   for {set i 0} {$i < $n} {incr i} {
-      $id.displays.$i $cmd $point $factor
-      # puts "$id.displays.$i $cmd $point $factor"
-   }
 }
 
 
 
-proc Zoom_SetPoint {id time proc} {
-   global win_info
+proc Zoom_SetTime {id time} {
+   global mainwin
 
-   # puts "Zoom point $time, $proc"
-
-   set win_info($id,zoom_time) $time
-   set win_info($id,zoom_proc) $proc
+   # puts "Zoom time $time"
+  
+   set mainwin($id,zoom_time) $time
 }
    
 

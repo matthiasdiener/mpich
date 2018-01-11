@@ -63,6 +63,7 @@ char **argv;
 	MPI_Wait( &handle, &status );
 	}
 
+    Test_Waitforall( );
     MPI_Finalize();
 
     return 0;

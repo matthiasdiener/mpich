@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;MPI_Status _mpi_status;static int _n;
+extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
 
 /*
     This file contains routines to choose the "partners" given a distance or 

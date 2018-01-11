@@ -13,7 +13,7 @@ MDEP_FFLAGS = @MDEP_FFLAGS@
 MDEP_LFLAGS = @MDEP_LFLAGS@
 P4_OBJ = @P4_OBJ@
 
-CFLAGS = -g -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS)
+CFLAGS = -g -I$(INCLUDEDIR) -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS)
 #CFLAGS = -O -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS)
 
 FFLAGS = -g -I$(FORTLIBDIR) $(MDEP_FFLAGS)
@@ -29,7 +29,7 @@ SED   = sed
 
 P4_HOME_DIR = ..
 INCLUDEDIR = $(P4_HOME_DIR)/include
-LIBDIR = $(P4_HOME_DIR)/lib
+LIBDIR = @MPIR_HOME@/lib/@ARCH@/@COMM@
 
 .SUFFIXES:	.o .c .f .h
 
@@ -56,11 +56,11 @@ serv_p4: serv_p4.o
 	/bin/mv serv_p4 ../bin
 
 iserv_p4:$(P)  iserv_p4.o
-	$(CLINKER) $(CFLAGS) -o iserv_p4 iserv_p4.o $(LIBDIR)/libp4.a
+	$(CLINKER) $(CFLAGS) -o iserv_p4 iserv_p4.o $(LIBDIR)/libmpi.a
 	/bin/mv iserv_p4 ../bin
 
 killiserv_p4:$(P)  killiserv_p4.o
-	$(CLINKER) $(CFLAGS) -o killiserv_p4 killiserv_p4.o $(LIBDIR)/libp4.a
+	$(CLINKER) $(CFLAGS) -o killiserv_p4 killiserv_p4.o $(LIBDIR)/libmpi.a
 	/bin/mv killiserv_p4 ../bin
 
 inetd.entry: inetd.entry.base

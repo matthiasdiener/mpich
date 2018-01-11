@@ -17,6 +17,20 @@ for arg in "$@" ; do
 	-checkonly )
 	runtests=0
 	;;
+        -margs=*)
+	margs=`echo $arg | sed 's/-margs=//'`
+	args="$args $margs"
+	;;
+	-echo)
+	set -x
+	;;
+	-help|-u)
+	echo "runtests [-checkonly] [-margs='...']"
+	echo "run tests in this directory.  If -checkonly set, just run"
+	echo "the differences check (do NO rerun the test programs)."
+	echo "If -margs is used, these options are passed to mpirun."
+	exit 1
+	;;
 	*)
 	if test -n "$arg" ; then
    	    echo "runtests: Unknown argument ($arg)"
@@ -59,6 +73,13 @@ mpirun $args -np 2 -mvback "overtake-0.out overtake-1.out" overtake $* >> overta
 cat overtake-[01].out >> overtake.out
 /bin/rm -f overtake-[01].out
 echo '**** Verifying that messages are non-overtaking ****' >> overtake.out
+#
+testfiles="$testfiles ssendtest.out"
+/bin/rm -f ssendtest.out
+echo '**** Verifying ssend ****'
+echo '**** Verifying ssend ****' >> ssendtest.out
+mpirun $args -np 2 ssendtest $* >> ssendtest.out
+echo '**** Verifying ssend ****' >> ssendtest.out
 #
 testfiles="$testfiles typetest.out"
 /bin/rm -f typetest.out
@@ -153,6 +174,10 @@ fi
 else
     # Just run checks
     testfiles=*.out
+    if test "$testfiles" = "*.out" ; then
+	echo "No output files remain from previous test!"
+	exit 1
+    fi
 fi
 #
 echo '*** Differences from expected output ***'
@@ -163,7 +188,7 @@ for file in $testfiles ; do
         if diff -b $file `basename $file .out`.std > /dev/null ; then
 	    true
         else
-	    echo "Diffenences in `basename $file .out`" >> pt2pt.diff
+	    echo "Differences in `basename $file .out`" >> pt2pt.diff
 	    diff -b $file `basename $file .out`.std >> pt2pt.diff
 	fi
     else

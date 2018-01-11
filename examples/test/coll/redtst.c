@@ -12,5 +12,6 @@ int argc; char **argv;
   if (rank == 0) printf ("Result of 3 BOR 6 is %d, result of 3|6 is %d\n", 
                          result, 3|6);
 
+  Test_Waitforall( );
   MPI_Finalize ();
 }

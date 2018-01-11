@@ -1,0 +1,80 @@
+#! /bin/sh
+#
+# Run some of the tests.  If any arguments are provided, pass them to the
+# test programs.
+#
+# -mvhome is needed for the ANL SP, and is ignored by others
+args="-pg -mvhome"
+#
+# If the programs are not available, run make.
+if [ ! -x cart ] ; then
+    make 
+fi
+#
+runtests=1
+for arg in "$@" ; do
+    case $arg in 
+	-checkonly )
+	runtests=0
+	;;
+        -margs=*)
+	margs=`echo $arg | sed 's/-margs=//'`
+	args="$args $margs"
+	;;
+	-help|-u)
+	echo "runtests [-checkonly] [-margs='...']"
+	echo "run tests in this directory.  If -checkonly set, just run"
+	echo "the differences check (do NO rerun the test programs)."
+	echo "If -margs is used, these options are passed to mpirun."
+	exit 1
+	;;
+	*)
+	if test -n "$arg" ; then
+   	    echo "runtests: Unknown argument ($arg)"
+	    exit 1
+        fi
+	;;
+    esac
+done
+
+testfiles=""
+if [ $runtests = 1 ] ; then
+
+testfiles="$testfiles cart.out"
+/bin/rm -f cart.out
+echo '**** Testing MPI_Cart_create etc ****' >> cart.out
+echo '**** Testing MPI_Cart_create etc ****' 
+mpirun $args -np 4 cart $* >> cart.out 2>&1
+echo '**** Testing MPI_Cart_create etc ****' >> cart.out
+#
+testfiles="$testfiles cart2.out"
+/bin/rm -f cart2.out
+echo '**** Testing MPI_Cart_coords etc ****' >> cart2.out
+echo '**** Testing MPI_Cart_coords etc ****' 
+mpirun $args -np 4 cart2 $* >> cart2.out 2>&1
+echo '**** Testing MPI_Cart_coords etc ****' >> cart2.out
+#
+else
+    # Just run checks
+    testfiles=*.out
+fi
+#
+echo '*** Differences from expected output ***'
+/bin/rm -f topol.diff
+for file in $testfiles ; do
+    stdfile=`basename $file .out`.std
+    if [ -s $stdfile ] ; then
+        if diff -b $file `basename $file .out`.std > /dev/null ; then
+	    true
+        else
+	    echo "Differences in `basename $file .out`" >> topol.diff
+	    diff -b $file `basename $file .out`.std >> topol.diff
+	fi
+    else
+        echo "Can not find file $stdfile to compare against for test `basename $file .out`"
+    fi
+done
+if [ -s topol.diff ] ; then
+   cat topol.diff
+fi
+exit 0

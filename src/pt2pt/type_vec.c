@@ -1,12 +1,12 @@
 /*
- *  $Id: type_vec.c,v 1.8 1994/12/30 17:18:19 gropp Exp $
+ *  $Id: type_vec.c,v 1.10 1995/03/05 22:57:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_vec.c,v 1.8 1994/12/30 17:18:19 gropp Exp $";
+static char vcid[] = "$Id: type_vec.c,v 1.10 1995/03/05 22:57:41 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -32,13 +32,12 @@ int 	     stride;
 MPI_Datatype old_type;
 MPI_Datatype *newtype;
 {
-  MPI_Datatype  dteptr;
   int           mpi_errno = MPI_SUCCESS;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
-   ( (count   <= 0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
-   ( (blocklen <= 0)                 && (mpi_errno = MPI_ERR_ARG) )   ||
+   ( (count   <  0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
+   ( (blocklen <  0)                 && (mpi_errno = MPI_ERR_ARG) )   ||
    ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
    ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,

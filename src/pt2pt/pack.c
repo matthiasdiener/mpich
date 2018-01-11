@@ -1,12 +1,12 @@
 /*
- *  $Id: pack.c,v 1.9 1994/12/15 17:24:20 gropp Exp $
+ *  $Id: pack.c,v 1.10 1995/03/05 22:58:33 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: pack.c,v 1.9 1994/12/15 17:24:20 gropp Exp $";
+static char vcid[] = "$Id: pack.c,v 1.10 1995/03/05 22:58:33 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -84,7 +84,7 @@ int count;
 MPI_Datatype type;
 void *dest;
 {
-  int i,j,k;
+  int i,j;
   int pad = 0;
   int mpi_errno = MPI_SUCCESS;
   char *tmp_buf;

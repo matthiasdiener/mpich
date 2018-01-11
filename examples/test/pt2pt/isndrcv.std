@@ -10,6 +10,7 @@
 [isndrcv]: Test 'Send-Receive Test, Type 8' Passed.
 [isndrcv]: Test 'Send-Receive Test, Type 9' Passed.
 [isndrcv]: Test 'Send-Receive Test, Type 10' Passed.
+[isndrcv]: Test 'Send-Receive Test, Type 11' Passed.
 [isndrcv]: Test 'Tag Selectivity Test' Passed.
 [isndrcv]: Test 'NULL Communicator Test' Passed.
 [isndrcv]: Test 'Invalid Count Test' Passed.
@@ -17,7 +18,7 @@
 [isndrcv]: Test 'Invalid Tag Test' Passed.
 [isndrcv]: Test 'Invalid Destination Test' Passed.
 For test suite 'isndrcv':
-Of 17 attempted tests, 17 passed, 0 failed.
+Of 18 attempted tests, 18 passed, 0 failed.
 0 -  File: create_send.c   Line: 39
 0 - Error in MPI_SEND_INIT : Invalid communicator
 0 -  File: create_send.c   Line: 39
@@ -28,4 +29,5 @@ Of 17 attempted tests, 17 passed, 0 failed.
 0 - Error in MPI_SEND_INIT : Invalid message tag
 0 -  File: create_send.c   Line: 39
 0 - Error in MPI_SEND_INIT : Invalid rank
+All processes completed test
 **** Testing MPI_Isend and MPI_Irecv ****

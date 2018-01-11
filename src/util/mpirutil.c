@@ -1,5 +1,5 @@
 /*
- *  $Id: mpirutil.c,v 1.14 1994/10/24 22:03:05 gropp Exp $
+ *  $Id: mpirutil.c,v 1.16 1995/03/05 23:01:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: mpirutil.c,v 1.14 1994/10/24 22:03:05 gropp Exp $";
+static char vcid[] = "$Id: mpirutil.c,v 1.16 1995/03/05 23:01:14 gropp Exp $";
 #endif /* lint */
 
 /* mpir helper routines
@@ -22,7 +22,7 @@ MPIR_RHANDLE handle;
     printf("  handle type = %d\n", handle.handle_type);
     printf("  source      = %d\n", handle.source);
     printf("  tag         = %d\n", handle.tag);
-    printf("  completed   = %d\n", handle.completed);
+    printf("  completed   = %d\n", handle.completer);
     printf("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
 }
 
@@ -33,7 +33,7 @@ MPIR_SHANDLE handle;
     printf("  dest =        %d\n", handle.dest);
     printf("  tag =         %d\n", handle.tag);
     printf("  mode =        %d\n", handle.mode);
-    printf("  completed   = %d\n", handle.completed);
+    printf("  completed   = %d\n", handle.completer);
     printf("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
 }
 
@@ -196,8 +196,6 @@ int                   flag;
 {
     MPIR_QHDR    *queue = &MPIR_posted_recvs;
     MPIR_QEL     *p;
-    MPIR_RHANDLE *q;
-    int          qtag, qsrc;
 
     p      = queue->first;
     *found = 0;
@@ -263,8 +261,6 @@ int                   flag;
 {
     MPIR_QHDR    *queue = &MPIR_unexpected_recvs;
     MPIR_QEL     *p;
-    MPIR_RHANDLE *q;
-    int          qtag, qsrc;
     int          tagmask, srcmask;
 
     if (tag == MPI_ANY_TAG) {

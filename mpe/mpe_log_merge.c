@@ -17,8 +17,12 @@ static MPE_Log_BLOCK *readBlock;
    /* the only functions accessing it are MPE_Log_ParallelMerge and */
    /* MPE_Log_ReloadFromData */
 
-
+#include <math.h>
+#ifdef HUGE_VAL
+#define TIME_INF HUGE_VAL
+#else
 #define TIME_INF 1.0e300
+#endif
 /* merge buffer size should be bigger */
 
 

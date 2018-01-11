@@ -40,12 +40,14 @@ dummy:	default
 clean:
 	$(RM) -f *~ *.o *.bak tags TAGS core
 
+# the following used to both make mergelogs.  Now they don't.
+
 default:	
-	make $(LIBDIR)/libp4.a mergelogs
+	$(MAKE) $(LIBDIR)/libp4.a
 	@echo NOT making adjlogs on $(P4ARCH)
 
 all:	
-	make $(LIBDIR)/libp4.a mergelogs
+	$(MAKE) $(LIBDIR)/libp4.a
 	@echo NOT making adjlogs on $(P4ARCH)
 
 

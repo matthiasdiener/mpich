@@ -213,10 +213,10 @@ Fortran programs are linked by using the arguments
 fi
 if test -n "$configlog" ; then
     cat >> $filename <<.
-The output of configure was 
+The output of configure (only the exceptional lines are shown) was 
 \begin{example}
 .
-    cat $configlog >> $filename
+    egrep -v '^checking ' $configlog | egrep -v '^creating' >> $filename
     cat >> $filename <<.
 \end{example}
 .
@@ -402,10 +402,10 @@ linked with {\tt @MPE_LIBS@} in addition to the MPI libraries.
 	    echo " " >> $filename
 	    echo "The MPE libraries" >> $filename
 	    if test -n "@X_INC@" ; then 
-	        echo "used {\tt @X_INC@} for the X11 includes" >> $filename
+	        echo "used {\\tt @X_INC@} for the X11 includes" >> $filename
 	    fi
             if test -n "@X_LIB@" ; then
-	        echo "and {\tt @X_LIB@} for the X11 libraries." >> $filename
+	        echo "and {\\tt @X_LIB@} for the X11 libraries." >> $filename
 	    fi
 	fi        
     else

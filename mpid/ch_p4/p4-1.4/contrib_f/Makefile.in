@@ -45,9 +45,9 @@ clean:
 default:$(P)
 
 all:$(P)
-	make $(MFLAGS) norm_master norm_slave
-	make $(MFLAGS) comm_master comm_slave
-	make $(MFLAGS) pi
+	$(MAKE) $(MFLAGS) norm_master norm_slave
+	$(MAKE) $(MFLAGS) comm_master comm_slave
+	$(MAKE) $(MFLAGS) pi
 
 pi: pi.o $(FORTLIB)  $(LIB)
 	$(FLINKER) $(MDEP_FFLAGS) -o pi pi.o $(LIBS)

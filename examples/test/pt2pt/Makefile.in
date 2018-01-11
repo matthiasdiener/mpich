@@ -39,7 +39,7 @@ FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 probe probe1 testtest1 testtypes ssendtest typetest\
-	secondf dtypelife issendtest relrank
+	secondf dtypelife issendtest relrank inull
 
 default: $(EXECS)
 
@@ -64,6 +64,9 @@ sendrecv: sendrecv.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 isndrcv: isndrcv.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o isndrcv isndrcv.o test.o $(LIBS)
 
+inull: inull.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o inull inull.o test.o $(LIBS)
+
 typetest: typetest.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o typetest typetest.o test.o $(LIBS)
 
@@ -73,35 +76,38 @@ ssendtest: ssendtest.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 issendtest: issendtest.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o issendtest issendtest.o test.o $(LIBS)
 
-testtypes: testtypes.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o testtypes testtypes.o $(LIBS)
+testtypes: testtypes.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o testtypes testtypes.o test.o $(LIBS)
 
-dtypelife: dtypelife.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o dtypelife dtypelife.o $(LIBS)
+dtypelife: dtypelife.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o dtypelife dtypelife.o test.o $(LIBS)
 
-third: third.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o third $(DEVICE_MAIN) third.o $(LIBS)
-fourth: fourth.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o fourth $(DEVICE_MAIN) fourth.o $(LIBS)
-fifth: fifth.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o fifth $(DEVICE_MAIN) fifth.o $(LIBS)
-sixth: sixth.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o sixth $(DEVICE_MAIN) sixth.o $(LIBS)
+third: third.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o third third.o test.o $(LIBS)
 
-probe: probe.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o probe $(DEVICE_MAIN) probe.o $(LIBS)
+fourth: fourth.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o fourth fourth.o test.o $(LIBS)
 
-probe1: probe1.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o probe1 $(DEVICE_MAIN) probe1.o $(LIBS)
+fifth: fifth.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o fifth fifth.o test.o $(LIBS)
 
-testtest1: testtest1.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o testtest1 $(DEVICE_MAIN) testtest1.o $(LIBS)
+sixth: sixth.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o sixth sixth.o test.o $(LIBS)
 
-hvectest: hvectest.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o hvectest $(DEVICE_MAIN) hvectest.o $(LIBS)
+probe: probe.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o probe probe.o test.o $(LIBS)
 
-hvectest2: hvectest2.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o hvectest2 $(DEVICE_MAIN) hvectest2.o $(LIBS)
+probe1: probe1.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o probe1 probe1.o test.o $(LIBS)
+
+testtest1: testtest1.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o testtest1 testtest1.o test.o $(LIBS)
+
+hvectest: hvectest.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o hvectest hvectest.o test.o $(LIBS)
+
+hvectest2: hvectest2.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o hvectest2 hvectest2.o test.o $(LIBS)
 
 secondf: secondf.o mpif.h
 	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS)

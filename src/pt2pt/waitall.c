@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.24 1994/12/15 16:58:46 gropp Exp $
+ *  $Id: waitall.c,v 1.26 1995/03/05 22:53:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitall.c,v 1.24 1994/12/15 16:58:46 gropp Exp $";
+static char vcid[] = "$Id: waitall.c,v 1.26 1995/03/05 22:53:18 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -28,7 +28,6 @@ MPI_Request array_of_requests[];
 MPI_Status  array_of_statuses[];
 {
     int i;
-    MPIR_BOOL completed;
     MPI_Request request;
     int mpi_errno;
     
@@ -68,7 +67,7 @@ MPI_Status  array_of_statuses[];
 	      }
 	  else {
 	      request->chandle.active = 0;
-	      request->chandle.completed = MPIR_NO;
+	      MPID_Clr_completed( MPID_Ctx(request), request );
 	      MPID_Reuse_send_handle( request->shandle.comm->ADIctx, 
 				      &request->shandle.dev_shandle );
 	      }
@@ -83,7 +82,7 @@ MPI_Status  array_of_statuses[];
         if (!request || !request->chandle.active ) continue;
 
 	if ( request->type == MPIR_RECV ) {
-	    if (request->chandle.completed == MPIR_NO) {
+	    if (! MPID_Test_request( MPID_Ctx( request ), request )) {
 		MPID_Complete_recv( request->rhandle.comm->ADIctx, 
 				    &request->rhandle );
 		}
@@ -107,7 +106,7 @@ MPI_Status  array_of_statuses[];
 		}
 	    else {
 		request->chandle.active = 0;
-		request->chandle.completed = MPIR_NO;
+		MPID_Clr_completed( MPID_Ctx( request ), request );
 		MPID_Reuse_recv_handle( request->rhandle.comm->ADIctx, 
 				        &request->rhandle.dev_rhandle );
 		}

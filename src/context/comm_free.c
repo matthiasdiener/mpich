@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_free.c,v 1.36 1995/01/06 14:59:03 gropp Exp $
+ *  $Id: comm_free.c,v 1.37 1995/02/26 14:24:25 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -44,7 +44,7 @@ MPI_Comm *comm;
   /* Free group */
   if ( (*comm)->ref_count <= 1 ) {
 
-        (void)MPID_Comm_free( comm->ADIctx, comm );
+        (void)MPID_Comm_free( (*comm)->ADIctx, comm );
 
         DBG(fprintf(stderr,"About to free context\n");fflush(stderr);)
 	/* Free the context used by this communicator */

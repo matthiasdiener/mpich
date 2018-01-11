@@ -30,5 +30,6 @@ char **argv;
 
   }
   MPI_Comm_free( &new_world );
+  Test_Waitforall( );
   MPI_Finalize();
 }

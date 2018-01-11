@@ -43,6 +43,18 @@ for arg in "$@" ; do
     esac
 done
 #
+# RefineGnuplotfile outputname (e.g., RefineGnuplotfile long)
+RefineGnuplotfile() {
+    if test ! -s mppout.gpl ; then 
+        echo "Failed to run performance test!"
+    else
+	echo "set terminal postscript eps" | cat - $1.gpl > .foo
+	echo "exit" | cat .foo - | sed /pause/d | \
+		sed -e "s/mppout/$1-data/g" > $1.gpl
+	mv mppout.gpl $1-data.gpl 
+    fi
+    }
+
 # Remove the old filename
 /bin/rm -f $filename
 if test -z "@MPE_DIR@" ; then 
@@ -76,24 +88,41 @@ if test $noperf = 0 ; then
 
     # We can generate the output graphs...
    if test "$plotonly" = 0 ; then
-( cd examples/perftest ; /bin/rm -f maketst.log ; \
-  make mpptest > maketst.log 2>&1 ; \
-mpirun -np 2 -arch=@ARCH@ mpptest -gnuplot -tgoal 0.1 -auto > short.gpl ; \
-if test ! -s mppout.gpl ; then echo "Failed to run performance test!" ; \
-else \
-echo "set terminal postscript eps" | cat - short.gpl > .foo ; \
-echo "exit" | cat .foo - | sed /pause/d | \
-sed -e 's/mppout/short-data/g' > short.gpl ; \
-mv mppout.gpl short-data.gpl ; fi ; \
-mpirun -np 2 -arch=@ARCH@ mpptest -gnuplot -tgoal 0.2 -auto -reps 25 \
-    -size 16384 65536 1024 > long.gpl ; \
-if test ! -s mppout.gpl ; then echo "Failed to run performance test!" ; \
-else \
-echo "set terminal postscript eps" | cat - long.gpl > .foo ; \
-echo "exit" | cat .foo - | sed /pause/d | \
-sed -e 's/mppout/long-data/g' > long.gpl ; \
-mv mppout.gpl long-data.gpl ; fi ; \
-)
+	curdir=`pwd`
+	cd examples/perftest
+	/bin/rm -f maketst.log 
+ 	make mpptest goptest > maketst.log 2>&1
+	
+	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
+		-tgoal 0.1 -auto > short.gpl
+	RefineGnuplotfile "short"
+	#
+	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
+		-tgoal 0.2 -auto -reps 25 -size 16384 65536 1024 > long.gpl
+	RefineGnuplotfile "long"
+	#
+	# The collective routines need to aggregate over several values of
+	# -np ... 
+	/bin/rm -f sync.gpl sync.out
+	for np in 2 4 8 16 ; do
+	    mpirun -np $np -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest \
+			-gnuplot -sync > sync.gpl
+	    cat mppout.gpl >> sync.out
+	done
+        mv sync.out mppout.gpl
+	RefineGnuplotfile "sync"
+	#
+	mpirun -np 4 -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest -gnuplot \
+		-dsum > dsum4.gpl
+	RefineGnuplotfile "dsum4"
+	mpirun -np 8 -mvhome -mvback mppout.gpl -arch=@ARCH@ goptest -gnuplot \
+		-dsum > dsum8.gpl
+	RefineGnuplotfile "dsum8"
+	#
+	mpirun -np 4 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
+		-bisect > bisect.gpl
+	RefineGnuplotfile "bisect"
+	cd $curdir
     fi
     if test ! -s examples/perftest/short-data.gpl -o \
             ! -s examples/perftest/long-data.gpl ; then

@@ -20,7 +20,7 @@
 #define ARGS(x) ()
 #endif
 
-int Bitmap_Register ARGS(( Tcl_Interp *interp ));
+int Bitmap_Init ARGS(( Tcl_Interp *interp ));
 int Bitmap_Reset();
 char *Bitmap_Get();
 

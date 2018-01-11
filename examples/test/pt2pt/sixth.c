@@ -101,9 +101,8 @@ char **argv;
     errors++;
   if (errors)
     printf("[%d] OOPS.  %d errors!\n",rank,errors);
-  else
-    printf("Successful\n",rank);
 
   MPI_Keyval_free ( &table_key );
+  Test_Waitforall( );
   MPI_Finalize();
 }

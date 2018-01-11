@@ -37,12 +37,12 @@ clean:
 	$(RM) -f *~ *.o *.bak tags TAGS core
 
 default:$(P)
-	make $(MFLAGS) sr_test sr1_test systest
+	$(MAKE) $(MFLAGS) sr_test sr1_test systest
 
 all:$(P)
-	make $(MFLAGS) sr_test systest 
-	make $(MFLAGS) sr_master sr_slave 
-	make $(MFLAGS) grid_master grid_slave
+	$(MAKE) $(MFLAGS) sr_test systest 
+	$(MAKE) $(MFLAGS) sr_master sr_slave 
+	$(MAKE) $(MFLAGS) grid_master grid_slave
 
 sr_test:$(P) sr_test.o $(LIBDIR)/libp4.a 
 	$(CLINKER) $(CFLAGS) -o sr_test sr_test.o $(LIBS)

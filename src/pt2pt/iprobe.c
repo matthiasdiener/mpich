@@ -1,5 +1,5 @@
 /*
- *  $Id: iprobe.c,v 1.7 1994/12/15 17:05:54 gropp Exp $
+ *  $Id: iprobe.c,v 1.8 1995/03/05 20:16:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,6 +37,13 @@ MPI_Status  *status;
     if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_RECV_TAG(comm,tag) ||
 	MPIR_TEST_RECV_RANK(comm,source))
 	return MPIR_ERROR( comm, mpi_errno, "Error in MPI_PROBE" );
+
+    if (source == MPI_PROC_NULL) {
+	status->MPI_SOURCE = MPI_PROC_NULL;
+	status->MPI_TAG	   = MPI_ANY_TAG;
+	status->count	   = 0;
+	return MPI_SUCCESS;
+	}
 
     MPID_Iprobe( comm->ADIctx, 
 		 tag, source, comm->recv_context, flag, status );

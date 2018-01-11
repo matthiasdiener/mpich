@@ -89,6 +89,17 @@ char *color, *bitmap, *name;
 {
   stateDefInfo stateDef;
 
+#if 0
+
+    /* go through the list of state definitions already present */
+  defptr = ListHeadPtr( state_data->defs.list, stateDefInfo );
+  n = ListSize( state_data->defs.list, stateDefInfo );
+  for (i=0; i<n; i++,defptr++) {
+      /* if a state with the same name has already been defined,
+         ignore this definition */
+    if (!strcmp( name, defptr->name )) return 1;
+  }
+
   /* don't do this.  you'll just have to live with multiple states with
      the same name.  The logfile reader should take care of anything
      that truly is duplicated.  BTW, this causes problems with logfiles
@@ -104,15 +115,6 @@ char *color, *bitmap, *name;
 
   */
 
-#if 0
-    /* go through the list of state definitions already present */
-  defptr = ListHeadPtr( state_data->defs.list, stateDefInfo );
-  n = ListSize( state_data->defs.list, stateDefInfo );
-  for (i=0; i<n; i++,defptr++) {
-      /* if a state with the same name has already been defined,
-         ignore this definition */
-    if (!strcmp( name, defptr->name )) return 1;
-  }
 #endif
 
     /* copy the name of the state */
@@ -132,6 +134,9 @@ char *color, *bitmap, *name;
   } else {
     stateDef.bitmap = STRDUP( bitmap );
   }
+
+    /* no instances yet */
+  stateDef.ninst = 0;
 
     /* add this state definition to the list */
   ListAddItem( state_data->defs.list, stateDefInfo, stateDef );
@@ -243,7 +248,7 @@ double time;
     info.type = stateType;
     info.endTime = time;
     info.proc = proc;
-      /* update the parent/firstChild stuff, an free memory */
+      /* update the parent/firstChild stuff, and free memory */
       /* to do the parent stuff, need to know the final resting place,
          or the slot in the state_data->list array in which this
 	 state will be stored.  ListSize() provides this. */
@@ -251,7 +256,11 @@ double time;
 	       ListSize( state_data->list, stateInfo ) );
 
     ListAddItem( state_data->list, stateInfo, info );
-    State_Draw( state_data, ListSize( state_data->list, stateInfo )-1 );
+      /* add one to the # of instances of this state */
+    ListItem( state_data->defs.list, stateDefInfo, stateType ).ninst++;
+    /*
+      State_Draw( state_data, ListSize( state_data->list, stateInfo )-1 );
+    */
     return 0;
   }
 
@@ -288,6 +297,18 @@ stateData *data;
 }
 
 
+/*
+   Return the # of instances of the given state type.
+*/
+int State_TypeNinst( data, typeno )
+stateData *data;
+int typeno;
+{
+  return ListItem( data->defs.list, stateDefInfo, typeno ).ninst;
+}
+
+
+
 int State_Get( state_data, n, type, proc, startTime, endTime,
 	       parent, firstChild, overlapLevel )
 stateData *state_data;
@@ -320,7 +341,7 @@ stateData *data;
   
   ListDestroy( data->list, stateInfo );
 
-    /* if indices have already been create, remove them */
+    /* if indices have already been created, remove them */
   if (data->idx_start) {
     for (proc=0; proc < data->np; proc++) {
       ListDestroy( data->idx_proc_start[proc], int );
@@ -815,6 +836,11 @@ int proc, slot_no, finalRestingPlace;
         /* set parentPost to point to my parent's post */
       parentPost = ListHeadPtr( state_data->stacks[proc], statePost ) +
 	post->parent;
+
+        /* mark this guy as having a parent, but the parent isn't
+	   finished yet */
+      post->parent = -2;
+
       parentPost->hangover = -1;
       if (!parentPost->children) {
 	ListCreate( parentPost->children, int, 3 );
@@ -949,7 +975,6 @@ int idx;
 {
   drawStateFnList *node;
   stateInfo *info;
-  stateDefInfo *def;
   int type, proc, parent, firstChild, overlapLevel;
   double startTime, endTime;
 
@@ -973,13 +998,11 @@ int idx;
     parent = info->parent;
     firstChild = info->firstChild;
     overlapLevel = info->overlapLevel;
-    def = ListHeadPtr( state_data->defs.list, stateDefInfo ) + info->type;
   } else {
       /* index -1 signifies that the last of the state events has
 	 been sent */
     info = 0;
     type = startTime = endTime = 0;
-    def = 0;
     proc = parent = firstChild = overlapLevel = -1;
   }
   do {

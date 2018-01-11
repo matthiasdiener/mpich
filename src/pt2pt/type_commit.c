@@ -1,12 +1,12 @@
 /*
- *  $Id: type_commit.c,v 1.14 1994/12/21 14:32:01 gropp Exp $
+ *  $Id: type_commit.c,v 1.15 1995/03/07 16:18:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_commit.c,v 1.14 1994/12/21 14:32:01 gropp Exp $";
+static char vcid[] = "$Id: type_commit.c,v 1.15 1995/03/07 16:18:41 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -31,6 +31,7 @@ MPI_Datatype *datatype;
        */
     
     /* Just do the simplest conversion to contiguous where possible */
+#if !defined(MPID_HAS_HETERO)
     if (!(*datatype)->is_contig) {
 	if ((*datatype)->size == (*datatype)->extent) {
 	    /* This isn't enough of a test, since in principle 
@@ -41,7 +42,7 @@ MPI_Datatype *datatype;
 	    MPI_Datatype type = *datatype;
 	switch (type->dte_type) {
 	    case MPIR_STRUCT:
-	    offset = 0;
+	    offset    = 0;
 	    is_contig = 1;
 	    for (j=0;j<type->count-1; j++) {
 		if (!type->old_types[j]->is_contig) { is_contig = 0; break; }
@@ -60,6 +61,7 @@ MPI_Datatype *datatype;
 	    }
 	}
     /* Nothing else to do yet */
+#endif
 
     (*datatype)->committed = MPIR_YES;
 

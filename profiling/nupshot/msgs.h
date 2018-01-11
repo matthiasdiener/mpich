@@ -80,11 +80,11 @@ int Msg_Def ARGS(( msgData *, int tag, char *name, char *color ));
 int Msg_Ndefs ARGS(( msgData * ));
 
   /* get a message description */
-int Msg_GetDef ARGS(( msgData *, int def_num, int *tag, char **name,
+int Msg_GetDef ARGS(( msgData *, int def_num, char **name, int *tag,
 		      char **color ));
 
   /* set a message description */
-int Msg_SetDef ARGS(( msgData *, int def_num, int tag, char *name,
+int Msg_SetDef ARGS(( msgData *, int def_num, char *name, int tag,
 		      char *color ));
 
   /* allocate memory for message data */
@@ -108,9 +108,9 @@ int Msg_DoneAdding ARGS(( msgData *msg_data ));
   /* Return the number of messages logged */
 int Msg_N ARGS(( msgData *msg_data ));
 
-int Msg_Get ARGS(( msgData *msg_data, int n, int *type, int *size,
+int Msg_Get ARGS(( msgData *msg_data, int n, int *type,
 		   int *sender, int *recver, double *sendTime,
-		   double *recvTime ));
+		   double *recvTime, int *size ));
 
 #if TESTING
   /* Prints a list of all messages read into memory. */

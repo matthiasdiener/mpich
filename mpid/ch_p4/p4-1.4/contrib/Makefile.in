@@ -39,15 +39,18 @@ clean:
 default:
 
 all: bcast typedbcast sendtyped sendtyped2
-	make $(MFLAGS) lm_master lm1_master
-	make $(MFLAGS) simpglob
-	make $(MFLAGS) lm_slave lm1_slave
+	$(MAKE) $(MFLAGS) lm_master lm1_master
+	$(MAKE) $(MFLAGS) simpglob
+	$(MAKE) $(MFLAGS) lm_slave lm1_slave
 
 simpglob:$(P) simpglob.o  $(LIBDIR)/libp4.a
 	$(CLINKER) $(CFLAGS) -o simpglob simpglob.o  $(LIBS)
 
 bcast:$(P) bcast.o  $(LIBDIR)/libp4.a
 	$(CLINKER) $(CFLAGS) -o bcast bcast.o  $(LIBS)
+
+timertest:$(P) timertest.o  $(LIBDIR)/libp4.a
+	$(CLINKER) $(CFLAGS) -o timertest timertest.o  $(LIBS)
 
 typedbcast:$(P) typedbcast.o  $(LIBDIR)/libp4.a
 	$(CLINKER) $(CFLAGS) -o typedbcast typedbcast.o  $(LIBS)

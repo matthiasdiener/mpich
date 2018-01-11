@@ -25,6 +25,7 @@ char **argv;
   else 
     MPI_Recv(buf,1024,MPI_BYTE,0,0,MPI_COMM_WORLD,&status);
 
+    Test_Waitforall( );
   MPI_Finalize();
 }
 

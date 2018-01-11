@@ -74,14 +74,16 @@ char **argv;
 	else
 	    Test_Failed("Barrier Test 2");
 
-	MPI_Finalize();
+	Test_Waitforall( );
 	ret = Summarize_Test_Results();
 	Test_Finalize();
+	MPI_Finalize();
 	return ret;
     } else {
 	MPI_Send("Entering Barrier", 17, MPI_CHAR, 0, 2000, MPI_COMM_WORLD);
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Send("Past Barrier", 13, MPI_CHAR, 0, 2000, MPI_COMM_WORLD);
+	Test_Waitforall( );
 	MPI_Finalize();
 	return 0;
     }

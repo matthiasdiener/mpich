@@ -51,10 +51,10 @@ linktest: default clean
 all: testing
 
 attrtest: attrtest.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(FLINKER) $(OPTFLAGS) -o attrtest $(DEVICE_MAIN) attrtest.o $(FLIBS)
+	$(FLINKER) $(OPTFLAGS) -o attrtest attrtest.o $(FLIBS)
 
-attrt: attrt.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o attrt $(DEVICE_MAIN) attrt.o $(LIBS)
+attrt: attrt.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o attrt attrt.o test.o $(LIBS)
 
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) core *.out

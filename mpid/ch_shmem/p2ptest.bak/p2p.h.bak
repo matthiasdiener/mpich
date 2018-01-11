@@ -1,0 +1,64 @@
+#if !defined(P2P_EXTERN)
+#define P2P_EXTERN extern
+#endif
+
+#if defined(SUN_SOLARIS)
+#include <sys/mman.h>
+#include <sys/systeminfo.h>
+#include <sys/processor.h>
+#include <sys/procset.h>
+#include <synch.h>
+#endif 
+
+
+#if defined(SUN_SOLARIS)
+
+#    define USE_XX_SHMALLOC
+#    define GLOBMEMSIZE  (4*1024*1024)
+     typedef mutex_t MD_lock_t;
+#    define MD_lock_init(l) mutex_init(l,USYNC_PROCESS,(P4VOID *)NULL)
+#    define MD_lock(l)      mutex_lock(l)
+#    define MD_unlock(l)    mutex_unlock(l)
+#endif
+
+
+#if defined(SGI)
+#    include <ulocks.h>
+#    include <malloc.h>
+
+     typedef usema_t *MD_lock_t;
+
+     typedef MD_lock_t p2p_lock_t;
+
+#define p2p_lock_init(l)  MD_lock_init(l)
+#define p2p_lock(l)       MD_lock(l)
+#define p2p_unlock(l)     MD_unlock(l)
+
+#    define GLOBMEMSIZE  (8*1024*1024)
+/*   MD_lock_init must be defined in p2p_MD.c */
+/*   spinlock method */
+#    define MD_lock(l) ussetlock(*(l))
+#    define MD_unlock(l) usunsetlock(*(l))
+/*   semaphore method */
+/*****
+#    define MD_lock(l)      uspsema(*l)
+#    define MD_unlock(l)    usvsema(*l)
+*****/
+
+P2P_EXTERN usptr_t *p2p_sgi_usptr;
+P2P_EXTERN char p2p_sgi_shared_arena_filename[64];
+
+#endif
+
+
+#include "p2p_mon.h"
+
+/* following is for POSIX std versions of Unix */
+#if defined(SGI)  ||  defined(RS6000)  ||  defined(HP)
+#include <unistd.h>
+#endif
+
+/* For sysinfo */
+#if defined(SUN_SOLARIS) || defined(MEIKO_CS2)
+#include <sys/systeminfo.h>
+#endif

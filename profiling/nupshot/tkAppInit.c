@@ -28,16 +28,6 @@
 #include "tk.h"
 
 /*
- * The following variable is a special hack that allows applications
- * to be linked using the procedure "main" from the Tk library.  The
- * variable generates a reference to "main", which causes main to
- * be brought in from the library (and all of Tk and Tcl with it).
- */
-
-extern int main();
-int *tclDummyMainPtr = (int *) main;
-
-/*
  *----------------------------------------------------------------------
  *
  * Tcl_AppInit --
@@ -60,10 +50,6 @@ int
 Tcl_AppInit(interp)
     Tcl_Interp *interp;		/* Interpreter for application. */
 {
-    Tk_Window main;
-
-    main = Tk_MainWindow(interp);
-
     /*
      * Call the init procedures for included packages.  Each call should
      * look like this:
@@ -79,6 +65,24 @@ Tcl_AppInit(interp)
 	return TCL_ERROR;
     }
     if (Tk_Init(interp) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+    if (Log_Init( interp ) == TCL_ERROR) {
+      return TCL_ERROR;
+    }
+    if (Timeline_Init( interp ) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+    if (Mtn_Init( interp ) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+    if (Timelbl_Init( interp ) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+    if (Bitmap_Init( interp ) == TCL_ERROR) {
+	return TCL_ERROR;
+    }
+    if (Hist_Init( interp ) == TCL_ERROR) {
 	return TCL_ERROR;
     }
 

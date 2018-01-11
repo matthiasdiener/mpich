@@ -5,9 +5,6 @@
    Argonne National Laboratory
 */
 
-/*
-#include "/usr/local/build/tcl7.3/tclInt.h"
-*/
 
 #if !defined(HAVE_STDLIB_H)
 #include <stdlib.h>
@@ -19,7 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "tcl.h"
-#include "log_widget.h"
+#include "log.h"
 #include "cvt_args.h"
 #include "str_dup.h"
 #include "tclptr.h"
@@ -29,7 +26,7 @@
 #include "hist.h"
 
 
-#if defined(sparc) && defined(__STDC__)
+#ifdef GCC_WALL
 int sscanf( char *, const char *, ... );
 #endif
 
@@ -71,11 +68,9 @@ static int XviewCmd ARGS(( Tcl_Interp *interp, stateHist *hist,
 static int BinsCmd ARGS(( Tcl_Interp *interp, stateHist *hist,
 			       int argc, char *argv[] ));
 
-static int LinkVars ARGS(( Tcl_Interp *interp, stateHist *hist,
-		    char *array_name, char *idx_prefix ));
+static int LinkVars ARGS(( Tcl_Interp *interp, stateHist *hist ));
 
-static int UnlinkVars ARGS(( Tcl_Interp *interp, stateHist *hist,
-		      char *array_name, char *idx_prefix ));
+static int UnlinkVars ARGS(( Tcl_Interp *interp, stateHist *hist ));
 
   /* close this hist instance */
 static int State_HistClose ARGS(( stateHist *hist ));
@@ -88,7 +83,7 @@ static int BsearchLE ARGS(( stateHist *hist, double x, int top, int bottom ));
 */
 static int BsearchGE ARGS(( stateHist *hist, double x, int top, int bottom ));
 
-int HistAppInit( interp )
+int Hist_Init( interp )
 Tcl_Interp *interp;
 {
   Tcl_CreateCommand( interp, "hist", HistCmd, (ClientData) 0,
@@ -104,10 +99,10 @@ Tcl_Interp *interp;
 int argc;
 char *argv[];
 {
-  char *logName=0, *array_name=0, *idx_prefix=0;
+  char *logCmd=0, *array_name=0, *idx_prefix=0;
   int state_no;
-  logWidget *log;
   stateHist *hist;
+  logFile *log;
 
   if (argc == 1) {
     Tcl_AppendResult( interp, "missing command for 'hist'", (char*)0 );
@@ -117,19 +112,28 @@ char *argv[];
   if (!strcmp( argv[1], "open" )) {
     if (TCL_OK != ConvertArgs( interp,
               "hist open <log> <state_no> <array_name> <idx_prefix>",
-			       "2 sdss", argc, argv, &logName, &state_no,
+			       "2 sdss", argc, argv, &logCmd, &state_no,
 			       &array_name, &idx_prefix )) {
       return TCL_ERROR;
     }
-    log = LogToken2Ptr( interp, logName );
+
+      /* get pointer to log data */
+    log = LogCmd2Ptr( interp, logCmd );
     if (!log) return TCL_ERROR;
-    hist = State_HistInit( log->data->states, state_no, (int*)0, -1 );
-      /* link certain members of my hist structure to variables
-	 int the given Tcl array */
+
+      /* open the histogram data */
+    hist = State_HistInit( log->states, state_no, (int*)0, -1 );
     hist->interp = interp;
+
+      /* Tcl array and index prefix to link variables to */
     hist->array_name = STRDUP( array_name );
     hist->idx_prefix = STRDUP( idx_prefix );
-    LinkVars( interp, hist, array_name, idx_prefix );
+
+      /* link certain members of my hist structure to variables
+	 int the given Tcl array */
+    LinkVars( interp, hist );
+
+      /* return a pointer to my data structure */
     sprintf( interp->result, "hist%d", AllocTclPtr( (void*)hist ) );
     return TCL_OK;
 
@@ -147,7 +151,7 @@ char *argv[];
     } else if (!strcmp( argv[2], "draw" )) {
       return Draw( interp, hist, argc, argv );
 
-    } else if (!strcmp( argv[2], "scroll" )) {
+    } else if (!strcmp( argv[2], "setscroll" )) {
       return ScrollCmd( interp, hist, argc, argv );
 
 
@@ -197,6 +201,7 @@ int nprocs;
   hist->n = 0;
   hist->last_bins = 0;
   hist->window = hist->canvas = hist->xscrollcommand = 0;
+  hist->time_lbl = hist->xscrollbar = 0;
   hist->color = hist->bitmap = hist->outlineColor = 0;
   hist->scan_time = hist->rclick_time = hist->lclick_time = hist->yclick = 0;
   hist->sum = hist->average = hist->std_dev = 0;
@@ -286,7 +291,7 @@ int nprocs;
 
 
 #define LINK_ELEMENT( str_name, name, type ) \
-  sprintf( tmp, "%s(%s,%s)", array_name, idx_prefix, str_name ); \
+  sprintf( tmp, "%s(%s,%s)", hist->array_name, hist->idx_prefix, str_name ); \
   Tcl_LinkVar( interp, tmp, (char*)&hist->name, type );
 /*
   fprintf( stderr, "Linking hist->%s at address %p.\n", \
@@ -295,11 +300,9 @@ int nprocs;
 
 
 
-static int LinkVars( interp, hist, array_name, idx_prefix )
+static int LinkVars( interp, hist )
 Tcl_Interp *interp;
 stateHist *hist;
-char *array_name;
-char *idx_prefix;
 {
   char *tmp;
   int i = TCL_LINK_INT;
@@ -312,11 +315,13 @@ char *idx_prefix;
   */
   int max_element_len = 14;  /* "xscrollcommand" */
 
-  tmp = malloc( strlen(array_name) + 1 + strlen(idx_prefix) + 1 +
+  tmp = malloc( strlen(hist->array_name) + 1 + strlen(hist->idx_prefix) + 1 +
 		       max_element_len + 1 + 1 );
 
   LINK_ELEMENT( "window", window, s );
   LINK_ELEMENT( "canvas", canvas, s );
+  LINK_ELEMENT( "time_lbl", time_lbl, s );
+  LINK_ELEMENT( "xscrollbar", xscrollbar, s );
   LINK_ELEMENT( "xscrollcommand", xscrollcommand, s );
   LINK_ELEMENT( "color", color, s );
   LINK_ELEMENT( "bitmap", bitmap, s );
@@ -356,28 +361,28 @@ char *idx_prefix;
 
 
 #define UNLINK_ELEMENT( str_name ) \
-  sprintf( tmp, "%s(%s,%s)", array_name, idx_prefix, str_name ); \
+  sprintf( tmp, "%s(%s,%s)", hist->array_name, hist->idx_prefix, str_name ); \
   Tcl_UnlinkVar( interp, tmp );
 
-static int UnlinkVars( interp, hist, array_name, idx_prefix )
+static int UnlinkVars( interp, hist )
 Tcl_Interp *interp;
 stateHist *hist;
-char *array_name;
-char *idx_prefix;
 {
   char *tmp;
 
   /* tmp will get filled with something like "timeline(.win.0,stuff)",
-     or ("%s(%s,%s)", array_name, idx_prefix, element_name ), to
+     or ("%s(%s,%s)", hist->array_name, hist->idx_prefix, element_name ), to
      be exact.
   */
   int max_element_len = 14;  /* "xscrollcommand" */
 
-  tmp = malloc( strlen(array_name) + 1 + strlen(idx_prefix) + 1 +
+  tmp = malloc( strlen(hist->array_name) + 1 + strlen(hist->idx_prefix) + 1 +
 	        max_element_len + 1 + 1 );
 
   UNLINK_ELEMENT( "window" );
   UNLINK_ELEMENT( "canvas" );
+  UNLINK_ELEMENT( "time_lbl" );
+  UNLINK_ELEMENT( "xscrollbar" );
   UNLINK_ELEMENT( "xscrollcommand" );
   UNLINK_ELEMENT( "color" );
   UNLINK_ELEMENT( "bitmap" );
@@ -820,34 +825,27 @@ stateHist *hist;
 int argc;
 char *argv[];
 {
-  double totalWidth;
-  int totalUnits, windowUnits, firstUnit, lastUnit;
-  double timeSpan;
-  char *tmp;
-  int returnVal;
+  int windowUnits, firstUnit;
+  double fullSpan, visSpan;
+  char cmd[200];
 
-    /* no scroll command */
-  if (!hist->xscrollcommand || hist->xscrollcommand[0] == '\0')
-    return TCL_OK;
+  visSpan = hist->right - hist->left;
+  fullSpan = hist->longest - hist->shortest;
 
-  timeSpan = hist->longest - hist->shortest;
+    /* send left/span command to time_lbl */
+  sprintf( cmd, "%s setview %.10f %.10f\n", hist->time_lbl, hist->left,
+	   visSpan );
+  if (Tcl_Eval( hist->interp, cmd ) != TCL_OK) return TCL_ERROR;
 
-  totalWidth = hist->width * timeSpan / (hist->right - hist->left);
-  totalUnits = (int)totalWidth;
-  windowUnits = (int)hist->width;
-  firstUnit = totalWidth * (hist->left - hist->shortest) / timeSpan;
-  lastUnit = totalWidth * (hist->right - hist->shortest) / timeSpan;
+  windowUnits = 10000 * visSpan / fullSpan;
+  firstUnit = 10000 * (hist->left - hist->shortest) / fullSpan;
 
-    /* enough space for $w.time_lbl set %d %d %d %d */
-  tmp = malloc( strlen(hist->xscrollcommand) + 1 + 25 * 4 + 1 );
+    /* send old-fashioned scroll command to the horizontal scrollbar */
+  sprintf( cmd, "%s set 10000 %d %d %d", hist->xscrollbar,
+	   windowUnits, firstUnit, firstUnit + windowUnits );
+  if (Tcl_Eval( hist->interp, cmd ) != TCL_OK) return TCL_ERROR;
 
-  sprintf( tmp, "%s %d %d %d %d", hist->xscrollcommand,
-	   totalUnits, windowUnits, firstUnit, lastUnit );
-
-  returnVal = Tcl_Eval( interp, tmp );
-  free( tmp );
-
-  return returnVal;
+  return TCL_OK;
 }
 
 
@@ -858,28 +856,32 @@ stateHist *hist;
 int argc;
 char *argv[];
 {
-  double screenWidth, totalWidth, range, x, new_left;
+  int xview;
+  double visSpan, fullSpan, left;
 
   if (TCL_OK != ConvertArgs( interp, "hist <token> xview <x>",
-			     "3 f", argc, argv, &x )) {
+			     "3 d", argc, argv, &xview )) {
     return TCL_ERROR;
   }
+  
+    /* the scrollbar will scroll everyone right off the screen if you
+       let it */
+  if (xview<0) xview = 0;
 
-  range = hist->longest - hist->shortest;
-  screenWidth = hist->right - hist->left;
-  totalWidth = hist->width * range / screenWidth;
-  new_left = x * range / totalWidth + hist->shortest;
+  visSpan = hist->right - hist->left;
+  fullSpan = hist->longest - hist->shortest;
+  left = xview * fullSpan / 10000 + hist->shortest;
 
-  if (new_left < hist->shortest) {
-    new_left = hist->shortest;
-  } else if (new_left + screenWidth > hist->longest) {
-    new_left = hist->longest - screenWidth;
+  if (left < hist->shortest) {
+    left = hist->shortest;
+  } else if (left + visSpan > hist->longest) {
+    left = hist->longest - visSpan;
   }
 
-  if (new_left == hist->left) return TCL_OK;
+  if (left == hist->left) return TCL_OK;
 
-  hist->left = new_left;
-  hist->right = new_left + screenWidth;
+  hist->left = left;
+  hist->right = left + visSpan;
 
   return Tcl_VarEval( interp, "Hist_Draw ", hist->window, (char*)0 );
 }
@@ -890,7 +892,7 @@ char *argv[];
 static int State_HistClose( hist )
 stateHist *hist;
 {
-  UnlinkVars( hist->interp, hist, hist->array_name, hist->idx_prefix );
+  UnlinkVars( hist->interp, hist );
   Stats_Close( hist->vis_stats );
   free( hist->array_name );
   free( hist->idx_prefix );
@@ -916,9 +918,14 @@ int top, bottom;
     mid = (top + bottom) / 2;
 
     if (hist->lens[mid] > x) {
+        /* too high */
       top = mid - 1;
-    } else {
+    } else if (hist->lens[mid] < x) {
+        /* too low */
       bottom = mid + 1;
+    } else {
+        /* found exact value */
+      return mid;
     }
   }
 
@@ -937,7 +944,14 @@ int bottom, top;
   int i;
 
   i = Bsearch( hist, x, bottom, top );
-  if (i && hist->lens[i] > x) i--;
+  if (i && hist->lens[i] > x) {
+      /* if the item found is greater than what we want, decrement */
+    i--;
+  } else {
+      /* if the item found is equal to what we want, skip over any preceding
+	 equal ones */
+    while (i>0 && hist->lens[i-1] == x) i--;
+  }
 
   return i;
 }
@@ -953,10 +967,15 @@ int bottom, top;
   int i;
 
   i = Bsearch( hist, x, bottom, top );
-  if ((i< hist->n-1) && hist->lens[i] < x) i++;
+  if ((i< hist->n-1) && hist->lens[i] < x) {
+      /* if the item found is less than what we want, increment */
+    i++;
+  } else {
+      /* if the item found is equal to what we want, skip over any succeeding
+	 equal ones */
+    while (i<top-1 && hist->lens[i+1] == x) i++;
+  }
 
   return i;
 }
-
-      
 

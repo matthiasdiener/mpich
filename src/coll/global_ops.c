@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.28 1994/09/11 15:25:00 gropp Exp $
+ *  $Id: global_ops.c,v 1.29 1995/03/05 20:20:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: global_ops.c,v 1.28 1994/09/11 15:25:00 gropp Exp $";
+static char vcid[] = "$Id: global_ops.c,v 1.29 1995/03/05 20:20:39 gropp Exp $";
 #endif /* lint */
 
 
@@ -90,6 +90,15 @@ MPI_Datatype *type;
       a[i] = MPIR_MAX(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_DOUBLE)
+  case MPIR_LONGDOUBLE: {
+    long double *a = (long double *)inoutvec; 
+    long double *b = (long double *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_MAX(a[i],b[i]);
+    break;
+  }
+#endif
   default:
     MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
 	       "Error in MPI_MAX" );
@@ -157,6 +166,15 @@ MPI_Datatype *type;
       a[i] = MPIR_MIN(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_DOUBLE)
+  case MPIR_LONGDOUBLE: {
+    long double *a = (long double *)inoutvec; 
+    long double *b = (long double *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_MIN(a[i],b[i]);
+    break;
+  }
+#endif
   default:
     MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_OP|MPIR_ERR_NOT_DEFINED,
 	       "Error in MPI_MIN" );
@@ -225,6 +243,15 @@ MPI_Datatype *type;
       a[i] = MPIR_LSUM(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_DOUBLE)
+  case MPIR_LONGDOUBLE: {
+    long double *a = (long double *)inoutvec; 
+    long double *b = (long double *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LSUM(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_COMPLEX: {
     s_complex *a = (s_complex *)inoutvec; s_complex *b = (s_complex *)invec;
     for ( i=0; i<len; i++ ) {
@@ -309,6 +336,15 @@ MPI_Datatype *type;
       a[i] = MPIR_LPROD(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_DOUBLE)
+  case MPIR_LONGDOUBLE: {
+    long double *a = (long double *)inoutvec; 
+    long double *b = (long double *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LPROD(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_COMPLEX: {
     s_complex *a = (s_complex *)inoutvec; s_complex *b = (s_complex *)invec;
     for ( i=0; i<len; i++ ) {
@@ -399,6 +435,15 @@ MPI_Datatype *type;
       a[i] = MPIR_LLAND(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_DOUBLE)
+  case MPIR_LONGDOUBLE: {
+    long double *a = (long double *)inoutvec; 
+    long double *b = (long double *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLAND(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_LOGICAL: {
       /* Assume that C int == Fortran int for now */
       int *a = (int *)inoutvec; int *b = (int *)invec;
@@ -543,6 +588,15 @@ MPI_Datatype *type;
       a[i] = MPIR_LLOR(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_DOUBLE)
+  case MPIR_LONGDOUBLE: {
+    long double *a = (long double *)inoutvec; 
+    long double *b = (long double *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLOR(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_LOGICAL: {
       /* Assume that C int == Fortran int for now */
       int *a = (int *)inoutvec; int *b = (int *)invec;
@@ -688,6 +742,15 @@ MPI_Datatype *type;
       a[i] = MPIR_LLXOR(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_DOUBLE)
+  case MPIR_LONGDOUBLE: {
+    long double *a = (long double *)inoutvec; 
+    long double *b = (long double *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLXOR(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_LOGICAL: {
       /* Assume that C int == Fortran int for now */
       int *a = (int *)inoutvec; int *b = (int *)invec;

@@ -1,0 +1,50 @@
+#! /bin/sh
+#
+# This script tests each of the machines in the machines/machine.$1 list
+# to make sure that it is accessible and can run programs.  This is only
+# a partial test
+#
+#set -x
+rsh="#RSH_COMMAND#"
+# Could use #DEFAULT_ARCH#
+# and #DEFAULT_DEVICE# to see if we should check....
+arch=$1
+MPIR_HOME="#MPIR_HOME#"
+machineFile="${MPIR_HOME}/util/machines/machines.${arch}"
+if [ ! -f $machineFile ] ; then
+    echo "Cannot read list of nodes $machineFile"
+    exit 1
+fi
+list=`cat $machineFile | sed -e '/\#/d' | tr -s '\012' ' '`
+echo "A test" > foo
+# Use same mechanism as in mpirun to get the value of pwd...
+if [ -n "$PWD" ] ; then
+    PWD_TRIAL=$PWD
+else
+    PWD_TRIAL=`pwd`
+fi
+if [ -n "$PWD_TRIAL" ] ; then
+    PWD_TRIAL=`echo $PWD_TRIAL | sed -e 's%/tmp_mnt/%/%g'`
+    if [ ! -d $PWD_TRIAL ] ; then 
+        echo "Warning: your default path uses the automounter; this may"
+        echo "cause some problems if you use other NFS-connected systems."
+        PWD_TRIAL=`pwd`
+    fi
+fi
+myprog=$PWD_TRIAL/foo
+errcnt=0
+for machine in $list ; do
+    output=`$rsh $machine ls $myprog 2>&1`
+    if [ "$output" != "$myprog" ] ; then
+	echo "Unexpected response from $machine:"
+        echo "--> $output"
+	errcnt=`expr $errcnt + 1`
+    fi
+done
+/bin/rm foo
+if [ $errcnt -gt 0 ] ; then
+    echo "$errcnt errors were encountered while testing the machines list for $arch"
+    exit 1
+fi
+exit 0
+

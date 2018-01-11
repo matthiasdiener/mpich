@@ -1,12 +1,12 @@
 /*
- *  $Id: chcoll.c,v 1.4 1995/01/03 19:40:12 gropp Exp $
+ *  $Id: chcoll.c,v 1.4 1995/01/03 19:40:12 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char SCCSid[] = "%W% %G%";
+static char vcid[] = "$Id$";
 #endif
 
 /* 
@@ -52,7 +52,8 @@ int MPID_CH_Comm_free( comm )
 MPI_Comm comm;
 {
 if (comm->ADIBarrier)
-    MPID_CH_Free_barrier( comm->ADIBarrier );
+    MPID_CH_Free_barrier( comm->ADIBarrier, 
+			  comm->local_group->local_rank == 0 );
 
 return MPI_SUCCESS;
 }

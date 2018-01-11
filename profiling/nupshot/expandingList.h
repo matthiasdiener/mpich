@@ -90,7 +90,7 @@ int fprintf( FILE *, const char *, ... );
    ListClose( listVar, type, head, nitems )
      deallocate the list and return the head and nitems
    ListDestroy( listVar, type )
-     frees the memory in use by listVar
+     frees the memory in use by listVar and sets listVar to 0
    ListClear( listVar, type )
      clear out a list, leaving it with the same allocated space 
    ListRemoveItems( listVar, type, nitems )

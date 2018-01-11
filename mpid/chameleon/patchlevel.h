@@ -1,1 +1,1 @@
-#define MPIDPATCHLEVEL 1.6
+#define MPIDPATCHLEVEL 1.8

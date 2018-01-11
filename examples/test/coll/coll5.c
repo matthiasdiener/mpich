@@ -45,6 +45,7 @@ char **argv;
 	if ( row[i] != i+rank ) errors++;
     } 
 
+    Test_Waitforall( );
     MPI_Finalize();
     if (errors)
       printf( "[%d] done with ERRORS(%d)!\n", rank, errors );

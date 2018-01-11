@@ -33,10 +33,18 @@ extern void MPIR_RmPointer();
 #endif
 
  void mpi_op_create_( function, commute, op, __ierr )
+#ifdef FORTRAN_SPECIAL_FUNCTION_PTR
+MPI_User_function **function;
+#else
 MPI_User_function *function;
+#endif
 int               *commute;
 MPI_Op            *op;
 int               *__ierr;
 {
+#ifdef FORTRAN_SPECIAL_FUNCTION_PTR
+*__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(*commute),op);
+#else
 *__ierr = MPI_Op_create(function,MPIR_FROM_FLOG(*commute),op);
+#endif
 }

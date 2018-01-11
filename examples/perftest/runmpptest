@@ -13,13 +13,15 @@ set OVERLAP = 1
 set GOP	    = 1
 set BISECT  = 1
 set PLOT    = "Cit"
-if ($#argv > 1) then
+set MPIRUNOPT = ""
+if ($#argv > 0) then
     if ("$1" == "-help") then 
         echo "Run mpptest for round-trip messages from 0 to 1 MByte."
 	echo "Output goes to stdout"
 	echo " "
 	echo "mpptest [ -help ] [ -short ] [ -fname file ] [-gnuplot]"
 	echo " [ -pair ] [ -gop ] [ -overlap ] [ -bisect ]"
+	echo " [ -mpirun options ] [ -np n]"
         exit
     endif
     while ( $#argv > 0 ) 
@@ -79,6 +81,12 @@ if ($#argv > 1) then
 	set BISECT = 0
 	set GOP = 0
 	breaksw
+
+	case -mpirun:
+	shift
+	set MPIRUNOPT = "$1"
+	shift
+	breaksw
 	
 	default:
 	echo "Unknown option $1"
@@ -105,7 +113,7 @@ else
 endif
 #
 # Choose the system to run with ...
-set MPPTEST = "mpirun -np $NP mpptest"
+set MPPTEST = "mpirun $MPIRUNOPT -np $NP mpptest"
 #
 #
 # Begin the tests

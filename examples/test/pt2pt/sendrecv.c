@@ -16,8 +16,12 @@
 #include <stdlib.h>
 #include "mpi.h"
 
-static int src = 1;
-static int dest = 0;
+static int src;
+static int dest;
+
+static int do_test1 = 1;
+static int do_test2 = 1;
+static int do_test3 = 1;
 
 #define MAX_TYPES 12
 #if defined(__STDC__) 
@@ -125,47 +129,73 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
     int bufferlen;
 {
     int i, j;
+    char valerr[256];
+    valerr[0] = 0;
     for (j = 0; j < bufferlen; j++) {
 	if (buffertype == MPI_CHAR) {
-	    if (((char *)bufferspace)[j] != (char)j)
-		return 1;
+	    if (((char *)bufferspace)[j] != (char)j) {
+		sprintf( valerr, "%c != %c", 
+			((char *)bufferspace)[j], (char)j );
+		break;
+		}
 	} else if (buffertype == MPI_SHORT) {
-	    if (((short *)bufferspace)[j] != (short)j)
-		return 1;
+	    if (((short *)bufferspace)[j] != (short)j) {
+		sprintf( valerr, "%d != %d", 
+			((short *)bufferspace)[j], (short)j );
+		break;
+		}
 	} else if (buffertype == MPI_INT) {
-	    if (((int *)bufferspace)[j] != (int)j)
-		return 1;
+	    if (((int *)bufferspace)[j] != (int)j) {
+		sprintf( valerr, "%d != %d", 
+			((int *)bufferspace)[j], (int)j );
+		break;
+		}
 	} else if (buffertype == MPI_LONG) {
-	    if (((long *)bufferspace)[j] != (long)j)
-		return 1;
+	    if (((long *)bufferspace)[j] != (long)j) {
+		break;
+		}
 	} else if (buffertype == MPI_UNSIGNED_CHAR) {
-	    if (((unsigned char *)bufferspace)[j] != (unsigned char)j)
-		return 1;
+	    if (((unsigned char *)bufferspace)[j] != (unsigned char)j) {
+		break;
+		}
 	} else if (buffertype == MPI_UNSIGNED_SHORT) {
-	    if (((unsigned short *)bufferspace)[j] != (unsigned short)j)
-		return 1;
+	    if (((unsigned short *)bufferspace)[j] != (unsigned short)j) {
+		break;
+		}
 	} else if (buffertype == MPI_UNSIGNED) {
-	    if (((unsigned int *)bufferspace)[j] != (unsigned int)j)
-		return 1;
+	    if (((unsigned int *)bufferspace)[j] != (unsigned int)j) {
+		break;
+		}
 	} else if (buffertype == MPI_UNSIGNED_LONG) {
-	    if (((unsigned long *)bufferspace)[j] != (unsigned long)j)
-		return 1;
+	    if (((unsigned long *)bufferspace)[j] != (unsigned long)j) {
+		break;
+		}
 	} else if (buffertype == MPI_FLOAT) {
-	    if (((float *)bufferspace)[j] != (float)j)
-		return 1;
+	    if (((float *)bufferspace)[j] != (float)j) {
+		break;
+		}
 	} else if (buffertype == MPI_DOUBLE) {
-	    if (((double *)bufferspace)[j] != (double)j)
-		return 1;
+	    if (((double *)bufferspace)[j] != (double)j) {
+		break;
+		}
 #if defined(__STDC__)
 	} else if (MPI_LONG_DOUBLE && buffertype == MPI_LONG_DOUBLE) {
-	    if (((long double *)bufferspace)[j] != (long double)j)
-		return 1;
+	    if (((long double *)bufferspace)[j] != (long double)j) {
+		break;
+		}
 #endif
 	} else if (buffertype == MPI_BYTE) {
-	    if (((unsigned char *)bufferspace)[j] != (unsigned char)j)
-		return 1;
+	    if (((unsigned char *)bufferspace)[j] != (unsigned char)j) {
+		break;
+		}
 	}
     }
+    /* Return +1 so an error in the first location is > 0 */
+    if (j < bufferlen) {
+	if (valerr[0]) fprintf( stderr, "Different value[%d] = %s\n", 
+			        j, valerr );
+	return j+1;
+	}
     return 0;
 }
 
@@ -282,22 +312,28 @@ ReceiverTest1()
     FreeBuffers(bufferspace, ntypes);
 }
 
-/* Test Tag Selectivity */
+#define MAX_ORDER_TAG 2010
+/* Test Tag Selectivity.
+   Note that we must use non-blocking sends here, since otherwise we could 
+   deadlock waiting to receive/send the first message
+*/
 void 
 SenderTest2()
 {
     int *buffer;
     int i;
+    MPI_Request r[10];
+    MPI_Status  s[10];
 
     buffer = (int *)malloc(maxbufferlen * sizeof(int));
-
     for (i = 0; i < maxbufferlen; i++)
 	buffer[i] = i;
     
-    for (i = 2001; i <= 2010; i++)
-	MPI_Send(buffer, maxbufferlen, MPI_INT, dest,
-		 i, MPI_COMM_WORLD);
+    for (i = 2001; i <= MAX_ORDER_TAG; i++)
+	MPI_Isend(buffer, maxbufferlen, MPI_INT, dest,
+		 i, MPI_COMM_WORLD, &r[i-2001] );
     
+    MPI_Waitall( MAX_ORDER_TAG-2001+1, r, s );
     free(buffer);
     
     return;
@@ -311,11 +347,12 @@ ReceiverTest2()
     char message[81];
     MPI_Status Stat;
     int dummy, passed;
+    int errloc;
 
-    buffer = (int *)malloc(maxbufferlen * sizeof(int));
+    buffer = (int *)calloc(maxbufferlen,sizeof(int));
     passed = 1;
 
-    for (i = 2010; i >= 2001; i--) {
+    for (i = MAX_ORDER_TAG; i >= 2001; i--) {
 	MPI_Recv(buffer, maxbufferlen, MPI_INT, src, 
 		 i, MPI_COMM_WORLD, &Stat);
 	sprintf(message, "Tag Selectivity Test, Tag %d",
@@ -332,8 +369,10 @@ ReceiverTest2()
 		    "*** Incorrect Count returned, Count = %d. ***\n", 
 		    dummy);
 	    Test_Failed(message);
-	} else if(CheckBuffer(buffer, MPI_INT, maxbufferlen)) {
-	    fprintf(stderr, "*** Incorrect Message received. ***\n");
+	} else if((errloc = CheckBuffer(buffer, MPI_INT, maxbufferlen))) {
+	    fprintf(stderr, 
+		    "*** Incorrect Message received at %d (tag=%d). ***\n",
+		    errloc-1, i);
 	    Test_Failed(message);
 	    passed = 0;
 	}
@@ -452,6 +491,7 @@ main(argc, argv)
     char **argv;
 {
     int myrank, mysize;
+    int rc;
 
     MPI_Init(&argc, &argv);
 /*    MPID_SetSendDebugFlag(1);
@@ -466,32 +506,49 @@ main(argc, argv)
 		"*** This test program requires exactly 2 processes.\n");
 	exit(-1);
     }
-    
+
+    /* dest writes out the received stats; for the output to be
+       consistant (with the final check), it should be procees 0 */
+    if (argc > 1 && argv[1] && strcmp( "-alt", argv[1] ) == 0) {
+	dest = 1;
+	src  = 0;
+	}
+    else {
+	src  = 1;
+	dest = 0;
+	}
     /* Turn stdout's buffering to line buffered so it mixes right with
        stderr in output files. (hopefully) */
     setvbuf(stdout, NULL, _IOLBF, 0);
     setvbuf(stderr, NULL, _IOLBF, 0);
 
     if (myrank == src) {
-	SenderTest1();
-	SenderTest2();
-	SenderTest3(); 
+	if (do_test1)
+	    SenderTest1();
+	if (do_test2)
+	    SenderTest2();
+	if (do_test3)
+	    SenderTest3(); 
     } else if (myrank == dest) {
-	ReceiverTest1();
-	ReceiverTest2();
-	ReceiverTest3();
+	if (do_test1)
+	    ReceiverTest1();
+	if (do_test2)
+	    ReceiverTest2();
+	if (do_test3) 
+	    ReceiverTest3();
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
 	exit(-1);
     }
-    MPI_Finalize();
     if (myrank == dest) {
-	int rval = Summarize_Test_Results();
+	rc = Summarize_Test_Results();
 	Test_Finalize();
-	return rval;
     }
     else {
 	Test_Finalize();
-	return 0;
+	rc = 0;
     }
+    Test_Waitforall( );
+    MPI_Finalize();
+    return rc;
 }

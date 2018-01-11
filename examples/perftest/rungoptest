@@ -4,7 +4,7 @@
 #
 # Set defaults
 set MAXNP   = 8
-set SHORT   = 0
+set SIZE    = "-tgoal 0.1"
 set fname   = "-fname gop.out"
 set system  = "MPI"
 set NATIVE  = ""
@@ -14,16 +14,21 @@ set SYNC    = 1
 set MULT    = 2
 set ADD     = 0
 set PLOT    = "Cit"
-if ($#argv > 1) then
+set MPIRUNOPT = ""
+set MPIRUN  = "mpirun"
+if ($#argv > 0) then
     if ("$1" == "-help") then 
         echo "Run goptest for collective operations"
 	echo "Output goes to stdout"
 	echo " "
-	echo "goptest [ -help ] [ -short ] [ -maxnp n ] [ -fname file ]"
-	echo " [ -gnuplot ] [ -sync ] [ -dsum ] [ -bcast ]"
-        echo " [ -add ]"
+	echo "rungoptest [ -help ] [ -short ] [ -long ] [ -vlong ] "
+        echo "           [ -maxnp n ] [ -fname file ]"
+	echo "           [ -gnuplot ] [ -sync ] [ -dsum ] [ -bcast ]"
+        echo "           [ -add ] [ -mpirun options ]"
+	echo "           [ -mpirunpgm program ]"
         echo " An fname of -stdout will write all output to stdout"
 	echo " -add choses nodes of the form 2*k instead of 2**k"
+	echo " -mpirunpgm chooses a different version of mpirun"
         exit
     endif
     while ( $#argv > 0 ) 
@@ -31,8 +36,18 @@ if ($#argv > 1) then
 
 	case -short:
 	shift
-	set SHORT = 1
+	set SIZE = "-size 0 1024 256 -tgoal 0.1"
 	breaksw
+
+	case -long:
+	shift
+	set SIZE = "-size 1024 16384 2048 -tgoal 0.1"
+	breaksw
+
+	case -vlong:
+	shift
+	set SIZE = "-size 16384 65536 16384 -reps 100 -tgoal 0.5"
+        breaksw
 
 	case -maxnp:
 	shift
@@ -79,6 +94,19 @@ if ($#argv > 1) then
 	set ADD = 2
 	set MULT = 1
 	breaksw 
+
+	case -mpirun:
+	shift
+	set MPIRUNOPT = "$1"
+	shift
+	breaksw
+	
+	case -mpirunpgm:
+	shift
+	set MPIRUN = "$1"
+	shift
+	breaksw
+	
 	default:
 	echo "Unknown option $1"
 	shift 
@@ -89,27 +117,15 @@ endif
 #
 # SP1 systems require this and it does not hurt other systems
 setenv PWD `pwd | sed 's%/tmp_mnt/%/%g'`
-set GRAPH   = "$fname"
+set GRAPH     = "$fname"
 set GRAPHHEAD = ""
 set GRAPHTAIL = "-notail"
-if ( $SHORT == 0 && $PLOT == "Cit") then
-    set GRAPH11 = "-wx 1 2 -wy 2 2 $fname"
-    set GRAPH12 = "-wx 2 2 -wy 2 2 $fname"
-    set GRAPH21 = "-wx 1 2 -wy 1 2 $fname"
-    set GRAPH22 = "-wx 2 2 -wy 1 2 $fname -lastwindow"
-else
-    set GRAPH11 = "$fname"
-    set GRAPH12 = "$fname"
-    set GRAPH21 = "$fname"
-    set GRAPH22 = "$fname"
-endif
-set LIMITS  = "-dtime 0:15 -cpu 15 -mem 4"
 #
 # Choose the system to run with ...
 set NP = 2
 while ($NP <= $MAXNP) 
     setenv MP_PROCS $NP
-    set GOPTEST = "mpirun -np $NP goptest"
+    set GOPTEST = "$MPIRUN $MPIRUNOPT -np $NP goptest"
     set MPP = ""
     #
     # Begin the tests
@@ -117,41 +133,29 @@ while ($NP <= $MAXNP)
     # Round-trip times, blocking (from 0 to 1 MBytes)
     if ( $SYNC == 1 ) then
         if ($NP == 2) echo "# Synchronization time"
-        $GOPTEST $GRAPH11 -tgoal 0.1 $GRAPHHEAD $GRAPHTAIL -sync
+        $GOPTEST $GRAPH -tgoal 0.1 $GRAPHHEAD $GRAPHTAIL -sync
     endif
     #
     if ( $BCAST == 1 ) then
         #
         # Broadcast tsets
         if ($NP == 2) echo "# Broadcast tests"
-        $GOPTEST $GRAPH11 -bcast -tgoal 0.1 $GRAPHHEAD $GRAPHTAIL
-        if ( $SHORT == 0 ) then 
-            $GOPTEST $GRAPH12 -bcast -tgoal 0.1 \
-	     	         -size 1024 16384 2048 $GRAPHHEAD $GRAPHTAIL
-            $GOPTEST $GRAPH21 -bcast -tgoal 0.5 \
-	        -size 16384 65536 16384  -reps 100 $GRAPHHEAD $GRAPHTAIL
-            #$GOPTEST $GRAPH22 -bcast -tgoal 1.0 \
-            #	-size 65536 1048576 65536 -reps 100 $GRAPHHEAD $GRAPHTAIL
-        endif
+        $GOPTEST $GRAPH -bcast $SIZE $GRAPHHEAD $GRAPHTAIL
     endif
-#
-# Collective operation tests
-#
-if ( $DSUM == 1 ) then
-    if ($NP == 2) echo "# Reduction tests"
     #
-    # We set sizes on these since they are with respect to either ints or 
-    # doubles, not bytes
-    $GOPTEST $GRAPH11 -dsum $GRAPHHEAD $GRAPHTAIL
-    if ( $SHORT == 0 ) then
-        $GOPTEST $GRAPH12 -dsum -tgoal 0.1 \
-	    -size 1024 16384 2048 $GRAPHHEAD $GRAPHTAIL
+    # Collective operation tests
+    #
+    if ( $DSUM == 1 ) then
+        if ($NP == 2) echo "# Reduction tests"
+        #
+        # We set sizes on these since they are with respect to either ints or 
+        # doubles, not bytes
+        $GOPTEST $GRAPH -dsum $SIZE $GRAPHHEAD $GRAPHTAIL
     endif
-endif
-#
-# End of the while on NP
-@ NP = $NP * $MULT + $ADD
-set GRAPHHEAD = "-nohead"
-# If we are the second to last iteration, remove the -notail option.
-if ($NP * $MULT + $ADD > $MAXNP) set GRAPHTAIL = ""
+    #
+    # End of the while on NP
+    @ NP = $NP * $MULT + $ADD
+    set GRAPHHEAD = "-nohead"
+    # If we are the second to last iteration, remove the -notail option.
+    if ($NP * $MULT + $ADD > $MAXNP) set GRAPHTAIL = ""
 end 

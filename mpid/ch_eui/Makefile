@@ -13,7 +13,7 @@ DEVICE      = ch_eui
 BOPT        = 
 MPIR_HOME   = /home/MPI/mpich
 INCLUDE_DIR =  -Impid/ch_eui -Iinclude
-CC          = mpcc
+CC          = mpCC
 AR          = ar crl
 RANLIB      = ranlib
 OPTFLAGS    = -O
@@ -23,12 +23,14 @@ OPTFLAGS    = -O
 ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =  -DFORTRANNOUNDERSCORE  -D_ALL_SOURCE=1 -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+CFLAGS   =  -DFORTRANNOUNDERSCORE  -D_ALL_SOURCE=1  -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPID_DEVICE_CODE  -DMPID_LIMITED_BUFFERS -DMPID_DEBUG_NONE -DMPID_STAT_NONE
-SOURCE   = euievent.c euirecv.c euisend.c euiinit.c euiprobe.c euisync.c
+SOURCE   = euievent.c euirecv.c euisend.c euiinit.c euiprobe.c euisync.c \
+	   euirndv.c euicoll.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = euievent.o euirecv.o euisend.o euiinit.o euiprobe.o euisync.o
+MPI_OBJECTS = euievent.o euirecv.o euisend.o euiinit.o euiprobe.o euisync.o \
+	      euirndv.o euicoll.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

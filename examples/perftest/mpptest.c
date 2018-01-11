@@ -6,7 +6,7 @@ int __NUMNODES, __MYPROCID  ;
 #include <stdio.h>
 
 #include "mpi.h"
-extern int __NUMNODES, __MYPROCID;MPI_Status _mpi_status;static int _n;
+extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _MPILEN;
 
 
 
@@ -175,6 +175,8 @@ double   autorel  = 0.02;
 char     units[32];         /* Name of units of length */
 
 MPI_Init( &argc, &argv );
+MPI_Comm_size( MPI_COMM_WORLD, &__NUMNODES );
+MPI_Comm_rank( MPI_COMM_WORLD, &__MYPROCID );
 ;
 strcpy( protocol_name, "blocking" );
 strcpy( units, "(bytes)" );
@@ -602,6 +604,10 @@ combinations of\n\
   -sync        Blocking sends/receives    (default)\n\
   -async       NonBlocking sends/receives\n\
   -force       Ready-receiver (with a null message)\n\
+  -persistant  Persistant communication (only with MPI)\n\
+\n\
+  Message data:\n\
+  -cachesize n Perform test so that cached data is NOT reused\n\
 \n\
   Message pattern:\n\
   -roundtrip   Roundtrip messages         (default)\n\

@@ -29,10 +29,12 @@ P4_HOME  = ./p4-1.4
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
 	   -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@
-SOURCE   = p4event.c p4recv.c p4send.c p4init.c p4probe.c p4sync.c p4coll.c
+SOURCE   = p4event.c p4recv.c p4send.c p4init.c p4probe.c p4sync.c p4coll.c \
+	   p4rndv.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = p4event.o p4recv.o p4send.o p4init.o p4probe.o p4sync.o p4coll.o
+MPI_OBJECTS = p4event.o p4recv.o p4send.o p4init.o p4probe.o p4sync.o \
+	      p4coll.o p4rndv.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 
@@ -67,6 +69,7 @@ chlib: $(MPI_OBJECTS)
 p4inmpi:
 	(cd $(P4_HOME); \
 	$(MAKE) p4inmpi MPIARCH=$(ARCH); cd ..)
+
 
 
 

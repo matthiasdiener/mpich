@@ -1,4 +1,4 @@
-      subroutine MPIR_init_fdtes( MPIR_int_dte, MPIR_float_dte,
+      subroutine mpir_init_fdtes( MPIR_int_dte, MPIR_float_dte,
      $     MPIR_double_dte, MPIR_complex_dte, MPIR_dcomplex_dte,
      $     MPIR_logical_dte,
      $     MPIR_char_dte, MPIR_byte_dte, MPIR_2int_dte, MPIR_2real_dte, 
@@ -39,7 +39,7 @@ C     optional datatypes
       MPI_REAL8            = MPIR_real8_dte
       return
       end
-      subroutine MPIR_init_fcm( world, self, groupempty )
+      subroutine mpir_init_fcm( world, self, groupempty )
       integer world, self, groupempty
       include '../../include/mpif.h'
       MPI_COMM_WORLD  = world
@@ -47,10 +47,10 @@ C     optional datatypes
       MPI_GROUP_EMPTY = groupempty
 C
 C     Tell C where MPI_BOTTOM is
-      call MPIR_init_bottom( MPI_BOTTOM )
+      call mpir_init_bottom( MPI_BOTTOM )
       return
       end
-      subroutine MPIR_init_fop( maxf, minf, sumf, prodf, landf, bandf,
+      subroutine mpir_init_fop( maxf, minf, sumf, prodf, landf, bandf,
      $                          lorf, borf, lxorf, bxorf, maxlocf, 
      $                          minlocf, err_fatal, err_ret )
       integer maxf, minf, sumf, prodf, landf, bandf,
@@ -99,5 +99,13 @@ C
 C
       itrue  = .TRUE.
       ifalse = .FALSE.
+      return
+      end
+C
+      subroutine mpir_get_fsize()
+      real r(2)
+C     character c(2)
+      double precision d(2)
+      call mpir_init_fsize( r(1), r(2), d(1), d(2) )
       return
       end

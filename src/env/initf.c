@@ -1,5 +1,5 @@
 /*
- *  $Id: initf.c,v 1.10 1994/09/22 02:29:51 gropp Exp $
+ *  $Id: initf.c,v 1.11 1995/02/24 21:25:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: initf.c,v 1.10 1994/09/22 02:29:51 gropp Exp $";
+static char vcid[] = "$Id: initf.c,v 1.11 1995/02/24 21:25:27 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -95,7 +95,7 @@ for (i=0; i<Argc; i++) {
     DEBUG(trvalid( "after getarg" ); fflush(stderr);)
     /* Trim trailing blanks */
     p = Argv[i] + argsize - 1;
-    while (p > Argv[i]) {
+    while (p >= Argv[i]) {
 	if (*p != ' ' && *p) {
 	    p[1] = '\0';
 	    break;

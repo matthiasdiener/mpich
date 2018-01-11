@@ -94,3 +94,25 @@ void Test_Finalize()
     fflush(fileout);
     fclose(fileout);
 }
+
+#include "mpi.h"
+/* Wait for every process to pass through this point.  This test is used
+   to make sure that all processes complete, and that a test "passes" because
+   it executed, not because it some process failed.  
+ */
+void Test_Waitforall( )
+{
+int m, one, myrank, n;
+
+MPI_Comm_rank( MPI_COMM_WORLD, &myrank );
+MPI_Comm_size( MPI_COMM_WORLD, &n );
+one = 1;
+MPI_Allreduce( &one, &m, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+
+if (m != n) {
+    printf( "[%d] Expected %d processes to wait at end, got %d\n", myrank, 
+	    n, m );
+    }
+if (myrank == 0) 
+    printf( "All processes completed test\n" );
+}

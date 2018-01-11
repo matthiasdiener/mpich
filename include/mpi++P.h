@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi++P.h,v 1.4 1994/10/28 18:14:53 gropp Exp $
+ *  $Id: mpi++P.h,v 1.5 1995/02/06 22:13:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -48,7 +48,7 @@ public:
   MPIX_Op (MPI_Op oldop) { op = oldop; }
   
   // Initialization of an op
-  Create ( MPI_Uop *function, int commute ) {
+  Create ( MPI_User_function *function, int commute ) {
 	return (MPI_Op_create( function, commute, &op ));
   }
   

@@ -24,10 +24,10 @@ ALL: default
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPID_DEVICE_CODE @DEVCFLAGS@
-SOURCE   = nxevent.c nxrecv.c nxsend.c nxinit.c nxprobe.c nxsync.c
+SOURCE   = nxevent.c nxrecv.c nxsend.c nxinit.c nxprobe.c nxsync.c nxrndv.c
 SOURCEC  = $(SOURCE)
 SOURCEF  =
-MPI_OBJECTS = nxevent.o nxrecv.o nxsend.o nxinit.o nxprobe.o nxsync.o
+MPI_OBJECTS = nxevent.o nxrecv.o nxsend.o nxinit.o nxprobe.o nxsync.o nxrndv.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

@@ -1,12 +1,12 @@
 /*
- *  $Id: scan.c,v 1.26 1994/12/15 20:00:15 gropp Exp $
+ *  $Id: scan.c,v 1.27 1995/02/06 22:23:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: scan.c,v 1.26 1994/12/15 20:00:15 gropp Exp $";
+static char vcid[] = "$Id: scan.c,v 1.27 1995/02/06 22:23:46 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -70,6 +70,10 @@ MPI_Comm          comm;
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
 
+  /* 
+     This is an O(size) algorithm.  A modification of the algorithm in 
+     reduce.c can be used to make this O(log(size)) 
+   */
   /* commutative case requires no extra buffering */
   if (op->commute) {
       /* Do the scan operation */

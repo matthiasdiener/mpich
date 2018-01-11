@@ -107,9 +107,9 @@ proc fileselect {
    
    label $w.file.eframe.pattern_lbl -anchor w -width 24 -text "Pattern:"
    entry $w.file.eframe.pattern_entry -relief sunken 
-   # $w.file.eframe.pattern_entry insert 0 \
-	 [GetDefault logfile_name_glob_pattern "*.log *.trf"]
    $w.file.eframe.pattern_entry insert 0 \
+	 [GetDefault logfile_name_glob_pattern "*.log *.trf"]
+   # $w.file.eframe.pattern_entry insert 0 \
 	 [GetDefault logfile_name_glob_pattern "*.log"]
    
    label $w.file.eframe.label -anchor w -width 24 -text $purpose
@@ -142,7 +142,7 @@ proc fileselect {
    
    label $w.bframe.format -text "File format:"
 
-   # set select_format($w) [GuessFormat ""]
+   set select_format($w) [GuessFormat ""]
 
    proc print_trace {name1 name2 op} {
       puts "trace: $name1 $name2 $op"
@@ -159,22 +159,21 @@ proc fileselect {
 
    radiobutton $w.bframe.alog -text "Alog" -variable select_format($w) \
 	 -value alog
-   # radiobutton $w.bframe.picl -text "Picl" -variable select_format($w) \
-	 -value picl
-   # if [string compare $select_format($w) picl] {
-   #   $w.bframe.alog select
-   #} else {
-   #   $w.bframe.picl select
-   #}
+   radiobutton $w.bframe.picl -text "Picl-1" -variable select_format($w) \
+	 -value picl_1
+   if [string compare $select_format($w) picl] {
+      $w.bframe.alog select
+   } else {
+      $w.bframe.picl select
+   }
    
    pack append $w.bframe.okframe $w.bframe.okframe.ok {padx 10 pady 10}
    
    pack append $w.bframe $w.bframe.okframe {expand padx 20 pady 20}\
 	 $w.bframe.cancel {top} \
 	 $w.bframe.format {top pady 15 frame w} \
-	 $w.bframe.alog {top frame e}
-
-       # $w.bframe.picl {top frame e}
+	 $w.bframe.alog {top frame e} \
+	 $w.bframe.picl {top frame e}
    
    LookBusy $w
    update
@@ -213,7 +212,7 @@ proc fileselect {
       %%W select from [%%W nearest %%y]
       $fileselect(entry) delete 0 end
       $fileselect(entry) insert 0 [lindex [%%W get [%%W nearest %%y]] 0]
-      # set select_format(%s) [GuessFormat [$fileselect(entry) get] ]
+      set select_format(%s) [GuessFormat [$fileselect(entry) get] ]
    } $w]
       
    bind $fileselect(list) <Key> {

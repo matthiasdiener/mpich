@@ -6,7 +6,7 @@
  */
 
 #ifndef lint
-static char vcid[] = "$Id: initrecv.c,v 1.8 1995/01/03 19:43:15 gropp Exp $";
+static char vcid[] = "$Id: initrecv.c,v 1.9 1995/03/05 20:15:43 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -34,7 +34,7 @@ int           nonblocking;
     datatype->ref_count++;
     request->rhandle.bufadd       = buf;
     request->rhandle.count        = count;
-    request->rhandle.completed    = MPIR_NO;
+    MPID_Clr_completed( comm->ADIctx, request );
 #ifdef MPID_HAS_HETERO
     request->rhandle.msgrep	  = MPIR_MSGREP_UNKNOWN;
 #endif

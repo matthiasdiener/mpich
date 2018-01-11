@@ -1,5 +1,5 @@
 /*
- *  $Id: rsend.c,v 1.11 1994/12/15 17:10:05 gropp Exp $
+ *  $Id: rsend.c,v 1.12 1995/03/05 22:56:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: rsend.c,v 1.11 1994/12/15 17:10:05 gropp Exp $";
+static char vcid[] = "$Id: rsend.c,v 1.12 1995/03/05 22:56:21 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -33,7 +33,6 @@ MPI_Comm         comm;
     int          mpi_errno = MPI_SUCCESS;
     MPIR_SHANDLE shandle;
     MPI_Request  request;
-    MPI_Status   status;
 
     /* See send.c (MPI_Send) for a discussion of this routine. */
     if (dest != MPI_PROC_NULL)

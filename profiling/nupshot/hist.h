@@ -25,43 +25,11 @@ typedef struct stateHist_ {
   statData *vis_stats;
   char *array_name, *idx_prefix;
 
-/*  Used by emacs macro for creating LINK_ELEMENT calls
-window s
-canvas s
-xscrollcommand s
-color s
-bitmap s
-outlineColor s
-bw i
-nbins i
-maxbin f
-start f
-end f
-left f
-right f
-width i
-height i
-scan_time f
-rclick_time f
-lclick_time f
-yclick f
-n i
-sum f
-average f
-std_dev f
-shortest f
-longest f
-vis_n i
-vis_sum f
-vis_average f
-vis_std_dev f
-vis_shortest f
-vis_longest f
-*/
-
 /* all the fields from here on down are mirrored in the Tcl array */
   char *window;
   char *canvas;
+  char *time_lbl;
+  char *xscrollbar;
   char *xscrollcommand;
   char *color;
   char *bitmap;
@@ -94,6 +62,6 @@ vis_longest f
 #define ARGS(x) ()
 #endif
 
-int HistAppInit ARGS(( Tcl_Interp *interp));
+int Hist_Init ARGS(( Tcl_Interp *interp));
 
 #endif

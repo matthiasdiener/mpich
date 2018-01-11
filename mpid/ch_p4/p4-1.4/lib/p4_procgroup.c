@@ -41,8 +41,11 @@ struct p4_procgroup *read_procgroup()
     logname = (char *) getlogin();
 #   endif
 
-    if ((fp = fopen(procgroup_file, "r")) == NULL)
-	p4_error("open error on procgroup file",NULL);
+    if ((fp = fopen(procgroup_file, "r")) == NULL) {
+	char tmp[1300];
+	sprintf( tmp, "open error on procgroup file (%s)", procgroup_file );
+	p4_error(tmp,NULL);
+	}
 
     pe = pg->entries;
 
@@ -54,6 +57,11 @@ struct p4_procgroup *read_procgroup()
 	if (*s == '#' || *s == '\0')	/* Ignore comments & blanks */
 	    continue;
 
+	/* Initialize fields to empty incase n < 3 */
+	pe->host_name[0]	   = 0;
+	pe->numslaves_in_group     = 0;
+	pe->slave_full_pathname[0] = 0;
+	pe->username[0]		   = 0;
 	n = sscanf(buf, "%s %d %s %s",
 		   pe->host_name,
 		   &pe->numslaves_in_group,

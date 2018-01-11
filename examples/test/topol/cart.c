@@ -62,9 +62,11 @@ char **argv;
     /* automatically test itself.                            */
     for (i=0;i<NUM_DIMS;i++) {
       int source, dest;
-      printf ("[%d] Shifting %d in the %d dimension\n",rank,1,i);
       MPI_Cart_shift(comm_cart, i, 1, &source, &dest);
-      printf ("[%d]    source = %d  dest = %d\n",rank,source,dest);
+#ifdef VERBOSE      
+      printf ("[%d] Shifting %d in the %d dimension\n",rank,1,i);
+      printf ("[%d]    source = %d  dest = %d\n",rank,source,dest); 
+#endif
     }
 
     /* Subdivide */
@@ -96,7 +98,10 @@ char **argv;
 	errors++;
 
     /* We're at the end */
+    MPI_Comm_free( &new_comm );
+    MPI_Comm_free( &comm_temp );
+    MPI_Comm_free( &comm_cart );
+    Test_Waitforall( );
     MPI_Finalize();
     if (errors) printf( "[%d] done with %d ERRORS!\n", rank,errors );
-    else        printf( "[%d] SUCCESSFUL!\n", rank );
 }

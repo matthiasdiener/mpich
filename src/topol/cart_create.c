@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_create.c,v 1.13 1994/12/15 17:35:21 gropp Exp $
+ *  $Id: cart_create.c,v 1.14 1995/03/05 20:21:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -78,6 +78,8 @@ MPI_Comm *comm_cart;
   MPI_Comm_group ( comm_old, &group_old );
   MPI_Group_range_incl ( group_old, 1, range, &group );
   MPI_Comm_create  ( comm_old, group, comm_cart );
+  MPI_Group_free( &group );
+  MPI_Group_free( &group_old );
 
   /* Store topology information in new communicator */
   if ( (*comm_cart) != MPI_COMM_NULL ) {

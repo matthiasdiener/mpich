@@ -232,10 +232,19 @@ long         *x;
     return (*(bar->mylvalue));
 }
 
+/* A all to all can be formed by putting the data into shared memory,
+   doing a barrier, and then reading.  By using a barrier BEFORE depositing 
+   the values, we can ensure that there is no data corruption 
+*/
 
 
 /* Example usage */
 #ifdef BUILD_MAIN
+
+#define MPID_MAX_PROCS 32
+#define MPID_MAX_SHMEM 4194304
+#define MPID_SHMEM_MAX_PKTS 128
+
 main(argc,argv)
 int argc;
 char **argv;

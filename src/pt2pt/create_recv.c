@@ -1,5 +1,5 @@
 /*
- *  $Id: create_recv.c,v 1.11 1995/01/03 19:43:04 gropp Exp $
+ *  $Id: create_recv.c,v 1.12 1995/03/05 20:15:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -57,7 +57,12 @@ MPI_Comm     comm;
     handleptr->rhandle.persistent  = 1;
     handleptr->rhandle.active      = 0;
 
-    handleptr->rhandle.completed   = MPIR_NO;
+    if (source == MPI_PROC_NULL) {
+	MPID_Set_completed(  comm->ADIctx, handleptr );
+	}
+    else {
+	MPID_Clr_completed(  comm->ADIctx, handleptr );
+	}
     MPID_Alloc_recv_handle(handleptr->rhandle.comm->ADIctx,
 			   &((handleptr)->rhandle.dev_rhandle));
 

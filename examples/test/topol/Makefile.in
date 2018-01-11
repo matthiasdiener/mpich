@@ -37,7 +37,7 @@ MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = cart
+EXECS = cart cart2
 
 default: $(EXECS)
 
@@ -48,11 +48,14 @@ linktest: default clean
 
 all: testing
 
-cart: cart.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
-	$(CLINKER) $(OPTFLAGS) -o cart $(DEVICE_MAIN) cart.o $(LIBS)
+cart: cart.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o cart cart.o test.o $(LIBS)
+
+cart2: cart2.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o cart2 cart2.o test.o $(LIBS)
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS)
+	/bin/rm -f *.o *~ core PI* $(EXECS)
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

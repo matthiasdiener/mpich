@@ -10,6 +10,13 @@
 
 /* for xdr  -  includes netinet/in.h and sys/types.h */
 #include <rpc/rpc.h>      
+/* Some systems DO NOT include netinet! */
+#ifdef HAS_NETINET_IN
+#include <netinet/in.h>
+#endif
+#ifdef HAS_SYS_SOCKETVAR
+#include <sys/socketvar.h>
+#endif
 
 #include <signal.h>
 #include <errno.h>

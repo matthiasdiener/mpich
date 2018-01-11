@@ -12,8 +12,8 @@ Operations that will be allowed:
 
   Create and connect to a logfile
 
-    timeline <window name> <logfile token> <total width> <total height> \
-             <req width> <req height> [options...]
+    timeline <window name> <logfile command name> <total width> \
+             <total height> <req width> <req height> [options...]
       width - total width, not just the visible width, in one of the
           forms acceptable to Tk_GetPixels
       height - total height, not just the visible height, in one of the
@@ -30,24 +30,11 @@ Operations that will be allowed:
             canvas to dispay a different region.
 
     Every timeline widget must be connected to a logfile widget that
-    has been opened, but not necessarily loaded.  The timeline will get
+    has been opened and loaded.  The timeline will get
     all of its settings such as the number of processes and the
     display option for the states from the logfile to which it is
     connected.
 
-    Also, the timeline widget will grab a hook (any number of display
-    widgets can grab this hook, BTW) so that the timeline widget
-    will be told about all states, events, and message that
-    are visited by the logfile widget.  So, as the logfile is loaded,
-    possible incrementally, the definitions of each state, event, or
-    message instance will be sent to the timeline widget so that it
-    may draw them.  Or not, if they are out of view, or the process
-    on which the instance occurs is not in view right now.
-
-  Add objects
-    It will be possible to add events, states, or message to
-    the canvas manually.  This is low priority; all adding should
-    be done at the C level, but we might as well be flexible.
 
   Scrolling
     Like a canvas:
@@ -76,39 +63,6 @@ Operations that will be allowed:
     There will be an option to display or not certain processes,
     events, states, or messages.
 
-  Finish drawing all, cut down to visible region, delete out of view
-    The default behavior will be to not draw objects that are not
-    in the visible portion of the canvas until they are scrolled into
-    view.  They will then be left on the canvas.  This is to cut down
-    the initial lag time before the user actually sees anything
-    interesting.
-
-    There will be an option to finish drawing all the objects on the
-    canvas, including the objects not in the visible
-    portion of the canvas.  This will slow down scrolling since
-    more objects will have to be manipulated by the canvas object,
-    but it will speed it up since they won't be constantly drawn whenever
-    they come into view.
-
-    There will be an option to delete any item on the canvas that is not
-    in the visible range.  This is in case a lot of objects have been
-    drawn, slowing down the canvas.  Deleting unneeded objects should
-    speed up scrolling and zooming.
-
-    There will be a setting to specify whether or not to delete objects
-    as they are scrolled out of view.  I'm not sure if this will speed
-    up scrolling since less object will be dealt with or if it
-    will slow it down since they will have to constantly be recreated.
-    It will probably slow it down, since the create/deletion time
-    of object probably greatly outweighs the time to move it.
-    Maybe this option is a bad idea.  Hmmm.
-
-    Note that at no time should the user be able to scroll the timeline
-    widget to a region where the objects have not been drawn yet.
-    Before scrolling to a region, the timeline widget should be sure
-    to draw any objects that may lay (at least partially) in the new
-    range.
-
 */
 
 
@@ -120,15 +74,14 @@ Operations that will be allowed:
 #include "log.h"
 #include "vis.h"
 #include "expandingList.h"
+#include "feather.h"
 
 
 #ifdef __STDC__
-int timelineAppInit( Tcl_Interp *interp );
+int Timeline_Init( Tcl_Interp *interp );
 #else
-int timelineAppInit();
+int Timeline_Init();
 #endif
-
-#define TL_STATE_NOT_VISIBLE -1
 
   /* bit mask of what needs to be done */
   /* in the next TimeLineWhenIdle() */
@@ -141,12 +94,9 @@ typedef struct tl_stateInfo_ {
   int canvasId1, canvasId2;
 } tl_stateInfo;
   /* if canvasId1 >= 0, it is the index of the item id of the rectangle
-     on the canvas.  If the display is B&W, canvasId1 is the index
+     on the canvas.  Canvasid1 is the index
      of this guys matching coverup rectangle, and canvasId2 is the id
-     of the stippled rectangle.
-
-     if canvasId1 < 0:
-     TL_STATE_NOT_VISIBLE - state is not in view; was not drawn
+     of the filled rectangle.
   */
 
 typedef struct timeLineOverlap_ {
@@ -161,25 +111,37 @@ typedef struct timeLineConvert_ {
 
 typedef struct timeLineInfo_ {
   Tcl_Interp *interp;		/* Tcl interpreter */
-  logData *log;			/* the log its attached to */
+
   char *windowName;		/* the window for this widget, and its */
 				/* widget command.  This is actually an */
 				/* overloaded frame widget */
 
+  char *array_name;		/* array name and prefix used for linking */
+  char *idx_prefix;		/* this to a Tcl array */
+
   char *canvasName;		/* the display canvas's name */
 
-  double width,			/* scrollregion */
-         height;
+  logFile *log;			/* the log its attached to */
 
-  int totalUnits,		/* scrollbar-like region */
-      windowUnits,
-      firstUnit,
-      lastUnit;
+  double width;			/* scrollregion */
+  double height;
 
-  double starttime, endtime;	/* cached from the logfile's data */
+  int visWidth;			/* size of the canvas window */
+  int visHeight;
+  int lastVisWidth;		/* previous settings */
+  int lastVisHeight;
 
-  double pix2time,		/* convert pixel values to times or */
-         pix2proc;		/* process numbers */
+  double xleft, xspan;		/* horizontal scroll info */
+  double lastXspan;
+  int xview;			/* leftmost visible coordinate */
+
+  double ytop, yspan;		/* vertical scroll info */
+  double lastYspan;
+  int yview;			/* topmost visible coordinate */
+
+  double startTime, endTime;	/* cached from the logfile's data */
+  int np;
+  double totalTime;		/* computed once and saved */
 
   Vis *procVis;			/* visible processes */
   Vis *eventVis;		/* visible events */
@@ -188,19 +150,39 @@ typedef struct timeLineInfo_ {
 
   timeLineOverlap overlap;	/* overlap info */
 
+  char *lineColor;		/* color of background lines */
   char *outlineColor;		/* color of outlines for state bars */
   char *msgColor;		/* color of message arrows */
   char *bg;			/* canvas background color */
 
   int bw;			/* in black&white */
 
-  void *drawStateToken;		/* token returned by Log_AddDrawState(), */
-				/* must be returned to Log_RmDrawState() */
+  int isdrawn;			/* whether the timelines have even been */
+				/* drawn yet */
 
   xpandList /*tl_stateInfo*/ stateList;
     /* list of all states, noting if each was drawn, and if so, what
        its index is.  This list is parallel to the stateData->list list
        of states, so the same index will be valid for both */
+
+  int *msgIds;			/* canvas id's of every message drawn */
+
+    /* a pointer to the canvas data structure */
+  void *canvasPtr;
+    /* the window for the canvas */
+  Tk_Window canvasWin;
+    /* allocate colors, bitmaps, and UID names for each state type */
+  Feather_Color *fillColors;
+  Feather_Bitmap *fillStipples;
+  Feather_Color outlineCol;
+  Feather_Color bgCol;
+  Feather_Color msgCol;
+  Tk_Uid *stateTags;		/* a set of tags of the form "state_%d" */
+  Tk_Uid *procTags;		/* a set of tags of the form "proc_%d" */
+  Tk_Uid *colorTags;		/* a set of tags of the form "color_%d" */
+  Tk_Uid colorBgTag;		/* Tk_GetUid( "color_bg" ) */
+  Tk_Uid colorOutlineTag;	/* Tk_GetUid( "color_outline" ) */
+  Tk_Uid colorArrowTag;		/* Tk_GetUid( "color_arrow" ) */
 
 } timeLineInfo;
 

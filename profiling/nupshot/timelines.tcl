@@ -1,3 +1,17 @@
+#
+# Timeline widget for Upshot
+#
+
+
+
+if ![info exists package(timelines)] {
+set package(timelines) yup
+if ![info exists progdir] {set progdir .}
+
+source $progdir/args.tcl
+source $progdir/common.tcl
+source $progdir/procnums.tcl
+
 proc timeline {win log args} {
    global timeline bw
 
@@ -9,37 +23,43 @@ proc timeline {win log args} {
    "
 
    set timeline($win,log) $log
+   set timeline($win,isdragto) 0
 
    # puts stderr "Win: $win, [array names timeline]"
 
-   set timeline($win,tl) [Timeline_C_Init $win $log -bw $bw]
-   # The C stuff expects me to set width, height, bg,
-   # outlineColor, totalUnits, windowUnits, firstUnit, lastUnit,
-   # pix2time, pix2proc, and bw.
+   set timeline($win,c_cmd) $win.c_cmd
+
+      # C routines need a command via which we can reach it, the logfile
+      # command, the canvas name, the name of the Tcl array to which
+      # all the data should be linked, and the prefix into that array
+   set timeline($win,tl) [Timeline_C_Init $win.c_cmd $log $win.c \
+	 timeline $win]
+
+   # The C stuff expects me to set visWidth, visHeight, xleft, xspan,
+   # ytop, yspan, bg, outlineColor, msgColor, and bw
 
    Timeline_Config $win $args
 
    canvas $canvas \
-	 -height $timeline($win,height) \
-	 -width $timeline($win,width) \
+	 -width $timeline($win,visWidth) \
+	 -height $timeline($win,visHeight) \
 	 -bg $timeline($win,bg) \
-	 -xscrollcommand "Timeline_XSet $win" \
 	 -yscrollcommand "Timeline_YSet $win" \
-	 -scrollincrement 1 \
-	 -scrollregion [list 0 0 [expr $timeline($win,width)-1] \
+	 -scrollincrement 1
+
+   # -scrollregion [list 0 0 [expr $timeline($win,width)-1] \
 	                [expr $timeline($win,height) - 1] ]
 
-   set np [logfile $log np]
-   for {set proc 0} {$proc < $np} {incr proc} {
-      set linepos [$win proc2pix [expr $proc + .5]]
-      $canvas create line 0 $linepos 32000 $linepos \
-	    -fill $timeline($win,lineColor) \
-	    -tags {timelines color_timelinefg}
-   }
+   set timeline($win,ytop) 0
+   set timeline($win,yspan) [$log np]
 
    Procnums_Create $win.pn $log
    scrollbar $win.sc -orient v -command "$win yview"
+
+      # draw everything (pretty quick now--2.6 sec for ~35000 events on ptera)
+   $timeline($win,c_cmd) draw
    
+      # be sure to pack the canvas last so it sucks up all the space
    pack $win.pn -side left -fill y
    pack $win.sc -side right -fill y
    pack $canvas -expand 1 -fill both
@@ -71,7 +91,7 @@ proc timeline {win log args} {
 proc Timeline_Config {win arg_list} {
    global timeline color bw
 
-   # puts stderr "Timeline_Config"
+   # puts stderr "Timeline_Config $arg_list"
 
    set log $timeline($win,log)
 
@@ -84,9 +104,9 @@ proc Timeline_Config {win arg_list} {
    }
 
    if {![ArgOpt arg_list -width tempvar]} {
-      set timeline($win,width) [GetDefault disp_width 500]
+      set timeline($win,visWidth) [GetDefault disp_width 500]
    } else {
-      set timeline($win,width) [expr int($tempvar)]
+      set timeline($win,visWidth) [expr int($tempvar)]
    }
 
 
@@ -94,23 +114,21 @@ proc Timeline_Config {win arg_list} {
    if {![ArgOpt arg_list -height tempvar]} {
 
       # set my height to np * 25
-      set timeline($win,height) [expr [logfile $log np] * \
+      set timeline($win,visHeight) [expr [$log np] * \
 	    [GetDefault timeline_proc_height 25]]
 
       # if a maximum height is specified,
       if {[ArgOpt arg_list -maxheight tempvar]} {
 
 	 # cut down my height so it is no bigger than maxheight
-	 if {$timeline($win,height) > $tempvar} {
-	    set timeline($win,height) $tempvar
+	 if {$timeline($win,visHeight) > $tempvar} {
+	    set timeline($win,visHeight) $tempvar
 	 }
       }
 
    } else {
-      set timeline($win,height) $tempvar
+      set timeline($win,visHeight) $tempvar
    }
-
-   Timeline_Recalc $win
 
    if {![ArgOpt arg_list -bg tempvar]} {
       set timeline($win,bg) $color(disp_bg)
@@ -124,8 +142,14 @@ proc Timeline_Config {win arg_list} {
       set timeline($win,outlineColor) $tempvar
    }
 
+   if {![ArgOpt arg_list -msgColor tempvar]} {
+      set timeline($win,msgColor) $color(arrowfg)
+   } else {
+      set timeline($win,msgColor) $tempvar
+   }
+
    if {![ArgOpt arg_list -lineColor tempvar]} {
-      set timeline($win,lineColor) $color(timelinefg)
+      set timeline($win,lineColor) $color(timeline)
    } else {
       set timeline($win,lineColor) $tempvar
    }
@@ -134,13 +158,20 @@ proc Timeline_Config {win arg_list} {
       set timeline($win,timevar) ""
    }
 
-   if {![ArgOpt arg_list -xscrollcommand timeline($win,xscrollcommand)]} {
-      set timeline($win,xscrollcommand) ""
+   if {![ArgOpt arg_list -setzoomptcmd timeline($win,setzoomptcmd)]} {
+      set timeline($win,setzoomptcmd) ""
    }
 
-   if {![ArgOpt arg_list -setZoomPtCmd timeline($win,setZoomPtCmd)]} {
-      set timeline($win,setZoomPtCmd) ""
+   if {![ArgOpt arg_list -scan timeline($win,scan)]} {
+      set timeline($win,scan) ""
    }
+}
+
+
+proc Timeline_Draw {win} {
+   global timeline
+
+   $timeline($win,c_cmd) draw
 }
 
 
@@ -148,28 +179,11 @@ proc Timeline_Config {win arg_list} {
 proc Timeline_Resize {win width height} {
    global timeline
 
-   if {[info exists timeline($win,visWidth)]} {
+   set timeline($win,visWidth) $width
+   set timeline($win,visHeight) $height
 
-      set canvas $win.c
-      
-      # puts "resized to $width x $height"
-      
-      set xresize [expr 1.0 * $width  / $timeline($win,visWidth)]
-      set yresize [expr 1.0 * $height / $timeline($win,visHeight)]
-      
-      set left [$canvas canvasx 0]
-      set time [$win pix2time $left]
-      Timeline_ZoomTime $win $time $xresize
-
-      set top  [$canvas canvasy 0]
-      set proc  [$win pix2proc $top]
-      Timeline_ZoomProc $win $proc $yresize
-   }
-
-   set timeline($win,visWidth) [expr int($width)]
-   set timeline($win,visHeight) [expr int($height)]
-
-   Timeline_Recalc $win
+   # puts "Timeline_Resize $width $height"
+   Timeline_Draw $win
 }
 
 
@@ -180,10 +194,10 @@ proc Timeline_Recalc {win} {
    set log $timeline($win,log)
 
    set timeline($win,pix2proc) \
-	 [expr 1.0 * [logfile $log np]  / $timeline($win,height)]
+	 [expr 1.0 * [$log np]  / $timeline($win,height)]
 
    set timeline($win,pix2time) \
-	 [expr 1.0 * ([logfile $log endtime] - [logfile $log starttime]) / \
+	 [expr 1.0 * ([$log endtime] - [$log starttime]) / \
 	 $timeline($win,width)]
 
 }
@@ -199,6 +213,12 @@ proc Timeline_Cmd {win cmd args} {
       }
       copy {
 	 return [eval Timeline_Copy $win $args]
+      }
+      draw {
+	 return [eval Timeline_C_Draw $win $args]
+      }
+      name {
+	 return Timelines
       }
       pix2time {
 	 return [eval Timeline_Pix2Time $win $args]
@@ -218,13 +238,19 @@ proc Timeline_Cmd {win cmd args} {
       zoom_proc {
 	 return [eval Timeline_ZoomProc $win $args]
       }
+      setleft {
+	 return [eval Timeline_SetLeft $win $args]
+      }
+      setview {
+	 return [eval Timeline_SetView $win $args]
+      }
       xview {
 	 eval $win.c xview $args
-	 update idletasks
+	 # update idletasks
       }
       yview {
 	 eval $win.c yview $args
-	 update idletasks
+	 # update idletasks
       }
       default {
 	 eval $win.c $cmd $args
@@ -240,49 +266,11 @@ proc Timeline_Destroy {win} {
 
    # puts stderr "DESTROYING TIMELINE"
 
-   Timeline_C_Destroy $timeline($win,tl)
+   $timeline($win,c_cmd) destroy
 
    EraseArrayElements timeline $win
 }
 
-
-
-proc Timeline_XSet {win t w f l} {
-   # set the timeline display with scrollbar-like settings
-
-   global timeline
-
-   set canvas $win.c
-
-   # puts "Timeline XSet $t $w $f $l"
-
-   if $t==1 {
-      set t [expr $w + 2]
-      puts "Changed total to $t"
-   }
-
-   set timeline($win,totalUnits) $t
-   set timeline($win,windowUnits) $w
-   set timeline($win,firstUnit) $f
-   set timeline($win,lastUnit) $l
-
-   if 0 {
-   SplitList [lindex [$canvas config -scrollregion] 4] {sc_l sc_t sc_r sc_b}
-   set real_t [expr $sc_r - $sc_l + 1]
-   set width [winfo width $canvas]
-   set real_w [expr $width - 1]
-   set real_l [$canvas canvasx 0]
-   set real_r [$canvas canvasx $width]
-
-   puts "real scroll settings: $real_t $real_w $real_l $real_r"
-   puts "fake: $t $w $f $l"
-   }
-
-   if {$timeline($win,xscrollcommand) != ""} {
-      eval $timeline($win,xscrollcommand) $t $w $f $l
-      # eval $timeline($win,xscrollcommand) $real_t $real_w $real_l $real_r
-   }
-}
 
 
 proc Timeline_YSet {win t w f l} {
@@ -294,7 +282,7 @@ proc Timeline_YSet {win t w f l} {
 
    if $t==1 {
       set t [expr $w + 2]
-      puts "Changed total to $t"
+      # puts "Changed total to $t"
    }
 
    $win.pn set $t $w $f $l
@@ -305,7 +293,8 @@ proc Timeline_YSet {win t w f l} {
 proc Timeline_TimeVarSet {win mark} {
    global timeline
 
-   upvar $timeline($win,timevar) var
+      # why does this work, but 'global' doesn't?
+   upvar #0 $timeline($win,timevar) var
    set var [format %.6f [$win pix2time [$win canvasx $mark]]]
 }
 
@@ -320,11 +309,10 @@ proc Timeline_YScroll {scroll_list t w l r} {
 proc Timeline_SetZoomPt {win x y} {
    global timeline
 
-   if {$timeline($win,setZoomPtCmd) != ""} {
+   if {$timeline($win,setzoomptcmd) != ""} {
       # puts "convert pix $x to [$win canvasx $x] to\
 	    [$win pix2time [$win canvasx $x]]"
-      eval $timeline($win,setZoomPtCmd) [$win pix2time [$win canvasx $x]] \
-	    [$win pix2proc [$win canvasy $y]]
+      eval $timeline($win,setzoomptcmd) [$win pix2time [$win canvasx $x]]
    }
 }
 
@@ -343,12 +331,13 @@ proc Timeline_Copy {win dest_canvas x y} {
    set top [$canvas canvasy 0]
    set bottom [expr $timeline($win,visHeight) + $top]
    CopyCanvas $canvas [list $left $top $right $bottom] $dest_canvas \
-	 [list [expr $x+$left_gap] [expr $y + 1]]
+	 [list [expr $x+$left_gap] [expr $y + 1]] color_disp_bg
    set left [expr $x + $left_gap]
    set top $y
    set right [expr $timeline($win,visWidth) + $x + $left_gap]
    set bottom [expr $timeline($win,visHeight) + $y + 1]
-   trim_canvas $dest_canvas $left $top $right $bottom
+   trim_canvas $dest_canvas [expr $left+1] [expr $top+1] \
+	 [expr $right-1] [expr $bottom-1]
    $dest_canvas create rect $left $top $right $bottom -outline $color(fg)
 }
 
@@ -358,16 +347,16 @@ proc Timeline_ClickState {tl log x y screen_x screen_y} {
    global timeline
 
    set timeline($tl,post) 0
-   set item [Timeline_CurrentItem $tl]
+   set item [$timeline($tl,c_cmd) currentitem]
    if {$item == ""} return
 
    if {[lindex $item 0] == "state" } {
-      # puts [logfile $log state [lindex $item 1]]
+      # puts [$log state [lindex $item 1]]
       # puts "item = $item, index = [lindex $item 1]"
-      set stateInfo [logfile $log get_state [lindex $item 1]]
+      set stateInfo [$log getstate [lindex $item 1]]
          # info: type, proc, startTime, endTime, parent, firstChild,
          # overlapLevel
-      set stateName [lindex [logfile $log get_statedef \
+      set stateName [lindex [$log getstatedef \
 	    [lindex $stateInfo 0]] 0]
          # def: name, color, bitmap
       set startTime [format "%.6f" [lindex $stateInfo 2]]
@@ -433,11 +422,13 @@ proc Timeline_ZoomTime {tl time factor} {
 
    # Get the x-coordinate of the zoom point
    set x [$tl time2pix $time]
+
    # Get the distance of that point from the left side
    # of the screen so we can keep that point stationary
    set screen_offset [expr $x - [$canvas canvasx 0] ]
 
-   # puts "xcoord $x, screen left [$canvas canvasx 0], offset $screen_offset"
+   # puts "tl xcoord $x, screen left [$canvas canvasx 0],\
+	 offset $screen_offset"
 
    # Zoom relative to the far left
    $canvas scale all 0 0 $factor 1
@@ -451,6 +442,7 @@ proc Timeline_ZoomTime {tl time factor} {
 
    # reset my copy of the width
    set timeline($tl,width) [expr int($timeline($tl,width) * $factor)]
+
    # Reset the canvas's scrollable width; this triggers the scrollbars
    $canvas config -scrollregion [list 0 0 $timeline($tl,width) \
 	 $timeline($tl,height)]
@@ -464,7 +456,7 @@ proc Timeline_ZoomTime {tl time factor} {
    # not to move much
    set xview [expr int($x * $factor - $screen_offset) ]
 
-   # puts "xview = $xview ... expr int($x * $factor - $screen_offset)   "
+   # puts "tl xview = $xview ... expr int($x * $factor - $screen_offset)"
 
    if {$xview < 0} {
       set xview 0
@@ -507,34 +499,94 @@ proc Timeline_ZoomProc {tl proc factor} {
 proc Timeline_Pix2Time {tl pix} {
    global timeline
 
-   return [expr $pix * $timeline($tl,pix2time) + $timeline($tl,starttime)]
+   return [expr $pix * $timeline($tl,totalTime) / \
+	 $timeline($tl,width) + $timeline($tl,startTime)]
 }
 
 proc Timeline_Time2Pix {tl time} {
    global timeline
 
-   return [expr 1.0 * ($time - $timeline($tl,starttime)) \
-	 / $timeline($tl,pix2time) ]
+   return [expr 1.0 * ($time - $timeline($tl,startTime)) \
+	 / $timeline($tl,totalTime) * $timeline($tl,width) ]
 }
 
 
 proc Timeline_Pix2Proc {tl pix} {
    global timeline
 
-   return [expr $pix * $timeline($tl,pix2proc)]
+   return [expr $pix * $timeline($tl,np) / $timeline($tl,height)]
 }
 
 proc Timeline_Proc2Pix {tl proc} {
    global timeline
 
-   return [expr 1.0 * $proc / $timeline($tl,pix2proc) ]
+   return [expr 1.0 * $proc * $timeline($tl,height) / $timeline($tl,np)]
 }
 
 
+proc Timeline_SetView {win left span} {
+   global timeline
+
+   set timeline($win,xleft) $left
+   set timeline($win,xspan) $span
+
+   Timeline_Draw $win
+}
+
+
+proc Timeline_SetLeft {win left} {
+   global timeline
+
+   set timeline($win,xleft) $left
+   Timeline_Draw $win
+}
+
+
+#
+# Start a drag.  Remember the x-coordinate where the button was pushed
+# and the left edge at the time.
+#
 proc Timeline_Mark {tl x y} {
-   return [$tl.c scan mark $x $y]
+   global timeline
+
+      # convert window coordinate to canvas coordinate
+   set timeline($tl,markpt) $x
+   set timeline($tl,markleft) $timeline($tl,xleft)
+
+      # remember how much time is covered in 10 pixels, so this
+      # canvas be scaled from 1 pixel in the drag
+   set timeline($tl,pixwidth) [expr [Timeline_Cmd $tl pix2time 10] - \
+	 [Timeline_Cmd $tl pix2time 0]]
 }
 
+#
+# Do a drag.  Given the data stored in Timeline_Mark, when the button was
+# first pressed, move the display in the direction the mouse has moved,
+# but magnify the distance 10 times.
+#
 proc Timeline_Dragto {tl x y} {
-   return [$tl.c scan dragto $x $y]
+   global timeline
+
+   set new_left [expr $timeline($tl,markleft) + $timeline($tl,pixwidth) * \
+	 ($timeline($tl,markpt) - $x)]
+
+      # don't scroll past the end
+   if {$new_left < $timeline($tl,startTime)} {
+      set new_left $timeline($tl,startTime)
+   } elseif {$new_left > $timeline($tl,endTime) - $timeline($tl,xspan)} {
+      set new_left [expr $timeline($tl,endTime) - $timeline($tl,xspan)]
+   }
+
+   set scan $timeline($tl,scan)
+   if {$scan != ""} {
+         # if everyone wants the new coordinate, send it to them
+      eval $scan $new_left
+   } else {
+         # if nobody else cares, do it manually
+      Timeline_SetLeft $win $new_left
+   }
 }
+
+
+}
+# set package(timelines) yup

@@ -11,6 +11,7 @@ void Test_Failed(char *);
 void Test_Passed(char *);
 int Summarize_Test_Results(void);
 void Test_Finalize(void);
+void Test_Waitforall(void);
 #else
 void Test_Init();
 void Test_Message();
@@ -19,6 +20,7 @@ void Test_Failed();
 void Test_Passed();
 int Summarize_Test_Results();
 void Test_Finalize();
+void Test_Waitforall( );
 #endif
 
 #endif

@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_rank.c,v 1.14 1994/12/15 17:33:37 gropp Exp $
+ *  $Id: cart_rank.c,v 1.16 1995/02/16 18:40:47 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -31,7 +31,7 @@ int *rank;
 
   /* Check for valid arguments */
   if (MPIR_TEST_COMM(comm,comm) ||
-      ((rank == (int *)0) &&(mpi_errno = MPI_ERR_BUFFER))) 
+      ((rank == (int *)0) &&(mpi_errno = MPI_ERR_BUFFER)))
       return MPIR_ERROR( comm, mpi_errno, "Error in MPI_CART_RANK" );
 
   /* Get topology information from the communicator */
@@ -47,30 +47,23 @@ int *rank;
   ndims = topo->cart.ndims;
   (*rank) = coords[ndims-1];
   if ( !(topo->cart.periods[ndims-1]) ) {
-    if ( ((*rank) == MPI_PROC_NULL)                          ||
-         ((*rank) >= topo->cart.dims[ndims-1]) ||
+    if ( ((*rank) >= topo->cart.dims[ndims-1]) ||
          ((*rank) <  0) ) {
       (*rank) = MPI_PROC_NULL;
       return (mpi_errno);
     }
   }
   else {
-    if ( (*rank) == MPI_PROC_NULL ) {
-        (*rank) = MPI_PROC_NULL;
-        return (mpi_errno);
-    }
-    if ( ( (*rank) >= topo->cart.dims[ndims-1] ) ||
-         ( (*rank) <  0 ) ) {
+    if ( (*rank) >= topo->cart.dims[ndims-1] )
       (*rank) = (*rank) % topo->cart.dims[ndims-1];
+    else if ( (*rank) <  0 )  {
+      (*rank) = ((*rank) % topo->cart.dims[ndims-1]);
+      if (*rank) (*rank) = topo->cart.dims[ndims-1] + (*rank);
     }
   }
-  
+
   for ( i=ndims-2; i >=0; i-- ) {
     coord = coords[i];
-    if ( coord == MPI_PROC_NULL ) {
-      (*rank) = MPI_PROC_NULL;
-      return (mpi_errno);
-    }
     if ( !(topo->cart.periods[i]) ) {
       if ( (coord >= topo->cart.dims[i]) ||
            (coord <  0) ) {
@@ -79,13 +72,17 @@ int *rank;
       }
     }
     else {
-      if ( (coord >= topo->cart.dims[i]) ||
-           (coord <  0) )
+      if (coord >= topo->cart.dims[i])
         coord = coord % topo->cart.dims[i];
+      else if (coord <  0) {
+        coord = coord % topo->cart.dims[i];
+        if (coord) coord = topo->cart.dims[i] + coord;
+      }
     }
     multiplier *= topo->cart.dims[i+1];
     (*rank) += multiplier * coord;
   }
-  
+
   return (mpi_errno);
 }
+

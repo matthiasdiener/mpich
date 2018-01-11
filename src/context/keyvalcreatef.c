@@ -33,11 +33,20 @@ extern void MPIR_RmPointer();
 #endif
 
 void mpi_keyval_create_ ( copy_fn, delete_fn, keyval, extra_state, __ierr )
+#ifdef FORTRAN_SPECIAL_FUNCTION_PTR
+MPI_Copy_function   **copy_fn;
+MPI_Delete_function **delete_fn;
+#else
 MPI_Copy_function   *copy_fn;
 MPI_Delete_function *delete_fn;
+#endif
 int                 *keyval;
 void                *extra_state;
 int *__ierr;
 {
+#ifdef FORTRAN_SPECIAL_FUNCTION_PTR
+*__ierr = MPIR_Keyval_create( *copy_fn, *delete_fn, keyval, extra_state, 1 );
+#else
 *__ierr = MPIR_Keyval_create( copy_fn, delete_fn, keyval, extra_state, 1 );
+#endif
 }

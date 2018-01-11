@@ -36,15 +36,21 @@ char **argv;
     }
     if (!passed)
 	Test_Failed("Simple Broadcast test");
-    else
-    	Test_Passed("Simple Broadcast test");
+    else {
+	if (rank == 0)
+	    Test_Passed("Simple Broadcast test");
+	}
 
     /* Close down the tests */
     free(test_array);
-    ret = Summarize_Test_Results();
+    if (rank == 0)
+	ret = Summarize_Test_Results();
+    else
+	ret = 0;
     Test_Finalize();
 
     /* Close down MPI */
+    Test_Waitforall( );
     MPI_Finalize();
     return ret;
 }

@@ -378,7 +378,7 @@ int N;
    in bytes to the device, so it knows how much to send! */
 
 int MPIR_Mem_XDR_Encode(d, s, t, N, elsize) 
-unsigned char *d, *s; /* dest, source */
+char *d, *s; /* dest, source */
 xdrproc_t t; /* type */
 int N, elsize; /* count and element size */
 { 
@@ -402,7 +402,7 @@ int N, elsize; /* count and element size */
 }
 
 int MPIR_Mem_XDR_Decode(d, s, t, N, size) 
-unsigned char *d, *s; /* dest and source */
+char *d, *s; /* dest and source */
 xdrproc_t t; /* type */
 int N, size; /* count and element size */
 { 

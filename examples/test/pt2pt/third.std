@@ -1,10 +1,3 @@
 *** Testing Unexpected messages ***
-1 sent :First message, type 2001:
-1 sent :Second message, type 2002:
-Process 1 exiting
-Status info: source = 1, tag = 2002, count = 26
-0 received :Second message, type 2002:
-Status info: source = 1, tag = 2001, count = 25
-0 received :First message, type 2001:
-Process 0 exiting
+All processes completed test
 *** Testing Unexpected messages ***

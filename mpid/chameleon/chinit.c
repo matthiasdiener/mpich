@@ -1,18 +1,26 @@
 /*
- *  $Id: chinit.c,v 1.27 1995/01/07 20:03:34 gropp Exp $
+ *  $Id: chinit.c,v 1.28 1995/02/06 22:12:37 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char SCCSid[] = "%W% %G%";
+static char vcid[] = "$Id$";
 #endif
 
 /* 
     This file contains the routines that provide the basic information 
     on the device, and initialize it
  */
+
+#if defined(rs6000) && !defined(_ALL_SOURCE)
+/* AIX's version of netinet/in.h REQUIRES but DOES NOT CHECK 
+   for _ALL_SOURCE! 
+   (This is needed below incase sys/types.h is loaded in these includes)
+ */
+#define _ALL_SOURCE
+#endif
 
 #include "mpid.h"
 #include "system/system.h"
@@ -27,7 +35,7 @@ void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
 FILE *MPID_TRACE_FILE = 0;
 
 /* For debugging statements */
-FILE *MPID_DEBUG_FILE = stdout;
+FILE *MPID_DEBUG_FILE = 0;
 
 #ifdef MPID_PKT_VAR_SIZE
 int MPID_PKT_DATA_SIZE = MPID_PKT_MAX_DATA_SIZE;
@@ -51,6 +59,7 @@ return MPID_PKT_MAX_DATA_SIZE;
 #define DEBUG(a)
 
 static int DebugSpace = 0;
+int MPID_DebugFlag = 0;
 
 MPID_SetSpaceDebugFlag( flag )
 int flag;
@@ -64,12 +73,21 @@ if (flag) {
     }
 #endif                  /* #CHAMELEON_END# */
 }
-
+void MPID_SetDebugFlag( ctx, f )
+void *ctx;
+int f;
+{
+MPID_DebugFlag = f;
+}
 void MPID_Set_tracefile( name )
 char *name;
 {
 char filename[1024];
 
+if (strcmp( name, "-" ) == 0) {
+    MPID_TRACE_FILE = stdout;
+    return;
+    }
 if (strchr( name, '%' )) {
     sprintf( filename, name, MPID_MyWorldRank );
     MPID_TRACE_FILE = fopen( filename, "w" );
@@ -82,6 +100,24 @@ if (!MPID_TRACE_FILE)
     MPID_TRACE_FILE = stdout;
 }
 
+
+#ifndef MPID_STAT_NONE
+int MPID_n_short       = 0,         /* short messages */
+    MPID_n_long        = 0,         /* long messages */
+    MPID_n_unexpected  = 0,         /* unexpected messages */
+    MPID_n_syncack     = 0;         /* Syncronization acknowledgments */
+#endif
+
+/***************************************************************************/
+/* Some operations are completed in several stages.  To ensure that a      */
+/* process does not exit from MPID_End while requests are pending, we keep */
+/* track of how many are out-standing                                      */
+/***************************************************************************/
+int MPID_n_pending     = 0;         /* Number of uncompleted split requests */
+
+/*****************************************************************************
+  Here begin the interface routines themselves
+ *****************************************************************************/
 void MPID_CH_Myrank( rank )
 int *rank;
 {
@@ -106,8 +142,14 @@ void *MPID_CH_Init( argc, argv )
 int  *argc;
 char ***argv;
 {
+#ifdef MPID_HAS_HETERO     /* #HETERO_START# */
 int  i;
 char *work;
+#endif                     /* #HETERO_END# */
+
+/* Set the file for Debugging output.  The actual output is controlled
+   by MPIDDebugFlag */
+if (MPID_DEBUG_FILE == 0) MPID_DEBUG_FILE = stdout;
 
 PIiInit( argc, argv );
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
@@ -187,6 +229,15 @@ SYexitall( (char *)0, code );
 
 void MPID_CH_End()
 {
+#ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
+if (MPID_DebugFlag) {
+    fprintf( MPID_DEBUG_FILE,
+   "[%d] Entering MPID_End\n", MPID_MyWorldRank );
+    }
+#endif                  /* #DEBUG_END# */
+/* Finish off any pending transactions */
+MPID_CH_Complete_pending();
+
 if (MPID_GetMsgDebugFlag()) {
     MPID_PrintMsgDebug();
     }
@@ -261,6 +312,68 @@ else
     return MPID_H_NONE;
 }
 
+
+#ifdef MPID_HAS_HETERO       /* #HETERO_START# */
+/* This routine is ensure that the elements in the packet HEADER can
+   be read by the receiver without further processing (unless XDR is
+   used, in which case we use network byte order)
+   This routine is defined ONLY for heterogeneous systems
+
+   Note that different packets have different lengths and layouts; 
+   this makes the conversion more troublesome.  I'm still thinking
+   about how to do this.
+ */
+#include <sys/types.h>
+#include <netinet/in.h>
+MPID_CH_Pkt_pack( pkt, size, dest )
+MPID_PKT_T *pkt;
+int        size, dest;
+{
+int i;
+unsigned int *d;
+if (MPID_IS_HETERO &&
+    MPID_procinfo[dest].byte_order != MPID_byte_order) {
+    
+    if (MPID_procinfo[dest].byte_order == MPID_H_XDR ||
+	MPID_byte_order == MPID_H_XDR) {
+	d = (unsigned int *)pkt;
+	for (i=0; i<size/sizeof(int); i++) {
+	    *d = htonl(*d);
+	    d++;
+	    }
+	}
+    else {
+	/* Need to swap to receiver's order.  We ALWAYS reorder at the
+	   sender's end (this is because a message can be received with 
+	   MPI_Recv instead of MPI_Recv/MPI_Unpack, and hence requires us 
+	   to use a format that matches the receiver's ordering without 
+	   requiring a user-unpack.  */
+	SYByteSwapInt( (int*)pkt, size / sizeof(int) );
+	}
+    }
+}
+MPID_CH_Pkt_unpack( pkt, size, from )
+MPID_PKT_T *pkt;
+int        size, from;
+{
+int i;
+unsigned int *d;
+if (MPID_IS_HETERO &&
+    MPID_procinfo[from].byte_order != MPID_byte_order) {
+    
+    if (MPID_procinfo[from].byte_order == MPID_H_XDR ||
+	MPID_byte_order == MPID_H_XDR) {
+	d = (unsigned int *)pkt;
+	for (i=0; i<size/sizeof(int); i++) {
+	    *d = ntohl(*d);
+	    d++;
+	    }
+	}
+    }
+}
+#endif                       /* #HETERO_END# */
+
+
 /* We also need an "ErrorsReturn" and a sensible error return strategy */
 
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
@@ -283,3 +396,25 @@ if (len < 78 && address) {
 fflush( stdout );
 }
 #endif                  /* #DEBUG_END# */
+
+/*
+   Data about messages
+ */
+static int DebugMsgFlag = 0;
+void MPID_SetMsgDebugFlag( f )
+int f;
+{
+DebugMsgFlag = f;
+}
+int MPID_GetMsgDebugFlag()
+{
+return DebugMsgFlag;
+}
+void MPID_PrintMsgDebug()
+{
+#ifndef MPID_STAT_NONE
+fprintf( stdout, "[%d] short = %d, long = %d, unexpected = %d, ack = %d\n",
+	 MPID_MyWorldRank, MPID_n_short, MPID_n_long, MPID_n_unexpected, 
+	 MPID_n_syncack );
+#endif
+}

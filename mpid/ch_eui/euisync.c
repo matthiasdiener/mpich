@@ -3,27 +3,20 @@
 
 #define PI_NO_MSG_SEMANTICS
 /*
- *  $Id: chsync.c,v 1.13 1995/01/07 20:03:41 gropp Exp $
+ *  $Id: chsync.c,v 1.14 1995/02/06 22:12:49 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vc[] = "$Id: chsync.c,v 1.13 1995/01/07 20:03:41 gropp Exp $";
+static char vc[] = "$Id: chsync.c,v 1.14 1995/02/06 22:12:49 gropp Exp gropp $";
 #endif
 
 #include "mpid.h"
 
 
-static int DebugFlag = 0;
-
-void MPID_SetSyncDebugFlag( ctx, f )
-void *ctx;
-int f;
-{
-DebugFlag = f;
-}
+extern int MPID_DebugFlag;
 
 /*
    This file contains routines to keep track of synchronous send messages;
@@ -115,7 +108,7 @@ MPID_SHANDLE *mpid_send_handle;
 /* This is an acknowledgement of a synchronous send; look it up and
    mark as completed */
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
+if (MPID_DebugFlag) {
     printf( 
     "[%d]SYNC received sync ack message for mode=%x from %d (%s:%d)\n",  
 	   MPID_MyWorldRank, sync_id, from, __FILE__, __LINE__ );
@@ -133,7 +126,7 @@ if (!dmpi_send_handle) {
    If, for some reason, a non-blocking send operation was used, if needs
    to be waited on here.
  */
-dmpi_send_handle->completed = MPIR_YES;
+DMPI_mark_send_completed(dmpi_send_handle);
 return MPI_SUCCESS;
 }
 
@@ -142,24 +135,24 @@ void MPID_SyncReturnAck( sync_id, from )
 MPID_Aint sync_id;
 int       from;
 {
-MPID_PKT_SYNC_ACK_T  pkt;
+MPID_PKT_SEND_DECL(MPID_PKT_SYNC_ACK_T,pkt);
 
-pkt.mode       = MPID_PKT_SYNC_ACK;
-pkt.sync_id    = sync_id;
+MPID_PKT_SEND_ALLOC(MPID_PKT_SYNC_ACK_T,pkt);
+MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SYNC_ACK);
+MPID_PKT_SEND_SET(pkt,sync_id,sync_id);
 
-/* Rest of packet is irrelavent */
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
+if (MPID_DebugFlag) {
     printf( 
    "[%d]SYNC Starting a send of tag = %d, dest = %d, mode=",
 	    MPID_MyWorldRank, MPID_PT2PT_TAG, from );
-    MPID_Print_mode( stdout, (MPID_PKT_T *)&pkt );
+    MPID_Print_mode( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );
     fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, (MPID_PKT_T *)&pkt );
+    MPID_Print_packet( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );
     fflush( stdout );
     }
 #endif                  /* #DEBUG_END# */
-MPID_SendControl( &pkt, sizeof(MPID_PKT_SYNC_ACK_T), from );
+MPID_SendControl( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_SYNC_ACK_T), from );
 }
 
 /* Look through entire list for this API handle */
@@ -212,7 +205,7 @@ MPID_SHANDLE *mpid_send_handle;
 /* This is an acknowledgement of a synchronous send; look it up and
    mark as completed */
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
+if (MPID_DebugFlag) {
     printf( 
     "[%d]SYNC received sync ack message for mode=%x from %d (%s:%d)\n",  
 	   MPID_MyWorldRank, sync_id, from, __FILE__, __LINE__ );
@@ -224,7 +217,7 @@ if (!dmpi_send_handle) {
     fprintf( stderr, "Error in processing sync ack!\n" );
     return MPI_ERR_INTERN;
     }
-dmpi_send_handle->completed = MPIR_YES;
+DMPI_mark_send_completed(dmpi_send_handle);
 return MPI_SUCCESS;
 }
 
@@ -233,24 +226,25 @@ void MPID_SyncReturnAck( sync_id, from )
 MPID_Aint sync_id;
 int       from;
 {
-MPID_PKT_SYNC_ACK_T  pkt;
+MPID_PKT_SEND_DECL(MPID_PKT_SYNC_ACK_T,pkt);
 
-pkt.mode       = MPID_PKT_SYNC_ACK;
-pkt.sync_id    = sync_id;
+MPID_PKT_SEND_ALLOC(MPID_PKT_SYNC_ACK_T,pkt);
 
-/* Rest of packet is irrelavent */
+MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_SYNC_ACK);
+MPID_PKT_SEND_SET(pkt,sync_id,sync_id);
+
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
-if (DebugFlag) {
+if (MPID_DebugFlag) {
     printf( 
    "[%d]SYNC Starting a send of tag = %d, dest = %d, mode=",
 	    MPID_MyWorldRank, MPID_PT2PT_TAG, from );
-    MPID_Print_mode( stdout, &pkt );
+    MPID_Print_mode( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );
     fprintf( stdout, "(%s:%d)\n", __FILE__, __LINE__ );
-    MPID_Print_packet( stdout, &pkt );
+    MPID_Print_packet( stdout, (MPID_PKT_T *)MPID_PKT_SEND_ADDR(pkt) );
     fflush( stdout );
     }
 #endif                  /* #DEBUG_END# */
-MPID_SendControl( &pkt, sizeof(MPID_PKT_SYNC_ACK_T), from );
+MPID_SendControl( MPID_PKT_SEND_ADDR(pkt), sizeof(MPID_PKT_SYNC_ACK_T), from );
 }
 
 /* Look through entire list for this API handle */

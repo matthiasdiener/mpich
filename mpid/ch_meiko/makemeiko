@@ -19,9 +19,11 @@ sed -e 's/MPID_CH/MPID_MEIKO/g' ../chameleon/channel.h > channel.h
 ../chameleon/rmhetero ../chameleon/chinit.c  > meikoinit.c
 ../chameleon/rmhetero ../chameleon/chprobe.c > meikoprobe.c
 ../chameleon/rmhetero ../chameleon/chsync.c  > meikosync.c
+../chameleon/rmhetero ../chameleon/chrndv.c  > meikorndv.c
 chmod ug+w *.[ch]
 /home/gropp/tools.n/bin/inlinecomm -main -quiet -meiko meikoinit.c
-for file in meikoevent.c meikorecv.c meikosend.c meikoprobe.c meikosync.c dmmeiko.h \
+for file in meikoevent.c meikorecv.c meikosend.c meikoprobe.c meikosync.c \
+	meikorndv.c dmmeiko.h \
 	packets.h channel.h ; do
     /home/gropp/tools.n/bin/inlinecomm -quiet -meiko $file
 done

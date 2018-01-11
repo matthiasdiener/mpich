@@ -41,11 +41,11 @@ clean:
 	$(RM) -f *~ *.o *.bak tags TAGS core
 
 default:$(P)
-	make $(MFLAGS) sr_test simpglob
+	$(MAKE) $(MFLAGS) sr_test simpglob
 
 all:$(P)
-	make $(MFLAGS) sr_test sr_master sr1_master
-	make $(MFLAGS) sr_slave sr1_slave
+	$(MAKE) $(MFLAGS) sr_test sr_master sr1_master
+	$(MAKE) $(MFLAGS) sr_slave sr1_slave
 
 sr_test: sr_test.o $(FORTLIB) $(LIB)
 	$(FLINKER) $(MDEP_FFLAGS) -o sr_test sr_test.o $(LIBS)

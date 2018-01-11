@@ -1,12 +1,12 @@
 /*
- *  $Id: type_hvec.c,v 1.14 1994/12/30 17:20:03 gropp Exp $
+ *  $Id: type_hvec.c,v 1.15 1995/02/22 16:32:09 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_hvec.c,v 1.14 1994/12/30 17:20:03 gropp Exp $";
+static char vcid[] = "$Id: type_hvec.c,v 1.15 1995/02/22 16:32:09 doss Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,12 +37,18 @@ MPI_Datatype *newtype;
 
   /* Check for bad arguments */
   if ( MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,old_type) ||
-   ( (count   <= 0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
-   ( (blocklen <= 0)                 && (mpi_errno = MPI_ERR_ARG) )   ||
+   ( (count   <  0)                  && (mpi_errno = MPI_ERR_COUNT) ) ||
+   ( (blocklen <  0)                 && (mpi_errno = MPI_ERR_ARG) )   ||
    ( (old_type->dte_type == MPIR_UB) && (mpi_errno = MPI_ERR_TYPE) )  ||
    ( (old_type->dte_type == MPIR_LB) && (mpi_errno = MPI_ERR_TYPE) ) )
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno,
 					  "Error in MPI_TYPE_HVECTOR" );
+
+  /* Are we making a null datatype? */
+  if (count*blocklen == 0) {
+      (*newtype) = MPI_DATATYPE_NULL;
+      return (mpi_errno);
+  }
 	
   /* Handle the case where blocklen & stride make a contiguous type */
   if ( ((blocklen * old_type->extent) == stride) ||

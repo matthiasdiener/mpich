@@ -19,6 +19,7 @@ MPI_Init( &argc, &argv );
 
 Test_errorhandling();
 
+Test_Waitforall( );
 MPI_Finalize();
 return 0;
 }

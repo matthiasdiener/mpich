@@ -28,13 +28,11 @@ As many labels as reasonable possible will be fit on the display.
 
 #include "tcl.h"
 #include "tk.h"
-#include "log.h"
-#include "log_widget.h"
 
 #ifdef __STDC__
-int time_lblAppInit( Tcl_Interp *interp );
+int Timelbl_Init( Tcl_Interp *interp );
 #else
-int time_lblAppInit();
+int Timelbl_Init();
 #endif
 
 /* structure defining an individual hashmark, to be used in a linked
@@ -52,42 +50,46 @@ typedef struct timelbl_ {
   Tcl_Interp *interp;
   Tk_Window win;
   char *windowName, *canvasName;
-  logData *log;
   char *fg;			/* color for the text and hashes */
   char *bg;			/* color for the background */
   char *font;			/* font for the text */
-  char *format_str;		/* sprintf format string used to print */
-				/* all labels */
-  double starttime, endtime;	/* pulled from the logfile */
+
+  int height;			/* total height of the widget, based on */
+				/* text size */
+
+  double starttime, endtime;
+  double totaltime;		/* is used often, might as well precompute */
 
   int visWidth;			/* window width, from the latest resize evt */
+  double lastVisWidth;		/* setting from the last visWidth */
 
   double width;			/* total width, from the latest resize */
 				/* event combined with latest 'scroll set' */
 
-  int height;			/* total height of the widget, based on */
-				/* text size */
+    /* the settings from the latest 'scroll set' command */
+    /* certain recalculations and redraws will only be necessary if these
+       numbers change */
+  double span, left;
+  double lastSpan;		/* setting from previous 'set' command */
+
+  char *format_str;		/* sprintf format string used to print */
+				/* all labels */
+
+  int xview;			/* leftmost coordinate */
+
+    /* list of indices of which labels are currently visible */
+    /* The indices used are figured as if each visible label is indexed, */
+    /* and the leftmost label is 0 */
+  timelbl_hashmark *head, *tail;
 
   double lbl_width;		/* how much space between label centers */
 
   double lbl_startx;		/* x-coordinate of leftmost label */
 
-  int xview;			/* leftmost coord - argument to xview comma */
-
-    /* the settings from the latest 'scroll set' command */
-    /* certain recalculations and redraws will only be necessary if these
-       numbers change */
-  double scroll_total, scroll_visible, scroll_first, scroll_last;
-
   int is_sized;			/* nonzero after the first configure event */
 
   double firstHashTime;		/* value for leftmost hash mark */
   double hashIncrement;		/* increment between hash marks */
-
-  timelbl_hashmark *head, *tail;
-    /* list of indices of which labels are currently visible */
-    /* The indices used are figured as if each visible label is indexed, */
-    /* and the leftmost label is 0 */
 } timelbl;
 
 /*

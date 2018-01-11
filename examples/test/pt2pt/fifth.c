@@ -47,5 +47,6 @@ char **argv;
       MPI_Isend( &data, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, &handle[3] );
       MPI_Waitall ( 4, handle, status );
     }
+    Test_Waitforall( );
     MPI_Finalize();
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: ibsend.c,v 1.7 1994/12/15 17:20:45 gropp Exp $
+ *  $Id: ibsend.c,v 1.8 1995/03/05 20:15:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: ibsend.c,v 1.7 1994/12/15 17:20:45 gropp Exp $";
+static char vcid[] = "$Id: ibsend.c,v 1.8 1995/03/05 20:15:32 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -45,7 +45,13 @@ MPI_Request      *request;
 	(*request)->shandle.persistent = 0;
 	return MPI_Start( request );
     }
-    else 
-	*request = 0;
+    else {
+	if (mpi_errno = 
+	    MPI_Send_init( buf, count, datatype, dest, tag, comm, request ))
+	    return mpi_errno;
+	MPID_Set_completed( comm->ADIctx, *request );
+	(*request)->shandle.persistent = 0;
+	(*request)->shandle.active     = 1;
+	}
     return MPI_SUCCESS;
 }

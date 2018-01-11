@@ -183,6 +183,7 @@ char **argv;
 	Async_Test_Send(buffer, SIZE);
 	Async_Test_Send(buffer, SIZE);
 #endif
+	Test_Waitforall( );
 	MPI_Finalize();
 
     } else if (rank == dest) {
@@ -246,6 +247,7 @@ char **argv;
 	    Test_Passed(Current_Test);
 #endif
 
+	Test_Waitforall( );
 	MPI_Finalize();
 	{
 	    int rval = Summarize_Test_Results(); /* Returns number of tests;
