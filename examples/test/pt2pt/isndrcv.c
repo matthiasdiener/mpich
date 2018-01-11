@@ -24,6 +24,8 @@
 static int src = 1;
 static int dest = 0;
 
+static int verbose = 0;
+
 #define MAX_TYPES 12
 #if defined(HAVE_LONG_DOUBLE) && (!defined HAS_XDR)
 static int ntypes = 12;
@@ -50,11 +52,8 @@ void SenderTest3 (void);
 void ReceiverTest3 (void);
 
 void 
-AllocateBuffers(bufferspace, buffertypes, num_types, bufferlen)
-void **bufferspace;
-MPI_Datatype *buffertypes;
-int num_types;
-int bufferlen;
+AllocateBuffers(void **bufferspace, MPI_Datatype *buffertypes, int num_types, 
+		int bufferlen)
 {
     int i;
     for (i = 0; i < ntypes; i++) {
@@ -91,9 +90,7 @@ int bufferlen;
 }
 
 void 
-FreeBuffers(buffers, nbuffers)
-void **buffers;
-int nbuffers;
+FreeBuffers(void **buffers, int nbuffers)
 {
     int i;
     for (i = 0; i < nbuffers; i++)
@@ -101,11 +98,8 @@ int nbuffers;
 }
 
 void 
-FillBuffers(bufferspace, buffertypes, num_types, bufferlen)
-void **bufferspace; 
-MPI_Datatype *buffertypes;
-int num_types;
-int bufferlen;
+FillBuffers(void **bufferspace, MPI_Datatype *buffertypes, int num_types, 
+	    int bufferlen)
 {
     int i, j;
     for (i = 0; i < ntypes; i++) {
@@ -191,7 +185,7 @@ int bufferlen;
     return 0;
 }
 
-void SetupBasicTypes()
+void SetupBasicTypes( void )
 {
     BasicTypes[0] = MPI_CHAR;
     BasicTypes[1] = MPI_SHORT;
@@ -203,6 +197,9 @@ void SetupBasicTypes()
     BasicTypes[7] = MPI_UNSIGNED_LONG;
     BasicTypes[8] = MPI_FLOAT;
     BasicTypes[9] = MPI_DOUBLE;
+
+    /* Define the last few elements as null just in case */
+    BasicTypes[11] = MPI_DATATYPE_NULL;
 #if defined (HAVE_LONG_DOUBLE) && (!defined HAS_XDR)
     if (MPI_LONG_DOUBLE) {
 	BasicTypes[10] = MPI_LONG_DOUBLE;
@@ -218,7 +215,7 @@ void SetupBasicTypes()
 }
 
 void 
-SenderTest1()
+SenderTest1( void )
 {
     void *bufferspace[MAX_TYPES];
     int i, j;
@@ -235,7 +232,7 @@ SenderTest1()
     act_send = 0;
     for (i = 0; i < ntypes; i++) {
 	for (j = 0; j < maxbufferlen; j += 500) {
-	    if (!BasicTypes[i]) continue;
+	    if (BasicTypes[i] == MPI_DATATYPE_NULL) continue;
 	    MPI_Isend(bufferspace[i], j, BasicTypes[i], dest, 
 		      2000, MPI_COMM_WORLD, 
 		      &(requests[act_send++]));
@@ -248,7 +245,7 @@ SenderTest1()
 }
 
 void
-ReceiverTest1()
+ReceiverTest1( void )
 {
     void *bufferspace[MAX_TYPES];
     int i, j;
@@ -302,7 +299,7 @@ ReceiverTest1()
 
 /* Test Tag Selectivity */
 void 
-SenderTest2()
+SenderTest2( void )
 {
     int *buffer;
     int i;
@@ -324,7 +321,7 @@ SenderTest2()
 }
 
 void
-ReceiverTest2()
+ReceiverTest2( void )
 {
     int *buffer;
     int i, j;
@@ -374,13 +371,13 @@ ReceiverTest2()
 }
 
 void
-SenderTest3()
+SenderTest3( void )
 {
     return;
 }
 
 void
-ReceiverTest3()
+ReceiverTest3( void )
 {
     int buffer[20];
     MPI_Datatype bogus_type = MPI_DATATYPE_NULL;
@@ -389,7 +386,10 @@ ReceiverTest3()
     MPI_Status Stat;
     int err_code;
 #endif
-    MPI_Errhandler_set(MPI_COMM_WORLD, TEST_ERRORS_WARN);
+    if (verbose)
+	MPI_Errhandler_set(MPI_COMM_WORLD, TEST_ERRORS_WARN);
+    else
+	MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 
     if (MPI_Isend(buffer, 20, MPI_INT, dest,
 		 1, MPI_COMM_NULL, &Req) == MPI_SUCCESS){
@@ -448,7 +448,7 @@ ReceiverTest3()
 }
 
 int 
-main( int argc, char **argv)
+main( int argc, char **argv )
 {
     int myrank, mysize;
 

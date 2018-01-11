@@ -54,6 +54,18 @@
 /* GCC296_VA_ARG_FIX : Turn on the workaround for the va_arg bug in gcc-2.96  */
 #undef GCC296_VA_ARG_FIX
 
+/* The number of bytes in a char.  */
+#undef SIZEOF_CHAR
+
+/* The number of bytes in a int.  */
+#undef SIZEOF_INT
+
+/* The number of bytes in a long long.  */
+#undef SIZEOF_LONG_LONG
+
+/* The number of bytes in a short.  */
+#undef SIZEOF_SHORT
+
 /* Define if you have the <ctype.h> header file.  */
 #undef HAVE_CTYPE_H
 

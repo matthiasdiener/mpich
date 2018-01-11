@@ -140,9 +140,10 @@ case $machine in
 	fi
   	;;
 esac
-exitstat=1
+exitstatus=1
 if [ -n "$mpirun_version" ] ; then
     if [ -x $mpirun_version ] ; then
+        # The mpirun script *must* set exitstatus (or exit itself)
         . $mpirun_version
     else
        	echo "$mpirun_version is not available."
@@ -152,5 +153,5 @@ else
     echo "No mpirun script for this configuration!"
     exit 1
 fi
-exit $exitstat
+exit $exitstatus
 

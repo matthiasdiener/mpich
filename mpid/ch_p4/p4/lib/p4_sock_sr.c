@@ -772,3 +772,67 @@ void p4_look_for_close( int i )
 	}
     }
 }
+
+/* Wait until a message is available from any source.
+   This includes the listener.  Returns one if select found something.
+ */
+int p4_wait_for_socket_msg( int is_blocking )
+{
+    int    i, fd, nfds, max_fd;
+    struct timeval tv;
+    fd_set read_fds;
+    int    nactive;
+    int    timeout_sec = 9;
+    
+    if (!is_blocking) timeout_sec = 0;
+    while (1) 
+    {
+	tv.tv_sec = timeout_sec;
+	tv.tv_usec = 0;  /* RMB */
+	FD_ZERO(&read_fds);
+	max_fd = -1;
+#ifdef THREAD_LISTENER
+	p4_dprintfl(70,"p4_wait_for_socket_msg: p4_local->listener_fd is %d\n",
+		    p4_local->listener_fd);
+	FD_SET(p4_local->listener_fd, &read_fds);
+	max_fd = p4_local->listener_fd;
+#endif
+	nactive = 0;
+	for (i = 0; i < p4_global->num_in_proctable; i++)
+	{
+	    if (p4_local->conntab[i].type == CONN_REMOTE_EST)
+	    {
+		fd = p4_local->conntab[i].port;
+		FD_SET(fd, &read_fds);
+		if (fd > max_fd) max_fd = fd;
+		nactive++;
+	    }
+	}
+	/* If there is only one process, there will NEVER be any active
+	   connections.  
+	   Question: does this cover the case of multiple processes but
+	   little communication between them, since the connections
+	   are established dynamically? 
+	 */
+#ifndef P4_WITH_MPD
+	if (!nactive && p4_global->num_in_proctable > 1)
+	{
+	    /* There are no active connections! 
+	       Let some other routine handle this. */
+	    return 1;
+	}
+#endif
+	/* Run select; if interrupted, get read_fds (in case a connection
+	   has occurred) and restart the connection */
+	nfds = select(max_fd + 1, &read_fds, 0, 0, &tv);
+	if (is_blocking) timeout_sec = 9;
+	if (nfds == -1 && errno == EINTR) continue;
+	if (nfds) {
+	    return 1;
+	}
+	if (!is_blocking) {
+	    /* Did not find anything and non-blocking. */
+	    return 0;
+	}
+    }
+}

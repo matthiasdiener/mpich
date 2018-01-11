@@ -1625,6 +1625,9 @@ int data_representation( char *machine_type )
     if (strcmp(machine_type, "TC_2000_TCMP") == 0)    return 18;
     if (strcmp(machine_type, "KSR") == 0)             return 19;
     if (strcmp(machine_type, "NCUBE") == 0)           return 20;
+
+    if (strcmp(machine_type, "LINUX_PPC") == 0)       return 24;
+    if (strcmp(machine_type, "LINUX_ALPHA") == 0)     return 25;
     p4_dprintf("invalid machine type=:%s:\n",machine_type);
     p4_error("data_representation: invalid machine type",0);
     return(-1);

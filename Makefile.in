@@ -26,7 +26,7 @@ RANLIB      = @RANLIB@
 
 ### Name of package and version (will be set with automake eventually) 
 PACKAGE = mpich
-VERSION = 1.2.2
+VERSION = 1.2.4
 ### End of name of package and version
 
 SHELL = /bin/sh
@@ -98,25 +98,32 @@ mpi: mkbuilddirs preinstall clean rmlib
 # step *when you are certain that it is ok*.  
 # The ranlib in the romio step is there to ensure that ranlib with the
 # appropriate options is used. (e.g., ranlib -c on MacOSX)
+# The occasional "sleep 1" is used to work around a bug in make (!);
+# this bug is related to the use of time-stamps in make, but is actually
+# more subtle; the logic in many implementations of make (including gnumake)
+# is not consistent with respect to the tests performed.  This can lead 
+# one test deciding to build a file but another step to decide not to 
+# include it in the subsequent step that is supposed to include everything 
+# that was just built!
 mpi-modules:
 	$(MAKE) mpilib
 	@if [ $(NOF77) = 0 ] ; then \
-	    echo "Making Fortran interface" ; \
+	    echo "Making Fortran interface" ; sleep 1 ; \
 	    if cd src/fortran && $(MAKE) ; then : ; else exit 1 ; fi ; fi
 	@if [ "@HAS_WEAK_SYMBOLS@" = 0  ] ; then \
 	    $(MAKE) clean ; $(MAKE) profile ; fi
 	@if [ $(ROMIO) = 1 -a -d romio ] ; then \
-	    echo "making romio" ;  \
+	    echo "making romio" ;  sleep 1 ; \
             if cd romio && $(MAKE) ; then \
 	        ${RANLIB} $(libbuild_dir)/lib${MPILIBNAME}.a ;\
 	    else exit 1 ; fi ; \
 	fi
 	@-if [ $(BUILDCPP) = 1 -a -d "${CPP_DIR}" ] ; then \
-            echo "making C++ interface" ; \
+            echo "making C++ interface" ; sleep 1 ; \
 	    $(MAKE) cpplib ; \
 	fi
 	@-if [ -s f90modules/Makefile -a "@NO_F90@" = 0 ] ; then \
-	    echo "making Fortran 90 module for MPI" ; \
+	    echo "making Fortran 90 module for MPI" ; sleep 1 ; \
 	    (cd f90modules && $(MAKE) ) ;\
 	fi
 
@@ -129,7 +136,7 @@ mpi-lib-test:
 # Use this target for add-on features
 mpi-addons:
 	$(MAKE) mpelib        
-	@if [ "@SHAREDKIND@" != "ignore" ] ; then \
+	-@if [ "@SHAREDKIND@" != "ignore" ] ; then \
 	$(MAKE) mpichsharelibs ; fi
 
 # This target is for various utilities (mpirun, servers)
@@ -140,13 +147,13 @@ mpi-utils:
 	    binbuild_dir=${binbuild_dir} ; libbuild_dir=${libbuild_dir} ; \
 	    top_srcdir=${top_srcdir} ; srcdir=${srcdir} ; \
 	    ( export binbuild_dir ; export libbuild_dir ; export top_srcdir ; \
-	      export MAKE ; export srcdir ; \
+	      MAKE="${MAKE}" ; export MAKE ; export srcdir ; \
 	    mpid/${DEVICE}/mpirun_setup ; );\
 	elif [ -x ${top_srcdir}/mpid/${DEVICE}/mpirun_setup ] ; then \
 	    binbuild_dir=${binbuild_dir} ; libbuild_dir=${libbuild_dir} ; \
 	    top_srcdir=${top_srcdir} ; srcdir=${srcdir} ; \
 	    ( export binbuild_dir ; export libbuild_dir ; export top_srcdir ; \
-	      export MAKE ; export srcdir ; \
+	      MAKE="${MAKE}" ; export MAKE ; export srcdir ; \
 	    ${top_srcdir}/mpid/${DEVICE}/mpirun_setup ; );\
 	else \
 	    ${MAKE} mpirun ; \
@@ -236,14 +243,15 @@ testing-boot:
 
 #
 # Make sure that a failure during the make causes the make to stop at 
-# that point.
+# that point.  The "sleep 1" is used to work around a bug in make (!); 
+# see the discussion above
 #	${top_srcdir}/makelinks
 mpilib: ${top_srcdir}/Makefile.in ${includebuild_dir}/mpichconf.h
 	-@(cd mpid/@DEVICE@ && $(MAKE) setlinks)
 	@for dir in $(CODEDIRS) ;\
 	  do \
 	  echo " " ;\
-	  echo making mpir in directory $$dir ;\
+	  echo making mpir in directory $$dir ; sleep 1 ; \
 	  (cd $$dir ; \
 	  if [ "$$dir" = "mpid/@DEVICE@" ] ; then \
 	      $(MAKE) default_all ; \

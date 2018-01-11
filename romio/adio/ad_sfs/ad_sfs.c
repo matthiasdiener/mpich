@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_sfs.c,v 1.1 2001/06/05 22:27:36 rross Exp $
+ *   $Id: ad_sfs.c,v 1.3 2002/10/24 17:01:00 gropp Exp $
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -14,13 +15,13 @@ struct ADIOI_Fns_struct ADIO_SFS_operations = {
     ADIOI_SFS_Open, /* Open */
     ADIOI_SFS_ReadContig, /* ReadContig */
     ADIOI_SFS_WriteContig, /* WriteContig */
-    ADIOI_SFS_ReadStridedColl, /* ReadStridedColl */
-    ADIOI_SFS_WriteStridedColl, /* WriteStridedColl */
-    ADIOI_SFS_SeekIndividual, /* SeekIndividual */
+    ADIOI_GEN_ReadStridedColl, /* ReadStridedColl */
+    ADIOI_GEN_WriteStridedColl, /* WriteStridedColl */
+    ADIOI_GEN_SeekIndividual, /* SeekIndividual */
     ADIOI_SFS_Fcntl, /* Fcntl */
-    ADIOI_SFS_SetInfo, /* SetInfo */
-    ADIOI_SFS_ReadStrided, /* ReadStrided */
-    ADIOI_SFS_WriteStrided, /* WriteStrided */
+    ADIOI_GEN_SetInfo, /* SetInfo */
+    ADIOI_GEN_ReadStrided, /* ReadStrided */
+    ADIOI_GEN_WriteStrided, /* WriteStrided */
     ADIOI_SFS_Close, /* Close */
     ADIOI_SFS_IreadContig, /* IreadContig */
     ADIOI_SFS_IwriteContig, /* IwriteContig */

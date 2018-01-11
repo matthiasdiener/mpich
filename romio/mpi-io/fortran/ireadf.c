@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ireadf.c,v 1.12 2001/12/12 23:38:09 ashton Exp $    
+ *   $Id: ireadf.c,v 1.14 2002/10/24 17:01:21 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,21 +11,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_iread_ PMPI_FILE_IREAD
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_iread_ pmpi_file_iread__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_iread pmpi_file_iread_
-#endif
-#define mpi_file_iread_ pmpi_file_iread
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_iread_ pmpi_file_iread
-#endif
-#define mpi_file_iread_ pmpi_file_iread_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -64,6 +50,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpi_file_iread_ PMPI_FILE_IREAD
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_iread_ pmpi_file_iread__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_iread pmpi_file_iread_
+#endif
+#define mpi_file_iread_ pmpi_file_iread
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_iread_ pmpi_file_iread
+#endif
+#define mpi_file_iread_ pmpi_file_iread_
 #endif
 
 #else

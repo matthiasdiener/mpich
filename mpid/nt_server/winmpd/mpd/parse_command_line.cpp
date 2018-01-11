@@ -48,8 +48,6 @@ static bool GetNextHost(FILE *fin, char *pszHost)
 
 static void GetPassword(char *question, char *account, char *password)
 {
-    PUSH_FUNC("GetPassword");
-
     if (question != NULL)
 	printf(question);
     else
@@ -66,8 +64,6 @@ static void GetPassword(char *question, char *account, char *password)
     
     printf("\n");
     fflush(stdout);
-
-    POP_FUNC();
 }
 
 // parseCommandLine ///////////////////////////////////////////////////////////
@@ -76,8 +72,6 @@ static void GetPassword(char *question, char *account, char *password)
 //
 void parseCommandLine (int *argc, char** argv[])
 {
-    PUSH_FUNC("parseCommandLine");
-
     /*
     // A little snipet of code to test the update feature.
     // Uncomment this code, compile, run mpd -update, then run mpd -loser to see if this new functionality exists
@@ -100,6 +94,7 @@ void parseCommandLine (int *argc, char** argv[])
     }
     if (GetOpt(*argc, *argv, "-install") || GetOpt(*argc, *argv, "-regserver"))
     {
+	bool bMPDUserCapable = false;
 	char account[100]="", password[100]="", phrase[MPD_PASSPHRASE_MAX_LENGTH+1]="", port[10]="";
 	char version[100]="";
 
@@ -109,8 +104,9 @@ void parseCommandLine (int *argc, char** argv[])
 	    ExitProcess(0);
 	}
 	
-	bsocket_init();
+	easy_socket_init();
 	CreateMPDRegistry();
+	bMPDUserCapable = GetOpt(*argc, *argv, "-mpduser");
 	if (GetOpt(*argc, *argv, "-phrase", phrase))
 	    WriteMPDRegistry("phrase", phrase);
 	if (GetOpt(*argc, *argv, "-getphrase"))
@@ -126,17 +122,17 @@ void parseCommandLine (int *argc, char** argv[])
 		GetPassword(NULL, account, password);
 	    WriteMPDRegistry("SingleUser", "yes");
 	    ParseRegistry(true);
-	    CmdInstallService(account, password);
+	    CmdInstallService(account, password, bMPDUserCapable);
 	}
 	else
 	{
 	    WriteMPDRegistry("SingleUser", "no");
 	    ParseRegistry(true);
-	    CmdInstallService(NULL, NULL);
+	    CmdInstallService(NULL, NULL, bMPDUserCapable);
 	}
 	GetMPDVersion(version, 100);
 	WriteMPDRegistry("version", version);
-	bsocket_finalize();
+	easy_socket_finalize();
 	ExitProcess(0);
     }
     if (GetOpt(*argc, *argv, "-update"))
@@ -172,7 +168,7 @@ void parseCommandLine (int *argc, char** argv[])
 	    }
 	}
 
-	bsocket_init();
+	easy_socket_init();
 	nPort = MPD_DEFAULT_PORT;
 	if (!ReadMPDRegistry("phrase", phrase, false))
 	    strcpy(phrase, MPD_DEFAULT_PASSPHRASE);
@@ -191,7 +187,7 @@ void parseCommandLine (int *argc, char** argv[])
 		char pszStr[1024];
 		Translate_Error(GetLastError(), pszStr);
 		printf("Unable to open the host file '%s', %s\n", pszHostFile, pszStr);
-		bsocket_finalize();
+		easy_socket_finalize();
 		ExitProcess(0);
 	    }
 
@@ -219,7 +215,7 @@ void parseCommandLine (int *argc, char** argv[])
 	    }
 	}
 
-	bsocket_finalize();
+	easy_socket_finalize();
 	printf("Finished.\n");
 	ExitProcess(0);
     }
@@ -247,7 +243,7 @@ void parseCommandLine (int *argc, char** argv[])
 	    host, port, 
 	    GetOpt(*argc, *argv, "-getphrase"),
 	    GetOpt(*argc, *argv, "-phrase", phrase) ? phrase : NULL);
-	bsocket_finalize();
+	easy_socket_finalize();
 	ExitProcess(0);
     }
     if (GetOpt(*argc, *argv, "-console"))
@@ -260,7 +256,7 @@ void parseCommandLine (int *argc, char** argv[])
 	    NULL, port, 
 	    GetOpt(*argc, *argv, "-getphrase"),
 	    GetOpt(*argc, *argv, "-phrase", phrase) ? phrase : NULL);
-	bsocket_finalize();
+	easy_socket_finalize();
 	ExitProcess(0);
     }
     if (GetOpt(*argc, *argv, "-start"))
@@ -310,7 +306,7 @@ void parseCommandLine (int *argc, char** argv[])
     {
 	char account[100]="", password[100]="", phrase[MPD_PASSPHRASE_MAX_LENGTH+1]="", pszPort[20]="";
 	char str_temp[10];
-	bsocket_init();
+	easy_socket_init();
 	CreateMPDRegistry();
 	if (GetOpt(*argc, *argv, "-phrase", phrase))
 	    WriteMPDRegistry("phrase", phrase);
@@ -345,7 +341,7 @@ void parseCommandLine (int *argc, char** argv[])
 
 	ParseRegistry(true);
 	CmdDebugService(*argc, *argv);
-	bsocket_finalize();
+	easy_socket_finalize();
 	ExitProcess(0);
     }
     if (GetOpt(*argc, *argv, "-v") || GetOpt(*argc, *argv, "-version"))
@@ -378,6 +374,7 @@ void parseCommandLine (int *argc, char** argv[])
 	fprintf(stderr, "\nMPD - mpich daemon for Windows NT, version %s\n%s\n", str, COPYRIGHT);
 	fprintf(stderr, "Usage:\n  mpd [ -v -h -install -remove -console ]\n\nCommand line options:\n");
 	fprintf(stderr, "  -install \t:install the service\n  -install -interact    :allows the mpd to interact with the desktop\n");
+	fprintf(stderr, "  -install -mpduser\t:install the service with single user commands enabled.\n");
 	fprintf(stderr, "  -remove\t:remove the service\n");
 	fprintf(stderr, "  -v\t\t:display version\n");
 	fprintf(stderr, "  -h\t\t:this help screen\n");
@@ -386,5 +383,4 @@ void parseCommandLine (int *argc, char** argv[])
 	fprintf(stderr, "  -d\t\t:run the mpd from the console\n");
 	ExitProcess(0);
     }
-    POP_FUNC();
 }

@@ -12,6 +12,7 @@ extern "C" {
 extern int g_nLastRecvFrom;
 void MPID_NT_ipvishm_Init( int *argc, char ***argv );
 void MPID_NT_ipvishm_End();
+int MPID_NT_ipvishm_exitall(char *msg, int code);
 int nt_ipvishm_proc_info(int i, char **hostname, char **exename);
 int NT_PIbsend(int type, void *buffer, int length, int to, int datatype);
 int NT_PIbrecv(int type, void *buffer, int length, int datatype);

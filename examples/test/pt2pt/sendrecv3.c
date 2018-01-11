@@ -1,4 +1,4 @@
-#include <mpi.h>
+#include "mpi.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include "dtypes.h"
@@ -8,6 +8,7 @@
 #include "protofix.h"
 #endif
 
+int verbose = 0;
 /*
    This program is from mpich/tsuite/pt2pt and should be changed there only.
    It needs gcomm and dtype from mpich/tsuite, and can be run with 
@@ -26,7 +27,7 @@ int          packsize, unpacksize, position;
 int          *counts, *bytesize, ntype;
 MPI_Comm     comms[20];
 int          ncomm = 20, rank, np, partner, tag, count;
-int          i, j, k, err, world_rank;
+int          i, j, k, err, toterr, world_rank;
 int          errloc;
 MPI_Status   status;
 char         *obuf;
@@ -46,12 +47,12 @@ for (i=0; i<ncomm; i++) {
     MPI_Comm_rank( comms[i], &rank );
     MPI_Comm_size( comms[i], &np );
     if (np < 2) continue;
-    if (world_rank == 0) {
+    if (world_rank == 0 && verbose) {
 	fprintf( stdout, "Testing with communicator with %d members\n", np );
 	}
     tag = i;
     for (j=0; j<ntype; j++) {
-	if (world_rank == 0) 
+	if (world_rank == 0 && verbose) 
 	    fprintf( stdout, "Testing type %s\n", names[j] );
         if (rank == 0) {
 	    partner = np - 1;
@@ -140,6 +141,15 @@ for (i=0; i<ncomm; i++) {
 if (err > 0) {
     fprintf( stderr, "%d errors on %d\n", err, rank );
     }
+MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+ if (world_rank == 0) {
+     if (toterr == 0) {
+	 printf( " No Errors\n" );
+     }
+     else {
+	 printf (" Found %d errors\n", toterr );
+     }
+ }
 FreeDatatypes( types, inbufs, outbufs, counts, bytesize, names, ntype );
 FreeComms( comms, ncomm );
 MPI_Barrier( MPI_COMM_WORLD );

@@ -22,6 +22,8 @@ done
 #
 if test $VMPI -ne 0 ; then
     CopyFile ${top_srcdir}/mpid/$DEVICE/mpid_defs.h ${includedir}
+    CopyFile ${top_srcdir}/mpid/$DEVICE/global_c_symb.h ${includedir}
+    CopyFile ${top_srcdir}/mpid/$DEVICE/global_fort_symb.h ${includedir}
 fi
 if test $F77_SED -ne 0 ; then
     CopyFile ${top_srcdir}/mpid/$DEVICE/mpid_fortdefs.h  ${includedir}

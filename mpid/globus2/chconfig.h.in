@@ -10,6 +10,11 @@
 #endif
 
 /*
+ * Tell MPICH that the globus2 device always does its own data conversion.
+ */
+#define MPID_DOES_DATACONV
+
+/*
  * Tell MPICH what supplementary functions we are providing (and expect it
  * to call)
  */

@@ -1292,7 +1292,8 @@ if test -n "$TCLSH"; then
   ac_pg_TCLSH="$TCLSH" # Let the user override the test.
 else
   ac_first_char=`expr "tclsh" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "tclsh" ; then
+  # Use ac_word instead of tclsh in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_TCLSH="1"
        ac_prog_where=tclsh
   else

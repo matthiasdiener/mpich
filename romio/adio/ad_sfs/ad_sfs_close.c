@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_sfs_close.c,v 1.4 2000/02/09 21:29:58 thakur Exp $    
+ *   $Id: ad_sfs_close.c,v 1.5 2002/10/24 17:01:00 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

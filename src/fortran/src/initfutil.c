@@ -1,5 +1,5 @@
 /*
- *  $Id: initfutil.c,v 1.16 2002/01/18 16:09:46 gropp Exp $
+ *  $Id: initfutil.c,v 1.17 2002/08/30 17:35:04 lacour Exp $
  *
  *  (C) 2000 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -54,11 +54,6 @@
 #define mpir_init_fsize_  mpir_init_fsize
 #define mpir_get_fsize_   mpir_get_fsize
 #endif
-
-/* SEBASTIEN L: EXPERIMENTS!!! */
-/* This should not be necessary; mpidefs.h is included by mpi.h */
-/* #include "mpidefs.h" */
-/* END OF EXPERIMENTATIONS */
 
 
 /* Prototypes for Fortran interface functions */

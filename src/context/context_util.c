@@ -1,5 +1,5 @@
 /*
- *  $Id: context_util.c,v 1.6 2001/12/14 22:08:08 toonen Exp $
+ *  $Id: context_util.c,v 1.7 2003/01/02 19:54:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -83,7 +83,7 @@ THREAD_SAFETY_ISSUE - this routine may currently be used in ways that is
 not safe in a multithreaded environment.
  */
 int MPIR_Context_alloc ( 
-	MPI_Comm comm, 
+	struct MPIR_COMMUNICATOR *comm, 
 	int num_contexts, 
 	MPIR_CONTEXT *context )
 {
@@ -100,7 +100,7 @@ int MPIR_Context_alloc (
 
     /* Get the or of the masks everywhere */
     PMPI_Allreduce(usedContextMap, groupUsedMap, 1 + MPID_MAX_CONTEXT/INTBITS,
-		  MPI_UNSIGNED,MPI_BOR,comm);
+		  MPI_UNSIGNED,MPI_BOR,comm->self);
 
     result = findFree(groupUsedMap, num_contexts);
 
@@ -210,10 +210,10 @@ int MPIR_Context_dealloc (
 MPIR_Context_alloc - allocate some number of contexts over given communicator
 
  */
-int MPIR_Context_alloc ( comm, num_contexts, context )
-struct MPIR_COMMUNICATOR *comm;
-int           num_contexts;
-MPIR_CONTEXT *context;
+int MPIR_Context_alloc ( 
+    struct MPIR_COMMUNICATOR *comm,
+    int           num_contexts,
+    MPIR_CONTEXT *context )
 {
   static MPIR_CONTEXT high_context = MPIR_FIRST_FREE_CONTEXT;
 

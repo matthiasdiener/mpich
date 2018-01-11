@@ -4,14 +4,17 @@
 #include <winsock2.h>
 #include <windows.h>
 
+#include "global.h"
+
 class CGuiMPIRunView;
 
 struct MPIRunLaunchProcessArg
 {
-    int i;
+    int i, n;
     char pszJobID[100];
     char pszHost[MAX_HOST_LENGTH];
     char pszEnv[MAX_CMD_LENGTH];
+    char pszMap[MAX_CMD_LENGTH];
     char pszDir[MAX_PATH];
     char pszCmdLine[MAX_CMD_LENGTH];
     bool bLogon;
@@ -19,9 +22,14 @@ struct MPIRunLaunchProcessArg
     char pszPassword[300];
     char pszIOHostPort[100];
     char pszPassPhrase[257];
+    bool bUseDebugFlag;
     CGuiMPIRunView *pDlg;
 };
 
 void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg);
+void PutJobInDatabase(MPIRunLaunchProcessArg *arg);
+void PutJobProcessInDatabase(MPIRunLaunchProcessArg *arg, int pid);
+void UpdateJobState(char *state);
+void UpdateJobKeyValue(int rank, char *key, char *value);
 
 #endif

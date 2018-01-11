@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: delete.c,v 1.11 2001/11/14 19:28:36 ashton Exp $    
+ *   $Id: delete.c,v 1.12 2002/10/24 15:54:39 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

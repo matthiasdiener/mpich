@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_piofs.c,v 1.1 2001/06/05 22:27:26 rross Exp $
+ *   $Id: ad_piofs.c,v 1.3 2002/10/24 17:00:54 gropp Exp $
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -14,12 +15,12 @@ struct ADIOI_Fns_struct ADIO_PIOFS_operations = {
     ADIOI_PIOFS_Open, /* Open */
     ADIOI_PIOFS_ReadContig, /* ReadContig */
     ADIOI_PIOFS_WriteContig, /* WriteContig */
-    ADIOI_PIOFS_ReadStridedColl, /* ReadStridedColl */
-    ADIOI_PIOFS_WriteStridedColl, /* WriteStridedColl */
+    ADIOI_GEN_ReadStridedColl, /* ReadStridedColl */
+    ADIOI_GEN_WriteStridedColl, /* WriteStridedColl */
     ADIOI_PIOFS_SeekIndividual, /* SeekIndividual */
     ADIOI_PIOFS_Fcntl, /* Fcntl */
     ADIOI_PIOFS_SetInfo, /* SetInfo */
-    ADIOI_PIOFS_ReadStrided, /* ReadStrided */
+    ADIOI_GEN_ReadStrided, /* ReadStrided */
     ADIOI_PIOFS_WriteStrided, /* WriteStrided */
     ADIOI_PIOFS_Close, /* Close */
     ADIOI_PIOFS_IreadContig, /* IreadContig */
@@ -30,7 +31,7 @@ struct ADIOI_Fns_struct ADIO_PIOFS_operations = {
     ADIOI_PIOFS_WriteComplete, /* WriteComplete */
     ADIOI_PIOFS_IreadStrided, /* IreadStrided */
     ADIOI_PIOFS_IwriteStrided, /* IwriteStrided */
-    ADIOI_PIOFS_Flush, /* Flush */
+    ADIOI_GEN_Flush, /* Flush */
     ADIOI_PIOFS_Resize, /* Resize */
     ADIOI_GEN_Delete, /* Delete */
 };

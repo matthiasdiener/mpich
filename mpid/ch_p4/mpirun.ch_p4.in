@@ -243,7 +243,9 @@ else
 fi
 if [ "$just_testing" != 1 ] ; then
     if [ "$leavePGFile" = 1 ] ; then
-        echo "P4 procgroup file is $p4pgfile."
+        if [ "$givenPGFile" != 1 ] ; then
+            echo "P4 procgroup file is $p4pgfile."
+        fi
     else
         if [ "$nolocal" = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
 	    $rshcmd -n $machinehead /bin/rm $p4pgfile_master

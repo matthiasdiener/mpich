@@ -12,6 +12,7 @@ void PrintOptions()
     printf(" mpijob -clear [all, before timestamp, or jobid] [jobhost]\n");
     printf(" mpdjob -tofile filename [all, before timestamp, or jobid] [jobhost]\n");
     printf("\n timestamp = yyyy.mm.dd<hh.mm.ss>\n");
+    fflush(stdout);
 }
 
 void main(int argc, char *argv[])
@@ -23,7 +24,7 @@ void main(int argc, char *argv[])
     bool bFull;
     char *phost;
 
-    bsocket_init();
+    easy_socket_init();
 
     if (argc == 1)
     {
@@ -59,6 +60,7 @@ void main(int argc, char *argv[])
 	if (argc < 2)
 	{
 	    printf("Error: all, timestamp or jobid must be specified after -tofile filename\n");
+	    fflush(stdout);
 	    return;
 	}
 	strcpy(option, argv[1]);
@@ -78,5 +80,5 @@ void main(int argc, char *argv[])
 	DisplayJob(argv[1], phost, MPD_DEFAULT_PORT, NULL, bFull, false, NULL);
     }
 
-    bsocket_finalize();
+    easy_socket_finalize();
 }

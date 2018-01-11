@@ -154,14 +154,12 @@ extern bool g_bMultinic;
 // nt_smp.cpp
 class ShmemLockedQueue;
 extern ShmemLockedQueue **g_pShmemQueue;
-extern int g_nSMPLow;
-extern int g_nSMPHigh;
 extern HANDLE *g_hShpSendCompleteEvent;
 extern HANDLE *g_hProcesses;
 void InitSMP();
 void EndSMP();
 void NT_ShmSend(int type, void *buffer, int length, int to);
-void GetShmemClique();
+int GetShmemClique();
 
 // nt_ipvishm_control_loop.cpp
 void ControlLoopClientThread(ControlLoopClientArg *arg);

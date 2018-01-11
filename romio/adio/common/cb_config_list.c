@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: cb_config_list.c,v 1.3 2002/01/04 14:35:28 gropp Exp $    
+ *   $Id: cb_config_list.c,v 1.4 2002/10/24 17:01:14 gropp Exp $    
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpio.h.in,v 1.13 2002/05/02 16:06:22 rross Exp $    
+ *   $Id: mpio.h.in,v 1.15 2002/10/17 21:20:13 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -20,12 +21,18 @@ extern "C" {
 
 /* define MPI-IO datatypes and constants */
 
+#ifndef MPI_FILE_DEFINED
 typedef struct ADIOI_FileD *MPI_File;
+#endif
 
 /* no generalized requests as yet */
+#ifndef HAVE_MPI_PREQUEST
 typedef struct ADIOI_RequestD *MPIO_Request;  
+#endif
 
+#ifndef HAVE_MPI_OFFSET
 @DEFINE_MPI_OFFSET@
+#endif
 
 #ifndef NEEDS_MPI_FINT
 @NEEDS_MPI_FINT@
@@ -86,6 +93,7 @@ typedef int MPI_Fint;
 #ifndef HAVE_PRAGMA_HP_SEC_DEF
 
 /* Section 9.2 */
+/* Begin Prototypes */
 int MPI_File_open(MPI_Comm comm, char *filename, int amode, 
                           MPI_Info info, MPI_File *fh);
 int MPI_File_close(MPI_File *fh);
@@ -195,6 +203,7 @@ int MPI_File_sync(MPI_File fh);
 /* Section 4.13.3 */
 int MPI_File_set_errhandler( MPI_File, MPI_Errhandler );
 int MPI_File_get_errhandler( MPI_File, MPI_Errhandler * );
+/* End Prototypes */
 
 #ifndef HAVE_MPI_DARRAY_SUBARRAY
 /* Section 4.14.4 */

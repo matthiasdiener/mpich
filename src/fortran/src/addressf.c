@@ -148,7 +148,7 @@ FORTRAN_API void FORT_CALL mpi_address_( void *location, MPI_Fint *address, MPI_
     if (*__ierr != MPI_SUCCESS) return;
     
     b = a - (MPI_Aint)MPIR_F_MPI_BOTTOM;
-    *address = (int)( b );
+    *address = (MPI_Fint)( b );
     if (((MPI_Aint)*address) - b != 0) {
 	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD,     
       MPIR_ERRCLASS_TO_CODE(MPI_ERR_ARG,MPIR_ERR_FORTRAN_ADDRESS_RANGE),

@@ -115,7 +115,7 @@ dnl accepted by 'configure'.
 dnl
 dnl See Also:
 dnl AC_CACHE_LOAD
-dnlD*/
+dnl D*/
 dnl Add this call to the other ARG_ENABLE calls.  Note that the values
 dnl set here are redundant; the LOAD_CACHE call relies on the way autoconf
 dnl initially processes ARG_ENABLE commands.
@@ -124,11 +124,21 @@ AC_ARG_ENABLE(cache,
 [--enable-cache  - Turn on configure caching],
 enable_cache="$enableval",enable_cache="notgiven")
 ])
+dnl/*D
+dnl PAC_SUBDIR_CACHE - Create a cache file before ac_output for subdirectory
+dnl configures.
+dnl 
+dnl Synopsis:
+dnl PAC_SUBDIR_CACHE
 dnl
+dnl Output Effects:
+dnl 	
 dnl Create a cache file before ac_output so that subdir configures don't
 dnl make mistakes. 
 dnl We can't use OUTPUT_COMMANDS to remove the cache file, because those
 dnl commands are executed *before* the subdir configures.
+dnl
+dnl D*/
 AC_DEFUN(PAC_SUBDIR_CACHE,[
 if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
     cache_file=$$conf.cache
@@ -146,16 +156,17 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     ac_cv_env_CPPFLAGS_value=$CPPFLAGS
     ac_cv_env_LDFLAGS_set=set
     ac_cv_env_LDFLAGS_value=$LDFLAGS
-    export CC
-    export CFLAGS
-    export LDFLAGS
-    export CPPFLAGS
-    export CPP
     dnl other parameters are
     dnl build_alias, host_alias, target_alias
     AC_CACHE_SAVE
     ac_configure_args="$ac_configure_args -enable-cache"
 fi
+dnl Unconditionally export these values.  Subdir configures break otherwise
+export CC
+export CFLAGS
+export LDFLAGS
+export CPPFLAGS
+export CPP
 ])
 AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
 if test "$cache_file" != "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then

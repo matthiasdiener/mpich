@@ -3,7 +3,6 @@
 
 #include "mpdutil.h"
 #include "mpd.h"
-#include "bsocket.h"
 
 // main functions
 void ListJobs(char *host, int port, char *altphrase);

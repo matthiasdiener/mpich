@@ -15,7 +15,7 @@ dnl any effect.
 dnl
 dnl See also:
 dnl PAC_LANG_POP_COMPILERS
-dnlD*/
+dnl D*/
 dnl
 dnl These two name allow you to use TESTCC for CC, etc, in all of the 
 dnl autoconf compilation tests.  This is useful, for example, when the
@@ -26,6 +26,39 @@ dnl compilers.  Because autoconf insists on calling cpp for the header
 dnl checks, we use TESTCPP for the CPP test as well.  And if no TESTCPP 
 dnl is defined, we create one using TESTCC.
 dnl
+dnl 2.52 does not have try_compiler, which is like try_compile, but 
+dnl it doesn't force a main program 
+dnl Not quite correct, but adequate for here
+ifdef([AC_TRY_COMPILER],,[AC_DEFUN([AC_TRY_COMPILER],
+[cat > conftest.$ac_ext <<EOF
+ifelse(_AC_LANG, [Fortran 77], ,
+[
+[#]line __oline__ "configure"
+#include "confdefs.h"
+])
+[$1]
+EOF
+if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeext}; then
+  [$2]=yes
+  # If we can't run a trivial program, we are probably using a cross compiler.
+  if (./conftest; exit) 2>/dev/null; then
+    [$3]=no
+  else
+    [$3]=yes
+  fi
+else
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat conftest.$ac_ext >&AC_FD_CC
+  [$2]=no
+fi
+rm -fr conftest*])
+])
+dnl
+dnl pac_cross_compiling overrides all tests if set to yes.  This allows
+dnl us to test the cross-compilation branches of the code, and to use
+dnl compilers that can both cross-compile and build code for the current
+dnl platform
+dnl 
 AC_DEFUN(PAC_LANG_PUSH_COMPILERS,[
 if test "X$pac_save_level" = "X" ; then
     pac_save_CC="$CC"
@@ -53,16 +86,26 @@ if test "X$pac_save_level" = "X" ; then
     # This is just:
     AC_LANG_SAVE
     AC_LANG_C
-    AC_TRY_COMPILER([main(){return(0);}], ac_cv_prog_cc_works, ac_cv_prog_cc_cross)
+    if test "$pac_cross_compiling" = "yes" ; then
+        ac_cv_prog_cc_cross=yes
+	ac_cv_prog_cc_works=yes
+    else
+        AC_TRY_COMPILER([main(){return(0);}], ac_cv_prog_cc_works, ac_cv_prog_cc_cross)
+    fi
     AC_LANG_RESTORE
     # Ignore Fortran if we aren't using it.
     if test -n "$F77" ; then
         AC_LANG_SAVE
         AC_LANG_FORTRAN77
-        AC_TRY_COMPILER(dnl
+	if test "$pac_cross_compiling" = "yes" ; then
+	    ac_cv_prog_f77_cross=yes
+	    ac_cv_prog_f77_works=yes
+	else
+            AC_TRY_COMPILER(dnl
 [      program conftest
       end
 ], ac_cv_prog_f77_works, ac_cv_prog_f77_cross)
+	fi
         AC_LANG_RESTORE
     fi
     # Ignore C++ if we aren't using it.
@@ -78,23 +121,28 @@ if test "X$pac_save_level" = "X" ; then
         PAC_LANG_FORTRAN90
 	dnl We can't use AC_TRY_COMPILER because it doesn't know about 
         dnl Fortran 90
-        cat > conftest.$ac_ext << EOF
+	if test "$pac_cross_compiling" = "yes" ; then
+	    ac_cv_prog_f90_cross=yes
+	    ac_cv_prog_f90_works=yes
+	else
+            cat > conftest.$ac_ext << EOF
       program conftest
       end
 EOF
-        if { (eval echo configure:2324: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
-          ac_cv_prog_f90_works=yes
-          # If we can't run a trivial program, we are probably using a cross compiler.
-          if (./conftest; exit) 2>/dev/null; then
-              ac_cv_prog_f90_cross=no
-          else
-              ac_cv_prog_f90_cross=yes
-          fi
-        else
-          echo "configure: failed program was:" >&5
-          cat conftest.$ac_ext >&5
-          ac_cv_prog_f90_works=no
-        fi
+            if { (eval echo configure:2324: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+              ac_cv_prog_f90_works=yes
+              # If we can't run a trivial program, we are probably using a cross compiler.
+              if (./conftest; exit) 2>/dev/null; then
+                  ac_cv_prog_f90_cross=no
+              else
+                  ac_cv_prog_f90_cross=yes
+              fi
+            else
+              echo "configure: failed program was:" >&5
+              cat conftest.$ac_ext >&5
+              ac_cv_prog_f90_works=no
+            fi
+	fi
 	pac_cv_prog_f90_cross="$ac_cv_prog_f90_cross"
 	pac_cv_prog_f90_works="$ac_cv_prog_f90_works"
         rm -fr conftest*

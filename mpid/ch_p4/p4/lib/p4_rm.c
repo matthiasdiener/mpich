@@ -418,8 +418,8 @@ P4VOID create_rm_processes(int nslaves, int bm_fd)
             ALOG_SETUP(p4_local->my_id,ALOG_TRUNCATE);
             ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
 	    return;
-	}
-
+	} /* if slave_pid == 0 */
+	/* else slave_pid != 0, ie., I am the parent */
 #   if !defined(NO_LISTENER)
 	/* slave holds this end */
 	close(end_1);

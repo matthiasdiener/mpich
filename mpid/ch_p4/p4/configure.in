@@ -846,6 +846,13 @@ AC_COMPILE_CHECK([whether semctl needs union semun],[#include <sys/types.h>
 int arg = 0; semctl( 1, 1, SETVAL, arg );return 0;],AC_DEFINE(SEMCTL_ARG_UNION))
 #
 AC_HAVE_FUNCS(strerror)
+#
+# Check to see if we need to define sys_errlist.  We do this by defining it
+# badly, and then checking for an error.
+AC_COMPILE_CHECK([whether sys_errlist needs do be defined],
+[#include <string.h>]
+,[extern short sys_errlist;],,AC_DEFINE(NEEDS_SYS_ERRLIST))
+#
 AC_HAVE_LIBRARY(crypt,CRYPT_LIBS=-lcrypt)
 # Look for vprintf
 AC_HAVE_FUNCS(vprintf)

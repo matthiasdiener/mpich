@@ -57,7 +57,7 @@ extern "C" {
 #endif
 
 // Service routine prototypes
-VOID CmdInstallService(LPTSTR account, LPTSTR password);
+VOID CmdInstallService(LPTSTR account, LPTSTR password, bool bMPDUserCapable = false);
 BOOL CmdRemoveService(BOOL bErrorOnNotInstalled);
 VOID CmdDebugService(int argc, char **argv);
 VOID CmdStopService();

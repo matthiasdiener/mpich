@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "guiMPIJob.h"
 #include "guiMPIJobDlg.h"
-#include "bsocket.h"
+#include "mpdutil.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -50,7 +50,7 @@ BOOL CGuiMPIJobApp::InitInstance()
 
 	CGuiMPIJobDlg dlg;
 
-	bsocket_init();
+	easy_socket_init();
 
 	m_pMainWnd = &dlg;
 	int nResponse = dlg.DoModal();
@@ -61,7 +61,7 @@ BOOL CGuiMPIJobApp::InitInstance()
 	{
 	}
 
-	bsocket_finalize();
+	easy_socket_finalize();
 
 	// Since the dialog has been closed, return FALSE so that we exit the
 	//  application, rather than start the application's message pump.

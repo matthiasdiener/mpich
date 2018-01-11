@@ -303,6 +303,8 @@ void sib_mpexec( void )		/* designed to work with process managers */
 	sprintf( buf, "cmd=jobinfo jobid=%d status=failed\n",jobid );
 	write_line( console_idx, buf );
 	dclose( fdtable[console_idx].fd ); /* without this we get "Broken Pipe" */
+	deallocate_fdentry( console_idx );
+	console_idx = -1;
 	return;
     } 
 
@@ -676,7 +678,7 @@ void sib_jobsync( void )
     mpdprintf( debug,"sib_jobsync: setting jobsync_is_here for jobid=%d at jidx=%d \n",
 	       jobid, jidx );
     jobtable[jidx].jobsync_is_here = 1;
-    for ( i=0,num_here_in_job=0; i < MAXPROCS; i++ ) {
+    for ( i = 0, num_here_in_job = 0; i < MAXPROCS; i++ ) {
         if ( proctable[i].active && proctable[i].jobid == jobid ) {
 	    num_here_in_job++;
 	}
@@ -1122,7 +1124,7 @@ void sigchld_handler( int signo )
 
     /* pid = wait( &wait_stat ); */
     while ( ( pid = waitpid( -1, &wait_stat, WNOHANG ) ) > 0 ) {
-	for (i=0; i < MAXPROCS; i++) {
+        for ( i = 0; i < MAXPROCS; i++ ) {
 	    if (proctable[i].active && proctable[i].pid == pid) {
                 jidx = find_jobid_in_jobtable(proctable[i].jobid);
 		if ( jidx >=0 ) {

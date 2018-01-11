@@ -1,5 +1,7 @@
 #include "mpdimpl.h"
 
+CRITICAL_SECTION g_ContextCriticalSection;
+
 WriteNode::WriteNode()
 { 
     pString = NULL; 
@@ -9,7 +11,6 @@ WriteNode::WriteNode()
 
 WriteNode::WriteNode(char *p, MPD_LowLevelState n)
 {
-    //int n = strlen(p);
     pString = new char[strlen(p)+1];
     if (pString != NULL)
 	strcpy(pString, p); 
@@ -27,7 +28,11 @@ WriteNode::~WriteNode()
 MPD_Context::MPD_Context()
 {
     nType = MPD_SOCKET; 
-    bfd = BFD_INVALID_SOCKET; 
+    sock = INVALID_SOCKET;
+    ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    hMutex = CreateMutex(NULL, FALSE, NULL);
+    bReadPosted = false;
+    bDeleted = false;
     pszHost[0] = '\0'; 
     pszIn[0] = '\0';
     pszOut[0] = '\0';
@@ -42,6 +47,130 @@ MPD_Context::MPD_Context()
     pszFileAccount[0] = '\0';
     pszFilePassword[0] = '\0';
     pNext = NULL; 
+}
+
+MPD_Context::~MPD_Context()
+{
+    nType = MPD_SOCKET; 
+    if (sock != INVALID_SOCKET)
+	easy_closesocket(sock);
+    sock = INVALID_SOCKET; 
+    CloseHandle(ovl.hEvent);
+    CloseHandle(hMutex);
+    bReadPosted = false;
+    bDeleted = true;
+    pszHost[0] = '\0'; 
+    pszIn[0] = '\0';
+    pszOut[0] = '\0';
+    nCurPos = 0; 
+    nState = MPD_INVALID; 
+    nLLState = MPD_INVALID_LOWLEVEL;
+    bDeleteMe = false;
+    pWriteList = NULL;
+    bPassChecked = false;
+    nConnectingState = MPD_INVALID_CONNECTING_STATE;
+    bFileInitCalled = false;
+    pszFileAccount[0] = '\0';
+    pszFilePassword[0] = '\0';
+    pNext = NULL; 
+}
+
+MPD_Context* GetContext(SOCKET sock)
+{
+    MPD_Context *p = g_pList;
+    while (p)
+    {
+	if (p->sock == sock)
+	    return p;
+	p = p->pNext;
+    }
+    return NULL;
+}
+
+void RemoveContext(MPD_Context *p)
+{
+    MPD_Context *pTrailer, *pIter;
+
+    if (p == NULL)
+	return;
+
+    EnterCriticalSection(&g_ContextCriticalSection);
+
+    if (p->bReadPosted)
+	dbg_printf("RemoveContext: %s(%d): Error, removing context with a read posted.\n", ContextTypeToString(p), p->sock);
+
+    if (p == g_pList)
+    {
+	if (p == g_pRightContext)
+	    g_pRightContext = NULL;
+	if (p == g_pLeftContext)
+	    g_pLeftContext = NULL;
+	g_pList = g_pList->pNext;
+	LeaveCriticalSection(&g_ContextCriticalSection);
+	dbg_printf("delete MPD_Context: 0x%p %s(%d)\n", p, ContextTypeToString(p), p->sock);
+	delete p;
+	return;
+    }
+
+    pTrailer = g_pList;
+    pIter = g_pList->pNext;
+    while (pIter)
+    {
+	if (pIter == p)
+	{
+	    if (p == g_pRightContext)
+		g_pRightContext = NULL;
+	    if (p == g_pLeftContext)
+		g_pLeftContext = NULL;
+	    pTrailer->pNext = pIter->pNext;
+	    LeaveCriticalSection(&g_ContextCriticalSection);
+	    dbg_printf("delete MPD_Context: 0x%p %s(%d)\n", p, ContextTypeToString(p), p->sock);
+	    delete p;
+	    return;
+	}
+	pIter = pIter->pNext;
+	pTrailer = pTrailer->pNext;
+    }
+
+    if (p == g_pRightContext)
+	g_pRightContext = NULL;
+    if (p == g_pLeftContext)
+	g_pLeftContext = NULL;
+
+    LeaveCriticalSection(&g_ContextCriticalSection);
+
+    dbg_printf("delete MPD_Context: 0x%p %s(%d) *** not in list ***\n", p, ContextTypeToString(p), p->sock);
+    delete p;
+}
+
+void RemoveAllContexts()
+{
+    while (g_pList)
+	RemoveContext(g_pList);
+}
+
+MPD_Context *CreateContext()
+{
+    MPD_Context *p;
+    p = new MPD_Context();
+
+    EnterCriticalSection(&g_ContextCriticalSection);
+    p->pNext = g_pList;
+    g_pList = p;
+    LeaveCriticalSection(&g_ContextCriticalSection);
+
+    dbg_printf("new    MPD_Context: 0x%p\n", p);
+    return p;
+}
+
+void ContextInit()
+{
+    InitializeCriticalSection(&g_ContextCriticalSection);
+}
+
+void ContextFinalize()
+{
+    DeleteCriticalSection(&g_ContextCriticalSection);
 }
 
 void printLLState(FILE *fout, MPD_LowLevelState nLLState)
@@ -159,15 +288,6 @@ void MPD_Context::Print(FILE *fout)
     case MPD_SOCKET:
 	fprintf(fout, "MPD_SOCKET\n");
 	break;
-    case MPD_LISTENER:
-	fprintf(fout, "MPD_LISTENER\n");
-	break;
-    case MPD_SIGNALLER:
-	fprintf(fout, "MPD_SIGNALLER\n");
-	break;
-    case MPD_RESELECTOR:
-	fprintf(fout, "MPD_RESELECTOR\n");
-	break;
     case MPD_LEFT_SOCKET:
 	fprintf(fout, "MPD_LEFT_SOCKET\n");
 	break;
@@ -181,10 +301,10 @@ void MPD_Context::Print(FILE *fout)
 	fprintf(fout, "%d - invalid type\n", nType);
 	break;
     }
-    if (bfd == BFD_INVALID_SOCKET)
-	fprintf(fout, " bfd: INVALID_SOCKET, ");
+    if (sock == INVALID_SOCKET)
+	fprintf(fout, " sock: INVALID_SOCKET, ");
     else
-	fprintf(fout, " bfd: %d, ", bfd);
+	fprintf(fout, " sock: %d, ", sock);
     fprintf(fout, "pszHost: '%s', ", pszHost);
     fprintf(fout, "nCurPos: %d, ", nCurPos);
     if (bDeleteMe)
@@ -247,59 +367,6 @@ void MPD_Context::Print(FILE *fout)
     fprintf(fout, "}\n");
 }
 
-MPD_Context* GetContext(int bfd)
-{
-    MPD_Context *p = g_pList;
-    while (p)
-    {
-	if (p->bfd == bfd)
-	    return p;
-	p = p->pNext;
-    }
-    return NULL;
-}
-
-void RemoveContext(MPD_Context *p)
-{
-    PUSH_FUNC("RemoveContext");
-    MPD_Context *pTrailer = g_pList;
-    if (p == NULL)
-    {
-	dbg_printf("empty context passed to RemoveContext\n");
-	POP_FUNC();
-	return;
-    }
-    
-    if (p->bfd != BFD_INVALID_SOCKET)
-    {
-	BFD_CLR(p->bfd, &g_ReadSet);
-	g_nActiveR--;
-	BFD_CLR(p->bfd, &g_WriteSet);
-	g_nActiveW--;
-	beasy_closesocket(p->bfd);
-    }
-
-    if (p == g_pList)
-	g_pList = g_pList->pNext;
-    else
-    {
-	while (pTrailer && pTrailer->pNext != p)
-	    pTrailer = pTrailer->pNext;
-	if (pTrailer)
-	    pTrailer->pNext = p->pNext;
-    }
-
-    if (p == g_pRightContext)
-	g_pRightContext = NULL;
-
-    if (p == g_pLeftContext)
-	g_pLeftContext = NULL;
-
-    //dbg_printf("RemoveContext: context[%d] deleted\n", p->bfd);
-    delete p;
-    POP_FUNC();
-}
-
 void statContext(char *pszOutput, int length)
 {
     FILE *fout;
@@ -327,4 +394,29 @@ void statContext(char *pszOutput, int length)
     fclose(fout);
 
     rmtmp();
+}
+
+char *ContextTypeToString(MPD_Context *p)
+{
+    switch (p->nType)
+    {
+    case MPD_SOCKET:
+	return "MPD_SOCKET";
+    case MPD_LEFT_SOCKET:
+	return "MPD_LEFT_SOCKET";
+    case MPD_RIGHT_SOCKET:
+	return "MPD_RIGHT_SOCKET";
+    case MPD_CONSOLE_SOCKET:
+	return "MPD_CONSOLE_SOCKET";
+	break;
+    }
+    return "UNKNOWN_SOCKET";
+}
+
+void CheckContext(MPD_Context *p)
+{
+    if (p == g_pLeftContext)
+	dbg_printf("MPD_Context ptr = g_pLeftContext\n");
+    if (p == g_pRightContext)
+	dbg_printf("MPD_Context ptr = g_pRightContext\n");
 }

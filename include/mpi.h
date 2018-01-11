@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.37 2002/03/20 14:14:45 gropp Exp $
+ *  $Id: mpi.h,v 1.40 2002/08/01 21:08:21 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -275,10 +275,18 @@ extern int MPICHX_QOS_BANDWIDTH;
 extern int MPICHX_QOS_PARAMETERS;
 /**************** Experimental MPICH FEATURES END HERE ********************/
 
-/******** Globus-2 device gives access to the underlying processor ********/
-/******** topology at the user level using attribute caching **************/
+/******** Globus-2 device gives access to the underlying topology *********/
+
+/* get the underlying topology at the user level using attribute caching */
 extern int MPICHX_TOPOLOGY_DEPTHS;
 extern int MPICHX_TOPOLOGY_COLORS;
+
+/* Name the different topology levels (the order is relevant!) */
+#define MPICHX_WAN_LEVEL 0    /* communicate thru WAN TCP links */
+#define MPICHX_LAN_LEVEL 1    /* communicate thru LAN TCP links */
+#define MPICHX_HOST_LEVEL 2   /* communicate inside a machine thru TCP */
+#define MPICHX_VMPI_LEVEL 3   /* use vendor-MPI library */
+
 /******** End of Globus-2 device keys *************************************/
 
 /* MPI's error classes */

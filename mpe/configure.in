@@ -74,7 +74,9 @@ else
     MPEDBG=0
 fi
 #
-AC_ARG_ENABLE( g, [--enable-g                         - Turn on/off the debugging & diagnostic messages flags in MPE & SLOG-API code. The default is enable=no.], ,enable_g=no )
+AC_ARG_ENABLE( g, [--enable-g                         - Turn on/off the compilation flags -g in MPE & SLOG-API code. The default is enable=no.], enable_args="$enable_args --enable-g=${enableval}" )
+#
+AC_ARG_ENABLE( debugcheck, [--enable-debugcheck                - Turn on/off the debugging & diagnostic checking code in MPE & SLOG-API code. The default is enable=no.], enable_args="$enable_args --enable-debugcheck=${enableval}" )
 #
 AC_ARG_ENABLE( f77, [--enable-f77                       - Compile routines that require a Fortran compiler.  If configuring with MPICH, the configure in the top-level MPICH directory will choose the appropriate value for you.  The default is enable=yes.], ,enable_f77=yes )
 if test "$enable_f77" = "yes" ; then
@@ -131,15 +133,16 @@ AC_ARG_WITH( fflags, [--with-fflags=MPE_FFLAGS           - supply extra MPE FFLA
 
 #
 # Append "-g" to MPE_CFLAGS and MPE_FFLAGS if enable_g=yes
-if test $enable_g = "yes"; then
-
+if test "$enable_g" = "yes" ; then
     if test -z "`echo $MPE_CFLAGS | grep "\-g"`"; then
         MPE_CFLAGS="-g $MPE_CFLAGS"
     fi
     if test -z "`echo $MPE_FFLAGS | grep "\-g"`"; then
         MPE_FFLAGS="-g $MPE_FFLAGS"
     fi
+fi
 
+if test "$enable_debugcheck" = "yes" ; then
     AC_CHECK_LIB( efence, malloc, DEBUG_LIBS="-lefence" )
 fi
 
@@ -150,7 +153,6 @@ case "$host" in
         MPE_CFLAGS="$MPE_CFLAGS -DDBX_IS_OSF"
         host=alpha
         ;;
-
    *cray*)
         host=cray
         MPE_CFLAGS="$MPE_CFLAGS -DMPI_CRAY"
@@ -246,7 +248,7 @@ AC_ARG_WITH( mpilibs, [--with-mpilibs=MPI_LIBS            - compiler's full libr
 #
 AC_ARG_WITH( f2cmpilibs, [--with-f2cmpilibs=F2CMPI_LIBS      - compiler's library flags for Fortran to C MPI wrapper library.  Using this option disables building of MPE's internal Fortran to C MPI library, --disable-f2cmpilib.  The library is needed for profiling MPI Fortran program.  e.g. "-lfmpich" when MPE is building with MPICH. ], F2CMPI_LIBS="$withval" ; enable_f2cmpilib=no )
 
-AC_PROG_CC
+PAC_PROG_CC
 AC_PROG_RANLIB
 dnl # Check for broken handling of common symbols
 dnl PAC_PROG_C_BROKEN_COMMON
@@ -258,17 +260,10 @@ if test -d "$SLOG_HOME"; then
   echo
 
   echo "Configuring SLOG-API, for support of scalable logfile format" ; \
-  if test "$enable_g" = "yes"; then
-     ( cd slog_api ; \
-       $SLOG_HOME/configure --enable-g --with-cc="$CC" \
-                            --with-cflags="$MPE_CFLAGS" \
-                            -prefix=$prefix $enable_args )
-  else
-     ( cd slog_api ; \
-       $SLOG_HOME/configure --with-cc="$CC" \
-                            --with-cflags="$MPE_CFLAGS" \
-                            -prefix=$prefix $enable_args )   
-  fi
+  ( cd slog_api ; \
+    $SLOG_HOME/configure --with-cc="$CC" \
+                         --with-cflags="$MPE_CFLAGS" \
+                         -prefix=$prefix $enable_args )   
 
   # Check if there is any error in SLOG-API's configure
   if test $? != 0 ; then
@@ -394,6 +389,16 @@ if test "$enable_checkMPI" = "yes" -a "$enable_checkMPIO" = "yes" ; then
         if test "$mpe_link_ok" = "yes" ; then
             AC_MSG_RESULT(yes)
             AC_DEFINE( HAVE_MPI_IO )
+            AC_MSG_CHECKING( [for ROMIO's MPIO_Request] )
+            PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS,
+                                  [ MPIO_Request  io_request], ,
+                                  [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+            if test "$mpe_link_ok" = "yes" ; then
+                AC_MSG_RESULT(yes)
+            else
+                AC_MSG_RESULT(no)
+                AC_DEFINE( HAVE_NO_MPIO_REQUEST )
+            fi
         else
             AC_MSG_RESULT([no, assumed No MPI-IO routines])
         fi
@@ -430,7 +435,8 @@ if test "$enable_mpe_graphics" = "yes" -a "$NOF77" = "0" ; then
     fi
 fi
 
-if test "$enable_f2c_graphicslib" = "yes" ; then
+if test "${F2CMPI_LIBS}" = "-l${F2CMPI_LIBNAME}" \
+     -o "$enable_f2c_graphicslib" = "yes" ; then
 #   Determine MPI_Fint
     AC_MSG_CHECKING( [for MPI_Fint] )
     PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS,
@@ -467,6 +473,15 @@ if test "${F2CMPI_LIBS}" = "-l${F2CMPI_LIBNAME}" ; then
 #   Determine MPI_STATUS_SIZE
     mpe_tmpfile=mpe_mpistatusvalue
     AC_MSG_CHECKING( [for the value of MPI_STATUS_SIZE] )
+    if test "$cross_compiling" = "yes" -o "$cross_compiling" = 1 ; then
+        if test "X$CROSS_MPI_STATUS_SIZE" != "X" ; then
+            mpe_MPI_STATUS_SIZE="$CROSS_MPI_STATUS_SIZE"
+            AC_DEFINE_UNQUOTED( MPI_STATUS_SIZE, $mpe_MPI_STATUS_SIZE )
+            AC_MSG_RESULT( [${mpe_MPI_STATUS_SIZE}] )
+        else
+            AC_MSG_ERROR( [Undefined CROSS_MPI_STATUS_SIZE! Exiting...] )
+        fi
+    else
 dnl    PAC_MPI_RUN_F77_PGM( $MPI_F77, [$FFLAGS $MPI_INC],
 dnl                         $F77, $FFLAGS, $LIBS, [
 dnl      program get_mpi_status_size
@@ -477,8 +492,8 @@ dnl      write(10,*) MPI_STATUS_SIZE
 dnl      close(10)
 dnl      end
 dnl                         ], [ mpe_run_ok=yes ], [ mpe_run_ok=no ] )
-    PAC_MPI_RUN_CC_PGM( $MPI_CC, [$CFLAGS $MPI_INC],
-                        $CC, $CFLAGS, $LIBS, [
+        PAC_MPI_RUN_CC_PGM( $MPI_CC, [$CFLAGS $MPI_INC],
+                            $CC, $CFLAGS, $LIBS, [
 #include <stdio.h>
 #include "mpi.h"
 main()
@@ -490,14 +505,15 @@ main()
     fclose( mpe_file );
     exit( 0 );
 }
-                        ], [ mpe_run_ok=yes ], [ mpe_run_ok=no ] )
-    if test "$mpe_run_ok" = "yes" ; then
-        mpe_MPI_STATUS_SIZE="`cat ${mpe_tmpfile} | sed -e 's/ //g'`"
-        AC_DEFINE_UNQUOTED( MPI_STATUS_SIZE, $mpe_MPI_STATUS_SIZE )
-        AC_MSG_RESULT( [${mpe_MPI_STATUS_SIZE}] )
-        rm -f ${mpe_tmpfile}
-    else
-        AC_MSG_ERROR( [could NOT determine!] )
+                            ], [ mpe_run_ok=yes ], [ mpe_run_ok=no ] )
+        if test "$mpe_run_ok" = "yes" ; then
+            mpe_MPI_STATUS_SIZE="`cat ${mpe_tmpfile} | sed -e 's/ //g'`"
+            AC_DEFINE_UNQUOTED( MPI_STATUS_SIZE, $mpe_MPI_STATUS_SIZE )
+            AC_MSG_RESULT( [${mpe_MPI_STATUS_SIZE}] )
+            rm -f ${mpe_tmpfile}
+        else
+            AC_MSG_ERROR( [could NOT determine!] )
+        fi
     fi
 
 #   Determmine if MPI_Status_f2c() and MPI_Status_c2f() are there
@@ -592,12 +608,29 @@ main()
         AC_MSG_RESULT(no)
     fi
 
-#   Determine the Fortran logical values in MPI C program
-    mpe_tmpfile=mpe_f77logicals
-    AC_MSG_CHECKING( [for values of Fortran logicals in MPI C program] )
-    PAC_MPI_RUN_F77_FUNC_FROM_C( $F77, $FFLAGS,
-                                 $MPI_CC, [$CFLAGS $MPI_INC],
-                                 $CC, $CFLAGS, $LIBS, [
+
+#   Determine the Fortran logical values, .TRUE. & .FALSE. in MPI C program
+    if test "$cross_compiling" = "yes" -o "$cross_compiling" = 1 ; then
+        AC_MSG_CHECKING( [for the Fortran .TRUE. values in MPI C program] )
+        if test "X$CROSS_FORTRAN2C_TRUE" != "X" ; then
+            AC_DEFINE_UNQUOTED( MPE_F77_TRUE_VALUE, $CROSS_FORTRAN2C_TRUE )
+            AC_MSG_RESULT( [${CROSS_FORTRAN2C_TRUE}] )
+        else
+            AC_MSG_ERROR( [Undefined CROSS_FORTRAN2C_TRUE! Exiting...] )
+        fi
+        AC_MSG_CHECKING( [for the Fortran .FALSE. values in MPI C program] )
+        if test "X$CROSS_FORTRAN2C_FALSE" != "X" ; then
+            AC_DEFINE_UNQUOTED( MPE_F77_FALSE_VALUE, $CROSS_FORTRAN2C_FALSE )
+            AC_MSG_RESULT( [${CROSS_FORTRAN2C_FALSE}] )
+        else
+            AC_MSG_ERROR( [Undefined CROSS_FORTRAN2C_FALSE! Exiting...] )
+        fi
+    else
+        AC_MSG_CHECKING( [for the Fortran logical values in MPI C program] )
+        mpe_tmpfile=mpe_f77logicals
+        PAC_MPI_RUN_F77_FUNC_FROM_C( $F77, $FFLAGS,
+                                     $MPI_CC, [$CFLAGS $MPI_INC],
+                                     $CC, $CFLAGS, $LIBS, [
       subroutine ftest( itrue, ifalse )
       logical itrue, ifalse
       itrue  = .TRUE.
@@ -622,23 +655,42 @@ int main()
     fclose( mpe_file );
     exit( 0 );
 }
-                                 ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
-    if test "$mpe_run_ok" = "yes" ; then
-        mpe_f77logicals="`cat ${mpe_tmpfile}`"
-        true_val="`echo ${mpe_f77logicals} | sed -e 's/ .*//g'`"
-        false_val="`echo ${mpe_f77logicals} | sed -e 's/.*  *//g'`"
-        if test -n "$true_val" -a -n "$false_val" ; then
-            AC_DEFINE_UNQUOTED( MPE_F77_TRUE_VALUE, $true_val )
-            AC_DEFINE_UNQUOTED( MPE_F77_FALSE_VALUE, $false_val )
-            AC_MSG_RESULT( [True=$true_val and False=$false_val] )
+                                     ],
+                                     [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+        if test "$mpe_run_ok" = "yes" ; then
+            mpe_f77logicals="`cat ${mpe_tmpfile}`"
+            true_val="`echo ${mpe_f77logicals} | sed -e 's/ .*//g'`"
+            false_val="`echo ${mpe_f77logicals} | sed -e 's/.*  *//g'`"
+            if test -n "$true_val" -a -n "$false_val" ; then
+                AC_DEFINE_UNQUOTED( MPE_F77_TRUE_VALUE, $true_val )
+                AC_DEFINE_UNQUOTED( MPE_F77_FALSE_VALUE, $false_val )
+                AC_MSG_RESULT( [True=$true_val and False=$false_val] )
+            else
+                AC_MSG_ERROR( [could NOT determine!] )
+	        fi
+            rm -f ${mpe_tmpfile}
         else
             AC_MSG_ERROR( [could NOT determine!] )
-	    fi
-        rm -f ${mpe_tmpfile}
-    else
-        AC_MSG_ERROR( [could NOT determine!] )
+        fi
     fi
+
+# endif test "${F2CMPI_LIBS}" = "-l${F2CMPI_LIBNAME}"
 fi
+
+#   Determine if MPI_STATUS_IGNORE exists
+    AC_MSG_CHECKING( [for MPI_STATUS_IGNORE] )
+    PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS, [
+              MPI_Status*     tmp_status;
+              tmp_status = MPI_STATUS_IGNORE;
+			  ], ,
+              [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+    if test "$mpe_link_ok" = "yes" ; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE( HAVE_MPI_STATUS_IGNORE )
+    else
+        AC_MSG_RESULT(no)
+    fi
+
 
 # MPE_HEADERS are header files to be installed into $includedir. 
 # It needs to be defined here so we have only ONE source of headers defined,
@@ -706,12 +758,37 @@ dnl     echo "*# reconfigure or else you will not be able to run the debugger co
 dnl     echo "*# using the gdb debugger."
 dnl     if test -n "$MPICH_WARNING_SEP" ; then echo '<'$MPICH_WARNING_SEP ; fi
 dnl fi
+
 #   
+AC_HEADER_STDC
 dnl Check if C compiler fully supports the keyword `const' - if not define 
 dnl `const' to be empty.     
 AC_C_CONST
-AC_C_BIGENDIAN
-AC_HEADER_STDC
+
+#   -- Check if byteswapping needs to be done.
+if test "$cross_compiling" = "yes" -o "$cross_compiling" = 1 ; then
+    AC_MSG_CHECKING([for byte ordering])
+    if test "X$CROSS_BIGENDIAN" != "X" ; then
+        if test "$CROSS_BIGENDIAN" = "true" \
+             -o "$CROSS_BIGENDIAN" = "false" ; then
+            if test "$CROSS_BIGENDIAN" = "true" ; then
+                AC_DEFINE(WORDS_BIGENDIAN)
+                AC_MSG_RESULT([defined to be big endian])
+            else
+                AC_MSG_RESULT([defined to be little endian])
+            fi
+        else
+            AC_DEFINE(WORDS_BIGENDIAN)
+            AC_MSG_RESULT([Unknown value $CROSS_BIGENDIAN! Assumed big endian])
+        fi
+    else
+        AC_DEFINE(WORDS_BIGENDIAN)
+        AC_MSG_RESULT([Undefined CROSS_BIGENDIAN! Assumed big endian])
+    fi
+else
+    AC_C_BIGENDIAN
+fi
+
 #
 AC_MSG_CHECKING(for long pointers)
 AC_TRY_RUN(int main()

@@ -43,7 +43,7 @@ int vmpi_error_to_mpich_error(
       case VMPI_ERR_INFO_NOKEY:	         rc=MPI_ERR_INFO_NOKEY;	         break;
       case VMPI_ERR_IO:		         rc=MPI_ERR_IO;		         break;
       case VMPI_ERR_NAME:	         rc=MPI_ERR_NAME;	         break;
-      /* case VMPI_ERR_NOMEM:	         rc=MPI_ERR_NOMEM;	       break; */
+      /* case VMPI_ERR_EXHAUSTED:	         rc=MPI_ERR_EXHAUSTED;	       break; */
       case VMPI_ERR_NOT_SAME:	         rc=MPI_ERR_NOT_SAME;	         break;
       case VMPI_ERR_NO_SPACE:	         rc=MPI_ERR_NO_SPACE;	         break;
       case VMPI_ERR_NO_SUCH_FILE:          rc=MPI_ERR_NO_SUCH_FILE;	 break;

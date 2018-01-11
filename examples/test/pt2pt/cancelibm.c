@@ -68,8 +68,6 @@ int main(int argc, char *argv[])
 
 		MPI_Issend(data, 100000, MPI_INT, 1, 1, MPI_COMM_WORLD,&request);
 		MPI_Cancel(&request);
-		MPI_Wait(&request, &status);
-		
 		for (flag = 0;; )  
 		{
 			MPI_Test(&request,&flag,&status);
@@ -125,6 +123,11 @@ int main(int argc, char *argv[])
 		printf("task %d ERROR: Send request not cancelled!\n", me);
 	    }
 	    MPI_Barrier(MPI_COMM_WORLD);
+	}
+	else {
+	    /* These are needed when the size of MPI_COMM_WORLD > 2 */
+	    MPI_Barrier( MPI_COMM_WORLD );
+	    MPI_Barrier( MPI_COMM_WORLD );
 	}
 	
 	errs = err0 + err1;

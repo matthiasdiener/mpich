@@ -1,4 +1,4 @@
-.TH MPI_Comm_split 3 "12/14/2001" " " "MPI"
+.TH MPI_Comm_split 3 "8/29/2002" " " "MPI"
 .SH NAME
 MPI_Comm_split \-  Creates new communicators based on colors and keys 
 .SH SYNOPSIS
@@ -15,12 +15,13 @@ int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm *comm_out )
 .PD 0
 .TP
 .B color 
-- control of subset assignment (nonnegative integer) 
+- control of subset assignment (nonnegative integer).  Processes 
+with the same color are in the same new communicator 
 .PD 1
 .PD 0
 .TP
 .B key 
-- control of rank assigment (integer) 
+- control of rank assigment (integer)
 .PD 1
 
 .SH OUTPUT PARAMETER

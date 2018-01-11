@@ -1,5 +1,5 @@
 /*
- *  $Id: type_struct.c,v 1.18 2001/11/14 20:10:09 ashton Exp $
+ *  $Id: type_struct.c,v 1.19 2002/07/12 13:53:06 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -256,9 +256,11 @@ int MPI_Type_struct(
 	      lb_found  = 1;
 	      }
 	  /* Get the ub/lb from the datatype (if a MPI_UB or MPI_LB was
-	     found, then these values will be ignored). */
-	  ub = indices[i] + (blocklens[i] * old_dtype_ptr->extent) ;
-	  lb = indices[i];
+	     found, then these values will be ignored). 
+	     We use the lb of the old type and add the indices
+	     value to it */
+	  lb = indices[i] + old_dtype_ptr->lb;
+	  ub = lb + (blocklens[i] * old_dtype_ptr->extent) ;
 	  if (!high_init) { high = ub; high_init = 1; }
 	  else if (ub > high) high = ub;
 	  if (!low_init ) { low  = lb; low_init  = 1; }

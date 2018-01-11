@@ -318,7 +318,7 @@ int MPID_Type_struct(
 	globus_libc_malloc(count * VENDOR_MPI_DATATYPE_SIZE);
     if (old_vmpi_types == NULL)
     {
-	rc = MPI_ERR_NOMEM;
+	rc = MPI_ERR_EXHAUSTED;
 	goto fn_exit;
     }
 

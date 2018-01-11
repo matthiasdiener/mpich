@@ -3,7 +3,6 @@
 #include "guiMPIJobDlg.h"
 #include "mpd.h"
 #include "mpdutil.h"
-#include "bsocket.h"
 #include "MPDConnectDlg.h"
 #include "Translate_Error.h"
 
@@ -15,50 +14,50 @@ static char THIS_FILE[] = __FILE__;
 
 void GetKeyAndValue(char *str, char *key, char *value);
 
-void DeleteJob(int bfd, char *pszJob)
+void DeleteJob(SOCKET sock, char *pszJob)
 {
     char str[256];
     int error;
 
     sprintf(str, "dbdestroy %s", pszJob);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	//printf("Error: DeleteJob, writing '%s' failed, %d\n", str, error);
 	Translate_Error(error, str);
 	//printf("%s\n", str);
-	//beasy_closesocket(bfd);
+	//easy_closesocket(sock);
 	return;
     }
-    if (!ReadStringTimeout(bfd, str, 10))
+    if (!ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
     {
 	//printf("Error, DeleteJob, unable to delete the job '%s'.\n", pszJob);
-	//WriteString(bfd, "done");
-	//beasy_closesocket(bfd);
+	//WriteString(sock, "done");
+	//easy_closesocket(sock);
 	return;
     }
 }
 
-void DeleteKey(int bfd, char *key)
+void DeleteKey(SOCKET sock, char *key)
 {
     char str[256];
     int error;
 
     sprintf(str, "dbdelete jobs:%s", key);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	//printf("Error: DeleteKey, writing '%s' failed, %d\n", str, error);
 	Translate_Error(error, str);
 	//printf("%s\n", str);
-	//beasy_closesocket(bfd);
+	//easy_closesocket(sock);
 	return;
     }
-    if (!ReadStringTimeout(bfd, str, 10))
+    if (!ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
     {
 	//printf("Error, DeleteKey, unable to delete the job entry '%s'.\n", key);
-	//WriteString(bfd, "done");
-	//beasy_closesocket(bfd);
+	//WriteString(sock, "done");
+	//easy_closesocket(sock);
 	return;
     }
 }
@@ -92,7 +91,7 @@ void CGuiMPIJobDlg::OnRemoveBtn()
 
     UpdateData();
 
-    if ((m_job.GetLength() < 1) || (m_bfd == BFD_INVALID_SOCKET))
+    if ((m_job.GetLength() < 1) || (m_sock == INVALID_SOCKET))
 	return;
 
     index = m_job_list.GetCurSel();
@@ -102,7 +101,7 @@ void CGuiMPIJobDlg::OnRemoveBtn()
     jobstr = jobstr.Left(jobstr.Find(' '));
 
     strcpy(str, "dbfirst jobs");
-    if (WriteString(m_bfd, str) == SOCKET_ERROR)
+    if (WriteString(m_sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	sprintf(value, "Error: JobsToFile, writing '%s' failed, %d\n", str, error);
@@ -112,20 +111,20 @@ void CGuiMPIJobDlg::OnRemoveBtn()
 	Disconnect();
 	return;
     }
-    if (ReadStringTimeout(m_bfd, str, 10))
+    if (ReadStringTimeout(m_sock, str, MPD_DEFAULT_TIMEOUT))
     {
 	if (strcmp(str, "DBS_FAIL") == 0)
 	{
 	    //printf("no jobs on %s\n", host);
-	    //WriteString(m_bfd, "done");
-	    //beasy_closesocket(m_bfd);
+	    //WriteString(m_sock, "done");
+	    //easy_closesocket(m_sock);
 	    return;
 	}
 	if (strcmp(str, "DBS_END") == 0)
 	{
 	    //printf("no jobs on %s\n", host);
-	    //WriteString(m_bfd, "done");
-	    //beasy_closesocket(m_bfd);
+	    //WriteString(m_sock, "done");
+	    //easy_closesocket(m_sock);
 	    return;
 	}
 	GetKeyAndValue(str, key, value);
@@ -134,22 +133,22 @@ void CGuiMPIJobDlg::OnRemoveBtn()
 	if (strcmp(pszJob, jobstr) == 0)
 	{
 	    //printf("%s : %s\n", key, value);
-	    DeleteJob(m_bfd, pszJob);
+	    DeleteJob(m_sock, pszJob);
 	    SaveKeyToDelete(key);
 	}
     }
     else
     {
 	//printf("Error, JobsToFile, unable to read the jobs on %s.\n", host);
-	//WriteString(m_bfd, "done");
-	//beasy_closesocket(m_bfd);
+	//WriteString(m_sock, "done");
+	//easy_closesocket(m_sock);
 	return;
     }
 
     while (true)
     {
 	strcpy(str, "dbnext jobs");
-	if (WriteString(m_bfd, str) == SOCKET_ERROR)
+	if (WriteString(m_sock, str) == SOCKET_ERROR)
 	{
 	    error = WSAGetLastError();
 	    sprintf(value, "writing '%s' failed, %d\n", str, error);
@@ -159,13 +158,13 @@ void CGuiMPIJobDlg::OnRemoveBtn()
 	    Disconnect();
 	    return;
 	}
-	if (ReadStringTimeout(m_bfd, str, 10))
+	if (ReadStringTimeout(m_sock, str, MPD_DEFAULT_TIMEOUT))
 	{
 	    if (strcmp(str, "DBS_FAIL") == 0)
 	    {
 		//printf("unexpected error reading the next job\n");
-		//WriteString(m_bfd, "done");
-		//beasy_closesocket(m_bfd);
+		//WriteString(m_sock, "done");
+		//easy_closesocket(m_sock);
 		return;
 	    }
 	    if (strcmp(str, "DBS_END") == 0)
@@ -177,15 +176,15 @@ void CGuiMPIJobDlg::OnRemoveBtn()
 	    if (strcmp(pszJob, jobstr) == 0)
 	    {
 		//printf("%s : %s\n", key, value);
-		DeleteJob(m_bfd, pszJob);
+		DeleteJob(m_sock, pszJob);
 		SaveKeyToDelete(key);
 	    }
 	}
 	else
 	{
 	    //printf("Unable to read the jobs on %s.\n", host);
-	    //WriteString(m_bfd, "done");
-	    //beasy_closesocket(m_bfd);
+	    //WriteString(m_sock, "done");
+	    //easy_closesocket(m_sock);
 	    return;
 	}
     }
@@ -200,7 +199,7 @@ void CGuiMPIJobDlg::OnRemoveBtn()
     {
 	n = s_pKeyList;
 	s_pKeyList = s_pKeyList->next;
-	DeleteKey(m_bfd, n->key);
+	DeleteKey(m_sock, n->key);
 	delete n;
     }
 

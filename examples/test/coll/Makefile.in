@@ -29,7 +29,8 @@ LIBS = @LIB_PATH@ @LIB_LIST@
 FLIBS = @FLIB_PATH@ @LIB_LIST@
 EXECS = coll1 coll2 coll3 coll4 coll5 coll6 coll7 coll8 coll9 \
 	coll10 coll11 coll12 coll13 bcastbug bcastbug2 grouptest redtst \
-	barrier bcast allred scatterv allredf redscat alltoallv assocf \
+	barrier bcast allred allred2 \
+	scatterv allredf redscat alltoallv assocf \
 	allredmany longuser scattern bcastvec scantst bcastlog
 
 default: $(EXECS)
@@ -130,5 +131,7 @@ clean:
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
+.c:
+	$(CC) $(CFLAGS) -o $* $< $(LIBS)
 .f.o:
 	$(F77) $(FFLAGS) -c $<

@@ -1,10 +1,11 @@
 <?xml version='1.0' ?>
 <xsl:stylesheet  xmlns:xsl="http://www.w3.org/TR/WD-xsl">
+<!-- <xsl:output method="html"/>-->
 <xsl:template match="/">
+
 <html>
 <head>
 <title>MPICH Error Report</title>
-<meta http-equiv="refresh" content="240"></meta>
 </head>
 <body>
     <h1> Error Report </h1>
@@ -16,7 +17,12 @@
 </xsl:template>
 
 <xsl:template match="MPITESTRESULTS">
+    <xsl:apply-templates select="DATE"/>
     <xsl:apply-templates select="MPITEST"/>
+</xsl:template>
+
+<xsl:template match="DATE">
+    <tr><td bgcolor="white" colspan="4">Test run on  <xsl:value-of select="."/></td></tr>
 </xsl:template>
 
 <xsl:template match="MPITEST">
@@ -29,6 +35,22 @@
     <xsl:value-of select="TESTDIFF"/>
     </pre>
     </td>
+    <td valign="top">
+    <pre>
+    <xsl:value-of select="TRACEBACK"/>
+    </pre>
+    </td>
     </tr>
 </xsl:template>
+
+<xsl:template match="TRACEBACK">
+    <a>
+    <xsl:attribute name="HREF">
+    <xsl:value-of select="."/>
+    </xsl:attribute>
+    Traceback
+    </a>
+</xsl:template>
+
+
 </xsl:stylesheet>

@@ -3,6 +3,9 @@
 #include <windows.h>
 #include "Translate_Error.h"
 
+static bool UnmapDrive(char *pszDrive, bool bImpersonate, char *pszError);
+static bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPassword, bool bLogon, char *pszError);
+
 struct DriveMapStruct
 {
     DriveMapStruct();
@@ -106,13 +109,6 @@ static BOOL EnumerateDisksFunc(LPNETRESOURCE lpnr, DWORD dwScope, DWORD dwType, 
 	    {
 		if (lpnrLocal[i].lpLocalName && lpnrLocal[i].lpRemoteName)
 		{
-		    /*
-		    FILE *fout = fopen("c:\\temp\\drivematch.log", "a");
-		    fprintf(fout, (dwScope == RESOURCE_REMEMBERED) ? "RESOURCE_REMEMBERED\n" : "RESOURCE_CONNECTED\n");
-		    fprintf(fout, "%s%s\n%c:%s\n",
-			lpnrLocal[i].lpLocalName, lpnrLocal[i].lpRemoteName, *pszDrive, pszShare);
-		    fclose(fout);
-		    */
 		    if (toupper(*lpnrLocal[i].lpLocalName) == *pszDrive)
 		    {
 			*pbFound = true;
@@ -226,7 +222,106 @@ void FinalizeDriveMaps()
 	RemoveDriveStruct(g_pDriveList->pszDrive);
 }
 
-bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPassword, char *pszError)
+static bool ParseDriveShareAccountPassword(char *str, char *pszDrive, char *pszShare, char *pszAccount, char *pszPassword)
+{
+    pszDrive[0] = str[0];
+    pszDrive[1] = ':';
+    pszDrive[2] = '\0';
+    while (*str != '\\')
+	str++;
+    if (strstr(str, ":"))
+    {
+	while (*str != ':')
+	    *pszShare++ = *str++;
+	*pszShare = '\0';
+	str++;
+	if (!strstr(str, ":"))
+	    return false;
+	while (*str != ':')
+	    *pszAccount++ = *str++;
+	*pszAccount = '\0';
+	str++;
+	strcpy(pszPassword, str);
+    }
+    else
+    {
+	strcpy(pszShare, str);
+	*pszAccount = '\0';
+    }
+    return true;
+}
+
+bool MapUserDrives(char *pszMap, char *pszAccount, char *pszPassword, char *pszError)
+{
+    char pszDrive[3];
+    char pszShare[MAX_PATH];
+    char ipszAccount[100];
+    char ipszPassword[100];
+    char *token;
+    char *temp = strdup(pszMap);
+
+    token = strtok(temp, ";\n");
+    if (token == NULL)
+	return true;
+    while (token != NULL)
+    {
+	ipszAccount[0] = '\0';
+	if (ParseDriveShareAccountPassword(token, pszDrive, pszShare, ipszAccount, ipszPassword))
+	{
+	    if (ipszAccount[0]  != '\0')
+	    {
+		if (!MapDrive(pszDrive, pszShare, ipszAccount, ipszPassword, false, pszError))
+		{
+		    free(temp);
+		    //err_printf("MapUserDrives: iMapDrive(%s, %s, %s, ... ) failed, %s\n", pszDrive, pszShare, ipszAccount, pszError);
+		    return false;
+		}
+	    }
+	    else
+	    {
+		if (!MapDrive(pszDrive, pszShare, pszAccount, pszPassword, false, pszError))
+		{
+		    free(temp);
+		    //err_printf("MapUserDrives: MapDrive(%s, %s, %s, ... ) failed, %s\n", pszDrive, pszShare, pszAccount, pszError);
+		    return false;
+		}
+	    }
+	}
+	token = strtok(NULL, ";\n");
+    }
+    free(temp);
+
+    return true;
+}
+
+bool UnmapUserDrives(char *pszMap)
+{
+    char pszError[256];
+    char pszDrive[3];
+    char pszShare[MAX_PATH];
+    char pszAccount[100];
+    char pszPassword[100];
+    char *temp = strdup(pszMap);
+    char *token;
+
+    token = strtok(temp, ";\n");
+    if (token == NULL)
+	return true;
+    while (token != NULL)
+    {
+	if (ParseDriveShareAccountPassword(token, pszDrive, pszShare, pszAccount, pszPassword))
+	{
+	    if (!UnmapDrive(pszDrive, false, pszError))
+		return false;
+	}
+	token = strtok(NULL, ";\n");
+    }
+    free(temp);
+
+    return false;
+}
+
+static bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPassword, bool bLogon, char *pszError)
 {
     char pszDriveLetter[3];
     DWORD dwResult;
@@ -238,7 +333,10 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
     bool bMatched;
 
     if (pszDrive == NULL)
+    {
+	strcpy(pszError, "Invalid drive string");
 	return false;
+    }
     pszDriveLetter[0] = pszDrive[0];
     pszDriveLetter[1] = ':';
     pszDriveLetter[2] = '\0';
@@ -246,8 +344,8 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
     memset(&net, 0, sizeof(NETRESOURCE));
     net.lpLocalName = pszDriveLetter;
     net.lpRemoteName = pszShare;
-    //net.dwType = RESOURCETYPE_DISK;
-    net.dwType = RESOURCETYPE_ANY;
+    net.dwType = RESOURCETYPE_DISK;
+    //net.dwType = RESOURCETYPE_ANY;
     net.lpProvider = NULL;
 
     if (AlreadyMapped(pszDriveLetter, pszShare, &bMatched))
@@ -255,15 +353,17 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
 	if (bMatched)
 	    return true;
 	sprintf(pszError, "Drive %s already mapped.", pszDrive);
+	//err_printf("MapDrive failed, drive is already mapped\n", pszError);
 	return false;
     }
 
-    if (!g_bSingleUser)
+    if (bLogon)
     {
 	hUser = BecomeUser(pszAccount, pszPassword, &nError);
 	if (hUser == (HANDLE)-1)
 	{
 	    Translate_Error(nError, pszError, "BecomeUser failed: ");
+	    //err_printf("MapDrive failed, error: %s\n", pszError);
 	    return false;
 	}
     }
@@ -278,10 +378,7 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
 	}
     }
 
-    //dwResult = WNetAddConnection2(&net, pszPassword, pszAccount, CONNECT_REDIRECT);
-    dwResult = WNetAddConnection2(&net, pszPassword, pszAccount, FALSE);
-
-    //if (!g_bSingleUser) RevertToSelf();
+    dwResult = WNetAddConnection2(&net, pszPassword, pszAccount, CONNECT_REDIRECT);
 
     if (dwResult == NO_ERROR)
     {
@@ -291,7 +388,7 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
 	p->hUser = hUser;
 	p->pNext = g_pDriveList;
 	g_pDriveList = p;
-	if (!g_bSingleUser) RevertToSelf();
+	if (bLogon) RevertToSelf();
 	return true;
     }
 
@@ -310,7 +407,7 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
 	    p->bUnmap = false; // don't unmap this drive since it was mapped outside mpd
 	    p->pNext = g_pDriveList;
 	    g_pDriveList = p;
-	    if (!g_bSingleUser) RevertToSelf();
+	    if (bLogon) RevertToSelf();
 	    return true;
 	}
 	else
@@ -350,7 +447,7 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
 	    p->bUnmap = false; // don't unmap this drive since it was mapped outside mpd
 	    p->pNext = g_pDriveList;
 	    g_pDriveList = p;
-	    if (!g_bSingleUser) RevertToSelf();
+	    if (bLogon) RevertToSelf();
 	    return true;
 	}
 	else
@@ -373,17 +470,20 @@ bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPasswor
 	break;
     default:
 	Translate_Error(dwResult, pszError);
+	err_printf("MapDrive: unknown error %d\n", dwResult);
 	break;
     }
 
-    if (!g_bSingleUser) RevertToSelf();
+    if (bLogon) RevertToSelf();
 
     if (hUser != (HANDLE)-1)
 	LoseTheUser(hUser);
+
+    //err_printf("MapDrive failed, error: %s\n", pszError);
     return false;
 }
 
-bool UnmapDrive(char *pszDrive, char *pszError)
+static bool UnmapDrive(char *pszDrive, bool bImpersonate, char *pszError)
 {
     char pszName[1024];
     char pszProvider[256];
@@ -391,7 +491,6 @@ bool UnmapDrive(char *pszDrive, char *pszError)
     DWORD dwResult;
     HANDLE hUser = NULL;
     DriveMapStruct *p = g_pDriveList;
-    HANDLE hLogonMutex;
 
     if (pszDrive == NULL)
 	return false;
@@ -419,26 +518,25 @@ bool UnmapDrive(char *pszDrive, char *pszError)
 	return false;
     }
 
-    if (!g_bSingleUser)
+    if (bImpersonate)
     {
-	hLogonMutex = CreateMutex(NULL, FALSE, "mpdLaunchMutex");
-	WaitForSingleObject(hLogonMutex, 10000);
+	WaitForSingleObject(g_hLaunchMutex, 10000);
 	ImpersonateLoggedOnUser(hUser);
     }
 
     if (p->bUnmap)
     {
-	//dwResult = WNetCancelConnection(pszDriveLetter, TRUE);
-	dwResult = WNetCancelConnection2(pszDriveLetter, CONNECT_UPDATE_PROFILE, TRUE);
+	dwResult = WNetCancelConnection2(pszDriveLetter, 
+	    CONNECT_UPDATE_PROFILE, // This option makes sure that the connection is not re-established at the next user logon
+	    TRUE);
     }
     else
 	dwResult = NO_ERROR;
 
-    if (!g_bSingleUser)
+    if (bImpersonate)
     {
 	RevertToSelf();
-	ReleaseMutex(hLogonMutex);
-	CloseHandle(hLogonMutex);
+	ReleaseMutex(g_hLaunchMutex);
     }
 
     if (dwResult == NO_ERROR)

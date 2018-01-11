@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_testfs.h,v 1.1 2001/09/11 17:39:36 rross Exp $    
+ *   $Id: ad_testfs.h,v 1.2 2002/10/24 17:01:03 gropp Exp $    
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

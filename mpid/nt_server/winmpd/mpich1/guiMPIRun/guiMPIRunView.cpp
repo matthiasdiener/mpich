@@ -6,13 +6,13 @@
 
 #include "guiMPIRunDoc.h"
 #include "guiMPIRunView.h"
+#include "MPIJobDefs.h"
 #include "mpd.h"
 #include "RedirectIO.h"
 #include "global.h"
 #include "AdvancedOptionsDlg.h"
-#include "MPIJobDefs.h"
-#include "bsocket.h"
 #include "mpdutil.h"
+#include "launchprocess.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -84,14 +84,15 @@ CGuiMPIRunView::CGuiMPIRunView()
     m_nNumProcessThreads = 0;
     m_pProcessSocket = NULL;
     m_nNumProcessSockets = 0;
-    m_bfdBreak = BFD_INVALID_SOCKET;
+    m_sockBreak = INVALID_SOCKET;
     m_hBreakReadyEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     m_pForwardHost = NULL;
     m_pLaunchIdToRank = NULL;
     m_hRedirectRicheditThread = NULL;
-    m_pDriveMapList = NULL;
+    //m_pDriveMapList = NULL;
     m_Mappings = "";
     m_bUseMapping = false;
+    m_bCatch = false;
 }
 
 CGuiMPIRunView::~CGuiMPIRunView()
@@ -160,6 +161,22 @@ bool ReadMPDRegistry(char *name, char *value, DWORD *length = NULL)
     return true;
 }
 
+bool ReadMPDDefault(char *str)
+{
+    DWORD length = 100;
+    char value[100] = "no";
+
+    if (ReadMPDRegistry(str, value, &length))
+    {
+	if ((stricmp(value, "yes") == 0) ||
+	    (stricmp(value, "y") == 0) ||
+	    (stricmp(value, "1") == 0))
+	    return true;
+    }
+
+    return false;
+}
+
 void CGuiMPIRunView::OnInitialUpdate()
 {
     CFormView::OnInitialUpdate();
@@ -183,7 +200,7 @@ void CGuiMPIRunView::OnInitialUpdate()
     rAdvanced.SetInitialPosition(m_advanced_btn.m_hWnd, RSR_ANCHOR_RIGHT);
     rReset.SetInitialPosition(m_reset_btn.m_hWnd, RSR_ANCHOR_RIGHT);
     
-    bsocket_init();
+    easy_socket_init();
     
     // Get hosts from registry
     char pszHosts[4096];
@@ -242,6 +259,20 @@ void CGuiMPIRunView::OnInitialUpdate()
     m_bNoMPI = false;
     m_bNoColor = false;
     m_hConsoleOutputMutex = CreateMutex(NULL, FALSE, NULL);
+
+    if (ReadMPDDefault("usejobhost"))
+    {
+	DWORD length = MAX_HOST_LENGTH;
+	if (ReadMPDRegistry("jobhost", g_pszJobHost, &length))
+	{
+	    g_bUseJobHost = true;
+	    length = 100;
+	    if (ReadMPDRegistry("jobhostpwd", g_pszJobHostMPDPwd, &length))
+	    {
+		g_bUseJobMPDPwd = true;
+	    }
+	}
+    }
 
     CHARFORMAT cf;
 
@@ -368,8 +399,8 @@ void CGuiMPIRunView::OnClose()
     WaitForSingleObject(m_hJobFinished, 5000);
 
     // Signal the IO redirection thread to stop
-    if (m_bfdStopIOSignalSocket != BFD_INVALID_SOCKET)
-	beasy_send(m_bfdStopIOSignalSocket, "x", 1);
+    if (m_sockStopIOSignalSocket != INVALID_SOCKET)
+	easy_send(m_sockStopIOSignalSocket, "x", 1);
 
     if (m_hRedirectIOListenThread != NULL)
     {
@@ -411,7 +442,7 @@ void CGuiMPIRunView::OnClose()
 
     CloseHandle(m_hBreakReadyEvent);
 
-    bsocket_finalize();
+    easy_socket_finalize();
     CFormView::OnClose();
 }
 
@@ -607,6 +638,12 @@ void CGuiMPIRunView::OnAdvancedBtn()
     dlg.m_bNoColor = m_bNoColor;
     dlg.m_bMap = m_bUseMapping;
     dlg.m_map = m_Mappings;
+    dlg.m_bCatch = m_bCatch;
+    dlg.m_bUseJobHost = g_bUseJobHost;
+    if (g_bUseJobHost)
+    {
+	dlg.m_jobhost = g_pszJobHost;
+    }
 
     if (dlg.DoModal() == IDOK)
     {
@@ -614,6 +651,14 @@ void CGuiMPIRunView::OnAdvancedBtn()
 	m_bNoClear = dlg.m_bNoClear == TRUE;
 	m_bNoMPI = dlg.m_bNoMPI == TRUE;
 	m_bForceLogon = dlg.m_bPassword == TRUE;
+	m_bCatch = dlg.m_bCatch == TRUE;
+	if (dlg.m_bUseJobHost == TRUE && (dlg.m_jobhost.GetLength() > 0))
+	{
+	    g_bUseJobHost = true;
+	    strcpy(g_pszJobHost, dlg.m_jobhost);
+	}
+	else
+	    g_bUseJobHost = false;
 	if (dlg.m_bRedirect)
 	{
 	    m_output_filename = dlg.m_output_filename;
@@ -677,15 +722,15 @@ void CGuiMPIRunView::OnAdvancedBtn()
 void CGuiMPIRunView::Abort()
 {
     SetEvent(m_hAbortEvent);
-    if (m_bfdBreak != BFD_INVALID_SOCKET)
-	beasy_send(m_bfdBreak, "x", 1);
-    beasy_send(m_bfdStopIOSignalSocket, "x", 1);
+    if (m_sockBreak != INVALID_SOCKET)
+	easy_send(m_sockBreak, "x", 1);
+    easy_send(m_sockStopIOSignalSocket, "x", 1);
 }
 
 struct ProcessWaitAbortThreadArg
 {
-    int bfdAbort;
-    int bfdStop;
+    SOCKET sockAbort;
+    SOCKET sockStop;
     int n;
     int *pSocket;
 };
@@ -693,13 +738,13 @@ struct ProcessWaitAbortThreadArg
 void ProcessWaitAbort(ProcessWaitAbortThreadArg *pArg)
 {
     int n, i;
-    bfd_set readset;
+    fd_set readset;
 
-    BFD_ZERO(&readset);
-    BFD_SET(pArg->bfdAbort, &readset);
-    BFD_SET(pArg->bfdStop, &readset);
+    FD_ZERO(&readset);
+    FD_SET(pArg->sockAbort, &readset);
+    FD_SET(pArg->sockStop, &readset);
 
-    n = bselect(0, &readset, NULL, NULL, NULL);
+    n = select(0, &readset, NULL, NULL, NULL);
 
     if (n == SOCKET_ERROR)
     {
@@ -708,10 +753,10 @@ void ProcessWaitAbort(ProcessWaitAbortThreadArg *pArg)
 	MessageBox(NULL, str, "ProcessWaitAbort", MB_OK);
 	for (i=0; i<pArg->n; i++)
 	{
-	    beasy_closesocket(pArg->pSocket[i]);
+	    easy_closesocket(pArg->pSocket[i]);
 	}
-	beasy_closesocket(pArg->bfdAbort);
-	beasy_closesocket(pArg->bfdStop);
+	easy_closesocket(pArg->sockAbort);
+	easy_closesocket(pArg->sockStop);
 	return;
     }
     if (n == 0)
@@ -719,64 +764,66 @@ void ProcessWaitAbort(ProcessWaitAbortThreadArg *pArg)
 	MessageBox(NULL, "bselect returned zero sockets available\n", "ProcessWaitAbort", MB_OK);
 	for (i=0; i<pArg->n; i++)
 	{
-	    beasy_closesocket(pArg->pSocket[i]);
+	    easy_closesocket(pArg->pSocket[i]);
 	}
-	beasy_closesocket(pArg->bfdAbort);
-	beasy_closesocket(pArg->bfdStop);
+	easy_closesocket(pArg->sockAbort);
+	easy_closesocket(pArg->sockStop);
 	return;
     }
-    if (BFD_ISSET(pArg->bfdAbort, &readset))
+    if (FD_ISSET(pArg->sockAbort, &readset))
     {
 	for (i=0; i<pArg->n; i++)
 	{
-	    beasy_send(pArg->pSocket[i], "x", 1);
+	    easy_send(pArg->pSocket[i], "x", 1);
 	}
+	if (g_bUseJobHost)
+	    UpdateJobState("ABORTED");
     }
     for (i=0; i<pArg->n; i++)
     {
-	beasy_closesocket(pArg->pSocket[i]);
+	easy_closesocket(pArg->pSocket[i]);
     }
-    beasy_closesocket(pArg->bfdAbort);
-    beasy_closesocket(pArg->bfdStop);
+    easy_closesocket(pArg->sockAbort);
+    easy_closesocket(pArg->sockStop);
 }
 
 struct ProcessWaitThreadArg
 {
     int n;
-    int *pSocket;
+    SOCKET *pSocket;
     int *pId;
     int *pRank;
-    int bfdAbort;
+    SOCKET sockAbort;
     CGuiMPIRunView *pDlg;
 };
 
 void ProcessWait(ProcessWaitThreadArg *pArg)
 {
     int i, j, n;
-    bfd_set totalset, readset;
+    fd_set totalset, readset;
     char str[256];
     
-    BFD_ZERO(&totalset);
+    FD_ZERO(&totalset);
     
-    BFD_SET(pArg->bfdAbort, &totalset);
+    FD_SET(pArg->sockAbort, &totalset);
     for (i=0; i<pArg->n; i++)
     {
-	BFD_SET(pArg->pSocket[i], &totalset);
+	FD_SET(pArg->pSocket[i], &totalset);
     }
     
     while (pArg->n)
     {
 	readset = totalset;
-	n = bselect(0, &readset, NULL, NULL, NULL);
+	n = select(0, &readset, NULL, NULL, NULL);
 	if (n == SOCKET_ERROR)
 	{
 	    sprintf(str, "bselect failed, error %d\n", WSAGetLastError());
 	    MessageBox(NULL, str, "WaitForExitCommands", MB_OK);
 	    for (i=0, j=0; i<pArg->n; i++, j++)
 	    {
-		while (pArg->pSocket[j] == BFD_INVALID_SOCKET)
+		while (pArg->pSocket[j] == INVALID_SOCKET)
 		    j++;
-		beasy_closesocket(pArg->pSocket[j]);
+		easy_closesocket(pArg->pSocket[j]);
 	    }
 	    return;
 	}
@@ -785,18 +832,18 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 	    MessageBox(NULL, "bselect returned zero sockets available", "WaitForExitCommands", MB_OK);
 	    for (i=0, j=0; i<pArg->n; i++, j++)
 	    {
-		while (pArg->pSocket[j] == BFD_INVALID_SOCKET)
+		while (pArg->pSocket[j] == INVALID_SOCKET)
 		    j++;
-		beasy_closesocket(pArg->pSocket[j]);
+		easy_closesocket(pArg->pSocket[j]);
 	    }
 	    return;
 	}
 
-	if (BFD_ISSET(pArg->bfdAbort, &readset))
+	if (FD_ISSET(pArg->sockAbort, &readset))
 	{
 	    for (i=0; pArg->n > 0; i++)
 	    {
-		while (pArg->pSocket[i] == BFD_INVALID_SOCKET)
+		while (pArg->pSocket[i] == INVALID_SOCKET)
 		    i++;
 		sprintf(str, "kill %d", pArg->pId[i]);
 		WriteString(pArg->pSocket[i], str);
@@ -812,22 +859,23 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 		    }
 		}
 
-		UnmapDrives(pArg->pSocket[i], pArg->pDlg->m_pDriveMapList);
+		//UnmapDrives(pArg->pSocket[i], pArg->pDlg->m_pDriveMapList);
 
 		sprintf(str, "freeprocess %d", pArg->pId[i]);
 		WriteString(pArg->pSocket[i], str);
+		ReadString(pArg->pSocket[i], str);
 		WriteString(pArg->pSocket[i], "done");
-		beasy_closesocket(pArg->pSocket[i]);
-		pArg->pSocket[i] = BFD_INVALID_SOCKET;
+		easy_closesocket(pArg->pSocket[i]);
+		pArg->pSocket[i] = INVALID_SOCKET;
 		pArg->n--;
 	    }
 	    return;
 	}
 	for (i=0; n>0; i++)
 	{
-	    while (pArg->pSocket[i] == BFD_INVALID_SOCKET)
+	    while (pArg->pSocket[i] == INVALID_SOCKET)
 		i++;
-	    if (BFD_ISSET(pArg->pSocket[i], &readset))
+	    if (FD_ISSET(pArg->pSocket[i], &readset))
 	    {
 		if (!ReadString(pArg->pSocket[i], str))
 		{
@@ -837,6 +885,45 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 		}
 		
 		int nRank = pArg->pRank[i];
+
+		if (strnicmp(str, "FAIL", 4) == 0)
+		{
+		    sprintf(str, "geterror %d", pArg->pId[i]);
+		    WriteString(pArg->pSocket[i], str);
+		    ReadString(pArg->pSocket[i], str);
+		    printf("getexitcode(rank %d) failed: %s\n", nRank, str);fflush(stdout);
+		    if (g_bUseJobHost)
+		    {
+			UpdateJobKeyValue(nRank, "error", str);
+		    
+			// get the time the process exited
+			sprintf(str, "getexittime %d", pArg->pId[i]);
+			WriteString(pArg->pSocket[i], str);
+			ReadString(pArg->pSocket[i], str);
+			UpdateJobKeyValue(nRank, "exittime", str);
+		    }
+		    
+		    if (easy_send(pArg->sockAbort, "x", 1) == SOCKET_ERROR)
+		    {
+			printf("Hard abort.\n");fflush(stdout);
+			//ExitProcess(-1);
+		    }
+		}
+		else
+		{
+		    if (g_bUseJobHost)
+		    {
+			strtok(str, ":"); // strip the extra data from the string
+			UpdateJobKeyValue(nRank, "exitcode", str);
+
+			// get the time the process exited
+			sprintf(str, "getexittime %d", pArg->pId[i]);
+			WriteString(pArg->pSocket[i], str);
+			ReadString(pArg->pSocket[i], str);
+			UpdateJobKeyValue(nRank, "exittime", str);
+		    }
+		}
+
 		if (pArg->pDlg->m_nproc > FORWARD_NPROC_THRESHOLD)
 		{
 		    if (nRank > 0 && (pArg->pDlg->m_nproc/2) > nRank)
@@ -847,13 +934,16 @@ void ProcessWait(ProcessWaitThreadArg *pArg)
 		    }
 		}
 
+		// UnmapDrives?
+
 		sprintf(str, "freeprocess %d", pArg->pId[i]);
 		WriteString(pArg->pSocket[i], str);
+		ReadString(pArg->pSocket[i], str);
 		
 		WriteString(pArg->pSocket[i], "done");
-		beasy_closesocket(pArg->pSocket[i]);
-		BFD_CLR(pArg->pSocket[i], &totalset);
-		pArg->pSocket[i] = BFD_INVALID_SOCKET;
+		easy_closesocket(pArg->pSocket[i]);
+		FD_CLR(pArg->pSocket[i], &totalset);
+		pArg->pSocket[i] = INVALID_SOCKET;
 		n--;
 		pArg->n--;
 	    }
@@ -866,36 +956,36 @@ void CGuiMPIRunView::WaitForExitCommands()
     if (m_nNumProcessSockets < FD_SETSIZE)
     {
 	int i, j, n;
-	bfd_set totalset, readset;
+	fd_set totalset, readset;
 	char str[256];
-	int break_bfd;
+	SOCKET break_sock;
 	
-	if (m_bfdBreak != BFD_INVALID_SOCKET)
-	    beasy_closesocket(m_bfdBreak);
-	MakeLoop(&break_bfd, &m_bfdBreak);
+	if (m_sockBreak != INVALID_SOCKET)
+	    easy_closesocket(m_sockBreak);
+	MakeLoop(&break_sock, &m_sockBreak);
 	SetEvent(m_hBreakReadyEvent);
 
-	BFD_ZERO(&totalset);
+	FD_ZERO(&totalset);
 	
-	BFD_SET(break_bfd, &totalset);
+	FD_SET(break_sock, &totalset);
 	for (i=0; i<m_nNumProcessSockets; i++)
 	{
-	    BFD_SET(m_pProcessSocket[i], &totalset);
+	    FD_SET(m_pProcessSocket[i], &totalset);
 	}
 	
 	while (m_nNumProcessSockets)
 	{
 	    readset = totalset;
-	    n = bselect(0, &readset, NULL, NULL, NULL);
+	    n = select(0, &readset, NULL, NULL, NULL);
 	    if (n == SOCKET_ERROR)
 	    {
 		sprintf(str, "WaitForExitCommands: bselect failed, error %d\n", WSAGetLastError());
 		MessageBox(str);
 		for (i=0; m_nNumProcessSockets > 0; i++)
 		{
-		    while (m_pProcessSocket[i] == BFD_INVALID_SOCKET)
+		    while (m_pProcessSocket[i] == INVALID_SOCKET)
 			i++;
-		    beasy_closesocket(m_pProcessSocket[i]);
+		    easy_closesocket(m_pProcessSocket[i]);
 		    m_nNumProcessSockets--;
 		}
 		return;
@@ -905,26 +995,26 @@ void CGuiMPIRunView::WaitForExitCommands()
 		MessageBox("WaitForExitCommands: bselect returned zero sockets available\n");
 		for (i=0; m_nNumProcessSockets > 0; i++)
 		{
-		    while (m_pProcessSocket[i] == BFD_INVALID_SOCKET)
+		    while (m_pProcessSocket[i] == INVALID_SOCKET)
 			i++;
-		    beasy_closesocket(m_pProcessSocket[i]);
+		    easy_closesocket(m_pProcessSocket[i]);
 		}
 		return;
 	    }
 	    else
 	    {
-		if (BFD_ISSET(break_bfd, &readset))
+		if (FD_ISSET(break_sock, &readset))
 		{
-		    int num_read = beasy_receive(break_bfd, str, 1);
+		    int num_read = easy_receive(break_sock, str, 1);
 		    if (num_read == 0 || num_read == SOCKET_ERROR)
 		    {
-			BFD_CLR(break_bfd, &totalset);
+			FD_CLR(break_sock, &totalset);
 		    }
 		    else
 		    {
 			for (i=0, j=0; i < m_nNumProcessSockets; i++, j++)
 			{
-			    while (m_pProcessSocket[j] == BFD_INVALID_SOCKET)
+			    while (m_pProcessSocket[j] == INVALID_SOCKET)
 				j++;
 			    sprintf(str, "kill %d", m_pProcessLaunchId[j]);
 			    WriteString(m_pProcessSocket[j], str);
@@ -934,9 +1024,9 @@ void CGuiMPIRunView::WaitForExitCommands()
 		}
 		for (i=0; n>0; i++)
 		{
-		    while (m_pProcessSocket[i] == BFD_INVALID_SOCKET)
+		    while (m_pProcessSocket[i] == INVALID_SOCKET)
 			i++;
-		    if (BFD_ISSET(m_pProcessSocket[i], &readset))
+		    if (FD_ISSET(m_pProcessSocket[i], &readset))
 		    {
 			if (!ReadString(m_pProcessSocket[i], str))
 			{
@@ -946,6 +1036,46 @@ void CGuiMPIRunView::WaitForExitCommands()
 			}
 			
 			int nRank = m_pLaunchIdToRank[i];
+
+			if (strnicmp(str, "FAIL", 4) == 0)
+			{
+			    sprintf(str, "geterror %d", m_pProcessLaunchId[i]);
+			    WriteString(m_pProcessSocket[i], str);
+			    ReadString(m_pProcessSocket[i], str);
+			    printf("getexitcode(rank %d) failed: %s\n", nRank, str);fflush(stdout);
+			    if (g_bUseJobHost)
+			    {
+				UpdateJobKeyValue(nRank, "error", str);
+			    
+				// get the time the process exited
+				sprintf(str, "getexittime %d", m_pProcessLaunchId[i]);
+				WriteString(m_pProcessSocket[i], str);
+				ReadString(m_pProcessSocket[i], str);
+				UpdateJobKeyValue(nRank, "exittime", str);
+			    }
+
+			    if (easy_send(m_sockBreak, "x", 1) == SOCKET_ERROR)
+			    {
+				printf("Hard abort.\n");fflush(stdout);
+				//ExitProcess(-1);
+			    }
+			}
+			else
+			{
+			    if (g_bUseJobHost)
+			    {
+				//printf("ExitProcess: %s\n", str);fflush(stdout);
+				strtok(str, ":"); // strip the extra data from the string
+				UpdateJobKeyValue(nRank, "exitcode", str);
+
+				// get the time the process exited
+				sprintf(str, "getexittime %d", m_pProcessLaunchId[i]);
+				WriteString(m_pProcessSocket[i], str);
+				ReadString(m_pProcessSocket[i], str);
+				UpdateJobKeyValue(nRank, "exittime", str);
+			    }
+			}
+
 			if (m_nproc > FORWARD_NPROC_THRESHOLD)
 			{
 			    if (nRank > 0 && (m_nproc/2) > nRank)
@@ -955,15 +1085,16 @@ void CGuiMPIRunView::WaitForExitCommands()
 			    }
 			}
 
-			UnmapDrives(m_pProcessSocket[i], m_pDriveMapList);
+			//UnmapDrives(m_pProcessSocket[i], m_pDriveMapList);
 
 			sprintf(str, "freeprocess %d", m_pProcessLaunchId[i]);
 			WriteString(m_pProcessSocket[i], str);
+			ReadString(m_pProcessSocket[i], str);
 			
 			WriteString(m_pProcessSocket[i], "done");
-			beasy_closesocket(m_pProcessSocket[i]);
-			BFD_CLR(m_pProcessSocket[i], &totalset);
-			m_pProcessSocket[i] = BFD_INVALID_SOCKET;
+			easy_closesocket(m_pProcessSocket[i]);
+			FD_CLR(m_pProcessSocket[i], &totalset);
+			m_pProcessSocket[i] = INVALID_SOCKET;
 			n--;
 			m_nNumProcessSockets--;
 		    }
@@ -971,8 +1102,8 @@ void CGuiMPIRunView::WaitForExitCommands()
 	    }
 	}
 	
-	beasy_closesocket(m_bfdBreak);
-	m_bfdBreak = BFD_INVALID_SOCKET;
+	easy_closesocket(m_sockBreak);
+	m_sockBreak = INVALID_SOCKET;
 	delete m_pProcessSocket;
 	delete m_pProcessLaunchId;
 	delete m_pLaunchIdToRank;
@@ -985,8 +1116,8 @@ void CGuiMPIRunView::WaitForExitCommands()
 	DWORD dwThreadID;
 	int num = (m_nNumProcessSockets / (FD_SETSIZE-1)) + 1;
 	HANDLE *hThread = new HANDLE[num];
-	int *pAbortBFD = new int[num];
-	int bfdStop;
+	SOCKET *pAbortsock = new SOCKET[num];
+	SOCKET sockStop;
 	ProcessWaitThreadArg *arg = new ProcessWaitThreadArg[num];
 	ProcessWaitAbortThreadArg *arg2 = new ProcessWaitAbortThreadArg;
 	for (int i=0; i<num; i++)
@@ -999,16 +1130,16 @@ void CGuiMPIRunView::WaitForExitCommands()
 	    arg[i].pId = &m_pProcessLaunchId[i*(FD_SETSIZE-1)];
 	    arg[i].pRank = &m_pLaunchIdToRank[i*(FD_SETSIZE-1)];
 	    arg[i].pDlg = this;
-	    MakeLoop(&arg[i].bfdAbort, &pAbortBFD[i]);
+	    MakeLoop(&arg[i].sockAbort, &pAbortsock[i]);
 	}
 	for (i=0; i<num; i++)
 	{
 	    hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWait, &arg[i], 0, &dwThreadID);
 	}
-	if (m_bfdBreak != BFD_INVALID_SOCKET)
-	    beasy_closesocket(m_bfdBreak);
-	MakeLoop(&arg2->bfdAbort, &m_bfdBreak);
-	MakeLoop(&arg2->bfdStop, &bfdStop);
+	if (m_sockBreak != INVALID_SOCKET)
+	    easy_closesocket(m_sockBreak);
+	MakeLoop(&arg2->sockAbort, &m_sockBreak);
+	MakeLoop(&arg2->sockStop, &sockStop);
 
 	HANDLE hWaitAbortThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWaitAbort, arg2, 0, &dwThreadID);
 
@@ -1020,15 +1151,15 @@ void CGuiMPIRunView::WaitForExitCommands()
 	delete hThread;
 	delete arg;
 
-	beasy_send(bfdStop, "x", 1);
-	beasy_closesocket(bfdStop);
+	easy_send(sockStop, "x", 1);
+	easy_closesocket(sockStop);
 	WaitForSingleObject(hWaitAbortThread, 10000);
-	delete pAbortBFD;
+	delete pAbortsock;
 	delete arg2;
 	CloseHandle(hWaitAbortThread);
 
-	beasy_closesocket(m_bfdBreak);
-	m_bfdBreak = BFD_INVALID_SOCKET;
+	easy_closesocket(m_sockBreak);
+	m_sockBreak = INVALID_SOCKET;
 	delete m_pProcessSocket;
 	delete m_pProcessLaunchId;
 	delete m_pLaunchIdToRank;

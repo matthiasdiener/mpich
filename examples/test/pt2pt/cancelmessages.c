@@ -21,6 +21,7 @@ int main( int argc, char *argv[] )
     int          rank;
     int          n, flag, size;
     int          err = 0;
+    int          verbose = 0;
     MPI_Status   status;
     MPI_Request  req;
 
@@ -45,7 +46,10 @@ int main( int argc, char *argv[] )
 	    err++;
 	    printf( "Cancelling a short message failed where it should succeed.\n" );
 	}
-	MPI_Request_free( &req );
+	else if (verbose)
+	{
+	    printf("Cancelling a short message succeeded.\n");
+	}
     }  /* end if rank == 1 */
 
 #ifdef FOO
@@ -67,8 +71,6 @@ int main( int argc, char *argv[] )
 	    printf( "Cancel of a send returned an error in the status field.\n" );
 	}
 	  /* end if status.MPI_ERROR */
-	if (!flag)
-	    MPI_Request_free( &req ); 
     }  /* end if rank == 1 */
 #endif
 
@@ -84,9 +86,12 @@ int main( int argc, char *argv[] )
 	MPI_Test_cancelled(&status, &flag);
 	if (!flag) {
 	    err++;
-	    printf( "Cancelling a eager message failed where it should succeed.\n" );
+	    printf( "Cancelling an eager message (3000 doubles) failed where it should succeed.\n" );
 	}
-	MPI_Request_free( &req ); 
+	else if (verbose)
+	{
+	    printf("Cancelling an eager message (3000 doubles) succeeded.\n");
+	}
     }  /* end if rank == 1 */
 
 #ifdef FOO
@@ -106,8 +111,6 @@ int main( int argc, char *argv[] )
 	    printf( "Cancel of a send returned an error in the status field.\n" );
 	}
 	/* end if status.MPI_ERROR */
-	if (!flag)
-	    MPI_Request_free( &req );
     }  /* end if rank == 1 */
 #endif
 
@@ -123,9 +126,12 @@ int main( int argc, char *argv[] )
 	MPI_Test_cancelled(&status, &flag);
 	if (!flag) {
 	    err++;
-	    printf( "Cancelling a eager message failed where it should succeed.\n" );
+	    printf( "Cancelling a rendezvous message failed (20000 doubles) where it should succeed.\n" );
 	}
-	MPI_Request_free( &req ); 
+	else if (verbose)
+	{
+	    printf("Cancelling an rendezvous message (20000 doubles) succeeded.\n");
+	}
     }  /* end if rank == 1 */
 
 #ifdef FOO
@@ -145,8 +151,6 @@ int main( int argc, char *argv[] )
 	    printf( "Cancel of a send returned an error in the status field.\n" );
 	}
 	/* end if status.MPI_ERROR */
-	if (!flag)
-	    MPI_Request_free( &req );
     }  /* end if rank == 1 */
 #endif
 

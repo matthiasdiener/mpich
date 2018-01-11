@@ -11,8 +11,11 @@
 #include <windows.h>
 #include <tchar.h>
 
-#define MAX_CMD_LENGTH  8192
-#define MAX_HOST_LENGTH	64
+#define MAX_CMD_LENGTH                8192
+#define MAX_HOST_LENGTH	                64
+#define MPIRUN_DEFAULT_TIMEOUT          30
+#define MPIRUN_SHORT_TIMEOUT            15
+#define MPIRUN_CREATE_PROCESS_TIMEOUT   60
 
 struct HostNode
 {
@@ -37,21 +40,19 @@ struct MapDriveNode
     MapDriveNode *pNext;
 };
 
-bool UnmapDrives(int bfd);
-
 // Global variables
 extern MapDriveNode *g_pDriveMapList;
 extern bool g_bNoDriveMapping;
 extern HANDLE g_hRedirectIOListenThread;
-extern int g_bfdStopIOSignalSocket;
+extern SOCKET g_sockStopIOSignalSocket;
 extern HANDLE g_hAbortEvent;
-extern int *g_pProcessSocket;
+extern SOCKET *g_pProcessSocket;
 extern int *g_pProcessLaunchId;
 extern int *g_pLaunchIdToRank;
 extern LONG g_nNumProcessSockets;
 #define FORWARD_NPROC_THRESHOLD 8
 extern ForwardHostStruct *g_pForwardHost;
-extern int g_bfdBreak;
+extern SOCKET g_sockBreak;
 extern HANDLE g_hBreakReadyEvent;
 extern HostNode *g_pHosts;
 extern long g_nHosts;
@@ -70,9 +71,17 @@ extern int g_nIOPort;
 extern bool g_bDoMultiColorOutput;
 extern WORD g_ConsoleAttribute;
 extern bool g_bUseJobHost;
+extern bool g_bOutputExitCodes;
 extern char g_pszJobHost[MAX_HOST_LENGTH];
 extern bool g_bUseJobMPDPwd;
 extern char g_pszJobHostMPDPwd[100];
+extern int g_nLaunchTimeout;
+extern bool g_bSuppressErrorOutput;
+extern HANDLE g_hLaunchThreadsRunning;
+extern bool g_bUseMPDUser;
+extern int g_nMPIRUN_DEFAULT_TIMEOUT;
+extern int g_nMPIRUN_SHORT_TIMEOUT;
+extern int g_nMPIRUN_CREATE_PROCESS_TIMEOUT;
 
 #include <wincon.h>
 #define NUM_OUTPUT_COLORS 32

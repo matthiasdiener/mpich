@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_seek.c,v 1.11 2002/01/04 14:35:28 gropp Exp $    
+ *   $Id: ad_seek.c,v 1.12 2002/10/24 17:01:13 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

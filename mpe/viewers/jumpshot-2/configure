@@ -1213,8 +1213,8 @@ fi
     fi
 done
 
-echo $ac_n "checking if $JC compiles Swing code""... $ac_c" 1>&6
-echo "configure:1218: checking if $JC compiles Swing code" >&5
+echo $ac_n "checking if $JC compiles Swing-1.1.1 code""... $ac_c" 1>&6
+echo "configure:1218: checking if $JC compiles Swing-1.1.1 code" >&5
 
 pac_JC="$JC"
 pac_JFLAGS=""
@@ -1264,11 +1264,57 @@ fi
     fi
 fi
 
+if test "$enable_internalswing" = "yes" ; then
+    echo $ac_n "checking if $JC with swing.jar compiles Swing-1.0.3 code""... $ac_c" 1>&6
+echo "configure:1270: checking if $JC with swing.jar compiles Swing-1.0.3 code" >&5
+    
+pac_JC="$JC"
+pac_JFLAGS="-classpath $JAVA_LIBS:$srcdir/swing/swing.jar:. -d ."
+
+    rm -f conftest*
+    cat > conftest.java <<EOF
+
+import com.sun.java.swing.*;
+
+class conftest {
+
+public static void main( String args[] )
+{
+    JFrame frame = new JFrame();
+    System.out.println( "Checking Swing" );
+}
+                          
+}
+EOF
+
+    pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
+    if { (eval echo configure:1292: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+        rm -rf conftest* ;  pac_java_working=yes 
+    else
+        rm -rf conftest* ;  pac_java_working=no  
+    fi
+
+    if test "$pac_java_working" = "yes" ; then
+        echo "$ac_t""yes" 1>&6
+    else
+        echo "$ac_t""no" 1>&6
+        echo "configure: warning: $JC cannot compile with Jumpshot-2 !" 1>&2
+        
+if test "$enable_softerror" = "yes" ; then
+    echo "configure: warning:  Jumpshot-2 can be compiled with Java 1.1.5 or better but not Java 2. " 1>&2
+    exit 0
+else
+    { echo "configure: error:  Jumpshot-2 can be compiled with Java 1.1.5 or better but not Java 2. " 1>&2; exit 1; }
+fi
+
+    fi
+fi
+
 # CHECK the version of Java used
 # Filter out the version of JDK that causes problem
 if test "$enable_checkversion" = "yes" ; then
     echo $ac_n "checking for Java version""... $ac_c" 1>&6
-echo "configure:1272: checking for Java version" >&5
+echo "configure:1318: checking for Java version" >&5
     VERSION=`$JAVA_HOME/bin/java -fullversion 2>&1`
     case "$VERSION" in
         *1.0*)
@@ -1295,7 +1341,7 @@ else
 fi
 
             ;;
-        *1.1*)
+        *1.1.5*|*1.1.6*|*1.1.7*|*1.1.8*)
             echo "$ac_t""$VERSION, i.e. newer than 1.1.5" 1>&6
             ;;
         *1.2*|*1.3*|*1.4*|*1.5*)
@@ -1350,7 +1396,7 @@ if test "$enable_internalswing" = "yes" ; then
     SWING_LIBRARIES=`echo $SWING_LIBS | sed 's/:/ /g'`
     for library in $SWING_LIBRARIES ; do
         echo $ac_n "checking for $library""... $ac_c" 1>&6
-echo "configure:1354: checking for $library" >&5
+echo "configure:1400: checking for $library" >&5
         if test -f "$library" ; then
             echo "$ac_t""yes" 1>&6
         else

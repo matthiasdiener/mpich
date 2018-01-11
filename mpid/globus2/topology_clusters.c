@@ -1,50 +1,31 @@
 
+/*
+ * CVS Id: $Id: topology_clusters.c,v 1.42 2002/09/13 23:24:44 lacour Exp $
+ */
+
 #include <globdev.h>
 #include "mpid.h"
 #include "mpiimpl.h"
 #include "protos.h"
 #include "attr.h"
-
-
-/*********************/
-/* public prototypes */
-/*********************/
+#include "mem.h"
 
 #include "topology_intra_fns.h"
+#include "topology_access.h"
 
 
-/**********************/
-/* private prototypes */
-/**********************/
-
-static int num_protos_in_channel(struct channel_t *);
-static int channels_proto_match(struct channel_t *, int, struct channel_t *,
-                                int, int);
-static void print_topology(struct MPIR_COMMUNICATOR *);
-static int create_topology_keys(struct MPIR_COMMUNICATOR *);
+/**********************************************************************/
+/* PRIVATE FUNCTIONS                                                  */
+/**********************************************************************/
 
 
-/******************/
-/* global symbols */
-/******************/
-
-/* key to retrieve the Topology information from each communicator */
-int MPICHX_TOPOLOGY_COLORS = MPI_KEYVAL_INVALID;
-int MPICHX_TOPOLOGY_DEPTHS = MPI_KEYVAL_INVALID;
-MPI_Delete_function mpi_topology_depths_destructor;
-MPI_Delete_function mpi_topology_colors_destructor;
-
-/**************************/
-/* local utility function */
-/**************************/
-
-/******** print_topology **********************************************/
-
+/**********************************************************************/
+/* dump the topology information attached to a given communicator */
 static void
-print_topology(struct MPIR_COMMUNICATOR *comm)
+print_topology (struct MPIR_COMMUNICATOR * const comm)
 {
    int max_depth = 0;
-   int i, j, rank, size;
+   int lvl, proc, rank, size;
 
    (void) MPIR_Comm_size(comm, &size);
    (void) MPIR_Comm_rank(comm, &rank);
@@ -52,65 +33,182 @@ print_topology(struct MPIR_COMMUNICATOR *comm)
    globus_libc_fprintf(stderr, "*** Start print topology from proc #%d/%d\n",
                        rank, size);
    globus_libc_fprintf(stderr, "Sizes of my clusters:\n");
-   for (i = 0; i < comm->Topology_Depths[rank]; i++)
-      globus_libc_fprintf(stderr, "Level %d: %d procs\n", i,
-                                               comm->Topology_ClusterSizes[i]);
+   for (lvl = 0; lvl < comm->Topology_Depths[rank]; lvl++)
+      globus_libc_fprintf(stderr, "Level %d: %d procs\n", lvl,
+            comm->Topology_ClusterSizes[lvl][comm->Topology_Colors[rank][lvl]]);
    globus_libc_fprintf(stderr, "proc\t");
-   for (i = 0; i < size; i++)
-      globus_libc_fprintf(stderr, "% 3d", i);
+   for (proc = 0; proc < size; proc++)
+      globus_libc_fprintf(stderr, "% 3d", proc);
    globus_libc_fprintf(stderr, "\ndepths\t");
-   for (i = 0; i < size; i++)
+   for (proc = 0; proc < size; proc++)
    {
-      if ( max_depth < comm->Topology_Depths[i] )
-         max_depth = comm->Topology_Depths[i];
-      globus_libc_fprintf(stderr, "% 3d", comm->Topology_Depths[i]);
+      if ( max_depth < comm->Topology_Depths[proc] )
+         max_depth = comm->Topology_Depths[proc];
+      globus_libc_fprintf(stderr, "% 3d", comm->Topology_Depths[proc]);
    }
    globus_libc_fprintf(stderr, "\nCOLORS:");
-   for (i = 0; i < max_depth; i++)
+   for (lvl = 0; lvl < max_depth; lvl++)
    {
-      globus_libc_fprintf(stderr, "\nlvl %d\t", i);
-      for (j = 0; j < size; j++)
-         if ( i < comm->Topology_Depths[j] )
+      globus_libc_fprintf(stderr, "\nlvl %d\t", lvl);
+      for (proc = 0; proc < size; proc++)
+         if ( lvl < comm->Topology_Depths[proc] )
             globus_libc_fprintf(stderr, "% 3d",
-                                        comm->Topology_ColorTable[j][i]);
+                                comm->Topology_Colors[proc][lvl]);
+         else
+            globus_libc_fprintf(stderr, "   ");
+   }
+   globus_libc_fprintf(stderr, "\nPROCESS_RANKS:");
+   for (lvl = 0; lvl < max_depth; lvl++)
+   {
+      globus_libc_fprintf(stderr, "\nlvl %d\t", lvl);
+      for (proc = 0; proc < size; proc++)
+         if ( lvl < comm->Topology_Depths[proc] )
+            globus_libc_fprintf(stderr, "% 3d",
+                                comm->Topology_Ranks[proc][lvl]);
          else
             globus_libc_fprintf(stderr, "   ");
    }
    globus_libc_fprintf(stderr, "\nCLUSTER_IDS:");
-   for (i = 0; i < max_depth; i++)
+   for (lvl = 0; lvl < max_depth; lvl++)
    {
-      globus_libc_fprintf(stderr, "\nlvl %d\t", i);
-      for (j = 0; j < size; j++)
-         if ( i < comm->Topology_Depths[j] )
+      globus_libc_fprintf(stderr, "\nlvl %d\t", lvl);
+      for (proc = 0; proc < size; proc++)
+         if ( lvl < comm->Topology_Depths[proc] )
             globus_libc_fprintf(stderr, "% 3d",
-                                        comm->Topology_ClusterIds[j][i]);
+                                comm->Topology_ClusterIds[proc][lvl]);
          else
             globus_libc_fprintf(stderr, "   ");
    }
    globus_libc_fprintf(stderr, "\n");
-   globus_libc_fprintf(stderr, "*** End print topology\n");
+   globus_libc_fprintf(stderr, "*** End print topology from proc #%d/%d\n",
+                       rank, size);
    return;
 }
 
-/******** cluster_table ***********************************************/
 
-int
-cluster_table(struct MPIR_COMMUNICATOR *comm)
+/**********************************************************************/
+/* return the number of protocol levels thru which a process can
+ * communicate */
+static int
+num_protos_in_channel (struct channel_t * const cp)
 {
-   /*********************************************************/
-   /* initializing Topology_Depths and Topology_ClusterIds  */
-   /* for topology-aware collective operations and topology */
-   /* reporting to MPI app                                  */
-   /*********************************************************/
+   struct miproto_t *mp;
+   int rc = 0;
 
-   int max_depth, rank, size;
+   if (!cp)
+   {
+      globus_libc_fprintf(stderr,
+               "\tERROR: num_protos_in_channel(): grank %d: passed NULL cp\n",
+               MPID_MyWorldRank);
+      MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPICH-G2", "");
+   } /* end if */
+
+   for (mp = cp->proto_list; mp; mp = mp->next)
+   {
+      switch (mp->type)
+      {
+         /* TCP: 1 for localhost + 1 for LAN + 1 for WAN */
+         case tcp: rc += 3; break;
+         case mpi: rc ++; break;
+         default: globus_libc_fprintf(stderr,
+                     "\tERROR: num_protos_in_channel(): grank %d: encountered "
+                     "unrecognized proto type %d", MPID_MyWorldRank, mp->type);
+                  MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPICH-G2", "");
+      } /* end switch */
+   } /* end for */
+
+   return rc;
+} /* end num_protos_in_channel() */
+
+
+/**********************************************************************/
+/* return TRUE if the two processes can talk to each other at the
+ * given level; FALSE otherwise */
+static int
+channels_proto_match (struct channel_t * const cp0,
+                      struct channel_t * const cp1, const int level)
+{
+   struct miproto_t *mp0, *mp1;
+   enum proto type = unknown; /* dummy initialization to keep compiler quiet */
+
+   /* if level == MPICHX_WAN_LEVEL, then they always match */
+   if ( level == MPICHX_WAN_LEVEL ) return GLOBUS_TRUE;
+
+   switch ( level )
+   {
+      /* level != MPICHX_WAN_LEVEL */
+      case MPICHX_LAN_LEVEL:
+      case MPICHX_HOST_LEVEL: type = tcp; break;
+      case MPICHX_VMPI_LEVEL: type = mpi; break;
+      default:
+         MPID_Abort((struct MPIR_COMMUNICATOR *)0, 1, "MPICH-G2 Internal",
+                    "channels_proto_match(): unrecognized topology level");
+   }
+
+   /* finding the correct protos in each channel */
+   for (mp0 = cp0->proto_list; mp0; mp0 = mp0->next)
+      if ( mp0->type == type ) break;
+   for (mp1 = cp1->proto_list; mp1; mp1 = mp1->next)
+      if ( mp1->type == type ) break;
+
+   if ( mp0  &&  mp1  &&  (mp0->type == mp1->type) )
+   {
+      /* now that i have correct proto for each, seeing if they match */
+      switch ( level )
+      {
+         /* level != MPICHX_WAN_LEVEL */
+         case MPICHX_LAN_LEVEL:   /* are the procs in the same LAN? */
+         {
+            if ( !strcmp(((struct tcp_miproto_t *)(mp0->info))->globus_lan_id,
+                         ((struct tcp_miproto_t *)(mp1->info))->globus_lan_id) )
+               return GLOBUS_TRUE;
+            else
+               return GLOBUS_FALSE;
+         }
+         case MPICHX_HOST_LEVEL:/* are the procs on the same localhost? */
+         {
+            if ( ((struct tcp_miproto_t *) (mp0->info))->localhost_id ==
+                 ((struct tcp_miproto_t *) (mp1->info))->localhost_id )
+               return GLOBUS_TRUE;
+            else
+               return GLOBUS_FALSE;
+         }
+         case MPICHX_VMPI_LEVEL:
+         {
+            if ( !strcmp( ((struct mpi_miproto_t *) 
+                                        (mp0->info))->unique_session_string,
+                          ((struct mpi_miproto_t *) 
+                                        (mp1->info))->unique_session_string ) )
+               return GLOBUS_TRUE;
+            else
+               return GLOBUS_FALSE;
+         }
+         default:
+            MPID_Abort((struct MPIR_COMMUNICATOR *)0, 1, "MPICH-G2 Internal",
+                  "channels_proto_match(): unrecognized topology level");
+      } /* end switch */
+   } /* end if */
+
+   return GLOBUS_FALSE;
+} /* end channels_proto_match() */
+
+
+
+/**********************************************************************/
+/* PUBLIC FUNCTIONS                                                   */
+/**********************************************************************/
+
+/**********************************************************************/
+/* initialize Topology_Depths, Topology_Colors, Topology_ClusterIds,
+ * Topology_Ranks, Topology_ClusterSizes for topology-aware collective
+ * operations and topology reporting to MPI app */
+int
+topology_initialization (struct MPIR_COMMUNICATOR * const comm)
+{
+   int lvl, my_depth, max_depth, rank, size, p0;
    int mpi_errno = MPI_SUCCESS;
-   int p0, p1;
-   int lvl, i;
-   int *Topology_Depths;
-   int **Topology_ClusterIds;
-   int **color;
-   int **Cluster_Sets;
+   int *Depths, **ClusterIds, **Colors, **ClusterSizes, **Ranks;
+   comm_set_t *CommSets;
 
    /* don't do anything for intercommunicators */
    if (comm->comm_type == MPIR_INTER) return mpi_errno;
@@ -118,237 +216,232 @@ cluster_table(struct MPIR_COMMUNICATOR *comm)
    (void) MPIR_Comm_rank(comm, &rank);
    (void) MPIR_Comm_size(comm, &size);
 
+   /* allocate memory for the array of depths */
+   Depths = (int *) g_malloc_chk(size * sizeof(int));
+   comm->Topology_Depths = Depths;
+
+   /* allocate memory for the 2D-array of colors */
+   Colors = (int **) g_malloc_chk(size * sizeof(int *));
+   comm->Topology_Colors = Colors;
+
+   /* allocate memory for the 2D-array of cluster IDs */
+   ClusterIds = (int **) g_malloc_chk(size * sizeof(int *));
+   comm->Topology_ClusterIds = ClusterIds;
+
+   /* allocate memory for the 2D-array of process ranks (inside a
+    * cluster at a given level) */
+   Ranks = (int **) g_malloc_chk(size * sizeof(int *));
+   comm->Topology_Ranks = Ranks;
+
+
    /*********************************/
    /* Phase 1 of 3 - Finding Depths */
    /*********************************/
 
-   Topology_Depths = (int *) globus_libc_malloc (size*sizeof(int));
-   if ( !Topology_Depths )
-      MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                 "cluster_table() - failed malloc");
-   comm->Topology_Depths = Topology_Depths;
-
    max_depth = 0;
-   for (i = 0; i < size; i ++)
+   for (p0 = 0; p0 < size; p0++)
    {
       struct channel_t *chanl;
+      int depth;
 
-      chanl = get_channel(comm->lrank_to_grank[i]);
+      chanl = get_channel(comm->lrank_to_grank[p0]);
       if ( !chanl )
          MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                    "cluster_table() - NULL channel returned");
-      Topology_Depths[i] =
-             num_protos_in_channel(chanl);
+                    "topology_initialization() - NULL channel returned");
+      Depths[p0] = depth = num_protos_in_channel(chanl);
 
-      if (Topology_Depths[i] > max_depth)
-         max_depth = Topology_Depths[i];
+      if (depth > max_depth) max_depth = depth;
+
+      /* allocate memory for the colors and cluster-IDs */
+      Colors[p0] = (int *) g_malloc_chk(depth * sizeof(int));
+      ClusterIds[p0] = (int *) g_malloc_chk(depth * sizeof(int));
+      Ranks[p0] = (int *) g_malloc_chk(depth * sizeof(int));
+
+      /* initialize the colors and cluster IDs to invalid value -1 */
+      for (lvl = 0; lvl < depth; lvl ++)
+      {
+         Colors[p0][lvl] = -1;
+         ClusterIds[p0][lvl] = -1;
+      }
    } /* endfor */
+   my_depth = Depths[rank];
 
-   comm->Topology_InfoSets = (single_set_t *) globus_libc_malloc (
-                                 Topology_Depths[rank] * sizeof(single_set_t));
-   if ( comm->Topology_InfoSets == NULL )
-      MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                 "cluster_table() - failed malloc");
+   /* allocate memory for the sets of communicating processes I will
+    * be involved in */
+   CommSets = (comm_set_t *) g_malloc_chk(my_depth * sizeof(comm_set_t));
+   comm->Topology_CommSets = CommSets;
+
+   /* allocate memory for the sizes of the clusters I belong to at
+    * each communication level */
+   ClusterSizes = (int **) g_malloc_chk(sizeof(int *) * max_depth);
+   comm->Topology_ClusterSizes = ClusterSizes;
+
 
    /***************************/
    /* Phase 2 of 3 - Coloring */
    /***************************/
 
-   color = (int **) globus_libc_malloc (size*sizeof(int *));
-   if ( !color )
-      MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                 "cluster_table() - failed malloc");
-   comm->Topology_ColorTable = color;
-   for (i = 0; i < size; i ++)
-   {
-      color[i] = (int *) globus_libc_malloc (Topology_Depths[i]*sizeof(int));
-      if ( !color[i] )
-         MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                    "cluster_table() - failed malloc");
-
-      for (lvl = 0; lvl < Topology_Depths[i]; lvl ++)
-         color[i][lvl] = -1;
-   } /* endfor */
-
    for (lvl = 0; lvl < max_depth; lvl ++)
    {
       int next_color = 0;
 
-      for (p0 = 0; p0 < size; p0 ++)
+      for (p0 = 0; p0 < size; p0++)
       {
-         if (lvl < Topology_Depths[p0] && color[p0][lvl] == -1)
+         int rank, p1, color0;
+
+         if ( lvl >= Depths[p0] ) continue;
+
+         color0 = Colors[p0][lvl];
+         if ( color0 == -1 )
          {
-            /* this proc has not been colored at this level yet, */
-            /* i.e., it hasn't matched any of the procs to the   */
-            /* left at this level yet ... ok, start new color    */
-            /* at this level.                                    */
+            /* this proc has not been colored at this level yet, i.e.,
+             * it hasn't matched any of the procs to the left at this
+             * level yet ... ok, start new color at this level. */
 
-            color[p0][lvl] = next_color ++;
-            for (p1 = p0 + 1; p1 < size; p1 ++)
+            struct channel_t *chanl0;
+
+            chanl0 = get_channel(comm->lrank_to_grank[p0]);
+            if ( !chanl0 )
+               MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
+                          "topology_initialization() - NULL channel returned");
+
+            Colors[p0][lvl] = color0 = next_color ++;
+            for (p1 = p0 + 1; p1 < size; p1++)
             {
-               if (lvl < Topology_Depths[p1] && color[p1][lvl] == -1)
+               if (lvl < Depths[p1] && Colors[p1][lvl] == -1)
                {
-                  struct channel_t *chanl0, *chanl1;;
+                  struct channel_t *chanl1;;
 
-                  chanl0 = get_channel(comm->lrank_to_grank[p0]);
-                  if ( !chanl0 )
-                     MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2,
-                                "MPICH-G2 Internal",
-                                "cluster_table() - NULL channel returned");
                   chanl1 = get_channel(comm->lrank_to_grank[p1]);
                   if ( !chanl1 )
                      MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2,
                                 "MPICH-G2 Internal",
-                                "cluster_table() - NULL channel returned");
+                                "topology_initialization() - NULL channel");
 
-                  if (channels_proto_match(chanl0, Topology_Depths[p0]-1-lvl,
-                                           chanl1, Topology_Depths[p1]-1-lvl,
-                                           lvl))
-                     color[p1][lvl] = color[p0][lvl];
-               } /* endif */
-            } /* endfor */
-         } /* endif */
-      } /* endfor */
-   } /* endfor */
+                  if (channels_proto_match(chanl0, chanl1, lvl))
+                     Colors[p1][lvl] = color0;
+               } /* endif (depths and colors) */
+            } /* endfor (p1) */
+         } /* endif (color) */
 
-   /************************************************/ 
+         /* determine the rank of this process inside its cluster */
+         for (rank = 0, p1 = 0; p1 < p0; p1++)
+         {
+            if ( lvl < Depths[p1]  &&  Colors[p1][lvl] == color0 )
+               rank++;
+         } /* endfor (p1) */
+         Ranks[p0][lvl] = rank;
+      } /* endfor (p0) */
+
+      /* determine the sizes of the clusters at this level */
+      ClusterSizes[lvl] = (int *) g_malloc_chk(sizeof(int) * next_color);
+      for (p0 = 0; p0 < next_color; p0++)
+         ClusterSizes[lvl][p0] = 0;
+      for (p0 = 0; p0 < size; p0++)
+         if ( Depths[p0] > lvl )
+            ClusterSizes[lvl][Colors[p0][lvl]]++;
+   } /* endfor (lvl) */
+
+
+   /************************************************/
    /* Phase 3 of 3 - Setting CID's based on colors */
    /************************************************/
 
-   Cluster_Sets = (int**) globus_libc_malloc (Topology_Depths[rank]
-                                              * sizeof(int*));
-   if ( !Cluster_Sets )
-      MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                 "cluster_table() - failed malloc");
-   comm->Topology_ClusterSets = Cluster_Sets;
-   for (i = 0; i < Topology_Depths[rank]; i++)
-      Cluster_Sets[i] = (int*) NULL;
-
-   Topology_ClusterIds = (int **) globus_libc_malloc (size*sizeof(int *));
-   if ( !Topology_ClusterIds )
-      MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                 "cluster_table() - failed malloc");
-   comm->Topology_ClusterIds = Topology_ClusterIds;
-   for (i = 0; i < size; i ++)
-   {
-      Topology_ClusterIds[i] = 
-                   (int *) globus_libc_malloc (Topology_Depths[i]*sizeof(int));
-      if ( !Topology_ClusterIds[i] )
-         MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                    "cluster_table() - failed malloc");
-
-      /* intializing to an invalid value -1 */
-      for (lvl = 0; lvl < Topology_Depths[i]; lvl ++)
-         Topology_ClusterIds[i][lvl] = -1;
-   } /* endfor */
-
-   for (lvl = max_depth-1; lvl >= 0; lvl --)
+   for (lvl = max_depth-1; lvl >= 0; lvl--)
    {
       for (p0 = 0; p0 < size; p0 ++)
       {
-         if (lvl < Topology_Depths[p0] 
-             && Topology_ClusterIds[p0][lvl] == -1)
+         if (lvl < Depths[p0] && ClusterIds[p0][lvl] == -1)
          {
-            /* p0 has not been assigned a cid at this level yet,
-             * which means all the procs at this level that
-             * have the same color as p0 at this level have also 
-             * not been assigned cid's yet.
+            /* p0 has not been assigned a cid at this level yet, which
+             * means all the procs at this level that have the same
+             * color as p0 at this level have also not been assigned
+             * cid's yet.
              *
-             * find the rest of the procs at this level that 
-             * have the same color as p0 and assign them cids.
-             * same color are enumerated.  */
+             * find the rest of the procs at this level that have the
+             * same color as p0 and assign them cids.  same color are
+             * enumerated.  */
 
-            int next_cid;
+            int next_cid, p1;
+            const int color0 = Colors[p0][lvl];
 
-            Topology_ClusterIds[p0][lvl] = 0;
+            ClusterIds[p0][lvl] = 0;
             next_cid = 1;
 
-            for (p1 = p0+1; p1 < size; p1 ++)
+            for (p1 = p0 + 1; p1 < size; p1++)
             {
-               if (lvl < Topology_Depths[p1]
-                   && color[p0][lvl] == color[p1][lvl])
+               if ( lvl < Depths[p1]  &&  color0 == Colors[p1][lvl] )
                {
-                  /* p0 and p1 match colors at this level, 
-                   * which means p1 will now get its cid set at
-                   * this level.  but to what value?  if p1 also
-                   * matches color with any proc to its left
-                   * at level lvl+1, then p1 copies that proc's
-                   * cid at this level, otherwise p1 gets the
-                   * next cid value at this level.  */
+                  /* p0 and p1 match colors at this level, which means
+                   * p1 will now get its cid set at this level.  but
+                   * to what value?  if p1 also matches color with any
+                   * proc to its left at level lvl+1, then p1 copies
+                   * that proc's cid at this level, otherwise p1 gets
+                   * the next cid value at this level.  */
+                  const int next_lvl = lvl + 1;
 
-                  if (lvl+1 < Topology_Depths[p1])
+                  if (next_lvl < Depths[p1])
                   {
                      int p2;
+                     const int color1 = Colors[p1][lvl];
+                     const int next_color1 = Colors[p1][next_lvl];
 
                      for (p2 = 0; p2 < p1; p2 ++)
                      {
-                        if (lvl+1 < Topology_Depths[p2]
-                            && color[p1][lvl] == color[p2][lvl]
-                            && color[p1][lvl+1] == color[p2][lvl+1])
+                        if ( next_lvl < Depths[p2] &&
+                             color1 == Colors[p2][lvl] &&
+                             next_color1 == Colors[p2][next_lvl])
                         {
-                           Topology_ClusterIds[p1][lvl] =
-                                                  Topology_ClusterIds[p2][lvl];
+                           ClusterIds[p1][lvl] = ClusterIds[p2][lvl];
                            break;
                         }
                      } /* endfor */
                      if (p2 == p1)
                         /* did not find one */
-                        Topology_ClusterIds[p1][lvl] = next_cid ++;
+                        ClusterIds[p1][lvl] = next_cid ++;
                   }
                   else
                      /* p1 does not have a level lvl+1 */
-                     Topology_ClusterIds[p1][lvl] = next_cid ++;
+                     ClusterIds[p1][lvl] = next_cid ++;
                } /* endif */
             } /* endfor */
-
-            if ( lvl < Topology_Depths[rank]  &&  Cluster_Sets[lvl] == NULL
-                 &&  Topology_ClusterIds[rank][lvl] != -1 )
-            {
-               /* my proc has just gotten a cid at this level */
-               /* I need to allocate memory for the set of master processes */
-               /* of my cluster at this level */
-               Cluster_Sets[lvl] = (int*) globus_libc_malloc (next_cid
-                                                              * sizeof(int));
-               if ( !Cluster_Sets[lvl] )
-                  MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2,
-                             "MPICH-G2 Internal",
-                             "cluster_table() - failed malloc");
-            }
          } /* endif */
       } /* endfor */
    } /* endfor */
 
-   /* know how many processes are in my cluster at each level */
-   comm->Topology_ClusterSizes = (int *) globus_libc_malloc (sizeof(int)
-                                                      * Topology_Depths[rank]);
-   if ( !comm->Topology_ClusterSizes  )
-      MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                 "cluster_table() - failed malloc");
-   for (lvl = 0; lvl < Topology_Depths[rank]; lvl++)
+   /* allocate enough memory for the sets of communicating processes
+    * at each level */
+   for (lvl = 0; lvl < my_depth; lvl++)
    {
-      int cnt;
-      int my_color = color[rank][lvl];
+      /* number of procs I may have to talk to at this level */
+      int n_cid = 0;
+      int my_color = Colors[rank][lvl];
 
-      for (cnt = 0, i = 0; i < size; i++)
-         if ( Topology_Depths[i] > lvl  &&  my_color == color[i][lvl] )
-            cnt++;
-      comm->Topology_ClusterSizes[lvl] = cnt;
+      for (p0 = 0; p0 < size; p0++)
+         if ( Depths[p0] > lvl  &&  my_color == Colors[p0][lvl]  &&
+              ClusterIds[p0][lvl] > n_cid )
+            n_cid = ClusterIds[p0][lvl];
+      CommSets[lvl].set = (int *) g_malloc_chk(sizeof(int) * (n_cid + 1));
    }
 
-   mpi_errno = create_topology_keys(comm);
+   mpi_errno = cache_topology_information(comm);
+
 /*
-printf("create_topology_keys returned %d\n", mpi_errno);
+if ( size > 1  &&  rank == 1 ) print_topology(comm);
 */
 
    return mpi_errno;
 }
 
-/******** destroy_cluster_table ***************************************/
 
+/**********************************************************************/
+/* free memory used for the topology information attached to the given
+ * communicator */
 void
-destroy_cluster_table(struct MPIR_COMMUNICATOR *comm)
+topology_destruction (struct MPIR_COMMUNICATOR * const comm)
 {
-   int i, my_depth, rank, size;
+   int my_depth, i, rank, size;
+   int max_depth = 0;
 
    (void) MPIR_Comm_rank(comm, &rank);
    (void) MPIR_Comm_size(comm, &size);
@@ -356,308 +449,35 @@ destroy_cluster_table(struct MPIR_COMMUNICATOR *comm)
    /* don't do anything for intercommunicators */
    if (comm->comm_type == MPIR_INTER) return;
 
-/*
-   if (rank == 0) print_topology(comm);
-*/
-
    for (i = 0; i < size; i ++)
-      g_free(comm->Topology_ColorTable[i]);
-   g_free(comm->Topology_ColorTable);
+   {
+      g_free(comm->Topology_Colors[i]);
+      g_free(comm->Topology_ClusterIds[i]);
+      g_free(comm->Topology_Ranks[i]);
+      if ( max_depth < comm->Topology_Depths[i] )
+         max_depth = comm->Topology_Depths[i];
+   }
+   g_free(comm->Topology_Colors);
+   comm->Topology_Colors = NULL;
+   g_free(comm->Topology_ClusterIds);
+   comm->Topology_ClusterIds = NULL;
+   g_free(comm->Topology_Ranks);
+   comm->Topology_Ranks = NULL;
 
    my_depth = comm->Topology_Depths[rank];
-   for (i = 0; i < my_depth; i ++)
-      g_free(comm->Topology_ClusterSets[i]);
-   g_free(comm->Topology_ClusterSets);
-
-   for (i = 0; i < size; i++)
-      g_free(comm->Topology_ClusterIds[i]);
-   g_free(comm->Topology_ClusterIds);
-
    g_free(comm->Topology_Depths);
-   g_free(comm->Topology_InfoSets);
+   comm->Topology_Depths = NULL;
+
+   for (i = 0; i < my_depth; i ++)
+      g_free(comm->Topology_CommSets[i].set);
+   g_free(comm->Topology_CommSets);
+   comm->Topology_CommSets = NULL;
+
+   for (i = 0; i < max_depth; i++)
+      g_free(comm->Topology_ClusterSizes[i]);
    g_free(comm->Topology_ClusterSizes);
+   comm->Topology_ClusterSizes = NULL;
 
    return;
-}
-
-/******** num_protos_in_channel ***************************************/
-
-/* later need to fix this for WAN/LAN split of TCP: done (OK) */
-static int
-num_protos_in_channel(struct channel_t *cp)
-{
-    struct miproto_t *mp;
-    int rc = 0;
-
-    if (!cp)
-    {
-	globus_libc_fprintf(stderr,
-	    "\tERROR: num_protos_in_channel(): grank %d: passed NULL cp\n",
-	    MPID_MyWorldRank);
-	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 
-				1, "MPICH-G2", "");
-    } /* endif */
-
-    for (mp = cp->proto_list; mp; mp = mp->next)
-    {
-	switch (mp->type)
-	{
-            /* TCP: 1 for localhost + 1 for LAN + 1 for WAN */
-	    case tcp: rc += 3; break;
-	    case mpi: rc ++; break;
-	    default:
-		globus_libc_fprintf(stderr,
-		    "\tERROR: num_protos_in_channel(): grank %d: encountered "
-		    "unrecognized proto type %d", 
-		    MPID_MyWorldRank, mp->type);
-		MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 
-					1, "MPICH-G2", "");
-		break;
-	} /* end switch() */
-    } /* endfor */
-
-    return rc;
-
-} /* end num_protos_in_channel() */
-
-
-/******** channels_proto_match ****************************************/
-
-static int
-channels_proto_match(struct channel_t *cp0, int proto_idx0,
-                     struct channel_t *cp1, int proto_idx1, int level)
-{
-    struct miproto_t *mp0, *mp1;
-    int i;
-
-    /* if level == 0, then the protocol is WAN-TCP: they always match */
-    if ( level == 0 )
-        return GLOBUS_TRUE;
-
-    /* for LAN-TCP, the actual proto index is the given index minus 1
-     * because the localhost-TCP level is a "pseudo level" */
-    if ( level == 1 )
-    {
-        proto_idx0--;
-        proto_idx1--;
-    }
-
-    if (proto_idx0 < 0 || proto_idx1 < 0)
-    {
-	globus_libc_fprintf(stderr,
-	    "\tERROR: channels_proto_match(): grank %d: passed invalid args "
-	    "proto_idx0 %d proto_idx1 %d\n", 
-	    MPID_MyWorldRank, proto_idx0, proto_idx1);
-	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPICH-G2", "");
-    } /* endif */
-
-    /* finding the correct protos in each channel */
-    for (i = 0, mp0 = cp0->proto_list; mp0 && i < proto_idx0;
-                                       mp0 = mp0->next, i ++)
-    ;
-    for (i = 0, mp1 = cp1->proto_list; mp1 && i < proto_idx1;
-                                       mp1 = mp1->next, i ++)
-    ;
-
-    if (mp0 && mp1 && mp0->type == mp1->type)
-    {
-        int rc = GLOBUS_FALSE;
-
-	/* now that i have correct proto for each, seeing if they match */
-        switch (mp0->type)
-        {
-            case tcp:   /* are they on the same LAN? */
-                /* level != 0 and proto == TCP */
-                switch ( level )
-                {
-                    case 1:   /* are the procs in the same LAN? */
-                    {
-                        if ( !strcmp(((struct tcp_miproto_t *) 
-                                                 (mp0->info))->globus_lan_id,
-                                     ((struct tcp_miproto_t *)
-                                                 (mp1->info))->globus_lan_id) )
-                            rc = GLOBUS_TRUE;
-                        break;
-                    }
-                    case 2:   /* are the procs on the same localhost? */
-                    {
-                        if ( ((struct tcp_miproto_t *)
-                                                   (mp0->info))->localhost_id
-                             == ((struct tcp_miproto_t *)
-                                                   (mp1->info))->localhost_id )
-                            rc = GLOBUS_TRUE;
-                        break;
-                    }
-                    default: rc = GLOBUS_FALSE;
-                }   /* end switch */
-            break;
-            case mpi:
-                if (!strcmp(((struct mpi_miproto_t *) 
-                                (mp0->info))->unique_session_string,
-                            ((struct mpi_miproto_t *) 
-                                (mp1->info))->unique_session_string))
-                    rc = GLOBUS_TRUE;
-            break;
-            default:
-                {
-                    char err[1024];
-
-                    globus_libc_sprintf(err,
-                        "channels_proto_match(): unrecognizable "
-                        "proto type %d", 
-                        mp0->type);
-                    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 
-                            1, "MPICH-G2", err);
-                }
-            break;
-        } /* end switch */
-        return rc;
-    } /* end if */
-    else
-	/* one or both proto_idx's was too deep for its channel */
-	return GLOBUS_FALSE;
-
-} /* end channels_proto_match() */
-
-
-/******** create_topology_keys ****************************************/
-
-static int
-create_topology_keys(struct MPIR_COMMUNICATOR *comm)
-{
-   int mpi_errno = MPI_SUCCESS;
-   int flag, size;
-   int *Depths;
-   int **Colors;
-
-   (void) MPIR_Comm_size (comm, &size);
-
-   if ( MPICHX_TOPOLOGY_DEPTHS == MPI_KEYVAL_INVALID )
-   {
-      mpi_errno = MPI_Keyval_create(MPI_NULL_COPY_FN,
-                                    mpi_topology_depths_destructor,
-                                    &MPICHX_TOPOLOGY_DEPTHS, NULL);
-      if ( mpi_errno ) return mpi_errno;
-   }
-
-   mpi_errno = MPI_Attr_get(comm->self, MPICHX_TOPOLOGY_DEPTHS, &Depths,
-                            &flag);
-   if ( mpi_errno ) return mpi_errno;
-
-   if ( !flag )
-   {
-      int i;
-
-      /* copy the information available at the user level: the user must
-       * not have a direct access to the pointer to the real data used by
-       * the MPICH library */
-      Depths = (int *) globus_libc_malloc (sizeof(int) * size);
-      if ( !Depths )
-         MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                    "create_topology_keys() - failed malloc");
-
-      for (i = 0; i < size; i++)
-         Depths[i] = comm->Topology_Depths[i];
-      mpi_errno = MPI_Attr_put(comm->self, MPICHX_TOPOLOGY_DEPTHS, Depths);
-      if ( mpi_errno ) return mpi_errno;
-   }
-
-   if ( MPICHX_TOPOLOGY_COLORS == MPI_KEYVAL_INVALID )
-   {
-      mpi_errno = MPI_Keyval_create(MPI_NULL_COPY_FN,
-                                    mpi_topology_colors_destructor,
-                                    &MPICHX_TOPOLOGY_COLORS, NULL);
-      if ( mpi_errno ) return mpi_errno;
-   }
-
-   mpi_errno = MPI_Attr_get(comm->self, MPICHX_TOPOLOGY_COLORS, &Colors,
-                            &flag);
-   if ( mpi_errno ) return mpi_errno;
-
-   if ( !flag )
-   {
-      int i;
-
-      /* copy the information available at the user level: the user must
-       * not have a direct access to the pointer to the real data used by
-       * the MPICH library */
-      Colors = (int **) globus_libc_malloc (sizeof(int *) * size);
-      if ( !Colors )
-         MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                    "create_topology_keys() - failed malloc");
-
-      for (i = 0; i < size; i++)
-      {
-         int j, dep = Depths[i];
-         int *column = comm->Topology_ColorTable[i];
-
-         Colors[i] = (int *) globus_libc_malloc (sizeof(int) * dep);
-         if ( Colors[i] == NULL )
-            MPID_Abort((struct MPIR_COMMUNICATOR *)0, 2, "MPICH-G2 Internal",
-                       "create_topology_keys() - failed malloc");
-         for (j = 0; j < dep; j++)
-            Colors[i][j] = column[j];
-      }
-
-      mpi_errno = MPI_Attr_put(comm->self, MPICHX_TOPOLOGY_COLORS, Colors);
-      if ( mpi_errno ) return mpi_errno;
-   }
-
-   return mpi_errno;
-}
-
-
-/******** mpi_topology_depths_destructor ******************************/
-
-int
-mpi_topology_depths_destructor(MPI_Comm comm, int key, void *attr, void *extra)
-{
-   int mpi_errno = MPI_SUCCESS;
-   int *Depths;
-
-   /* if the key is not valid any longer, then the attribute has already
-    * been deleted (and memory freed) */
-   if ( MPICHX_TOPOLOGY_DEPTHS == MPI_KEYVAL_INVALID )
-      return mpi_errno;
-
-   if ( key != MPICHX_TOPOLOGY_DEPTHS )
-      /* what does that mean?  What return value?  If there's no bug in MPICH
-       * library, this case should never be encountered... */
-      return mpi_errno;
-
-   Depths = (int *) attr;
-   g_free(Depths);
-
-   return mpi_errno;
-}
-
-
-/******** mpi_topology_colors_destructor ******************************/
-
-int
-mpi_topology_colors_destructor(MPI_Comm comm, int key, void *attr, void *extra)
-{
-   int mpi_errno = MPI_SUCCESS;
-   int i, size;
-   int **Colors;
-
-   /* if the key is not valid any longer, then the attribute has already
-    * been deleted (and memory freed) */
-   if ( MPICHX_TOPOLOGY_COLORS == MPI_KEYVAL_INVALID )
-      return mpi_errno;
-
-   if ( key != MPICHX_TOPOLOGY_COLORS )
-      /* what does that mean?  What return value?  If there's no bug in MPICH
-       * library, this case should never be encountered... */
-      return mpi_errno;
-
-   Colors = (int **) attr;
-   (void) MPI_Comm_size(comm, &size);
-
-   for (i = 0; i < size; i++)
-      g_free(Colors[i]);
-   g_free(Colors);
-
-   return MPI_SUCCESS;
 }
 

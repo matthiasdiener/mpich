@@ -5,7 +5,8 @@ top_srcdir  = @top_srcdir@
 srcdir      = @srcdir@
 libbuild_dir      = @libbuild_dir@
 
-DEFS        = @DEFS@ ${MPIPROFILE} -I. -I${srcdir} @mpich_includes@
+# Define FOR_MPI2=1 to enable some MPI-2 support
+DEFS        = @DEFS@ ${MPIPROFILE} -I. -I${srcdir} @mpich_includes@ -DFOR_MPI2=0
 CFLAGS      = -g @CC_SHARED_OPT_FOR_TV@ @CFLAGS@
 
 @VPATH@

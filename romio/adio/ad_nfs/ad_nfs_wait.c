@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_nfs_wait.c,v 1.7 2000/02/10 23:30:18 thakur Exp $    
+ *   $Id: ad_nfs_wait.c,v 1.8 2002/10/24 17:00:48 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

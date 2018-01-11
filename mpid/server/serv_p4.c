@@ -1343,8 +1343,7 @@ char *s;
 /*
   Accept a connection on socket skt and return fd of new connection.
  */
-int net_accept(skt)
-int skt;
+int net_accept(int skt)
 {
     struct sockaddr_in from;
     p4_sockopt_len_t fromlen;
@@ -1589,10 +1588,8 @@ getopt(nargc, nargv, ostr)
 
 #endif
 
-static int connect_to_listener(hp,stdout_port, pipe_out)
-struct hostent *hp;
-int stdout_port;
-int pipe_out;
+static int connect_to_listener(struct hostent *hp,int stdout_port, 
+			       int pipe_out)
 {
     int conn;
     int rc;

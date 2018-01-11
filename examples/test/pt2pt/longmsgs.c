@@ -1,5 +1,5 @@
 #include "test.h"
-#include <mpi.h>
+#include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef HAVE_UNISTD_H
@@ -13,6 +13,8 @@
 #define TAG3 3
 #define TAG4 4
 #define TAGSR 101
+
+int verbose = 0;
 
 void Resetbuf( char *, int );
 void Checkbuf( char *, int, MPI_Status * );
@@ -81,10 +83,15 @@ int main( int argc, char *argv[] )
 	int  actmsglen_max;
 	n_pages  = sysconf( _SC_PHYS_PAGES );
 	pagesize = sysconf( _SC_PAGESIZE );
-	if (n_pages > 0 && pagesize > 0 && 
-	    n_pages * pagesize < 4 * msglen_max) {
+	/* We want to avoid integer overflow in the size calculation.
+	   The best way is to avoid computing any products (such
+	   as total memory = n_pages * pagesize) and instead
+	   compute a msglen_max that fits within 1/4 of the available 
+	   pages */
+	if (n_pages > 0 && pagesize > 0) {
 	    /* Recompute msglen_max */
-	    while (n_pages * pagesize < 4 * msglen_max) msglen_max /= 2;
+	    int msgpages = 4 * ((msglen_max + pagesize - 1)/ pagesize);
+	    while (n_pages < msgpages) { msglen_max /= 2; msgpages /= 2; }
 	}
 	/* printf ( "before = %d\n", msglen_max ); */
 	MPI_Allreduce( &msglen_max, &actmsglen_max, 1, MPI_INT, 
@@ -96,7 +103,7 @@ int main( int argc, char *argv[] )
 
     Master = (rank == 0);	
 
-    if(Master)
+    if(Master && verbose)
 	printf("Size (bytes)\n------------\n");
     for(msglen = msglen_min; msglen <= msglen_max; msglen *= 2) {
 
@@ -114,7 +121,7 @@ int main( int argc, char *argv[] )
 	}
 
 
-	if(Master) 
+	if(Master && verbose) 
 	    printf("%d\n",msglen);
 	fflush(stdout);
 
@@ -184,7 +191,10 @@ int main( int argc, char *argv[] )
 	free(recvbuf);
     }
 
-    if (rank == 0) printf( "Completed long message test\n" );
+    if (rank == 0) {
+	/* If we do not abort, we saw no errors */
+	printf( " No Errors\n" );
+    }
 
     MPI_Finalize();
     return 0;

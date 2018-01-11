@@ -1,24 +1,25 @@
 #include "mpdimpl.h"
 
-struct bfdNode
+struct sockNode
 {
-    int bfd;
-    bfdNode *pNext;
+    SOCKET sock;
+    sockNode *pNext;
 };
 
 struct BarrierStruct
 {
     char pszName[100];
     int nCount, nCurIn;
-    bfdNode *pBfdList;
+    sockNode *pBfdList;
     BarrierStruct *pNext;
 };
 
-BarrierStruct *g_pBarrierList;
+HANDLE g_hBarrierStructMutex = NULL;
+BarrierStruct *g_pBarrierList = NULL;
 
 static void BarrierToString(BarrierStruct *p, char *pszStr, int length)
 {
-    struct bfdNode *pBfd;
+    struct sockNode *pBfd;
     if (!snprintf_update(pszStr, length, "BARRIER:\n"))
 	return;
     if (!snprintf_update(pszStr, length, " name: %s\n count: %d\n in: %d\n", p->pszName, p->nCount, p->nCurIn))
@@ -26,11 +27,11 @@ static void BarrierToString(BarrierStruct *p, char *pszStr, int length)
     pBfd = p->pBfdList;
     if (pBfd)
     {
-	if (!snprintf_update(pszStr, length, " bfds: "))
+	if (!snprintf_update(pszStr, length, " socks: "))
 	    return;
 	while (pBfd)
 	{
-	    if (!snprintf_update(pszStr, length, "%d, ", pBfd->bfd))
+	    if (!snprintf_update(pszStr, length, "%d, ", pBfd->sock))
 		return;
 	    pBfd = pBfd->pNext;
 	}
@@ -59,7 +60,7 @@ void statBarrier(char *pszOutput, int length)
     }
 }
 
-static void DeleteBfdList(bfdNode *p)
+static void DeleteBfdList(sockNode *p)
 {
     if (p == NULL)
 	return;
@@ -70,8 +71,7 @@ static void DeleteBfdList(bfdNode *p)
 static void RemoveBarrierStruct(char *pszName)
 {
     BarrierStruct *p, *pTrailer;
-    HANDLE hMutex = CreateMutex(NULL, FALSE, "mpdBarrierStructMutex");
-    WaitForSingleObject(hMutex, INFINITE);
+    WaitForSingleObject(g_hBarrierStructMutex, INFINITE);
 
     pTrailer = p = g_pBarrierList;
 
@@ -86,8 +86,7 @@ static void RemoveBarrierStruct(char *pszName)
 	    DeleteBfdList(p->pBfdList);
 	    dbg_printf("barrier structure '%s' removed\n", pszName);
 	    delete p;
-	    ReleaseMutex(hMutex);
-	    CloseHandle(hMutex);
+	    ReleaseMutex(g_hBarrierStructMutex);
 	    return;
 	}
 	if (pTrailer != p)
@@ -96,15 +95,13 @@ static void RemoveBarrierStruct(char *pszName)
     }
 
     err_printf("Error: RemoveBarrierStruct: barrier structure '%s' not found\n", pszName);
-    ReleaseMutex(hMutex);
-    CloseHandle(hMutex);
+    ReleaseMutex(g_hBarrierStructMutex);
 }
 
-void SetBarrier(char *pszName, int nCount, int bfd)
+void SetBarrier(char *pszName, int nCount, SOCKET sock)
 {
     BarrierStruct *p;
-    HANDLE hMutex = CreateMutex(NULL, FALSE, "mpdBarrierStructMutex");
-    WaitForSingleObject(hMutex, INFINITE);
+    WaitForSingleObject(g_hBarrierStructMutex, INFINITE);
 
     p = g_pBarrierList;
 
@@ -115,10 +112,10 @@ void SetBarrier(char *pszName, int nCount, int bfd)
 	    p->nCurIn++;
 	    if (p->nCount != nCount)
 		err_printf("Error: count's don't match, %d != %d", p->nCount, nCount);
-	    if (bfd != BFD_INVALID_SOCKET)
+	    if (sock != INVALID_SOCKET)
 	    {
-		bfdNode *pNode = new bfdNode;
-		pNode->bfd = bfd;
+		sockNode *pNode = new sockNode;
+		pNode->sock = sock;
 		pNode->pNext = p->pBfdList;
 		p->pBfdList = pNode;
 	    }
@@ -134,10 +131,10 @@ void SetBarrier(char *pszName, int nCount, int bfd)
 	p->pszName[99] = '\0';
 	p->nCount = nCount;
 	p->nCurIn = 1;
-	if (bfd != BFD_INVALID_SOCKET)
+	if (sock != INVALID_SOCKET)
 	{
-	    p->pBfdList = new bfdNode;
-	    p->pBfdList->bfd = bfd;
+	    p->pBfdList = new sockNode;
+	    p->pBfdList->sock = sock;
 	    p->pBfdList->pNext = NULL;
 	}
 	else
@@ -146,18 +143,44 @@ void SetBarrier(char *pszName, int nCount, int bfd)
 	g_pBarrierList = p;
 	dbg_printf("SetBarrier: name=%s count=%d curcount=%d\n", p->pszName, p->nCount, p->nCurIn);
     }
-    ReleaseMutex(hMutex);
-    CloseHandle(hMutex);
+
+    ReleaseMutex(g_hBarrierStructMutex);
+
     if (p->nCurIn >= p->nCount)
     {
 	dbg_printf("SetBarrier: count reached for name=%s, %d:%d\n", p->pszName, p->nCount, p->nCurIn);
-	bfdNode *pNode = p->pBfdList;
+	sockNode *pNode = p->pBfdList;
 	while (pNode)
 	{
 	    dbg_printf("SetBarrier: writing success for name=%s\n", p->pszName);
-	    WriteString(pNode->bfd, "SUCCESS");
+	    WriteString(pNode->sock, "SUCCESS");
 	    pNode = pNode->pNext;
 	}
 	RemoveBarrierStruct(p->pszName);
     }
+}
+
+void InformBarriers(int nId, int nExitCode)
+{
+    BarrierStruct *p;
+    char pszStr[1024];
+
+    _snprintf(pszStr, 1024, "INFO - id=%d exitcode=%d", nId, nExitCode);
+
+    WaitForSingleObject(g_hBarrierStructMutex, INFINITE);
+
+    p = g_pBarrierList;
+
+    while (p)
+    {
+	sockNode *pNode = p->pBfdList;
+	while (pNode)
+	{
+	    WriteString(pNode->sock, pszStr);
+	    pNode = pNode->pNext;
+	}
+	p = p->pNext;
+    }
+
+    ReleaseMutex(g_hBarrierStructMutex);
 }

@@ -179,7 +179,8 @@ clean:
 distclean: clean
 	@-rm -f Makefile lib*.a ${libbuild_dir}/lib${FLIBNAME}.a \
 	${libbuild_dir}/lib${FLIBNAME}fsup.a
-	@-rm -f farg.f mpif77 mpif77.conf mpif90 mpif90.conf initfcmn.f
+	@-rm -f farg.f mpif77 mpif77.conf mpif90 mpif90.conf initfcmn.f \
+	        initfdte.f
 
 maintainer-clean: distclean depends-clean
 

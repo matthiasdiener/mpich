@@ -176,7 +176,7 @@ for exe in "$RMIC" "$JAR" "$JVM" ; do
     fi
 done
 
-AC_MSG_CHECKING([if $JC compiles Swing code])
+AC_MSG_CHECKING([if $JC compiles Swing-1.1.1 code])
 PAC_JAVA_TRY_COMPILE( [$JC], ,[
 import javax.swing.*;
 ], [
@@ -200,6 +200,29 @@ else
         PAC_MSG_ERROR($enable_softerror, [JAVA_LIBS cannot be set, neither can CLASSPATH !])
     fi
 fi
+
+if test "$enable_internalswing" = "yes" ; then
+    AC_MSG_CHECKING([if $JC with swing.jar compiles Swing-1.1.1 code])
+    PAC_JAVA_TRY_COMPILE( [$JC],
+                 [-classpath $JAVA_LIBS:$srcdir/swing/swing.jar:. -d .],
+[
+import javax.swing.*;
+], [
+public static void main( String args[] )
+{
+    JFrame frame = new JFrame();
+    System.out.println( "Checking Swing" );
+}
+                          ], [ pac_java_working=yes ], [ pac_java_working=no ] )
+    if test "$pac_java_working" = "yes" ; then
+        AC_MSG_RESULT([yes])
+    else
+        AC_MSG_RESULT([no])
+        AC_MSG_WARN([$JC cannot compile with Jumpshot-3 !])
+        PAC_MSG_ERROR($enable_softerror, [Jumpshot-3 can be compiled with Java 1.1.5 or better including any Java 2 SDK.])
+    fi
+fi
+
 
 # Try to filter out the broken RMIC from JDK-1.2 pre-release
 AC_MSG_CHECKING([if $RMIC generates stub])
@@ -229,7 +252,7 @@ if test "$enable_checkversion" = "yes" ; then
             AC_MSG_WARN([Java $VERSION is too old to be used with Jumpshot-3 !])
             PAC_MSG_ERROR($enable_softerror, [Jumpshot-3 is designed to be used with Java 1.1.7 or better])
             ;;
-	*1.1*)
+	*1.1.5*|*1.1.6*|*1.1.7*|*1.1.8*)
             AC_MSG_RESULT([$VERSION, i.e. newer than 1.1.5])
             ;;
 	*1.2*|*1.3*|*1.4*|*1.5*)

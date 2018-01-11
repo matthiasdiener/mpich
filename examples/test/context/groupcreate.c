@@ -48,14 +48,17 @@ int main( int argc, char **argv )
     
     MPI_Group_free( &world_group );
 
-    MPI_Allreduce( &n, &n_all, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD );
+    MPI_Reduce( &n, &n_all, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD );
     if (rank == 0) {
-	printf( "Completed test of %d type creations\n", n_all );
+	/* printf( "Completed test of %d type creations\n", n_all ); */
 	if (n_all != n_goal) {
-	printf (
-"This MPI implementation limits the number of datatypes that can be created\n\
+	    printf (
+"This MPI implementation limits the number of groups that can be created\n\
 This is allowed by the standard and is not a bug, but is a limit on the\n\
 implementation\n" );
+	}
+	else {
+	    printf( " No Errors\n" );
 	}
     }
 

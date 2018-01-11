@@ -188,7 +188,10 @@ bsocket -
 @*/
 int bsocket(int family, int type, int protocol)
 {
-    return socket(family, type, protocol);
+    int bfd, bfdtemp;
+    bfdtemp = socket(family, type, protocol);
+    DuplicateHandle(GetCurrentProcess(), (HANDLE)bfdtemp, GetCurrentProcess(), &(HANDLE)bfd, 0, FALSE, DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS);
+    return bfd;
 }
 
 /*@
@@ -251,7 +254,10 @@ baccept - accept
 @*/
 int baccept(int bfd, struct sockaddr *cliaddr, socklen_t *clilen)
 {
-    return accept(bfd, cliaddr, clilen);
+    int acceptedbfd, bfdtemp;
+    bfdtemp = accept(bfd, cliaddr, clilen);
+    DuplicateHandle(GetCurrentProcess(), (HANDLE)bfdtemp, GetCurrentProcess(), &(HANDLE)acceptedbfd, 0, FALSE, DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS);
+    return acceptedbfd;
 }
 
 /*@
@@ -1043,6 +1049,7 @@ int beasy_receive(int bfd, char *buffer, int len)
 		{
 		    //printf("beasy_receive: socket %d closed\n", bfd);
 		    //bmake_blocking(bfd);
+		    //printf("beasy_receive: socket read 0 bytes after bselect returned read signalled therefore the socket is closed.\n");fflush(stdout);
 		    return 0;
 		}
 		len -= num_received;

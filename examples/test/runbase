@@ -50,8 +50,12 @@ MakeExe() {
     if [ ! -x $1 ] ; then
 	$MAKE $1
         if [ ! -x $1 ] ; then 
-	    echo "Could not build executable $1; aborting tests"
-	    exit 1
+	    if [ "$MPITEST_CONTINUE" = "always" ] ; then
+	        echo "Could not build executable $1; skipping this test"
+	    else 
+	        echo "Could not build executable $1; aborting tests"
+	        exit 1
+	    fi
         fi
     fi
 }
@@ -136,14 +140,19 @@ CheckOutput() {
 <STATUS>$passed</STATUS>
 EOF
 	    if [ $fileok = "no" ] ; then
-	    echo "<TESTDIFF>" >> $summaryfile
-	    if [ ! -s ${bfile}.out ] ; then
-	        echo "No output file" >>$summaryfile
-	    else
-	        diff -b ${bfile}.tout $cmpfile | \
-		sed -e 's/</\&lt;/g' -e 's/>/\&gt;/g' >> $summaryfile
+	        echo "<TESTDIFF>" >> $summaryfile
+	        if [ ! -s ${bfile}.out ] ; then
+	            echo "No output file" >>$summaryfile
+	        else
+	            diff -b ${bfile}.tout $cmpfile | \
+		    sed -e 's/</\&lt;/g' -e 's/>/\&gt;/g' >> $summaryfile
+	        fi
+	        echo "</TESTDIFF>" >> $summaryfile
 	    fi
-	    echo "</TESTDIFF>" >> $summaryfile
+	    if [ -s "$bfile.tbk" ] ; then
+	        echo "<TRACEBACK>" >> $summaryfile
+		echo "$bfile.tbk" >>$summaryfile
+		echo "</TRACEBACK>" >> $summaryfile
 	    fi
 	    echo "</MPITEST>" >> $summaryfile
 	fi
@@ -152,10 +161,12 @@ EOF
 }
 
 # Runtest pgm-name np marker-test args outfiles
+# filename.tbk is a traceback file.  Use a tool like pardump $1 > $1.tbk
+# to get such files
 RunTest() {
     OutTime
     testfiles="$testfiles $1.out"
-    /bin/rm -f $1.out
+    /bin/rm -f $1.out $1.tbk
     MakeExe $1
     mname=$3
     if [ -z "$mname" ] ; then mname="*** $1 ***" ; fi
@@ -189,6 +200,7 @@ EOF
         CheckOutput $1
     fi
     CleanExe $1
+    #ipcs
 }
 
 #

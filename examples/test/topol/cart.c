@@ -35,11 +35,18 @@ int main( int argc, char **argv )
 
     /* Determine the status of the new communicator */
     MPI_Topo_test ( comm_cart, &topo_status );
-    if (topo_status != MPI_CART) errors++;
+    if (topo_status != MPI_CART) {
+	printf( "topo_status of duped comm is not MPI_CART\n" );
+	errors++;
+    }
 
     /* How many dims do we have? */
     MPI_Cartdim_get( comm_cart, &ndims );
-    if ( ndims != NUM_DIMS ) errors++;
+    if ( ndims != NUM_DIMS ) {
+	printf( "Number of dims of duped comm (%d) should be %d\n", 
+		ndims, NUM_DIMS );
+	errors++;
+    }
 
     /* Get the topology, does it agree with what we put in? */
     for(i=0;i<NUM_DIMS;i++) { dims[i] = 0; periods[i] = 0; }
@@ -47,13 +54,20 @@ int main( int argc, char **argv )
 
     /* Does the mapping from coords to rank work? */
     MPI_Cart_rank ( comm_cart, coords, &new_rank );
-    if ( new_rank != rank ) errors++;
+    if ( new_rank != rank ) {
+	printf( "New rank of duped comm (%d) != old rank (%d)\n", 
+		new_rank, rank );
+	errors++;
+    }
 
     /* Does the mapping from rank to coords work */
     MPI_Cart_coords ( comm_cart, rank, NUM_DIMS, new_coords );
     for (i=0;i<NUM_DIMS;i++) 
-      if ( coords[i] != new_coords[i] ) 
-	errors++;
+	if ( coords[i] != new_coords[i] ) {
+	    printf( "Old coords[%d] of duped comm (%d) != new_coords (%d)\n", 
+		    i, coords[i], new_coords[i] );
+	    errors++;
+	}
 
     /* Let's shift in each dimension and see how it works!   */
     /* Because it's late and I'm tired, I'm not making this  */
@@ -74,11 +88,18 @@ int main( int argc, char **argv )
 
     /* Determine the status of the new communicator */
     MPI_Topo_test ( new_comm, &topo_status );
-    if (topo_status != MPI_CART) errors++;
+    if (topo_status != MPI_CART) {
+	printf( "topo_status of cartsub comm is not MPI_CART\n" );
+	errors++;
+    }
 
     /* How many dims do we have? */
     MPI_Cartdim_get( new_comm, &ndims );
-    if ( ndims != NUM_DIMS-1 ) errors++;
+    if ( ndims != NUM_DIMS-1 ) {
+	printf( "Number of dims of cartsub comm (%d) should be %d\n", 
+		ndims, NUM_DIMS-1 );
+	errors++;
+    }
 
     /* Get the topology, does it agree with what we put in? */
     for(i=0;i<NUM_DIMS-1;i++) { dims[i] = 0; periods[i] = 0; }
@@ -87,13 +108,20 @@ int main( int argc, char **argv )
     /* Does the mapping from coords to rank work? */
     MPI_Comm_rank ( new_comm, &newnewrank );
     MPI_Cart_rank ( new_comm, coords, &new_rank );
-    if ( new_rank != newnewrank ) errors++;
+    if ( new_rank != newnewrank ) {
+	printf( "New rank of cartsub comm (%d) != old rank (%d)\n", 
+		new_rank, newnewrank );
+	errors++;
+    }
 
     /* Does the mapping from rank to coords work */
     MPI_Cart_coords ( new_comm, new_rank, NUM_DIMS -1, new_coords );
     for (i=0;i<NUM_DIMS-1;i++) 
-      if ( coords[i] != new_coords[i] ) 
-	errors++;
+	if ( coords[i] != new_coords[i] ) {
+	    printf( "Old coords[%d] of cartsub comm (%d) != new_coords (%d)\n", 
+		    i, coords[i], new_coords[i] );
+	    errors++;
+	}
 
     /* We're at the end */
     MPI_Comm_free( &new_comm );

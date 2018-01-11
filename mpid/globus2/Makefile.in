@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.17 2001/10/05 16:20:20 toonen Exp $
+#  $Id: Makefile.in,v 1.28 2002/11/01 20:07:28 karonis Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -41,12 +41,14 @@ CFLAGS      = @CFLAGS@ $(OPTFLAGS) -DMPI_$(ARCH) -DMPID_DEVICE_CODE \
 CIAS        = init_g.A send_g.A recv_g.A probe_g.A pack_g.A pr_tcp_g.A \
 	      pr_mpi_g.A vmpi_g.A comm_g.A debug_g.A datatype_g.A \
 	      cmnargs.A queue.A sbcnst2.A chdebug.A chnodename.A chtick.A \
-	      mpi2.A topology_intra_fns.A topology_clusters.A
+	      mpi2.A topology_intra_fns.A topology_clusters.A \
+	      topology_access.A mem.A
 
 SOURCE      = init_g.c send_g.c recv_g.c probe_g.c pack_g.c pr_tcp_g.c \
 	      pr_mpi_g.c vmpi_g.c comm_g.c debug_g.c datatype_g.c \
 	      cmnargs.c queue.c sbcnst2.c chdebug.c chnodename.c chtick.c \
-	      mpi2.c topology_intra_fns.c topology_clusters.c
+	      mpi2.c topology_intra_fns.c topology_clusters.c \
+	      topology_access.c mem.c
 
 SOURCEC     = $(SOURCE)
 
@@ -56,7 +58,11 @@ MPI_OBJECTS = init_g.o send_g.o recv_g.o probe_g.o pack_g.o pr_tcp_g.o \
 	      pr_mpi_g.o vmpi_g.o comm_g.o debug_g.o datatype_g.o \
 	      cmnargs.o queue.o sbcnst2.o chdebug.o chnodename.o chtick.o \
 	      mpi2.o topology_intra_fns.o topology_clusters.o \
-	      $(ASMFILES_O) @DEVOFILES@
+	      topology_access.o mem.o $(ASMFILES_O) @DEVOFILES@
+
+FORTRAN_FILES   =       $(builddir)/src/fortran/src/farg.f \
+	                $(builddir)/src/fortran/src/initfcmn.f \
+	                $(builddir)/src/fortran/src/initfdte.f
 
 default: $(LIBNAME)
 
@@ -96,6 +102,8 @@ setlinks: prebuild
 	ln -s ${top_srcdir}/mpid/ch2/mpid.h .
 	rm -f attach.h
 	ln -s ${top_srcdir}/mpid/ch2/attach.h .
+	rm -f reqalloc.h
+	ln -s ${top_srcdir}/mpid/ch2/reqalloc.h .
 	rm -f calltrace.h
 	ln -s ${top_srcdir}/mpid/ch2/calltrace.h .
 	rm -f chhetero.h
@@ -138,6 +146,30 @@ prebuild: FORCE
 	    cp $(builddir)/src/fortran/include/mpif.h			\
 		 $(includebuild_dir) ;					\
 	fi
+	@. $(builddir)/mpid/$(DEVICE)/mpich-globus2-settings ;		\
+	if test $${VMPI} -ne 0; then                                    \
+	    for file in $(FORTRAN_FILES); do                            \
+	       if test -f $$file ; then                                 \
+	          sed -e 's/mpir_iargc/mpqr_iargc/g'                    \
+	              -e 's/MPIR_IARGC/MPQR_IARGC/g'                    \
+	              -e 's/mpir_getarg/mpqr_getarg/g'                  \
+	              -e 's/MPIR_GETARG/MPQR_GETARG/g'                  \
+	              -e 's/mpir_init_fcm/mpqr_init_fcm/g'              \
+	              -e 's/MPIR_INIT_FCM/MPQR_INIT_FCM/g'              \
+	              -e 's/mpir_init_flog/mpqr_init_flog/g'            \
+	              -e 's/MPIR_INIT_FLOG/MPQR_INIT_FLOG/g'            \
+	              -e 's/mpir_get_fsize/mpqr_get_fsize/g'            \
+	              -e 's/MPIR_GET_FSIZE/MPQR_GET_FSIZE/g'            \
+	              -e 's/mpir_init_bottom/mpqr_init_bottom/g'        \
+	              -e 's/MPIR_INIT_BOTTOM/MPQR_INIT_BOTTOM/g'        \
+	              -e 's/mpir_init_fsize/mpqr_init_fsize/g'          \
+	              -e 's/MPIR_INIT_FSIZE/MPQR_INIT_FSIZE/g'          \
+	              $$file > $${file}.modif ;                         \
+	          mv -f $${file}.modif $$file ;                         \
+	       fi                                                       \
+	    done ;                                                      \
+	fi
+# this job should really be done at configure time...  Brian?
 
 
 clean:
@@ -147,7 +179,9 @@ clean:
 distclean: clean
 	@. $(builddir)/mpid/$(DEVICE)/mpich-globus2-settings ;		\
 	if test $${VMPI} -ne 0 ; then					\
-	    rm -f $(includebuild_dir)/mpid_defs.h ;		\
+	    rm -f $(includebuild_dir)/mpid_defs.h ;		        \
+	    rm -f $(includebuild_dir)/global_c_symb.h ;                 \
+	    rm -f $(includebuild_dir)/global_fort_symb.h ;                 \
 	fi ;								\
 	if test $${F77_SED} -ne 0 ; then				\
 	    rm -f $(builddir)/src/fortran/include/mpif.h.orig	\
@@ -172,6 +206,7 @@ distclean: clean
 	rm -f dev.h
 	rm -f mpid.h
 	rm -f attach.h
+	rm -f reqalloc.h
 	rm -f calltrace.h
 	rm -f chhetero.h
 	rm -f cookie.h
@@ -185,6 +220,8 @@ distclean: clean
 	rm -f tr2.h
 	rm -f channel.h
 	rm -f coll.h
+	rm -f Makefile.mpich.header
+# last line added by Sebastien (rm -f Makefile.mpich.header)
 
 
 $(MPI_OBJECTS): dev.h req.h mpid.h

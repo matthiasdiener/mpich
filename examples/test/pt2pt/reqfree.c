@@ -44,12 +44,16 @@ int main( int argc, char **argv )
 	n_pages  = sysconf( _SC_PHYS_PAGES );
 	pagesize = sysconf( _SC_PAGESIZE );
 	/* printf( "Total mem = %ld\n", n_pages * pagesize ); */
-	if (n_pages > 0 && pagesize > 0 && 
-	    n_pages * pagesize < 4 * msglen_max) {
+	/* We want to avoid integer overflow in the size calculation.
+	   The best way is to avoid computing any products (such
+	   as total memory = n_pages * pagesize) and instead
+	   compute a msglen_max that fits within 1/4 of the available 
+	   pages */
+	if (n_pages > 0 && pagesize > 0) {
 	    /* Recompute msglen_max */
-	    while (n_pages * pagesize < 4 * msglen_max) {
-		buf_len /= 2;
-		msglen_max = max_req * buf_len * sizeof(int);
+	    int msgpages = 4 * ((msglen_max + pagesize - 1)/ pagesize);
+	    while (n_pages < msgpages) { 
+		msglen_max /= 2; msgpages /= 2; buf_len /= 2; 
 	    }
 	}
     }

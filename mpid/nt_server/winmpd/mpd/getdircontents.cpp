@@ -1,18 +1,18 @@
 #include "mpdimpl.h"
 
-void GetDirectoryContents(int bfd, char *pszInputStr)
+void GetDirectoryContents(SOCKET sock, char *pszInputStr)
 {
     int nFolders, nFiles;
     char pszStr[MAX_PATH], pszLength[50];
     int i;
 
-    if (WriteString(bfd, pszInputStr) == SOCKET_ERROR)
+    if (WriteString(sock, pszInputStr) == SOCKET_ERROR)
     {
 	printf("writing '%s' command failed\n", pszInputStr);
 	return;
     }
 
-    if (!ReadString(bfd, pszStr))
+    if (!ReadString(sock, pszStr))
     {
 	printf("Error: reading nFolders failed\n");
 	return;
@@ -27,7 +27,7 @@ void GetDirectoryContents(int bfd, char *pszInputStr)
     //printf("Folders:\n");
     for (i=0; i<nFolders; i++)
     {
-	if (!ReadString(bfd, pszStr))
+	if (!ReadString(sock, pszStr))
 	{
 	    printf("Error: reading folder name failed\n");
 	    return;
@@ -35,7 +35,7 @@ void GetDirectoryContents(int bfd, char *pszInputStr)
 	printf("            %s\n", pszStr);
     }
 
-    if (!ReadString(bfd, pszStr))
+    if (!ReadString(sock, pszStr))
     {
 	printf("Error: reading nFiles failed\n");
 	return;
@@ -45,12 +45,12 @@ void GetDirectoryContents(int bfd, char *pszInputStr)
     //printf("Files:\n");
     for (i=0; i<nFiles; i++)
     {
-	if (!ReadString(bfd, pszStr))
+	if (!ReadString(sock, pszStr))
 	{
 	    printf("Error: reading file name failed\n");
 	    return;
 	}
-	if (!ReadString(bfd, pszLength))
+	if (!ReadString(sock, pszLength))
 	{
 	    printf("Error: reading file length failed\n");
 	    return;

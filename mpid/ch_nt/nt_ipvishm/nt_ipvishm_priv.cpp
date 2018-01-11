@@ -8,8 +8,10 @@
 #include "bnrfunctions.h"
 #include <stdlib.h>
 #include "mpdutil.h"
-#undef FD_SETSIZE
-#include "bsocket.h"
+
+#define MPICH_MPD_TIMEOUT     20
+#define MPICH_SHORT_TIMEOUT   15000
+#define MPICH_MEDIUM_TIMEOUT  30000
 
 // Global variables
 int g_nLastRecvFrom = 0;
@@ -34,6 +36,11 @@ bool g_bUseDatabase = false;
 bool g_bUseBNR = false;
 Database g_Database;
 char g_pszJobID[100]="";
+char g_pszMPDHost[NT_HOSTNAME_LEN];
+char g_pszMPDPhrase[256];
+char g_pszMPDId[20];
+int g_nMPDPort;
+bool g_bMPDFinalize = false;
 
 extern "C" {
 int MPID_NT_ipvishm_is_shm( int );
@@ -244,71 +251,169 @@ static int GetLocalIPs(unsigned int *pIP, int max)
 
 bool PutRootPortInMPDDatabase(char *str, int port, char *barrier_name)
 {
-	char phrase[100];
 	char dbname[100];
 	char pszStr[256];
-	int mpd_port;
-	int bfd;
-	char host[100];
-	DWORD length;
+	SOCKET sock;
+	DWORD length = 100;
+	char *pszID;
+
+	pszID = getenv("MPD_ID");
+	if (pszID != NULL)
+	    strcpy(g_pszMPDId, pszID);
 
 	strcpy(pszStr, str);
 	str = strtok(pszStr, ":");
+	if (str == NULL)
+	    return false;
 	strcpy(dbname, str);
 	str = strtok(NULL, ":");
-	mpd_port = atoi(str);
+	if (str == NULL)
+	    return false;
+	g_nMPDPort = atoi(str);
 	str = strtok(NULL, ":");
-	strcpy(phrase, str);
+	if (str == NULL)
+	    return false;
+	strcpy(g_pszMPDPhrase, str);
+	str = strtok(NULL, ":");
+	if (str != NULL)
+	    strcpy(g_pszMPDHost, str);
+	else
+	    GetComputerName(g_pszMPDHost, &length);
 
-	bsocket_init();
+	easy_socket_init();
 
-	length = 100;
-	GetComputerName(host, &length);
-	if (ConnectToMPD(host, mpd_port, phrase, &bfd))
+	if (ConnectToMPD(g_pszMPDHost, g_nMPDPort, g_pszMPDPhrase, &sock))
 	{
 		return false;
 	}
 
 	sprintf(pszStr, "dbput name=%s key=port value=%d", dbname, port);
-	if (WriteString(bfd, pszStr) == SOCKET_ERROR)
+	if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	{
-		printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, bget_fd(bfd));
-		beasy_closesocket(bfd);
+		printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, sock);
+		easy_closesocket(sock);
 		return false;
 	}
-	if (!ReadString(bfd, pszStr))
+	if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT))
 	{
 		printf("ERROR: put failed: error %d", WSAGetLastError());
-		beasy_closesocket(bfd);
+		easy_closesocket(sock);
 		return false;
+	}
+	if (strnicmp(pszStr, "DBS_SUCCESS", 11) != 0)
+	{
+	    printf("ERROR: putting the root port in the mpd database failed.\n%s", pszStr);
+	    WriteString(sock, "done");
+	    easy_closesocket(sock);
+	    return false;
 	}
 
 	sprintf(pszStr, "barrier name=%s count=2", barrier_name);
-	if (WriteString(bfd, pszStr) == SOCKET_ERROR)
+	if (WriteString(sock, pszStr) == SOCKET_ERROR)
 	{
 		printf("ERROR: Unable to write the barrier command: error %d", WSAGetLastError());
-		beasy_closesocket(bfd);
+		easy_closesocket(sock);
 		return false;
 	}
-	if (!ReadString(bfd, pszStr))
+	bool bBarrierContinue = true;
+	while (bBarrierContinue)
 	{
+	    if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT))
+	    {
 		printf("ERROR: Unable to read the result of the barrier command: error %d", WSAGetLastError());
-		beasy_closesocket(bfd);
+		easy_closesocket(sock);
 		return false;
-	}
-	if (strncmp(pszStr, "SUCCESS", 8))
-	{
-		printf("ERROR: barrier failed:\n%s", pszStr);
-		beasy_closesocket(bfd);
-		return false;
+	    }
+	    if (strncmp(pszStr, "SUCCESS", 8))
+	    {
+		// If it is not 'SUCCESS' then
+		if (strncmp(pszStr, "INFO", 4))
+		{
+		    // If it is not an 'INFO - ...' message then it is an error
+		    printf("ERROR: barrier failed:\n%s", pszStr);
+		    easy_closesocket(sock);
+		    return false;
+		}
+	    }
+	    else
+	    {
+		bBarrierContinue = false;
+	    }
 	}
 
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
-
-	bsocket_finalize();
+	WriteString(sock, "done");
+	easy_closesocket(sock);
 
 	return true;
+}
+
+bool ParseMPDString(char *str)
+{
+    char pszStr[1024];
+    char *pszID;
+
+    pszID = getenv("MPD_ID");
+    if (pszID == NULL)
+	return false;
+    strcpy(g_pszMPDId, pszID);
+
+    strcpy(pszStr, str);
+    str = strtok(pszStr, ":");
+    if (str == NULL)
+	return false;
+    strcpy(g_pszMPDHost, str);
+    str = strtok(NULL, ":");
+    if (str == NULL)
+	return false;
+    g_nMPDPort = atoi(str);
+    str = strtok(NULL, ":");
+    if (str == NULL)
+	return false;
+    strcpy(g_pszMPDPhrase, str);
+
+    return true;
+}
+
+bool UpdateMPIFinalizedInMPD()
+{
+    SOCKET sock;
+    char pszStr[256];
+
+    if (ConnectToMPD(g_pszMPDHost, g_nMPDPort, g_pszMPDPhrase, &sock))
+    {
+	printf("ConnectToMPD(%s:%d) failed preventing process %d from signalling that it has reached MPI_Finalize\n", g_pszMPDHost, g_nMPDPort, g_nIproc);
+	fflush(stdout);
+	return false;
+    }
+
+    sprintf(pszStr, "setMPIFinalized %s", g_pszMPDId);
+    if (WriteString(sock, pszStr) == SOCKET_ERROR)
+    {
+	printf("ERROR: Unable to write '%s' to socket[%d]\n", pszStr, sock);
+	fflush(stdout);
+	easy_closesocket(sock);
+	return false;
+    }
+    if (!ReadStringTimeout(sock, pszStr, MPICH_MPD_TIMEOUT))
+    {
+	printf("ERROR: Unable to read the result of the setMPIFinalized command\n");
+	fflush(stdout);
+	easy_closesocket(sock);
+	return false;
+    }
+    if (stricmp(pszStr, "SUCCESS") != 0)
+    {
+	printf("ERROR: setMPIFinalized failed.\n");
+	fflush(stdout);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
+	return false;
+    }
+
+    WriteString(sock, "done");
+    easy_closesocket(sock);
+
+    return true;
 }
 
 // Function name	: MPID_NT_ipvishm_Init
@@ -588,8 +693,8 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 
 	// If all the processes can reach each other through shared memory then there is
 	// no need to create the socket completion port threads.
-	GetShmemClique();
-	if (g_nSMPLow == 0 && g_nSMPHigh == g_nNproc-1)
+	int nNumShmQueues = GetShmemClique();
+	if (nNumShmQueues == g_nNproc)
 		bCommPortAvailable = false;
 
 	/*
@@ -616,7 +721,7 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 			NT_THREAD_STACK_SIZE, &dwThreadID);
 		if (g_hCommPortThread == NULL)
 			AbortInit(GetLastError(), "Unable to spawn CommPortThread");
-		if (WaitForSingleObject(hReadyEvent, 10000) == WAIT_TIMEOUT)
+		if (WaitForSingleObject(hReadyEvent, MPICH_SHORT_TIMEOUT) == WAIT_TIMEOUT)
 			AbortInit(1, "Communication thread setup timed out");
 		CloseHandle(hReadyEvent);
 	}
@@ -682,7 +787,7 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 			NT_THREAD_STACK_SIZE, &dwThreadID);
 		if (g_hControlLoopThread == NULL)
 			AbortInit(GetLastError(), "Unable to spawn ControlLoopThread");
-		if (WaitForSingleObject(hReadyEvent, 10000) == WAIT_TIMEOUT)
+		if (WaitForSingleObject(hReadyEvent, MPICH_SHORT_TIMEOUT) == WAIT_TIMEOUT)
 			AbortInit(1, "Control thread setup timed out");
 		
 		if (g_nIproc == 0)
@@ -743,7 +848,9 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 				else if (strnicmp(pszExtra, "mpd:", 4) == 0)
 				{
 					// use mpd to get the root port back to mpirun
-					PutRootPortInMPDDatabase(&pszExtra[4], g_pProcTable[0].control_port, g_pszJobID);
+					if (!PutRootPortInMPDDatabase(&pszExtra[4], g_pProcTable[0].control_port, g_pszJobID))
+					    AbortInit(-1, "Unable to put the root listening port in the mpd database");
+					g_bMPDFinalize = true;
 				}
 				else
 				{
@@ -782,6 +889,14 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 		}
 		else
 		{
+		    if (strnicmp(pszExtra, "mpd:", 4) == 0)
+		    {
+			if (!ParseMPDString(&pszExtra[4]))
+			    AbortInit(-1, "Unable to parse the mpd host and port\n");
+			easy_socket_init();
+			g_bMPDFinalize = true;
+		    }
+
 			// Send the root process or the database server information so it
 			// can inform other processes how to connect to this process
 			SendInitDataToRoot();
@@ -798,7 +913,12 @@ void MPID_NT_ipvishm_Init( int *argc, char ***argv )
 	}
 
 	// Initialize the shared memory stuff
+	try {
 	InitSMP();
+	}catch(...)
+	{
+	    nt_error("exception thrown in InitSMP caught in Init", 1);
+	}
 
 	try{
 	// Initialize the VIA stuff
@@ -831,6 +951,9 @@ void MPID_NT_ipvishm_End()
 {
 	//DPRINTF(("MPID_NT_ipvishm_End() called.\n"));
 	g_bInNT_ipvishm_End = true;
+
+	if (g_bMPDFinalize)
+	    UpdateMPIFinalizedInMPD();
 
     if (g_nNproc > 1)
 	{
@@ -912,6 +1035,12 @@ void MPID_NT_ipvishm_End()
 			
 			// Signal the control loop thread to stop
 			SetEvent(g_hStopControlLoopEvent);
+			if (g_hControlLoopThread != NULL)
+			{
+			    WaitForSingleObject(g_hControlLoopThread, MPICH_SHORT_TIMEOUT);
+			    CloseHandle(g_hControlLoopThread);
+			    g_hControlLoopThread = NULL;
+			}
 		}
 		
 		if (g_hCommPortThread != NULL)
@@ -923,7 +1052,7 @@ void MPID_NT_ipvishm_End()
 			
 			// Assuming there aren't any blocking calls pending
 			// the CommThread should exit soon after signalling g_hCommEvent
-			if (WaitForSingleObject(g_hCommPortThread, 5000) == WAIT_TIMEOUT)
+			if (WaitForSingleObject(g_hCommPortThread, MPICH_SHORT_TIMEOUT) == WAIT_TIMEOUT)
 			{
 				//nt_error("wait for CommThread to exit timed out", 1);
 				LogMsg(TEXT("wait for CommPortThread to exit in End timed out"));
@@ -962,7 +1091,15 @@ void MPID_NT_ipvishm_End()
 		delete g_pProcTable;
 		g_pProcTable = NULL;
 	}
+	if (g_bMPDFinalize)
+	    easy_socket_finalize();
 	WSACleanup();
+}
+
+int MPID_NT_ipvishm_exitall(char *msg, int code)
+{
+    nt_error(msg, code);
+    return 0;
 }
 
 int MPID_NT_ipvishm_is_shm( int rank )
@@ -1064,6 +1201,62 @@ void nt_error(char *string, int value)
 	ExitProcess(value);
 }
 
+void PrintWinSockError(int error)
+{
+	HLOCAL str;
+	int num_bytes;
+	num_bytes = FormatMessage(
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_ALLOCATE_BUFFER,
+		0,
+		error,
+		MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
+		(LPTSTR) &str,
+		0,0);
+	if (strlen((const char*)str))
+	    printf("%s", str);
+	else
+	    printf("\n");
+	LocalFree(str);
+}
+
+// Function name	: nt_error_socket
+// Description	    : Prints an error message and exits
+// Return type		: void 
+// Argument         : char *string
+// Argument         : int value
+void nt_error_socket(char *string, int value)
+{
+	printf("Error %d, process %d:\n   %s\n   ", value, g_nIproc, string);
+	PrintWinSockError(value);
+	fflush(stdout);
+    
+	// Signal the threads to stop and close their socket connections
+	DPRINTF(("process %d: nt_error signalling CommunicationThread to exit.\n", g_nIproc);fflush(stdout));
+	g_nCommPortCommand = NT_COMM_CMD_EXIT;
+	SetEvent(g_hCommPortEvent);
+
+	// Close all the communication sockets
+	if (g_pProcTable != NULL)
+	{
+		for (int i=0; i<g_nNproc; i++)
+		{
+			if (g_pProcTable[i].sock_event != NULL)
+			{
+				NT_Tcp_closesocket(g_pProcTable[i].sock, g_pProcTable[i].sock_event);
+				g_pProcTable[i].sock = INVALID_SOCKET;
+				g_pProcTable[i].sock_event = NULL;
+			}
+		}
+	}
+
+	if (g_bUseBNR)
+		BNR_Finalize();
+
+	WSACleanup();
+	ExitProcess(value);
+}
+
 // Function name	: NT_PIbsend
 // Description	    : Sends the buffer to process to, establishing a connection if necessary
 // Return type		: int 
@@ -1114,14 +1307,14 @@ int NT_PIbsend(int type, void *buffer, int length, int to, int datatype)
 
 			/*
 			if (SendBlocking(g_pProcTable[to].sock, (char*)&type, sizeof(int), 0) == SOCKET_ERROR)
-				nt_error("NT_PIbsend: send type failed.", WSAGetLastError());
+				nt_error_socket("NT_PIbsend: send type failed.", WSAGetLastError());
 			if (SendBlocking(g_pProcTable[to].sock, (char*)&length, sizeof(int), 0) == SOCKET_ERROR)
-				nt_error("NT_PIbsend: send length failed", WSAGetLastError());
+				nt_error_socket("NT_PIbsend: send length failed", WSAGetLastError());
 			if (SendBlocking(g_pProcTable[to].sock, (char*)buffer, length, 0) == SOCKET_ERROR)
-				nt_error("NT_PIbsend: send buffer failed", WSAGetLastError());
+				nt_error_socket("NT_PIbsend: send buffer failed", WSAGetLastError());
 			*/
 			if (SendStreamBlocking(g_pProcTable[to].sock, (char*)buffer, length, type) == SOCKET_ERROR)
-				nt_error("NT_PIbsend: send msg failed.", WSAGetLastError());
+				nt_error_socket("NT_PIbsend: send msg failed.", WSAGetLastError());
 		}
 	}
 	DPRINTF(("type: %d, length: %d sent to %d\n", type, length, to));

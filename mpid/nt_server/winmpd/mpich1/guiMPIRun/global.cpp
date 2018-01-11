@@ -2,6 +2,11 @@
 #include "global.h"
 
 // Global variables
+bool g_bUseJobHost = false;
+char g_pszJobHost[MAX_HOST_LENGTH] = "";
+bool g_bUseJobMPDPwd = false;
+char g_pszJobHostMPDPwd[100];
+int g_nLaunchTimeout = 10;
 
 COLORREF aGlobalColor[NUM_GLOBAL_COLORS] = {
     RGB(0,0,0),

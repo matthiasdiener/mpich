@@ -45,7 +45,7 @@ RSC=rc.exe
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
 # ADD F90 /browser /compile_only /include:"Release/" /nologo /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\privileges" /I "..\bsocket2" /I "..\dbs" /I "..\mpdutil" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /FR /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\privileges" /I "..\bsocket" /I "..\dbs" /I "..\mpdutil" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /D "NO_BSOCKETS" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 mpdutil.lib mpr.lib privileges.lib dbs.lib bsocket2.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\bsocket2\release" /libpath:"..\dbs\release" /libpath:"..\privileges\release" /libpath:"..\mpdutil\release"
+# ADD LINK32 mpdutil.lib mpr.lib privileges.lib dbs.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\dbs\release" /libpath:"..\privileges\release" /libpath:"..\mpdutil\release"
 
 !ELSEIF  "$(CFG)" == "mpd - Win32 Debug"
 
@@ -71,7 +71,7 @@ LINK32=link.exe
 # ADD BASE F90 /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt
 # ADD F90 /browser /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\privileges" /I "..\bsocket2" /I "..\dbs" /I "..\mpdutil" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\privileges" /I "..\bsocket" /I "..\dbs" /I "..\mpdutil" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /D "NO_BSOCKETS" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 mpdutil.lib mpr.lib privileges.lib dbs.lib bsocket2.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\bsocket2\debug" /libpath:"..\dbs\debug" /libpath:"..\privileges\debug" /libpath:"..\mpdutil\debug"
+# ADD LINK32 mpdutil.lib mpr.lib privileges.lib dbs.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\dbs\debug" /libpath:"..\privileges\debug" /libpath:"..\mpdutil\debug"
 
 !ENDIF 
 
@@ -92,7 +92,15 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;f90;for;f;fpp"
 # Begin Source File
 
+SOURCE=.\authenticate.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\barrier.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\connect_and_redirect.cpp
 # End Source File
 # Begin Source File
 
@@ -140,6 +148,10 @@ SOURCE=.\launch.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\launchdbg.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\launchprocess.cpp
 # End Source File
 # Begin Source File
@@ -180,11 +192,15 @@ SOURCE=.\mpdstat.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\mpduser.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\parse_command_line.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\queue_context.cpp
+SOURCE=.\read_write_string.cpp
 # End Source File
 # Begin Source File
 
@@ -192,7 +208,15 @@ SOURCE=.\redirect.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\redirectovl.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\run.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\safe_terminate_process.cpp
 # End Source File
 # Begin Source File
 
@@ -229,6 +253,10 @@ SOURCE=.\mpd.h
 # Begin Source File
 
 SOURCE=.\mpdimpl.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\safe_terminate_process.h
 # End Source File
 # Begin Source File
 

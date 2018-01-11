@@ -15,6 +15,7 @@ void StdinThread()
 		    WriteMPDRegistry("SingleUser", "no");
 		DeleteMPDRegistry("RevertToMultiUser");
 	    }
+	    dbg_printf("StdinThread: Exiting.\n");
 	    ExitProcess(0);
 	}
 	if (strcmp(str, "stop") == 0)
@@ -26,6 +27,32 @@ void StdinThread()
 	    PrintState(stdout);
 	}
     }
+}
+
+int EvalException(EXCEPTION_POINTERS *p)
+{
+    char pszError[256];
+    if (p->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
+    {
+	if (p->ExceptionRecord->ExceptionInformation[0] == 1)
+	{
+	    // write error
+	    sprintf(pszError, "EXCEPTION_ACCESS_VIOLATION: instruction address: 0x%p, invalid write to 0x%p",
+		p->ExceptionRecord->ExceptionAddress,
+		p->ExceptionRecord->ExceptionInformation[1]);
+	}
+	else
+	{
+	    // read error
+	    sprintf(pszError, "EXCEPTION_ACCESS_VIOLATION: instruction address: 0x%p, invalid read from 0x%p",
+		p->ExceptionRecord->ExceptionAddress,
+		p->ExceptionRecord->ExceptionInformation[1]);
+	}
+	err_printf("%s\n", pszError);
+	return EXCEPTION_CONTINUE_EXECUTION;
+    }
+    err_printf("exception %d caught in mpd", p->ExceptionRecord->ExceptionCode);
+    return EXCEPTION_CONTINUE_SEARCH;
 }
 
 //
@@ -45,13 +72,10 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
 {
     int run_retval = RUN_EXIT;
     HANDLE stdin_thread = NULL;
-    PUSH_FUNC("ServiceStart");
+
     // report the status to the service control manager.
     if (!ReportStatusToSCMgr(SERVICE_START_PENDING, NO_ERROR, 3000))
-    {
-	POP_FUNC();
 	return;
-    }
     
     // Load the path to the service executable
     char szExe[1024];
@@ -62,171 +86,48 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
     
     // Initialize
     dbs_init();
+    ContextInit();
 
     if (!bDebug)
     {
 #ifndef _DEBUG
 	// If we are not running in debug mode and this is the release
 	// build then set the error mode to prevent popup message boxes.
+#ifdef USE_SET_ERROR_MODE
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
-//#pragma message("Release build suppresses mpd error message popup boxes")
 #endif
-	bsocket_init();
+#endif
+	easy_socket_init();
 	ParseRegistry(false);
     }
 
     // report the status to the service control manager.
     if (!ReportStatusToSCMgr(SERVICE_START_PENDING, NO_ERROR, 3000))
     {
-	bsocket_finalize();
+	easy_socket_finalize();
 	dbs_finalize();
-	POP_FUNC();
+	ContextFinalize();
 	return;
     }
     
+    g_hProcessStructMutex = CreateMutex(NULL, FALSE, NULL);
+    g_hForwarderMutex = CreateMutex(NULL, FALSE, NULL);
+    g_hLaunchMutex = CreateMutex(NULL, FALSE, NULL);
+    g_hBarrierStructMutex = CreateMutex(NULL, FALSE, NULL);
+
+    InitMPDUser();
+
     do
     {
-	// Setup the listener
-	if (g_nPort == 0)
-	{
-	    err_printf("the listening port cannot be zero.\n");
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    ExitProcess(-1);
-	}
-	MPD_Context *pListenContext = new MPD_Context;
-	if (beasy_create(&pListenContext->bfd, g_nPort, INADDR_ANY) == SOCKET_ERROR)
-	{
-	    int error = WSAGetLastError();
-	    err_printf("beasy_create listen socket failed: error %d\n", error);
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    ExitProcess(error);
-	}
-	blisten(pListenContext->bfd, 20);
-	pListenContext->nCurPos = 0;
-	pListenContext->nState = MPD_IDLE;
-	pListenContext->nType = MPD_LISTENER;
-	strncpy(pListenContext->pszHost, g_pszHost, MAX_HOST_LENGTH);
-	pListenContext->pszHost[MAX_HOST_LENGTH-1] = '\0';
-	pListenContext->pNext = g_pList;
-	g_pList = pListenContext;
-	beasy_get_ip(&g_nIP);
-	beasy_get_ip_string(g_pszIP);
-	
-	// report the status to the service control manager.
-	if (!ReportStatusToSCMgr(SERVICE_START_PENDING, NO_ERROR, 3000))
-	{
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    return;
-	}
-	
-	// Setup the signal socket
-	if (beasy_create(&g_bfdSignal, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
-	{
-	    int error = WSAGetLastError();
-	    err_printf("beasy_create signal socket failed: error %d\n", error);
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    ExitProcess(error);
-	}
-	
-	if (beasy_connect(g_bfdSignal, g_pszHost, g_nPort) == SOCKET_ERROR)
-	{
-	    int error = WSAGetLastError();
-	    err_printf("beasy_connect signal socket failed: error %d\n", error);
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    ExitProcess(error);
-	}
-	
-	sockaddr addr;
-	int addrlen = sizeof(addr);
-	MPD_Context *pSignalContext = new MPD_Context;
-	pSignalContext->bfd = baccept(pListenContext->bfd, &addr, &addrlen);
-	if(pSignalContext->bfd == INVALID_SOCKET)
-	{
-	    int error = WSAGetLastError();
-	    err_printf("ServiceStart: baccept failed: %d\n", error);
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    ExitProcess(error);
-	}
-	pSignalContext->nCurPos = 0;
-	pSignalContext->nState = MPD_IDLE;
-	pSignalContext->nType = MPD_SIGNALLER;
-	strncpy(pSignalContext->pszHost, g_pszHost, MAX_HOST_LENGTH);
-	pSignalContext->pszHost[MAX_HOST_LENGTH-1] = '\0';
-	pSignalContext->pNext = g_pList;
-	g_pList = pSignalContext;
-	
-	// Setup the ReSelect socket
-	if (beasy_create(&g_bfdReSelect, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
-	{
-	    int error = WSAGetLastError();
-	    err_printf("beasy_create reselect socket failed: error %d\n", error);
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    ExitProcess(error);
-	}
-	
-	if (beasy_connect(g_bfdReSelect, g_pszHost, g_nPort) == SOCKET_ERROR)
-	{
-	    int error = WSAGetLastError();
-	    err_printf("beasy_connect reselect socket failed: error %d\n", error);
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    ExitProcess(error);
-	}
-	
-	addrlen = sizeof(addr);
-	MPD_Context *pReSelectContext = new MPD_Context;
-	pReSelectContext->bfd = baccept(pListenContext->bfd, &addr, &addrlen);
-	if (pReSelectContext->bfd == INVALID_SOCKET)
-	{
-	    int error = WSAGetLastError();
-	    err_printf("baccept failed: %d\n", error);
-	    bsocket_finalize();
-	    dbs_finalize();
-	    POP_FUNC();
-	    ExitProcess(error);
-	}
-	pReSelectContext->nCurPos = 0;
-	pReSelectContext->nState = MPD_IDLE;
-	pReSelectContext->nType = MPD_RESELECTOR;
-	strncpy(pReSelectContext->pszHost, g_pszHost, MAX_HOST_LENGTH);
-	pReSelectContext->pszHost[MAX_HOST_LENGTH-1] = '\0';
-	pReSelectContext->pNext = g_pList;
-	g_pList = pReSelectContext;
-	
-	BFD_ZERO(&g_ReadSet);
-	BFD_ZERO(&g_WriteSet);
-	g_nActiveW = 0;
-	g_nActiveR = 0;
-	DoReadSet(pSignalContext->bfd);
-	DoReadSet(pReSelectContext->bfd);
-	DoReadSet(pListenContext->bfd);
-	g_maxfds = BFD_MAX(pListenContext->bfd, pSignalContext->bfd);
-	
 	// report the status to the service control manager.
 	if (!ReportStatusToSCMgr(SERVICE_RUNNING, NO_ERROR, 0))
 	{
-	    bsocket_finalize();
+	    easy_socket_finalize();
 	    dbs_finalize();
-	    POP_FUNC();
+	    ContextFinalize();
 	    return;
 	}
-	
-	
+
 	////////////////////////////////////////////////////////
 	//
 	// Service is now running, perform work until shutdown
@@ -234,47 +135,41 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
 	
 	AddInfoToMessageLog("MPICH_MPD Daemon service started.");
 	
-	if (stdin_thread == NULL)
+	if (stdin_thread == NULL && bDebug)
 	{
 	    stdin_thread = CreateThread(
 		NULL, 0,
 		(LPTHREAD_START_ROUTINE)StdinThread,
 		NULL, 0, NULL);
 	}
-	
-	if (ConnectToSelf() == false)
-	{
-	    err_printf("ServiceStart: ConnectToSelf failed\n");
-	    ExitProcess(0);
-	}
-	if (!g_bStartAlone)
-	{
-	    if (stricmp(g_pszHost, g_pszInsertHost))
+
+	__try {
+	    run_retval = RUN_RESTART;
+	    run_retval = Run();
+	    if (run_retval == RUN_RESTART)
 	    {
-		if (InsertIntoRing(g_pszInsertHost) == false)
-		{
-		    if (stricmp(g_pszHost, g_pszInsertHost2))
-			InsertIntoRing(g_pszInsertHost2);
-		}
+		warning_printf("Run returned RUN_RESTART, restarting mpd.");
 	    }
-	}
+	} __except ( EvalException(GetExceptionInformation()) )	{}
 	
-	run_retval = Run();
-	if (run_retval == RUN_RESTART)
-	{
-	    warning_printf("Socket connections lost, restarting mpd.");
-	}
-	
-	while (g_pList)
-	    RemoveContext(g_pList);
+	RemoveAllContexts();
 	
     } while (run_retval == RUN_RESTART);
     
-    TerminateThread(stdin_thread, 0);
-    CloseHandle(stdin_thread);
+    CloseHandle(g_hProcessStructMutex);
+    CloseHandle(g_hForwarderMutex);
+    CloseHandle(g_hLaunchMutex);
+    CloseHandle(g_hBarrierStructMutex);
+
+    if (stdin_thread != NULL)
+    {
+	TerminateThread(stdin_thread, 0);
+	CloseHandle(stdin_thread);
+    }
     
-    bsocket_finalize();
+    easy_socket_finalize();
     dbs_finalize();
+    ContextFinalize();
     AddInfoToMessageLog("MPICH_MPD Daemon service stopped.");
 
     SetEvent(g_hBombDiffuseEvent);
@@ -287,6 +182,5 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
 	CloseHandle(g_hBombThread);
     }
     CloseHandle(g_hBombDiffuseEvent);
-
-    POP_FUNC();
+    dbg_printf("ServiceStart: exiting.\n");
 }

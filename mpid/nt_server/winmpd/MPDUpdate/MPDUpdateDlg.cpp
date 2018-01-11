@@ -5,7 +5,6 @@
 #include "MPDUpdate.h"
 #include "MPDUpdateDlg.h"
 #include "mpd.h"
-#include "bsocket.h"
 #include "crypt.h"
 #include <tchar.h>
 #include "PwdDialog.h"
@@ -219,7 +218,7 @@ BOOL CMPDUpdateDlg::OnInitDialog()
     SetIcon(m_hIcon, TRUE);  // Set big icon
     SetIcon(m_hIcon, FALSE); // Set small icon
     
-    bsocket_init();
+    easy_socket_init();
     ParseRegistry();
 
     RECT r;
@@ -302,7 +301,7 @@ void UpdateBtnThread(CMPDUpdateDlg *pDlg)
     int i;
     int num_hosts;
     char host[100];
-    int bfd;
+    SOCKET sock;
     bool bDeleteTmpMpd = false;
     bool bDeleteTmpMPICH = false;
     bool bFailure = false;
@@ -327,6 +326,10 @@ void UpdateBtnThread(CMPDUpdateDlg *pDlg)
 
     if (pDlg->m_bUpdateMPD)
     {
+	results = "Updating mpd\r\n";
+	pDlg->m_results += results;
+	PostMessage(pDlg->m_hWnd, WM_USER + 5, 0, 0);
+
 	if (pDlg->m_url_radio.GetCheck())
 	{
 	    if (!pDlg->GetTmpMpdFromURL())
@@ -361,18 +364,18 @@ void UpdateBtnThread(CMPDUpdateDlg *pDlg)
 	    if (pDlg->m_host_list.GetText(i, host) == LB_ERR)
 		continue;
 	    
-	    if (ConnectToHost(host, pDlg->m_mpd_port, pDlg->m_pszPhrase, &bfd))
+	    if (ConnectToHost(host, pDlg->m_mpd_port, pDlg->m_pszPhrase, &sock))
 	    {
 		char pszError[256];
 		char str[256], str2[256];
 		
 		if (!pDlg->m_bForceUpdate)
 		{
-		    WriteString(bfd, "version");
-		    ReadString(bfd, str);
+		    WriteString(sock, "version");
+		    ReadString(sock, str);
 		}
-		WriteString(bfd, "done");
-		beasy_closesocket(bfd);
+		WriteString(sock, "done");
+		easy_closesocket(sock);
 		
 		if (!pDlg->m_bForceUpdate)
 		{
@@ -444,6 +447,10 @@ void UpdateBtnThread(CMPDUpdateDlg *pDlg)
 
     if (pDlg->m_bUpdateMPICH)
     {
+	results = "Updating mpich dlls\r\n";
+	pDlg->m_results += results;
+	PostMessage(pDlg->m_hWnd, WM_USER + 5, 0, 0);
+
 	if (pDlg->m_mpich_url_radio.GetCheck())
 	{
 	    if (!pDlg->GetTmpMPICHFromURL())
@@ -483,27 +490,27 @@ void UpdateBtnThread(CMPDUpdateDlg *pDlg)
 	    if (pDlg->m_host_list.GetText(i, host) == LB_ERR)
 		continue;
 	    
-	    if (ConnectToHost(host, pDlg->m_mpd_port, pDlg->m_pszPhrase, &bfd))
+	    if (ConnectToHost(host, pDlg->m_mpd_port, pDlg->m_pszPhrase, &sock))
 	    {
 		char pszError[256];
 		char str[256], str2[256];
 		
 		if (!pDlg->m_bForceUpdate)
 		{
-		    WriteString(bfd, "mpich version");
-		    if (!ReadStringTimeout(bfd, str, 5))
+		    WriteString(sock, "mpich version");
+		    if (!ReadStringTimeout(sock, str, MPD_SHORT_TIMEOUT))
 		    {
 			MessageBox(NULL, "MPD is unable to update the mpich dlls, please update mpd before attempting to update the mpich dlls", "Error", MB_OK);
-			WriteString(bfd, "done");
-			beasy_closesocket(bfd);
+			WriteString(sock, "done");
+			easy_closesocket(sock);
 			CloseHandle(pDlg->m_hUpdateBtnThread);
 			pDlg->m_hUpdateBtnThread = NULL;
 			PostMessage(pDlg->m_hWnd, WM_USER + 4, 0, 0); // re-enable the buttons
 			return;
 		    }
 		}
-		WriteString(bfd, "done");
-		beasy_closesocket(bfd);
+		WriteString(sock, "done");
+		easy_closesocket(sock);
 		
 		if (!pDlg->m_bForceUpdate)
 		{
@@ -1216,7 +1223,7 @@ bool GetLocalVersion(const char *filename, unsigned int &version)
 
 void CMPDUpdateDlg::OnUpdateOneBtn() 
 {
-    int bfd;
+    SOCKET sock;
     CString sHost;
     int num_hosts;
     bool bDeleteTmpMpd = false;
@@ -1295,18 +1302,18 @@ void CMPDUpdateDlg::OnUpdateOneBtn()
 	    }
 	}
 	
-	if (ConnectToHost(sHost, m_mpd_port, m_pszPhrase, &bfd))
+	if (ConnectToHost(sHost, m_mpd_port, m_pszPhrase, &sock))
 	{
 	    char pszError[256];
 	    char str[256], str2[256];
 	    
 	    if (!m_bForceUpdate)
 	    {
-		WriteString(bfd, "version");
-		ReadString(bfd, str);
+		WriteString(sock, "version");
+		ReadString(sock, str);
 	    }
-	    WriteString(bfd, "done");
-	    beasy_closesocket(bfd);
+	    WriteString(sock, "done");
+	    easy_closesocket(sock);
 	    
 	    if (!m_bForceUpdate)
 	    {
@@ -1394,24 +1401,24 @@ void CMPDUpdateDlg::OnUpdateOneBtn()
 	    }
 	}
 	
-	if (ConnectToHost(sHost, m_mpd_port, m_pszPhrase, &bfd))
+	if (ConnectToHost(sHost, m_mpd_port, m_pszPhrase, &sock))
 	{
 	    char pszError[256];
 	    char str[256] = "", str2[256];
 	    
 	    if (!m_bForceUpdate)
 	    {
-		WriteString(bfd, "mpich version");
-		if (!ReadStringTimeout(bfd, str, 5))
+		WriteString(sock, "mpich version");
+		if (!ReadStringTimeout(sock, str, MPD_SHORT_TIMEOUT))
 		{
 		    MessageBox("MPD is unable to update the mpich dlls, please update mpd before attempting to update the mpich dlls", "Error");
-		    WriteString(bfd, "done");
-		    beasy_closesocket(bfd);
+		    WriteString(sock, "done");
+		    easy_closesocket(sock);
 		    return;
 		}
 	    }
-	    WriteString(bfd, "done");
-	    beasy_closesocket(bfd);
+	    WriteString(sock, "done");
+	    easy_closesocket(sock);
 	    
 	    if (!m_bForceUpdate)
 	    {
@@ -1557,7 +1564,7 @@ void CMPDUpdateDlg::OnClose()
 	TerminateThread(m_hUpdateBtnThread, -1);
 	m_hUpdateBtnThread = NULL;
     }
-    bsocket_finalize();
+    easy_socket_finalize();
 	CDialog::OnClose();
 }
 
@@ -1633,7 +1640,7 @@ void CMPDUpdateDlg::OnSelchangeHostList()
 void CMPDUpdateDlg::GetHostConfig(const char *host)
 {
     CString sHost;
-    int bfd;
+    SOCKET sock;
     char pszStr[MAX_CMD_LENGTH] = "mpd not installed";
 
     UpdateData();
@@ -1658,11 +1665,11 @@ void CMPDUpdateDlg::GetHostConfig(const char *host)
     
     HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
     
-    if (ConnectToMPDquick(sHost, m_mpd_port, m_pszPhrase, &bfd) == 0)
+    if (ConnectToMPDquickReport(sHost, m_mpd_port, m_pszPhrase, &sock, pszStr) == 0)
     {
 	// get the mpd version
-	WriteString(bfd, "version");
-	if (ReadStringTimeout(bfd, pszStr, 7))
+	WriteString(sock, "version");
+	if (ReadStringTimeout(sock, pszStr, MPD_SHORT_TIMEOUT))
 	{
 	    m_config_mpd_version = "mpd:\r\n";
 	    m_config_mpd_version += pszStr;
@@ -1673,8 +1680,8 @@ void CMPDUpdateDlg::GetHostConfig(const char *host)
 	}
 
 	// get the mpich version
-	WriteString(bfd, "mpich version");
-	if (ReadStringTimeout(bfd, pszStr, 7))
+	WriteString(sock, "mpich version");
+	if (ReadStringTimeout(sock, pszStr, MPD_SHORT_TIMEOUT))
 	{
 	    m_config_mpich_version = "mpich:\r\n";
 	    m_config_mpich_version += pszStr;
@@ -1685,12 +1692,17 @@ void CMPDUpdateDlg::GetHostConfig(const char *host)
 	}
 
 	m_config_host = sHost;
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
     }
     else
     {
-	m_config_mpich_version = "mpd not installed";
+	if (strstr(pszStr, "10061"))
+	    m_config_mpich_version = "mpd not installed";
+	else if (strstr(pszStr, "11001"))
+	    m_config_mpich_version = "unknown host";
+	else
+	    m_config_mpich_version = pszStr;
 	m_config_mpd_version = "";
 	m_config_host = sHost;
     }

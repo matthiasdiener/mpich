@@ -1,6 +1,7 @@
     SUN
     LINUX
     LINUX_ALPHA
+    LINUX_PPC
     NETBSD
     FREEBSD
     SUN_SOLARIS

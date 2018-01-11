@@ -91,14 +91,27 @@ pac_namecheck=`echo X$pac_cv_prog_f77_name_mangle | sed 's/ /-/g'`
 ifelse([$1],,[
 case $pac_namecheck in
     X) AC_MSG_WARN([Cannot determine Fortran naming scheme]) ;;
-    Xlower) AC_DEFINE(F77_NAME_LOWER) ;;
-    Xlower-underscore) AC_DEFINE(F77_NAME_LOWER_USCORE) ;;
-    Xlower-doubleunderscore) AC_DEFINE(F77_NAME_LOWER_2USCORE) ;;
-    Xupper) AC_DEFINE(F77_NAME_UPPER) ;;
-    Xmixed) AC_DEFINE(F77_NAME_MIXED) ;;
-    Xmixed-underscore) AC_DEFINE(F77_NAME_MIXED_USCORE) ;;
+    Xlower) AC_DEFINE(F77_NAME_LOWER,,[Define if Fortran names are lowercase]) 
+	F77_NAME_MANGLE="F77_NAME_LOWER"
+	;;
+    Xlower-underscore) AC_DEFINE(F77_NAME_LOWER_USCORE,,[Define if Fortran names are lowercase with a trailing underscore])
+	F77_NAME_MANGLE="F77_NAME_LOWER_USCORE"
+	 ;;
+    Xlower-doubleunderscore) AC_DEFINE(F77_NAME_LOWER_2USCORE,,[Define if Fortran names containing an underscore have two trailing underscores])
+	F77_NAME_MANGLE="F77_NAME_LOWER_2USCORE"
+	 ;;
+    Xupper) AC_DEFINE(F77_NAME_UPPER,,[Define if Fortran names are uppercase]) 
+	F77_NAME_MANGLE="F77_NAME_UPPER"
+	;;
+    Xmixed) AC_DEFINE(F77_NAME_MIXED,,[Define if Fortran names preserve the original case]) 
+	F77_NAME_MANGLE="F77_NAME_MIXED"
+	;;
+    Xmixed-underscore) AC_DEFINE(F77_NAME_MIXED_USCORE,,[Define if Fortran names preserve the original case and add a trailing underscore]) 
+	F77_NAME_MANGLE="F77_NAME_MIXED_USCORE"
+	;;
     *) AC_MSG_WARN([Unknown Fortran naming scheme]) ;;
 esac
+AC_SUBST(F77_NAME_MANGLE)
 ],[$1])
 ])
 dnl
@@ -183,7 +196,7 @@ else
     ifelse([$2],,eval PAC_CV_NAME=0,eval PAC_CV_NAME=$2)
 fi
 ])
-AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME)
+AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME,[Define size of PAC_TYPE_NAME])
 undefine([PAC_TYPE_NAME])
 undefine([PAC_CV_NAME])
 ])
@@ -398,7 +411,8 @@ EOF
     fi
     AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with GETARG and IARGC])
     if AC_TRY_EVAL(ac_fcompilelink) && test -x conftest ; then
-	if test "$ac_cv_prog_f77_cross" = "no" ; then
+	# Check that cross != yes so that this works with autoconf 2.52
+	if test "$ac_cv_prog_f77_cross" != "yes" ; then
 	    if ./conftest >/dev/null 2>&1 ; then
 		found_answer="yes"
 	        FXX_MODULE="$fxx_module"
@@ -492,7 +506,7 @@ $libs"
 +U77"
     fi
     # Discard options that are not available:
-    save_IFS="$IFS"
+    # (IFS already saved above)
     IFS=" 
 "
     save_trial_FLAGS="$trial_FLAGS"
@@ -637,7 +651,7 @@ EOF
 	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC"
 		found_answer="no"
                 if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
-		    if test "$ac_cv_prog_f77_cross" = "no" ; then
+		    if test "$ac_cv_prog_f77_cross" != "yes" ; then
 			if ./conftest >/dev/null 2>&1 ; then
 			    found_answer="yes"
 			fi
@@ -837,12 +851,12 @@ else
    ifelse([$2],,:,[$2])
 fi
 ])
-dnl/*D 
+dnl /*D 
 dnl PAC_PROG_F77_HAS_POINTER - Determine if Fortran allows pointer type
 dnl
 dnl Synopsis:
 dnl   PAC_PROG_F77_HAS_POINTER(action-if-true,action-if-false)
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_F77_HAS_POINTER,[
 AC_CACHE_CHECK([whether Fortran has pointer declaration],
 pac_cv_prog_f77_has_pointer,[
@@ -1043,7 +1057,7 @@ dnl
 dnl
 dnl
 AC_DEFUN(PAC_PROG_F77_CHECK_FLIBS,
-[AC_MSG_CHECKING([Whether C can link with $FLIBS])
+[AC_MSG_CHECKING([whether C can link with $FLIBS])
 # Try to link a C program with all of these libraries
 save_LIBS="$LIBS"
 LIBS="$LIBS $FLIBS"
@@ -1080,7 +1094,7 @@ pac_cv_prog_f77_new_char_decl,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
 AC_TRY_COMPILE(,[
-character (len=10) s
+       character (len=10) s
 ],pac_cv_prog_f77_new_char_decl="yes",
 pac_cv_prog_f77_new_char_decl="no")
 AC_LANG_RESTORE

@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpioprof.h,v 1.7 2000/08/10 22:15:33 toonen Exp $    
+ *   $Id: mpioprof.h,v 1.8 2002/10/24 17:01:18 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

@@ -1,14 +1,12 @@
-#include "bsocket.h"
 #include "mpdimpl.h"
 #include <stdio.h>
 #include "GetStringOpt.h"
 #include "Translate_Error.h"
 #include "mpdutil.h"
+#include <conio.h> /* getch */
 
 static void GetPassword(char *question, char *account, char *password)
 {
-    PUSH_FUNC("GetPassword");
-
     if (question != NULL)
 	printf(question);
     else
@@ -25,33 +23,28 @@ static void GetPassword(char *question, char *account, char *password)
     
     printf("\n");
     fflush(stdout);
-
-    POP_FUNC();
 }
 
 void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 {
-    int bfd;
+    SOCKET sock;
     char phrase[MPD_PASSPHRASE_MAX_LENGTH+1];
     char str[CONSOLE_STR_LENGTH+1];
     char *result;
     int error;
 
-    PUSH_FUNC("DoConsole");
-
-    bsocket_init();
+    easy_socket_init();
     ParseRegistry(false);
     if (host == NULL || host[0] == '\0')
 	host = g_pszHost;
     if (port == -1)
 	port = g_nPort;
-    if (beasy_create(&bfd, 0, INADDR_ANY) == SOCKET_ERROR)
+    if (easy_create(&sock, 0, INADDR_ANY) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
-	printf("beasy_create failed: %d\n%s\n", error, str);
+	printf("easy_create failed: %d\n%s\n", error, str);
 	fflush(stdout);
-	POP_FUNC();
 	return;
     }
     if (altphrase != NULL)
@@ -72,27 +65,24 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	printf("\n");fflush(stdout);
     }
     printf("connecting to %s:%d\n", host, port);fflush(stdout);
-    if (beasy_connect(bfd, host, port) == SOCKET_ERROR)
+    if (easy_connect(sock, host, port) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
-	printf("beasy_connect failed: %d\n%s\n", error, str);fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	printf("easy_connect failed: %d\n%s\n", error, str);fflush(stdout);
+	easy_closesocket(sock);
 	return;
     }
-    if (!ReadString(bfd, str))
+    if (!ReadString(sock, str))
     {
 	printf("reading challenge string failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	easy_closesocket(sock);
 	return;
     }
     if (strlen(phrase) + strlen(str) > MPD_PASSPHRASE_MAX_LENGTH)
     {
 	printf("unable to process passphrase.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	easy_closesocket(sock);
 	return;
     }
     strcat(phrase, str);
@@ -101,36 +91,32 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
     if (altphrase != NULL)
 	memset(altphrase, 0, strlen(altphrase)); // zero out the passphrase
     strcpy(str, result);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
 	printf("WriteString of the encrypted response string failed: %d\n%s\n", error, str);fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	easy_closesocket(sock);
 	return;
     }
-    if (!ReadString(bfd, str))
+    if (!ReadString(sock, str))
     {
 	printf("reading authentication result failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	easy_closesocket(sock);
 	return;
     }
     if (strcmp(str, "SUCCESS"))
     {
 	printf("host authentication failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	easy_closesocket(sock);
 	return;
     }
-    if (WriteString(bfd, "console") == SOCKET_ERROR)
+    if (WriteString(sock, "console") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
 	printf("WriteString('console') failed: %d\n%s\n", error, str);fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	easy_closesocket(sock);
 	return;
     }
     printf("connected\n");fflush(stdout);
@@ -140,6 +126,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    (strnicmp(str, "geterror ", 9) == 0) ||
 	    (strnicmp(str, "getexitcode ", 12) == 0) ||
 	    (strnicmp(str, "getexitcodewait ", 16) == 0) ||
+	    (strnicmp(str, "getexittime ", 12) == 0) ||
 	    (stricmp(str, "version") == 0) ||
 	    (stricmp(str, "mpich version") == 0) ||
 	    (stricmp(str, "config") == 0) ||
@@ -158,9 +145,16 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    (strnicmp(str, "createtmpfile ", 14) == 0) ||
 	    (strnicmp(str, "deletetmpfile ", 14) == 0) ||
 	    (strnicmp(str, "mpich1readint ", 14) == 0) ||
-	    (strnicmp(str, "lget ", 5) == 0))
+	    (strnicmp(str, "freeprocess ", 12) == 0) ||
+	    (strnicmp(str, "lget ", 5) == 0) ||
+	    (strnicmp(str, "freecached", 10) == 0) ||
+	    (strnicmp(str, "setdbgoutput ", 13) == 0) ||
+	    (strnicmp(str, "canceldbgoutput", 15) == 0) ||
+	    (stricmp(str, "clrmpduser") == 0) ||
+	    (stricmp(str, "enablempduser") == 0) ||
+	    (stricmp(str, "disablempduser") == 0))
 	{
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' failed, %d\n", str, error);
@@ -169,7 +163,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringTimeout(bfd, str, 10))
+	    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
 	    {
 		printf("%s\n", str);fflush(stdout);
 	    }
@@ -206,7 +200,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		/* append the encoded password */
 		strcat(str, pszStrTemp);
 	    }
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' failed, %d\n", str, error);
@@ -215,7 +209,116 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringTimeout(bfd, str, 10))
+	    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
+	    {
+		printf("%s\n", str);fflush(stdout);
+	    }
+	    else
+	    {
+		printf("timeout waiting for result to return.\n");fflush(stdout);
+	    }
+	}
+	else if ((strnicmp(str, "setmpduser ", 11) == 0) || (stricmp(str, "setmpduser") == 0))
+	{
+	    // get the account
+	    char pszAccount[100];
+	    if (!GetStringOpt(str, "a", pszAccount))
+	    {
+		printf("account: ");
+		fflush(stdout);
+		gets(pszAccount);
+	    }
+	    // get the password
+	    char pszPassword[100];
+	    if (!GetStringOpt(str, "p", pszPassword))
+	    {
+		char ch;
+		int index;
+
+		printf("password: ");
+		fflush(stdout);
+		ch = getch();
+		index = 0;
+		while (ch != 13)//'\r')
+		{
+			pszPassword[index] = ch;
+			index++;
+			ch = getch();
+		}
+		pszPassword[index] = '\0';
+		printf("\n");
+	    }
+	    // encode the password
+	    char pszStrTemp[300] = "";
+	    char *pszEncoded;
+	    pszEncoded = EncodePassword(pszPassword);
+	    if (pszEncoded != NULL)
+	    {
+		// create the command
+		sprintf(str, "setmpduser a=%s p=%s", pszAccount, pszEncoded);
+		free(pszEncoded);
+
+		if (WriteString(sock, str) == SOCKET_ERROR)
+		{
+		    error = WSAGetLastError();
+		    printf("writing '%s' failed, %d\n", str, error);
+		    Translate_Error(error, str);
+		    printf("%s\n", str);
+		    fflush(stdout);
+		    break;
+		}
+		if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
+		{
+		    printf("%s\n", str);fflush(stdout);
+		}
+		else
+		{
+		    printf("timeout waiting for result to return.\n");fflush(stdout);
+		}
+	    }
+	    else
+	    {
+		printf("FAIL - unable to encode the password for transmission.\n");
+	    }
+	}
+	else if (strnicmp(str, "validate ", 9) == 0)
+	{
+	    char pszPassword[100];
+	    if (GetStringOpt(str, "p", pszPassword))
+	    {
+		char pszStrTemp[300] = "";
+		char *pszEncoded, *pStr;
+		unsigned int i;
+		pszEncoded = EncodePassword(pszPassword);
+		if (pszEncoded != NULL)
+		{
+		    _snprintf(pszStrTemp, 300, " p=%s", pszEncoded);
+		    free(pszEncoded);
+		}
+		/* erase the original password */
+		pStr = strstr(str, "p=");
+		pStr = strstr(pStr, pszPassword);
+		for (i=0; i<strlen(pszPassword); i++)
+		    pStr[i] = ' ';
+		while (*pStr != '=')
+		    pStr--;
+		*pStr = ' ';
+		while (*pStr != 'p')
+		    pStr--;
+		*pStr = ' ';
+		/* append the encoded password */
+		strcat(str, pszStrTemp);
+	    }
+	    if (WriteString(sock, str) == SOCKET_ERROR)
+	    {
+		error = WSAGetLastError();
+		printf("writing '%s' failed, %d\n", str, error);
+		Translate_Error(error, str);
+		printf("%s\n", str);
+		fflush(stdout);
+		break;
+	    }
+	    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
 	    {
 		printf("%s\n", str);fflush(stdout);
 	    }
@@ -226,7 +329,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if (strnicmp(str, "barrier ", 8) == 0)
 	{
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' failed, %d\n", str, error);
@@ -235,7 +338,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadString(bfd, str))
+	    if (ReadString(sock, str))
 	    {
 		printf("%s\n", str);fflush(stdout);
 	    }
@@ -246,14 +349,14 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if (stricmp(str, "hosts") == 0)
 	{
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		Translate_Error(error, str);
 		printf("writing hosts request failed, %d\n%s\n", error, str);fflush(stdout);
 		break;
 	    }
-	    if (ReadStringTimeout(bfd, str, 10))
+	    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
 	    {
 		char *p = strstr(str, "result=");
 		if (p != NULL)
@@ -278,7 +381,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		printf("invalid number of hosts requested\n");fflush(stdout);
 		continue;
 	    }
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		Translate_Error(error, str);
@@ -287,7 +390,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    }
 	    for (int i=0; i<n; i++)
 	    {
-		if (!ReadString(bfd, str))
+		if (!ReadString(sock, str))
 		{
 		    printf("Error reading host name\n");
 		    break;
@@ -304,7 +407,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    while (token != NULL)
 	    {
 		_snprintf(str2, 100, "getexitcodewait %s", token);
-		if (WriteString(bfd, str2) == SOCKET_ERROR)
+		if (WriteString(sock, str2) == SOCKET_ERROR)
 		{
 		    error = WSAGetLastError();
 		    Translate_Error(error, str);
@@ -317,7 +420,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    }
 	    for (int i=0; i<n; i++)
 	    {
-		if (!ReadString(bfd, str))
+		if (!ReadString(sock, str))
 		{
 		    error = WSAGetLastError();
 		    Translate_Error(error, str);
@@ -328,7 +431,6 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    }
 	}
 	else if ((stricmp(str, "extract") == 0) ||
-	    (strnicmp(str, "freeprocess ", 12) == 0) ||
 	    (strnicmp(str, "insert ", 7) == 0) ||
 	    (strnicmp(str, "set ", 4) == 0) ||
 	    (strnicmp(str, "lset ", 5) == 0) ||
@@ -337,7 +439,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    (strnicmp(str, "stopforwarder ", 14) == 0) ||
 	    (stricmp(str, "killforwarders") == 0))
 	{
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' request failed, %d\n", str, error);
@@ -355,7 +457,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if (stricmp(str, "shutdown") == 0)
 	{
-	    if (WriteString(bfd, "shutdown") == SOCKET_ERROR)
+	    if (WriteString(sock, "shutdown") == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		Translate_Error(error, str);
@@ -365,7 +467,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if ((stricmp(str, "exitall") == 0) || (stricmp(str, "shutdownall") == 0))
 	{
-	    if (WriteString(bfd, "exitall") == SOCKET_ERROR)
+	    if (WriteString(sock, "exitall") == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing %s request failed, %d\n", str, error);
@@ -377,7 +479,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if ((strnicmp(str, "kill ", 5) == 0) || (stricmp(str, "killall") == 0))
 	{
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' request failed, %d\n", str, error);
@@ -416,7 +518,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		_snprintf(str, CONSOLE_STR_LENGTH, "fileinit account=%s password=%s", pszAccount, pszEncoded);
 		if (pszEncoded != NULL) free(pszEncoded);
 	    }
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' request failed, %d\n", str, error);
@@ -480,7 +582,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		/* append the encoded password */
 		strcat(str, pszStrTemp);
 	    }
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing map command failed, %d\n", error);
@@ -489,7 +591,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringTimeout(bfd, str, 30)) // logon requests can take a long time
+	    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT*2)) // logon requests can take a long time
 	    {
 		printf("%s\n", str);fflush(stdout);
 	    }
@@ -508,7 +610,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		pszStrTemp[39] = '\0';
 		strcpy(str, pszStrTemp);
 	    }
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing unmap command failed, %d\n", error);
@@ -517,7 +619,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringTimeout(bfd, str, 10))
+	    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
 	    {
 		printf("%s\n", str);fflush(stdout);
 	    }
@@ -528,23 +630,23 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if (strnicmp(str, "putfile ", 8) == 0)
 	{
-	    if (PutFile(bfd, &str[8]))
+	    if (PutFile(sock, &str[8]))
 	    {
 		printf("SUCCESS\n");fflush(stdout);
 	    }
 	}
 	else if (strnicmp(str, "getfile ", 8) == 0)
 	{
-	    GetFile(bfd, &str[8]);
+	    GetFile(sock, &str[8]);
 	}
 	else if (strnicmp(str, "getdir ", 7) == 0)
 	{
-	    GetDirectoryContents(bfd, str);
+	    GetDirectoryContents(sock, str);
 	}
 	else if (stricmp(str, "restart") == 0)
 	{
-	    //printf("writing 'restart'\n");fflush(stdout);
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    //dbg_printf("writing 'restart'\n");fflush(stdout);
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' failed, %d\n", str, error);
@@ -553,8 +655,8 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    //printf("waiting for result\n");fflush(stdout);
-	    if (ReadStringTimeout(bfd, str, 10))
+	    //dbg_printf("waiting for result\n");fflush(stdout);
+	    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
 	    {
 		printf("%s\n", str);fflush(stdout);
 	    }
@@ -562,7 +664,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	}
 	else if (stricmp(str, "print") == 0)
 	{
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' failed, %d\n", str, error);
@@ -571,7 +673,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringMax(bfd, str, CONSOLE_STR_LENGTH))
+	    if (ReadStringMax(sock, str, CONSOLE_STR_LENGTH))
 	    {
 		printf("%s", str);fflush(stdout);
 	    }
@@ -584,7 +686,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	else if (stricmp(str, "stat") == 0)
 	{
 	    strcpy(str, "stat param=help");
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' failed, %d\n", str, error);
@@ -593,7 +695,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringMax(bfd, str, CONSOLE_STR_LENGTH))
+	    if (ReadStringMax(sock, str, CONSOLE_STR_LENGTH))
 	    {
 		printf("%s", str);fflush(stdout);
 	    }
@@ -613,7 +715,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		pszStrTemp[99] = '\0';
 		strcpy(str, pszStrTemp);
 	    }
-	    if (WriteString(bfd, str) == SOCKET_ERROR)
+	    if (WriteString(sock, str) == SOCKET_ERROR)
 	    {
 		error = WSAGetLastError();
 		printf("writing '%s' failed, %d\n", str, error);
@@ -622,7 +724,7 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 		fflush(stdout);
 		break;
 	    }
-	    if (ReadStringMax(bfd, str, CONSOLE_STR_LENGTH))
+	    if (ReadStringMax(sock, str, CONSOLE_STR_LENGTH))
 	    {
 		printf("%s", str);fflush(stdout);
 	    }
@@ -637,13 +739,12 @@ void DoConsole(char *host, int port, bool bAskPwd, char *altphrase)
 	    printf("unknown command\n");fflush(stdout);
 	}
     }
-    if (WriteString(bfd, "done") == SOCKET_ERROR)
+    if (WriteString(sock, "done") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
 	printf("WriteString failed: %d\n%s\n", error, str);
 	fflush(stdout);
     }
-    beasy_closesocket(bfd);
-    POP_FUNC();
+    easy_closesocket(sock);
 }

@@ -114,7 +114,8 @@ FORTRAN_API void FORT_CALL mpi_op_create_(
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
     *__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG((int)*commute),
                             &l_op);
-#elif defined(_TWO_WORD_FCD)
+#elif defined(_CRAY)
+    /* FLOG requires something that it can take the address of */
     int tmp = *commute;
     *__ierr = MPI_Op_create(*function,MPIR_FROM_FLOG(tmp),&l_op);
 

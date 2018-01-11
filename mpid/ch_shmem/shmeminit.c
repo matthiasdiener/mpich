@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.8 2002/04/09 13:59:29 gropp Exp $
+ *  $Id: shmeminit.c,v 1.9 2002/05/13 18:06:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -68,6 +68,10 @@ MPID_Device *MPID_CH_InitMsgPass( int *argc, char ***argv,
 #ifdef MPID_DEBUG_ALL
     if (MPID_DEBUG_FILE == 0) MPID_DEBUG_FILE = stdout;
 #endif
+
+    /* If requested, setup a separate process group before creating the
+       other MPI processes */
+    (void) MPID_Process_group_init();
 
     MPID_SHMEM_init( argc, *argv );
     DEBUG_PRINT_MSG("Finished init");

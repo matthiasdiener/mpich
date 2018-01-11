@@ -818,6 +818,11 @@ dnl by NOT using ac_cv_prog_$1 which the configure code seems to use to
 dnl do this.
 dnl 
 dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO *** (sort of)
+dnl
+dnl 11/30/02 - Fix to handle the case where the variable value contains
+dnl an argument (e.g., /usr/bin/f90 -n32).  The original code handled
+dnl "f90 -n32" but not "/usr/bin/f90 -n32" (!)
+dnl
 define(PAC_PROGRAM_CHECK,
 [# Extract the first word of "$2", so it can be a program name with args.
 set dummy $2; ac_word=[$]2
@@ -827,7 +832,8 @@ if test -n "[$]$1"; then
   ac_pg_$1="[$]$1" # Let the user override the test.
 else
   ac_first_char=`expr "$2" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$2" ; then
+  # Use ac_word instead of $2 in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_$1="$3"
        ac_prog_where=$2
   else
@@ -1138,21 +1144,26 @@ case $1 in
 	    CFLAGS="$CFLAGS -nx"
 	  fi
 	;;
-   cm5) CC=cc ; GCC="" ;   if test -z "$USERCLINKER" ; then
-		      CLINKER="cmmd-ld -comp $CC"
-		  fi ;;
+   cm5) CC=cc ; GCC="" ;   
+	if test -z "$USERCLINKER" ; then
+	     CLINKER="cmmd-ld -comp $CC"
+	fi ;;
    cray_t3d)        
 	# Some Cray's require -Ccray-t3d instead of -Tcray-t3d.  
         # We have no diagnostic for this behavior yet.
-                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d -DT3D" ; GCC="" 
-                    if test -z "$USERCLINKER" ; then 
-	            CLINKER="$CC -Tcray-t3d" ; fi ;;
+	if test -x /mpp/bin/cc ; then 
+            CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d -DT3D" ; GCC="" 
+	fi
+        if test -z "$USERCLINKER" ; then 
+	       CLINKER="$CC -Tcray-t3d" ; fi ;;
    cray_t3e)        
 	# Some Cray's require -Ccray-t3e instead of -Tcray-t3e.  
         # We have no diagnostic for this behavior yet.
-                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3e -DT3E" ; GCC="" 
-                    if test -z "$USERCLINKER" ; then 
-	            CLINKER="$CC -Tcray-t3e" ; fi ;;
+	if test -x /mpp/bin/cc ; then 
+            CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3e -DT3E" ; GCC="" 
+	fi
+        if test -z "$USERCLINKER" ; then 
+	    CLINKER="$CC -Tcray-t3e" ; fi ;;
    hpux)
 	# For some systems, the (linker) option 
         #  -Wl,+vnocompatwarnings 

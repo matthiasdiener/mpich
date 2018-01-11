@@ -123,7 +123,7 @@ if (!isatty(0)) {
     }
 else {
 	p4_dprintfl( 80, 
-         "Did not created new process group because isatty returned true\n" );
+         "Did not create new process group because isatty returned true\n" );
     }
 #endif
 

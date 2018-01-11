@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <mpi.h>
+#include "mpi.h"
 
 /* Test error handling.  This is MPICH specific */
 void Test_Send( void );

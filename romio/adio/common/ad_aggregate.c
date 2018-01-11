@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_aggregate.c,v 1.3 2001/12/03 22:02:27 rross Exp $    
+ *   $Id: ad_aggregate.c,v 1.5 2002/10/24 17:01:11 gropp Exp $    
  *
  *   Copyright (C) 1997-2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -43,14 +44,6 @@
  *    uneven distributions
  */
 
-static int ADIOI_Calc_aggregator(ADIO_File fd,
-				 ADIO_Offset off, 
-				 ADIO_Offset min_off, 
-				 ADIO_Offset *len, 
-				 ADIO_Offset fd_size,
-				 ADIO_Offset *fd_start,
-				 ADIO_Offset *fd_end);
-
 /* ADIOI_Calc_aggregator()
  *
  * The intention here is to implement a function which provides basically 
@@ -78,13 +71,13 @@ static int ADIOI_Calc_aggregator(ADIO_File fd,
  * The "len" parameter is also modified to indicate the amount of data
  * actually available in this file domain.
  */
-static int ADIOI_Calc_aggregator(ADIO_File fd,
-				 ADIO_Offset off, 
-				 ADIO_Offset min_off, 
-				 ADIO_Offset *len, 
-				 ADIO_Offset fd_size,
-				 ADIO_Offset *fd_start,
-				 ADIO_Offset *fd_end)
+int ADIOI_Calc_aggregator(ADIO_File fd,
+			 ADIO_Offset off, 
+			 ADIO_Offset min_off, 
+			 ADIO_Offset *len, 
+			 ADIO_Offset fd_size,
+			 ADIO_Offset *fd_start,
+			 ADIO_Offset *fd_end)
 {
     int rank_index, rank;
     ADIO_Offset avail_bytes;

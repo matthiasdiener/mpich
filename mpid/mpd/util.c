@@ -206,7 +206,7 @@ int job;
 int rank;
 {
     int i;
-    for ( i = 0; i < MAXPROCS;i++ ) {
+    for ( i = 0; i < MAXPROCS; i++ ) {
 	if ( ( proctable[i].active) &&
 	     ( job==proctable[i].jobid) &&
 	     ( rank==proctable[i].jobrank)) {
@@ -229,7 +229,7 @@ int job;
 int rank;
 {
     int i;
-    for ( i = 0; i < MAXPROCS;i++ ) {
+    for ( i = 0; i < MAXPROCS; i++ ) {
 	if ( ( proctable[i].active) &&
 	     ( job==proctable[i].jobid) &&
 	     ( rank==proctable[i].jobrank)) {
@@ -255,7 +255,7 @@ void kill_rank( int job, int rank, int signum )
 {
     int  i;
 
-    for ( i = 0; i < MAXPROCS;i++ )
+    for ( i = 0; i < MAXPROCS; i++ )
 	if ( ( proctable[i].active ) &&
 	     (job == proctable[i].jobid ) &&
 	     (rank == proctable[i].jobrank ) )
@@ -266,7 +266,7 @@ void kill_job( int jobid, int signum )
 {
     int  i;
 
-    for ( i=0; i < MAXPROCS; i++ )
+    for ( i = 0; i < MAXPROCS; i++ )
 	if ( proctable[i].active  &&  jobid == proctable[i].jobid ) {
 	    mpdprintf( debug, "kill_job: killing jobid=%d pid=%d\n",
 		       jobid, proctable[i].pid );
@@ -400,8 +400,8 @@ void error_check( int val, char *str )
     extern void fatal_error( int, char * );
 
     if ( val < 0 ) {
-	char errmsg[80];
-	sprintf( errmsg, "[%s] %s: %d", myid, str, val );
+	char errmsg[512];
+	sprintf( errmsg, "[%s] %s: %d | strerror: %s", myid, str, val, strerror( errno ) );
 	perror( errmsg );
 	syslog( LOG_INFO, "terminating abnormally, %s", errmsg );
 	mpd_cleanup();

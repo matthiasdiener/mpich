@@ -6,9 +6,10 @@
 #include "test.h"
 #include "../pt2pt/gcomm.h"
 
+int verbose = 0;
 int main( int argc, char **argv )
 {
-int count, errcnt = 0, gerr = 0, size, rank;
+int count, errcnt = 0, gerr = 0, toterr, size, rank;
 MPI_Comm comm;
 
 MPI_Comm comms[10];
@@ -20,7 +21,7 @@ MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
 /* First tests */
 MakeComms( comms, 10, &ncomm, 0 );
 for (ii=0; ii<ncomm; ii++) {
-if (world_rank == 0) printf( "Testing with communicator %d\n", ii );
+if (world_rank == 0 && verbose) printf( "Testing with communicator %d\n", ii );
 comm = comms[ii];
 
 
@@ -29,7 +30,7 @@ MPI_Comm_rank( comm, &rank );
 count = 10;
 
 /* Test sum */
-if (world_rank == 0) printf( "Testing MPI_SUM...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_SUM...\n" );
 
 
 
@@ -183,7 +184,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test product */
-if (world_rank == 0) printf( "Testing MPI_PROD...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_PROD...\n" );
 
 {
 int *in, *out, *sol;
@@ -335,7 +336,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test max */
-if (world_rank == 0) printf( "Testing MPI_MAX...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_MAX...\n" );
 
 {
 int *in, *out, *sol;
@@ -487,7 +488,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test min */
-if (world_rank == 0) printf( "Testing MPI_MIN...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_MIN...\n" );
 
 {
 int *in, *out, *sol;
@@ -639,7 +640,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test LOR */
-if (world_rank == 0) printf( "Testing MPI_LOR...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_LOR...\n" );
 
 {
 int *in, *out, *sol;
@@ -869,7 +870,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test LXOR */
-if (world_rank == 0) printf( "Testing MPI_LXOR...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_LXOR...\n" );
 
 {
 int *in, *out, *sol;
@@ -1213,7 +1214,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test LAND */
-if (world_rank == 0) printf( "Testing MPI_LAND...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_LAND...\n" );
 
 {
 int *in, *out, *sol;
@@ -1443,7 +1444,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test BOR */
-if (world_rank == 0) printf( "Testing MPI_BOR...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_BOR...\n" );
 
 {
 int *in, *out, *sol;
@@ -1577,7 +1578,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test BAND */
-if (world_rank == 0) printf( "Testing MPI_BAND...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_BAND...\n" );
 
 {
 int *in, *out, *sol;
@@ -1825,7 +1826,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test BXOR */
-if (world_rank == 0) printf( "Testing MPI_BXOR...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_BXOR...\n" );
 
 {
 int *in, *out, *sol;
@@ -2169,7 +2170,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test Maxloc */
-if (world_rank == 0) printf( "Testing MPI_MAXLOC...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_MAXLOC...\n" );
 
 {
 struct int_test { int a; int b; } *in, *out, *sol;
@@ -2307,7 +2308,7 @@ if (errcnt > 0)
 errcnt = 0;
 
 /* Test minloc */
-if (world_rank == 0) printf( "Testing MPI_MINLOC...\n" );
+if (world_rank == 0 && verbose) printf( "Testing MPI_MINLOC...\n" );
 
 
 {
@@ -2450,6 +2451,15 @@ if (gerr > 0) {
 	MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 	printf( "Found %d errors overall on %d\n", gerr, rank );
 	}
+MPI_Allreduce( &gerr, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+ if (world_rank == 0) {
+     if (toterr == 0) {
+	 printf( " No Errors\n" );
+     }
+     else {
+	 printf (" Found %d errors\n", toterr );
+     }
+ }
 FreeComms( comms, ncomm );
 MPI_Finalize( );
 return 0;

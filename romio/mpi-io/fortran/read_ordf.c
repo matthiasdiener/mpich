@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: read_ordf.c,v 1.11 2001/12/12 23:38:13 ashton Exp $    
+ *   $Id: read_ordf.c,v 1.13 2002/10/24 17:01:24 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,21 +11,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_read_ordered_ PMPI_FILE_READ_ORDERED
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_read_ordered_ pmpi_file_read_ordered__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_read_ordered pmpi_file_read_ordered_
-#endif
-#define mpi_file_read_ordered_ pmpi_file_read_ordered
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_read_ordered_ pmpi_file_read_ordered
-#endif
-#define mpi_file_read_ordered_ pmpi_file_read_ordered_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -64,6 +50,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpi_file_read_ordered_ PMPI_FILE_READ_ORDERED
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_read_ordered_ pmpi_file_read_ordered__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_read_ordered pmpi_file_read_ordered_
+#endif
+#define mpi_file_read_ordered_ pmpi_file_read_ordered
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_read_ordered_ pmpi_file_read_ordered
+#endif
+#define mpi_file_read_ordered_ pmpi_file_read_ordered_
 #endif
 
 #else

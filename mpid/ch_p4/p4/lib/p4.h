@@ -41,8 +41,9 @@
 #define P4_FALSE 0
 
 struct p4_procgroup_entry {
-    char host_name[HOSTNAME_LEN];
     int numslaves_in_group;
+    int rm_rank;               /* Rank of the remote master for this entry */
+    char host_name[HOSTNAME_LEN];
     char slave_full_pathname[256];
     char username[10];
 };

@@ -44,7 +44,7 @@ RSC=rc.exe
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
 # ADD F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\bsocket" /I "..\mpd" /I "..\crypt" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\bsocket" /I "..\mpd" /I "..\crypt" /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /D "NO_BSOCKETS" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -69,7 +69,7 @@ LIB32=link.exe -lib
 # ADD BASE F90 /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt
 # ADD F90 /browser /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\bsocket" /I "..\mpd" /I "..\crypt" /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\bsocket" /I "..\mpd" /I "..\crypt" /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /D "NO_BSOCKETS" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -91,6 +91,10 @@ LIB32=link.exe -lib
 # Begin Source File
 
 SOURCE=.\dbg_printf.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\easy_sockets.cpp
 # End Source File
 # Begin Source File
 
@@ -144,6 +148,10 @@ SOURCE=.\updatempich.cpp
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl;fi;fd"
+# Begin Source File
+
+SOURCE=.\easy_sockets.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\GetOpt.h

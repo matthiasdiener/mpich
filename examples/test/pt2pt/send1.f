@@ -15,7 +15,10 @@ C
       
       INTEGER NUM_LOOPS
       PARAMETER (NUM_LOOPS = 5)
-      
+
+      LOGICAL VERBOSE
+      PARAMETER (VERBOSE = .FALSE.)
+
       REAL MESSAGE1(MAX_MESS),MESSAGE2(MAX_MESS)
 
       INTEGER MES_SIZE,MES_NUM,ID,IERR
@@ -90,7 +93,7 @@ C
 
             CALL MPI_BARRIER(MPI_COMM_WORLD,IERR)
 
-            IF (INODE.EQ.0) THEN 
+            IF (INODE.EQ.0 .AND. VERBOSE) THEN 
                WRITE (*,'(5I10)')
      $              MES_SIZE,MES_NUM,TO1,FROM1,MES_ID1
                WRITE (*,'(5I10)')
@@ -101,7 +104,10 @@ C
  20      CONTINUE
 
  10   CONTINUE
-
+      IF (INODE.EQ.0) THEN 
+C        If we get here at all, we're ok
+         PRINT *, ' No Errors'
+      ENDIF
       CALL MPI_FINALIZE(IERR)
 
       END

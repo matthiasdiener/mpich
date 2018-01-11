@@ -58,7 +58,7 @@ fpi: fpi.o
 
 # Some Fortran 90 compilers do not accept a .f90 suffix (xlf90 for one)
 pi3f90.o: pi3f90.@F90_SUFFIX@
-	$(F90) $(FFLAGS) -c pi3f90.@F90_SUFFIX@
+	$(F90) $(FFLAGS) -c $<
 pi3f90: pi3f90.o
 	$(F90LINKER) $(OPTFLAGS) -o pi3f90 pi3f90.o
 
@@ -108,3 +108,9 @@ cpilog.o: cpilog.c
 	$(CCC) -c $<
 .f90.o:
 	$(F90) -c $<
+.f:
+	$(F77) -c $<
+	$(FLINKER) -o $* $*.o
+.c:	
+	$(CC) -c $<
+	$(CLINKER) -o $* $*.o

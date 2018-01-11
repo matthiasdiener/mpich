@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iowaitf.c,v 1.11 2001/12/12 23:38:09 ashton Exp $    
+ *   $Id: iowaitf.c,v 1.13 2002/10/24 17:01:21 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,21 +10,6 @@
 #include "mpio.h"
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpio_wait_ PMPIO_WAIT
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpio_wait_ pmpio_wait__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpio_wait pmpio_wait_
-#endif
-#define mpio_wait_ pmpio_wait
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpio_wait_ pmpio_wait
-#endif
-#define mpio_wait_ pmpio_wait_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -63,6 +49,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpio_wait_ PMPIO_WAIT
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpio_wait_ pmpio_wait__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpio_wait pmpio_wait_
+#endif
+#define mpio_wait_ pmpio_wait
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpio_wait_ pmpio_wait
+#endif
+#define mpio_wait_ pmpio_wait_
 #endif
 
 #else

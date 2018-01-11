@@ -18,14 +18,30 @@ createRslJob() {
     my_stage_file=$6
 
     while read line; do
-        contact="`echo \"$line\" | cut -d'\"' -f2`"
-        count="`echo \"$line\"  | cut -d'\"' -f3 | sed -e 's/ //g'`"
-	
-	if [ "$count" = "" ]; then
-	    count=1
-	elif [ "$count" -eq 0 ]; then
-	    count=1
-	fi
+        # find out what kind of line it is:
+        #  - either a line with a contact string between "..." and an
+        #    optional number of procs;
+        #  - or a hostname with an optional number of procs.
+        if echo "$line" | egrep -s '^[ \t]*"' > /dev/null 2>&1 ; then
+           kind="contact"
+        else
+           kind="host"
+        fi
+        if [ "$kind" = "host" ]; then
+           contact="`echo "$line" | awk '{print $1}'`"
+           count="`echo "$line" | awk '{print $2}'`"
+        else
+           contact=`echo "$line" | awk -F\" '{print $2}'`
+           count=`echo "$line" | awk -F\" '{print $3}'`
+        fi
+        count=`echo "$count" | sed -e 's/[^0-9-]//g'`
+        if [ -z "$count" ]; then
+           # if no number if provided, default is 1.
+           count=1
+        elif [ "$count" -lt 1 ]; then
+           # in case of zero or negative number of procs, default is 1.
+           count=1
+        fi
 
 	if [ `expr $count + $my_cnt` -gt $my_np ]; then
 	    count=`expr $my_np - $my_cnt`;
@@ -151,9 +167,10 @@ else
 	    < $globus_machine_file >> $globusrun_rsl_file
 	cnt=$?
 
-       if [ $cnt -ge $np ] ; then
-           break
-       fi
+# Sebastien: commented out useless code
+#       if [ $cnt -ge $np ] ; then
+#           break
+#       fi
 
     done
 fi

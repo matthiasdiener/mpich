@@ -612,7 +612,7 @@ else
     fi
     if [ -x src/fortran/src/mpif90 -a "@NO_F90@" = "0" ] ; then
         CopyFile src/fortran/src/mpif90 $bindir/mpif90 $XMODE
-	CopyFile src/fortran/src/mpif90.conf $sysconfdif
+	CopyFile src/fortran/src/mpif90.conf $sysconfdir
     fi
     if [ -s romio/include/mpio.h ] ; then
         CopyFile romio/include/mpio.h $includedir
@@ -748,6 +748,9 @@ done
 # shared library versioning.  This is the same as the step that installs 
 # the shared libraries
 # 
+# Problem: Installation sometimes builds libtvmpich.so and libtvmpich.so.1.0
+# as files, causing problems when installing.  
+# 
 for file in $libbuild_dir/libtvmpich.so* ; do
     # Also need to handle any links!
     if [ ! -h $file -a -f $file ] ; then 
@@ -766,6 +769,14 @@ for file in $libdir/libtvmpich.so* ; do
     while [ $filebase != $file ]; do
 	 if [ ! -h $filebase -a -s $file ] ; then 
 	     $Show ln -s $file $filebase
+	     # We need to debug this.  If there is an error, generate
+	     # some information on the failure
+             if [ $? != 0 ] ; then
+                  echo "Error in setting link.  Files in libdir are:"
+	          ls -l $libdir/libtvmpich.*
+		  echo "Files in source dir are"
+		  ls -l $libbuild_dir/libtvmpich.so*
+             fi
 	     echo "/bin/rm -f $libdir/$filebase" >>$UNINSTALLFILE
 	 fi
 	 file=$filebase

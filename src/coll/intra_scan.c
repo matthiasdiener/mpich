@@ -5,11 +5,151 @@
 #include "coll.h"
 #include "mpiops.h"
 
+
+/* This is the default implementation of scan. The algorithm is:
+   
+   Algorithm: MPI_Scan
+
+   We use a lgp recursive doubling algorithm. The basic algorithm is
+   given below. (You can replace "+" with any other scan operator.)
+   The result is stored in recvbuf.
+
+   recvbuf = sendbuf;
+   partial_scan = sendbuf;
+   mask = 0x1;
+   while (mask < size) {
+      dst = rank^mask;
+      if (dst < size) {
+         send partial_scan to dst;
+         recv from dst into tmp_buf;
+         if (rank > dst) {
+            partial_scan = tmp_buf + partial_scan;
+            recvbuf = tmp_buf + recvbuf;
+         }
+         else {
+            if (op is commutative)
+               partial_scan = tmp_buf + partial_scan;
+            else {
+               tmp_buf = partial_scan + tmp_buf;
+               partial_scan = tmp_buf;
+            }
+         }
+      }
+      mask <<= 1;
+   }  
+
+   End Algorithm: MPI_Scan
+*/
+
+
+
+int MPIR_intra_Scan ( void *sendbuf, void *recvbuf, int count, 
+		      struct MPIR_DATATYPE *datatype, MPI_Op op, 
+		      struct MPIR_COMMUNICATOR *comm )
+{
+  MPI_Status status;
+  int        rank, size;
+  int        mpi_errno = MPI_SUCCESS;
+  MPI_User_function   *uop;
+  struct MPIR_OP *op_ptr;
+  int mask, dst; 
+  MPI_Aint extent, lb;
+  void *partial_scan, *tmp_buf;
+  static char myname[] = "MPI_SCAN";
+
+  MPIR_Comm_size(comm, &size);
+  MPIR_Comm_rank(comm, &rank);
+
+  /* Switch communicators to the hidden collective */
+  comm = comm->comm_coll;
+ 
+  /* Lock for collective operation */
+  MPID_THREAD_LOCK(comm->ADIctx,comm);
+
+  op_ptr = MPIR_GET_OP_PTR(op);
+  MPIR_TEST_MPI_OP(op,op_ptr,comm,myname);
+  uop  = op_ptr->op;
+
+  /* need to allocate temporary buffer to store partial scan*/
+  MPI_Type_extent(datatype->self, &extent);
+  MPIR_ALLOC(partial_scan,(void *)MALLOC(count*extent), comm,
+             MPI_ERR_EXHAUSTED, myname);
+  /* adjust for potential negative lower bound in datatype */
+  MPI_Type_lb( datatype->self, &lb );
+  partial_scan = (void *)((char*)partial_scan - lb);
+
+  /* need to allocate temporary buffer to store incoming data*/
+  MPIR_ALLOC(tmp_buf,(void *)MALLOC(count*extent), comm,
+             MPI_ERR_EXHAUSTED, myname);
+  /* adjust for potential negative lower bound in datatype */
+  MPI_Type_lb( datatype->self, &lb );
+  tmp_buf = (void *)((char*)tmp_buf - lb);
+
+  /* Since this is an inclusive scan, copy local contribution into
+     recvbuf. */
+  mpi_errno = MPI_Sendrecv ( sendbuf, count, datatype->self,
+                             rank, MPIR_SCAN_TAG, 
+                             recvbuf, count, datatype->self,
+                             rank, MPIR_SCAN_TAG,
+                             comm->self, &status );
+  if (mpi_errno) return mpi_errno;
+
+  mpi_errno = MPI_Sendrecv ( sendbuf, count, datatype->self,
+                             rank, MPIR_SCAN_TAG, 
+                             partial_scan, count, datatype->self,
+                             rank, MPIR_SCAN_TAG,
+                             comm->self, &status );
+  if (mpi_errno) return mpi_errno;
+
+  mask = 0x1;
+  while (mask < size) {
+      dst = rank ^ mask;
+      if (dst < size) {
+          /* Send partial_scan to dst. Recv into tmp_buf */
+          mpi_errno = MPI_Sendrecv(partial_scan, count, datatype->self,
+                                   dst, MPIR_SCAN_TAG, tmp_buf,
+                                   count, datatype->self, dst,
+                                   MPIR_SCAN_TAG, comm->self,
+                                   &status); 
+          if (mpi_errno) return mpi_errno;
+          
+          if (rank > dst) {
+              (*uop)(tmp_buf, partial_scan, &count, &datatype->self);
+              (*uop)(tmp_buf, recvbuf, &count, &datatype->self);
+          }
+          else {
+              if (op_ptr->commute)
+                  (*uop)(tmp_buf, partial_scan, &count, &datatype->self);
+              else {
+                  (*uop)(partial_scan, tmp_buf, &count, &datatype->self);
+                  mpi_errno = MPI_Sendrecv(tmp_buf, count, datatype->self,
+                                           rank, MPIR_SCAN_TAG, partial_scan,
+                                           count, datatype->self, rank,
+                                           MPIR_SCAN_TAG, comm->self,
+                                           &status); 
+                  if (mpi_errno) return mpi_errno;
+              }
+          }
+      }
+      mask <<= 1;
+  }
+  
+  FREE((char *)partial_scan+lb); 
+  FREE((char *)tmp_buf+lb); 
+  
+  /* Unlock for collective operation */
+  MPID_THREAD_UNLOCK(comm->ADIctx,comm);
+
+  return (mpi_errno);
+}
+
+
+
+#ifdef OLD
 /* 
    This is an improved and more scalable version of MPI_Scan, contributed 
    originally by Jesper Larsson Traeff <traff@ccrl-nece.technopark.gmd.de>
  */
-
 int MPIR_intra_Scan ( void *sendbuf, void *recvbuf, int count, 
 		      struct MPIR_DATATYPE *datatype, MPI_Op op, 
 		      struct MPIR_COMMUNICATOR *comm )
@@ -114,3 +254,4 @@ int MPIR_intra_Scan ( void *sendbuf, void *recvbuf, int count,
 
   return(mpi_errno);
 }
+#endif

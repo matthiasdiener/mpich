@@ -58,6 +58,9 @@
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
+/* Define if you have the isatty function.  */
+#undef HAVE_ISATTY
+
 /* Define if you have the mmap function.  */
 #undef HAVE_MMAP
 
@@ -72,6 +75,9 @@
 
 /* Define if you have the semop function.  */
 #undef HAVE_SEMOP
+
+/* Define if you have the setsid function.  */
+#undef HAVE_SETSID
 
 /* Define if you have the shmat function.  */
 #undef HAVE_SHMAT
@@ -117,4 +123,7 @@
 
 /* define to use select to yield */
 #undef USE_SELECT_YIELD
+
+/* Define to force a new process group */
+#undef SET_NEW_PGRP
 

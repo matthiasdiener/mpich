@@ -19,13 +19,8 @@ void create_table ( int, int *, Table ** );
 int delete_table ( MPI_Comm, int, void *, void * );
 
 /* These are incorrect...*/
-int copy_table (oldcomm, keyval, extra_state, attr_in, attr_out, flag)
-MPI_Comm oldcomm;
-int      keyval;
-void     *extra_state;
-void     *attr_in;
-void     *attr_out;
-int      *flag;
+int copy_table ( MPI_Comm oldcomm, int keyval, void *extra_state, 
+		 void *attr_in, void *attr_out, int *flag)
 {
   Table *table = (Table *)attr_in;;
 
@@ -36,10 +31,7 @@ int      *flag;
   return (MPI_SUCCESS);
 }
 
-void create_table ( num, values, table_out )
-int  num;
-int *values;
-Table **table_out;
+void create_table ( int num, int *values, Table **table_out )
 {
   int i;
   (*table_out) = (Table *)malloc(sizeof(Table));
@@ -50,11 +42,8 @@ Table **table_out;
     (*table_out)->value[i] = values[i];
 }
 
-int delete_table (comm, keyval, attr_val, extra_state)
-MPI_Comm comm;
-int      keyval;
-void     *attr_val;
-void     *extra_state;
+int delete_table ( MPI_Comm comm, int keyval, 
+		   void *attr_val, void *extra_state)
 {
   Table *table = (Table *)attr_val;
 
@@ -90,21 +79,31 @@ int main ( int argc, char **argv )
   MPI_Comm_dup ( MPI_COMM_WORLD, &new_comm );
   MPI_Attr_get ( new_comm, table_key, (void **)&table, &found );
 
-  if (!found)
-	errors++;
+  if (!found) {
+      printf( "did not find attribute on new comm\n" );
+      errors++;
+  }
 
-  if ((table_copies != 2) && (table->references != 2)) 
-    errors++;
+  if ((table_copies != 2) && (table->references != 2)) {
+      printf( "table_copies != 2 (=%d) and table->references != 2 (=%d)\n",
+	      table_copies, table->references );
+      errors++;
+  }
 
   MPI_Comm_free ( &new_comm );
 
-  if ((table_copies != 1) && (table->references != 1)) 
-    errors++;
+  if ((table_copies != 1) && (table->references != 1)) {
+      printf( "table_copies != 1 (=%d) and table->references != 1 (=%d)\n",
+	      table_copies, table->references );
+      errors++;
+  }
 
   MPI_Attr_delete ( MPI_COMM_WORLD, table_key );
 
-  if ( table_copies != 0 )
-    errors++;
+  if ( table_copies != 0 ) {
+      printf( "table_copies != 0 (=%d)\n", table_copies );
+      errors++;
+  }
   if (errors)
     printf("[%d] OOPS.  %d errors!\n",rank,errors);
 

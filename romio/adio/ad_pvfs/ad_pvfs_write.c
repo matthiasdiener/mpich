@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs_write.c,v 1.8 2002/04/30 16:05:52 robl Exp $    
+ *   $Id: ad_pvfs_write.c,v 1.10 2002/10/24 17:01:00 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -473,7 +474,7 @@ void ADIOI_PVFS_WriteStridedListIO(ADIO_File fd, void *buf, int count,
 	while (b_blks_wrote < total_blks_to_write) {
 	    for (i=0; i<flat_buf->count; i++) {
 		mem_offsets[b_blks_wrote % MAX_ARRAY_SIZE] = 
-		    (char*)(buf + j*buftype_extent + flat_buf->indices[i]);
+		    ((char*)buf + j*buftype_extent + flat_buf->indices[i]);
 		mem_lengths[b_blks_wrote % MAX_ARRAY_SIZE] = 
 		    flat_buf->blocklens[i];
 		file_lengths += flat_buf->blocklens[i];
@@ -975,7 +976,7 @@ void ADIOI_PVFS_WriteStridedListIO(ADIO_File fd, void *buf, int count,
 	    k = start_k;
 	    j = start_j;
 	    for (i=0; i<mem_list_count; i++) {	     
-	        mem_offsets[i] = (char*)(buf + buftype_extent*
+	        mem_offsets[i] = ((char*)buf + buftype_extent*
 					 (buf_count/flat_buf->count) +
 					 (int)flat_buf->indices[k]);
 		

@@ -45,7 +45,7 @@ RSC=rc.exe
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
 # ADD F90 /browser /compile_only /include:"Release/" /nologo /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\mpd" /I "..\common" /I "..\..\bsocket" /I "..\..\mpdutil" /D "NDEBUG" /D "WSOCK2_BEFORE_WINDOWS" /D "HAVE_WINBCONF_H" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "_WIN32_DCOM" /D _WIN32_WINNT=0x0400 /D FD_SETSIZE=256 /FR /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\mpd" /I "..\common" /I "..\..\bsocket" /I "..\..\mpdutil" /D "NDEBUG" /D "WSOCK2_BEFORE_WINDOWS" /D "HAVE_WINBCONF_H" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "_WIN32_DCOM" /D _WIN32_WINNT=0x0400 /D FD_SETSIZE=256 /D "NO_BSOCKETS" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 mpr.lib crypt.lib bsocket2.lib mpdutil.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\..\..\lib" /libpath:"..\lib" /libpath:"..\..\mpdutil\release" /libpath:"..\..\crypt\release" /libpath:"..\..\bsocket2\release"
+# ADD LINK32 mpr.lib crypt.lib mpdutil.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\..\..\lib" /libpath:"..\lib" /libpath:"..\..\mpdutil\release" /libpath:"..\..\crypt\release" /libpath:"..\..\bsocket\release"
 
 !ELSEIF  "$(CFG)" == "MPIRun - Win32 Debug"
 
@@ -71,7 +71,7 @@ LINK32=link.exe
 # ADD BASE F90 /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt
 # ADD F90 /browser /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\mpd" /I "..\common" /I "..\..\bsocket" /I "..\..\mpdutil" /D "_DEBUG" /D "WSOCK2_BEFORE_WINDOWS" /D "HAVE_WINBCONF_H" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "_WIN32_DCOM" /D _WIN32_WINNT=0x0400 /D FD_SETSIZE=256 /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\..\mpd" /I "..\common" /I "..\..\bsocket" /I "..\..\mpdutil" /D "_DEBUG" /D "WSOCK2_BEFORE_WINDOWS" /D "HAVE_WINBCONF_H" /D "WIN32" /D "_CONSOLE" /D "_MBCS" /D "_WIN32_DCOM" /D _WIN32_WINNT=0x0400 /D FD_SETSIZE=256 /D "NO_BSOCKETS" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -79,7 +79,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 mpr.lib crypt.lib bsocket2.lib mpdutil.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\..\..\lib" /libpath:"..\lib" /libpath:"..\..\mpdutil\debug" /libpath:"..\..\crypt\debug" /libpath:"..\..\bsocket2\debug"
+# ADD LINK32 mpr.lib crypt.lib mpdutil.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\..\..\lib" /libpath:"..\lib" /libpath:"..\..\mpdutil\debug" /libpath:"..\..\crypt\debug" /libpath:"..\..\bsocket\debug"
 
 !ENDIF 
 
@@ -90,6 +90,10 @@ LINK32=link.exe
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;f90;for;f;fpp"
+# Begin Source File
+
+SOURCE=.\ctrlc.cpp
+# End Source File
 # Begin Source File
 
 SOURCE=.\GetOpt.cpp
@@ -117,6 +121,14 @@ SOURCE=..\Common\MPICH_pwd.cpp
 # Begin Source File
 
 SOURCE=.\MPIRun.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\Common\parsecliques.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\processwait.cpp
 # End Source File
 # Begin Source File
 

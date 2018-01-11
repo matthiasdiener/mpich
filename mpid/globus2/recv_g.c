@@ -10,10 +10,8 @@
 struct mpi_posted_queue   MpiPostedQueue;
 #endif
 
-/* access to TcpOutstandingRecvReqs must be controlled by MessageQueuesLock */
 volatile int		  TcpOutstandingRecvReqs = 0;
 extern volatile int	  TcpOutstandingSendReqs;
-extern globus_mutex_t     MessageQueuesLock;
 extern globus_size_t      Headerlen;
 
 /*******************/
@@ -65,15 +63,11 @@ void MPID_RecvDatatype(struct MPIR_COMMUNICATOR *comm,
 	{
 	    globus_bool_t		tcp_outstanding_reqs;
 	
-	    RC_mutex_lock(&MessageQueuesLock);
-	    {
-		tcp_outstanding_reqs = 
-		    ((TcpOutstandingSendReqs > 0)
-		     ? GLOBUS_TRUE : GLOBUS_FALSE) ||
-		    ((TcpOutstandingRecvReqs > 0)
-		     ? GLOBUS_TRUE : GLOBUS_FALSE);
-	    }
-	    RC_mutex_unlock(&MessageQueuesLock);
+	    tcp_outstanding_reqs = 
+		((TcpOutstandingSendReqs > 0)
+		 ? GLOBUS_TRUE : GLOBUS_FALSE) ||
+		((TcpOutstandingRecvReqs > 0)
+		 ? GLOBUS_TRUE : GLOBUS_FALSE);
 
 	    if (MpiPostedQueue.head == NULL && !tcp_outstanding_reqs)
 	    {
@@ -148,7 +142,8 @@ void MPID_RecvDatatype(struct MPIR_COMMUNICATOR *comm,
     {
 	DEBUG_PRINTF(DEBUG_MODULE_RECV, DEBUG_INFO_FAILURE,
 		     ("ERROR - could not malloc shandle\n"));
-	status->MPI_ERROR = *error_code = MPI_ERR_NOMEM;
+	/* MPI_ERR_NO_MEM is for MPI_Alloc_mem only */
+	status->MPI_ERROR = *error_code = MPI_ERR_EXHAUSTED;
 	goto fn_exit;
     } /* endif */
 
@@ -239,9 +234,7 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 	    posted->req_context_id = context_id;
 	    posted->my_mp = (struct mpircvreq *) NULL;
 
-	    globus_mutex_lock(&MessageQueuesLock);
 	    mpi_recv_or_post(posted, error_code);
-	    globus_mutex_unlock(&MessageQueuesLock);
 	} /* endif (proto == mpi) */
     } /* endif */
 #   endif
@@ -253,7 +246,6 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 	MPIR_RHANDLE *unexpected;
 
 	/* search 'unexpected' queue if not there, place into 'posted' queue */
-	globus_mutex_lock(&MessageQueuesLock);
 	MPID_Search_unexpected_queue_and_post(src_lrank,
 						tag,
 						context_id,
@@ -296,7 +288,7 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 	    if (unexpected->needs_ack)
 	    {
 		if (!send_ack_over_tcp(unexpected->partner, 
-				    (void *) &(unexpected->liba), 
+				    (void *) (unexpected->liba), 
 				    unexpected->libasize))
 		{
 		    /* posted->s.MPI_ERROR = *error_code = MPI_ERR_INTERN; */
@@ -371,7 +363,6 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 	{
 	    TcpOutstandingRecvReqs ++;
 	} /* endif */
-	globus_mutex_unlock(&MessageQueuesLock);
     } /* endif */
 
   fn_exit:
@@ -399,15 +390,10 @@ void MPID_RecvComplete(MPI_Request request,
     while (*error_code == 0 && !done)
     {
 	MPID_RecvIcomplete(request, status, error_code);
-
-	RC_mutex_lock(&(rhandle->lock));
-	{
-	    done = rhandle->is_complete;
-	}
-	RC_mutex_unlock(&(rhandle->lock));
+	done = rhandle->is_complete;
     } /* endwhile */
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_FN_EXIT(DEBUG_MODULE_RECV);
 
 } /* end MPID_RecvComplete() */
@@ -428,29 +414,23 @@ int MPID_RecvIcomplete(MPI_Request request,
 
     DEBUG_FN_ENTRY(DEBUG_MODULE_RECV);
     
-    RC_mutex_lock(&(rhandle->lock));
     rc = rhandle->is_complete;
-    RC_mutex_unlock(&(rhandle->lock));
 
     /* give all protos that are waiting for something a nudge */
     if (!rc)
 	MPID_DeviceCheck(MPID_NOTBLOCKING);
 
     /* all protos tried ... tabulate results */
-    globus_mutex_lock(&(rhandle->lock));
+    if ((rc = rhandle->is_complete) == GLOBUS_TRUE)
     {
-	if (rc = rhandle->is_complete)
+	if (status)
 	{
-	    if (status)
-	    {
-		*status = rhandle->s;
-	    }
-	    *error_code = rhandle->s.MPI_ERROR;
-	} /* endif */
-    }
-    globus_mutex_unlock(&(rhandle->lock));
+	    *status = rhandle->s;
+	}
+	*error_code = rhandle->s.MPI_ERROR;
+    } /* endif */
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_FN_EXIT(DEBUG_MODULE_RECV);
 
     return rc;
@@ -466,39 +446,34 @@ int MPID_RecvIcomplete(MPI_Request request,
 #define DEBUG_FN_NAME MPID_RecvCancel
 void MPID_RecvCancel(MPI_Request request, int *error_code )
 {
+    MPIR_RHANDLE *rhandle = (MPIR_RHANDLE *) request;
+
     DEBUG_FN_ENTRY(DEBUG_MODULE_RECV);
 
-    globus_mutex_lock(&MessageQueuesLock);
+    if (!(rhandle->is_complete))
     {
-	MPIR_RHANDLE *rhandle = (MPIR_RHANDLE *) request;
-
-	if (!(rhandle->is_complete))
-	{
-	    rhandle->is_complete = GLOBUS_TRUE;
-	    rhandle->s.MPI_TAG   = MPIR_MSG_CANCELLED;
+	rhandle->is_complete = GLOBUS_TRUE;
+	rhandle->s.MPI_TAG   = MPIR_MSG_CANCELLED;
 
 #           if defined(VMPI)
-	    {
-		/* attempt to remove from MpiPostedQueue */
-		remove_and_free_mpircvreq(rhandle->my_mp);
-		rhandle->my_mp = (struct mpircvreq *) NULL;
-	    }
+	{
+	    /* attempt to remove from MpiPostedQueue */
+	    remove_and_free_mpircvreq(rhandle->my_mp);
+	    rhandle->my_mp = (struct mpircvreq *) NULL;
+	}
 #           endif
 
-	    /* attempt to remove from 'posted' queue */
-	    MPID_Dequeue(&MPID_recvs.posted, rhandle);
+	/* attempt to remove from 'posted' queue */
+	MPID_Dequeue(&MPID_recvs.posted, rhandle);
 
-	} /* endif */
+    } /* endif */
 
-	if (rhandle->handle_type == MPIR_PERSISTENT_RECV)
-	    ((MPIR_PRHANDLE *) request)->active = 0;
-
-    }
-    globus_mutex_unlock(&MessageQueuesLock);
+    if (rhandle->handle_type == MPIR_PERSISTENT_RECV)
+	((MPIR_PRHANDLE *) request)->active = 0;
 
     *error_code = 0;
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_FN_EXIT(DEBUG_MODULE_RECV);
 
 } /* end MPID_RecvCancel() */
@@ -705,7 +680,6 @@ int extract_data_into_req(MPIR_RHANDLE *req,
 
 globus_bool_t send_ack_over_tcp(int grank, void *liba, int libasize)
 {
-    globus_size_t nbytes_sent;
     struct channel_t *cp;
 
     if (!(cp = get_channel(grank)))
@@ -730,7 +704,6 @@ globus_bool_t send_ack_over_tcp(int grank, void *liba, int libasize)
     {
             struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
                 (cp->selected_proto)->info;
-	    globus_byte_t *cp = tp->header;
 	    struct tcpsendreq * sr;
 	    
             if (!(tp->handlep))
@@ -974,8 +947,6 @@ int extract_complete_from_buff(globus_byte_t **src,
 /*
  * remove_and_free_mpircvreq
  *
- * it is assumed that upon entrance to this function that:
- *     - MessageQueuesLock as been acquired 
  */
 void remove_and_free_mpircvreq(struct mpircvreq *mp)
 {
@@ -1003,7 +974,6 @@ void remove_and_free_mpircvreq(struct mpircvreq *mp)
  *     - error_code possibly NULL
  *
  * it is assumed that upon entrance to this function that:
- *     - MessageQueuesLock as been acquired 
  *     - in_req->is_complete == GLOBUS_FALSE
  *
  * at end of function:
@@ -1370,7 +1340,7 @@ static int extract_partial_from_buff(globus_byte_t **src,
 	  } /* endif */
 
 	  inbuf_nelem = (*remaining_nbytes) / unit_size;
-	  if (extract_nelem = (count < inbuf_nelem ? count : inbuf_nelem))
+	  if ((extract_nelem = (count<inbuf_nelem ? count : inbuf_nelem)) != 0)
 	  {
 	    if (!(rc = extract_complete_from_buff(src, 
 					  dest, 

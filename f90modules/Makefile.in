@@ -145,10 +145,16 @@ mpi.$(F90SUFFIX): ${srcdir}/mpi1__type_s.f90
 # different from f90
 # This must *not* use srcdir, since each system will generate slightly
 # different (based on available data kinds) files
+#
+# Note that if the make program tries to build the targets concurrently,
+# this step may fail.  Unfortunately, gnumake has no easy way for the 
+# makefile to control the concurrency.
 choice_modules: 
 	@-for file in `ls mpi[12]__[cilr][a-z0-9]*_[vs]*.${F90SUFFIX}` ; do \
 	    if [ ! -s $$file ] ; then \
-		echo "No Fortran 90 choice files!" ; ls -l ; break ; \
+		echo "No Fortran 90 choice files!" ; \
+		echo "Make sure that you are not using gnumake -j n" ; \
+		ls -l ; break ; \
 	    fi ; \
 	    filename=`basename $$file .${F90SUFFIX}` ; \
 	    @MAKE@ -f Makefile $$filename.$(MOD) ; done

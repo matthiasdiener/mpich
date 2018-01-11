@@ -40,7 +40,8 @@
 /* Initialization routines */
 #define PIiInit   MPID_NT_ipvishm_Init
 #define PIiFinish MPID_NT_ipvishm_End
-#define SYexitall(msg,code) nt_error(msg,code)
+//#define SYexitall(msg,code) nt_error(msg,code)
+#define SYexitall MPID_NT_ipvishm_exitall
 
 void MPID_NT_ipvishm_Init( int *, char *** );
 void MPID_NT_ipvishm_End(void);

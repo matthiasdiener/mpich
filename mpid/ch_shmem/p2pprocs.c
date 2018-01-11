@@ -489,7 +489,7 @@ char **argv;
 
     SIGNAL_HAND_SET( SIGCHLD, MPID_handle_child );
 
-#if NOT_YET_TESTED
+#ifdef NOT_YET_TESTED
     /* Make sure the children don't receive the SIGTRAPs which are going to 
      * the master because he's being debugged...
      */
@@ -696,7 +696,7 @@ int p2p_proc_info( int id, char **host_name, char **image_name )
 
 #endif /* PROCESS_CREATE_METH == FORK */
 
-#if PROCESS_CREATE_METH == PTHREAD_SX4
+#if PROCESS_CREATE_METH == PTHREADS_SX4
 #include <pthread.h>
 /*
  * --- create processes ---

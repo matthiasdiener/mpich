@@ -8,6 +8,7 @@ void BombThread()
 {
     if (WaitForSingleObject(g_hBombDiffuseEvent, 25000) == WAIT_TIMEOUT)
     {
+	dbg_printf("BombThread timed out, exiting.\n");
 	ExitProcess(-1);
     }
 }
@@ -35,7 +36,6 @@ VOID ServiceStop()
 {
     DWORD dwThreadID;
     char str[10] = "no";
-    PUSH_FUNC("ServiceStop");
     if (ReadMPDRegistry("RevertToMultiUser", str, false))
     {
 	if (stricmp(str, "yes") == 0)
@@ -43,14 +43,5 @@ VOID ServiceStop()
 	DeleteMPDRegistry("RevertToMultiUser");
     }
     g_hBombThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)BombThread, NULL, 0, &dwThreadID);
-    if (beasy_send(g_bfdSignal, "x", 1) == SOCKET_ERROR)
-    {
-	err_printf("ServiceStop: beasy_send('x') failed, error %d\n", WSAGetLastError());
-	ShutdownAllProcesses();
-	RemoveAllTmpFiles();
-	AbortAllForwarders();
-	FinalizeDriveMaps();
-	ExitProcess(0);
-    }
-    POP_FUNC();
+    SetEvent(g_hCommPortEvent);
 }

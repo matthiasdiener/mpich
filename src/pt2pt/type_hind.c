@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
- *  $Id: type_hind.c,v 1.11 2001/11/14 20:10:07 ashton Exp $
+ *  $Id: type_hind.c,v 1.12 2002/07/08 13:29:38 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -123,6 +124,11 @@ int MPI_Type_hindexed(
       ((MPI_Aint)blocklens[0] * old_dtype_ptr->extent);
   real_lb             = indices[0];
   real_ub             = real_lb;
+  /*
+   * Compute the ub and lb based on the indices and extent of the 
+   * base type.  Note that these are *relative* to the old type.
+   * The final lb and ub must be offset by the lb of the old type.
+   */
   for (i = 0; i < count; i++)  {
 	dteptr->indices[i]    = indices[i];
 	dteptr->blocklens[i]  = blocklens[i];
@@ -160,7 +166,14 @@ int MPI_Type_hindexed(
 	dteptr->elements     += blocklens[i];
   }
 
-  /* Set the upper/lower bounds and the extent and size */
+  /* Set the upper/lower bounds and the extent and size.
+     Update all of these to reflect the lb of the old type */
+  if (old_dtype_ptr->real_lb != 0) {
+      low  += old_dtype_ptr->real_lb;
+      high += old_dtype_ptr->real_lb;
+      real_lb += old_dtype_ptr->real_lb;
+      real_ub =+ old_dtype_ptr->real_lb;
+  }
   if (old_dtype_ptr->has_lb) 
       dteptr->lb = lb_marker;
   else

@@ -16,9 +16,10 @@ int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm *comm_out )
 <TABLE BORDER=0>
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>comm </B></TD><TD VALIGN=TOP>communicator (handle) 
 <BR></TD></TR>
-<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>color </B></TD><TD VALIGN=TOP>control of subset assignment (nonnegative integer) 
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>color </B></TD><TD VALIGN=TOP>control of subset assignment (nonnegative integer).  Processes 
+with the same color are in the same new communicator 
 <BR></TD></TR>
-<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>key </B></TD><TD VALIGN=TOP>control of rank assigment (integer) 
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>key </B></TD><TD VALIGN=TOP>control of rank assigment (integer)
 <BR></TD></TR></TABLE>
 <P>
 <H2>Output Parameter</H2>

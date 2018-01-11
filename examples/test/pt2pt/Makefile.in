@@ -38,9 +38,10 @@ EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	commit cancel persist typecreate reqcreate sndrcvrep flood flood2 \
 	persist2 dataalign dtyperecv reqfree sndrcvrpl2 cancel2 cancel3 \
 	cancelmessages cancelibm sendorder exittest selfvsworld waitall3 \
-	waitall4
+	waitall4 typelb structlb
 OTHEREXECS = testtypes secondf allpair systest send1 \
-		systest1 allpair2 bsendtest structf typebasef sendfort bcastf
+		systest1 allpair2 bsendtest structf typebasef sendfort bcastf \
+		isendf
 default: $(EXECS)
 
 #
@@ -278,6 +279,9 @@ waitall2: waitall2.o
 waitall3: waitall3.o
 	$(CLINKER) $(OPTFLAGS) -o waitall3 waitall3.o $(LIBS)
 
+waitall4: waitall4.o
+	$(CLINKER) $(OPTFLAGS) -o waitall4 waitall4.o $(LIBS)
+
 commit: commit.o
 	$(CLINKER) $(OPTFLAGS) -o commit commit.o $(LIBS)
 
@@ -323,6 +327,9 @@ structf: $(MPIFDEP) structf.o
 send1: $(MPIFDEP) send1.o
 	$(FLINKER) $(OPTFLAGS) -o ./send1 send1.o $(FLIBS)
 
+isendf: $(MPIFDEP) isendf.o
+	$(FLINKER) $(OPTFLAGS) -o ./isendf isendf.o $(FLIBS)
+
 sendfort: $(MPIFDEP) sendfort.o
 	$(FLINKER) $(OPTFLAGS) -o ./sendfort sendfort.o $(FLIBS)
 
@@ -341,7 +348,8 @@ clean:
 	@-for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done
-
+.c:
+	$(CC) $(CFLAGS) -o $* $< $(LIBS)
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 .o:

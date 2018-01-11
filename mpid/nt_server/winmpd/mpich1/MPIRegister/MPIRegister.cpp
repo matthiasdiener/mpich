@@ -1,13 +1,31 @@
 #include <stdio.h>
 #include <conio.h>
 #include <string.h>
+#include "mpd.h"
+#include "mpdutil.h"
 #include "..\Common\MPICH_pwd.h"
+#include "GetOpt.h"
+
+void DeleteCachedPassword()
+{
+    char szKey[256];
+    strcpy(szKey, MPICHKEY"\\cache");
+
+    RegDeleteKey(HKEY_CURRENT_USER, szKey);
+}
 
 void main(int argc, char *argv[])
 {
 	char ch=0, account[100]="", password[100]="", confirm[100]="";
 	int index = 0;
 	bool done, persistent = true;
+	char pszHost[100], pszPassPhrase[100] = MPD_DEFAULT_PASSPHRASE;
+	char pszPort[100];
+	char pszStr[1024];
+	char *pszEncoded;
+	int nPort = MPD_DEFAULT_PORT;
+	SOCKET sock;
+	int error;
 
 	if ((argc > 1) && (stricmp(argv[1], "-remove") == 0))
 	{
@@ -16,6 +34,47 @@ void main(int argc, char *argv[])
 		else
 			printf("Error: Unable to remove the encrypted password.\n");
 		return;
+	}
+
+	if ((argc > 1) && (stricmp(argv[1], "-validate") == 0))
+	{
+	    if (SetupCryptoClient())
+	    {
+		if (ReadPasswordFromRegistry(account, password))
+		{
+		    if (!GetOpt(argc, argv, "-host", pszHost))
+		    {
+			DWORD len = 100;
+			GetComputerName(pszHost, &len);
+		    }
+		    if (GetOpt(argc, argv, "-port", pszPort))
+			nPort = atoi(pszPort);
+		    GetOpt(argc, argv, "-phrase", pszPassPhrase);
+		    easy_socket_init();
+		    if ((error = ConnectToMPD(pszHost, nPort, pszPassPhrase, &sock)) == 0)
+		    {
+			pszEncoded = EncodePassword(password);
+			sprintf(pszStr, "validate a=%s p=%s", account, pszEncoded);
+			WriteString(sock, pszStr);
+			strcpy(pszStr, "FAIL");
+			ReadStringTimeout(sock, pszStr, 20);
+			printf("%s\n", pszStr);fflush(stdout);
+			easy_socket_finalize();
+			ExitProcess(0);
+		    }
+		    printf("FAIL: Unable to connect to the mpd on host <%s>\n", pszHost);fflush(stdout);
+		    easy_socket_finalize();
+		}
+		else
+		{
+		    printf("FAIL: Unable to read the credentials from the registry.\n");fflush(stdout);
+		}
+	    }
+	    else
+	    {
+		printf("FAIL: Unable to setup the encryption service.\n");fflush(stdout);
+	    }
+	    ExitProcess(0);
 	}
 
 	do
@@ -85,6 +144,7 @@ void main(int argc, char *argv[])
 			persistent))
 		{
 			printf("Password encrypted into the Registry.\n");
+			DeleteCachedPassword();
 		}
 		else
 		{

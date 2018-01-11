@@ -6,7 +6,6 @@
 #include "guiMPIJobDlg.h"
 #include "mpd.h"
 #include "mpdutil.h"
-#include "bsocket.h"
 #include "MPDConnectDlg.h"
 #include "Translate_Error.h"
 
@@ -73,7 +72,7 @@ CGuiMPIJobDlg::CGuiMPIJobDlg(CWnd* pParent /*=NULL*/)
 	m_bFullChecked = FALSE;
 	//}}AFX_DATA_INIT
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	m_bfd = BFD_INVALID_SOCKET;
+	m_sock = INVALID_SOCKET;
 	m_host = "";
 	m_port = MPD_DEFAULT_PORT;
 	m_passphrase = MPD_DEFAULT_PASSPHRASE;
@@ -117,9 +116,50 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CGuiMPIJobDlg message handlers
 
+// Function name	: ReadMPDRegistry
+// Description	    : 
+// Return type		: bool 
+// Argument         : char *name
+// Argument         : char *value
+// Argument         : DWORD *length = NULL
+bool ReadMPDRegistry(char *name, char *value, DWORD *length /*= NULL*/)
+{
+    HKEY tkey;
+    DWORD len, result;
+    
+    // Open the root key
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, MPD_REGISTRY_KEY,
+	0, 
+	KEY_READ,
+	&tkey) != ERROR_SUCCESS)
+    {
+	//printf("Unable to open the MPD registry key, error %d\n", GetLastError());
+	return false;
+    }
+    
+    if (length == NULL)
+	len = MAX_CMD_LENGTH;
+    else
+	len = *length;
+    result = RegQueryValueEx(tkey, name, 0, NULL, (unsigned char *)value, &len);
+    if (result != ERROR_SUCCESS)
+    {
+	//printf("Unable to read the mpd registry key '%s', error %d\n", name, GetLastError());
+	RegCloseKey(tkey);
+	return false;
+    }
+    if (length != NULL)
+	*length = len;
+    
+    RegCloseKey(tkey);
+    return true;
+}
+
 BOOL CGuiMPIJobDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
+	DWORD length = 100;
+	char host[100];
 
 	// Add "About..." menu item to system menu.
 
@@ -142,9 +182,29 @@ BOOL CGuiMPIJobDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 	
-	DWORD length = 100;
-	GetComputerName(m_host.GetBuffer(100), &length);
-	m_host.ReleaseBuffer();
+	if (ReadMPDRegistry("jobhost", host, &length))
+	{
+	    bool bUseLocalHost = true;
+	    m_host = host;
+	    length = 100;
+	    bUseLocalHost = !ReadMPDRegistry("usejobhost", host, &length);
+	    if (!bUseLocalHost)
+	    {
+		bUseLocalHost = (stricmp(host, "yes") != 0);
+	    }
+	    if (bUseLocalHost)
+	    {
+		length = 100;
+		GetComputerName(m_host.GetBuffer(100), &length);
+		m_host.ReleaseBuffer();
+	    }
+	}
+	else
+	{
+	    length = 100;
+	    GetComputerName(m_host.GetBuffer(100), &length);
+	    m_host.ReleaseBuffer();
+	}
 
 	m_refresh_btn.EnableWindow(FALSE);
 	m_remove_btn.EnableWindow(FALSE);
@@ -216,11 +276,11 @@ void CGuiMPIJobDlg::OnConnectBtn()
     dlg.m_host = m_host;
     if (dlg.DoModal() == IDOK)
     {
-	if (m_bfd != BFD_INVALID_SOCKET)
+	if (m_sock != INVALID_SOCKET)
 	{
-	    WriteString(m_bfd, "done");
-	    beasy_closesocket(m_bfd);
-	    m_bfd = BFD_INVALID_SOCKET;
+	    WriteString(m_sock, "done");
+	    easy_closesocket(m_sock);
+	    m_sock = INVALID_SOCKET;
 	}
 
 	if (dlg.m_bPortChecked)
@@ -230,12 +290,12 @@ void CGuiMPIJobDlg::OnConnectBtn()
 	m_host = dlg.m_host;
 
 	HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
-	if (ConnectToMPD(m_host, m_port, m_passphrase, &m_bfd) != 0)
+	if (ConnectToMPD(m_host, m_port, m_passphrase, &m_sock) != 0)
 	{
 	    CString str;
 	    str.Format("Unable to connect to %s on port %d with the given passphrase", m_host, m_port);
 	    MessageBox(str, "Connect failed", MB_OK);
-	    m_bfd = BFD_INVALID_SOCKET;
+	    m_sock = INVALID_SOCKET;
 	    m_refresh_btn.EnableWindow(FALSE);
 	    m_remove_btn.EnableWindow(FALSE);
 	    m_kill_btn.EnableWindow(FALSE);
@@ -272,19 +332,19 @@ void GetKeyAndValue(char *str, char *key, char *value)
     *token = '\0';
 }
 
-bool GetState(int bfd, char *dbname, char *state)
+bool GetState(SOCKET sock, char *dbname, char *state)
 {
     char str[256];
     int error;
 
     sprintf(str, "dbget %s:state", dbname);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
 	return false;
     }
-    if (ReadStringTimeout(bfd, str, 10))
+    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
     {
 	if (strcmp(str, "DBS_FAIL") == 0)
 	{
@@ -314,7 +374,7 @@ void CGuiMPIJobDlg::OnRefreshBtn()
     m_job_list.EnableWindow();
 
     strcpy(str, "dbfirst jobs");
-    if (WriteString(m_bfd, str) == SOCKET_ERROR)
+    if (WriteString(m_sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	sprintf(value, "writing '%s' failed, %d\r\n", str, error);
@@ -324,7 +384,7 @@ void CGuiMPIJobDlg::OnRefreshBtn()
 	Disconnect();
 	return;
     }
-    if (ReadStringTimeout(m_bfd, str, 10))
+    if (ReadStringTimeout(m_sock, str, MPD_DEFAULT_TIMEOUT))
     {
 	if (strcmp(str, "DBS_FAIL") == 0)
 	{
@@ -339,7 +399,7 @@ void CGuiMPIJobDlg::OnRefreshBtn()
 	    return;
 	}
 	GetKeyAndValue(str, key, value);
-	if (!GetState(m_bfd, strstr(value, "@")+1, state))
+	if (!GetState(m_sock, strstr(value, "@")+1, state))
 	{
 	    sprintf(str, "Unable to read the state of job %s", strstr(value, "@")+1);
 	    MessageBox(str, "Error");
@@ -360,7 +420,7 @@ void CGuiMPIJobDlg::OnRefreshBtn()
     while (true)
     {
 	strcpy(str, "dbnext jobs");
-	if (WriteString(m_bfd, str) == SOCKET_ERROR)
+	if (WriteString(m_sock, str) == SOCKET_ERROR)
 	{
 	    error = WSAGetLastError();
 	    sprintf(value, "writing '%s' failed, %d\r\n", str, error);
@@ -370,7 +430,7 @@ void CGuiMPIJobDlg::OnRefreshBtn()
 	    Disconnect();
 	    return;
 	}
-	if (ReadStringTimeout(m_bfd, str, 10))
+	if (ReadStringTimeout(m_sock, str, MPD_DEFAULT_TIMEOUT))
 	{
 	    if (strcmp(str, "DBS_FAIL") == 0)
 	    {
@@ -381,7 +441,7 @@ void CGuiMPIJobDlg::OnRefreshBtn()
 		break;
 	    }
 	    GetKeyAndValue(str, key, value);
-	    if (!GetState(m_bfd, strstr(value, "@")+1, state))
+	    if (!GetState(m_sock, strstr(value, "@")+1, state))
 	    {
 		sprintf(str, "Unable to read the state of job %s", strstr(value, "@")+1);
 		MessageBox(str, "Error");
@@ -421,11 +481,11 @@ void CGuiMPIJobDlg::OnSelchangeJobsList()
 
 void CGuiMPIJobDlg::OnClose() 
 {
-    if (m_bfd != BFD_INVALID_SOCKET)
+    if (m_sock != INVALID_SOCKET)
     {
-	WriteString(m_bfd, "done");
-	beasy_closesocket(m_bfd);
-	m_bfd = BFD_INVALID_SOCKET;
+	WriteString(m_sock, "done");
+	easy_closesocket(m_sock);
+	m_sock = INVALID_SOCKET;
     }
     
     CDialog::OnClose();
@@ -433,11 +493,11 @@ void CGuiMPIJobDlg::OnClose()
 
 void CGuiMPIJobDlg::Disconnect()
 {
-    if (m_bfd != BFD_INVALID_SOCKET)
+    if (m_sock != INVALID_SOCKET)
     {
-	WriteString(m_bfd, "done");
-	beasy_closesocket(m_bfd);
-	m_bfd = BFD_INVALID_SOCKET;
+	WriteString(m_sock, "done");
+	easy_closesocket(m_sock);
+	m_sock = INVALID_SOCKET;
     }
 
     m_refresh_btn.EnableWindow(FALSE);

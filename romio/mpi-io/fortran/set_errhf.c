@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: set_errhf.c,v 1.6 2001/12/12 23:38:15 ashton Exp $    
+ *   $Id: set_errhf.c,v 1.8 2002/10/24 17:01:25 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,21 +11,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_set_errhandler_ PMPI_FILE_SET_ERRHANDLER
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_set_errhandler_ pmpi_file_set_errhandler__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_set_errhandler pmpi_file_set_errhandler_
-#endif
-#define mpi_file_set_errhandler_ pmpi_file_set_errhandler
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_set_errhandler_ pmpi_file_set_errhandler
-#endif
-#define mpi_file_set_errhandler_ pmpi_file_set_errhandler_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -64,6 +50,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpi_file_set_errhandler_ PMPI_FILE_SET_ERRHANDLER
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_set_errhandler_ pmpi_file_set_errhandler__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_set_errhandler pmpi_file_set_errhandler_
+#endif
+#define mpi_file_set_errhandler_ pmpi_file_set_errhandler
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_set_errhandler_ pmpi_file_set_errhandler
+#endif
+#define mpi_file_set_errhandler_ pmpi_file_set_errhandler_
 #endif
 
 #else

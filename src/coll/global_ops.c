@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.13 2001/12/14 00:10:49 ashton Exp $
+ *  $Id: global_ops.c,v 1.14 2002/08/30 17:35:04 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,10 +17,6 @@ the datatype in most cases.
 #include "mpiimpl.h"
 #include "coll.h"
 
-/* SEBASTIEN L: EXPERIMENTS!!! */
-/* This should not be necessary; mpidefs.h is included by mpi.h */
-/* #include "mpidefs.h" */
-/* END OF EXPERIMENTATIONS */
 
 #ifndef MPID_NO_FORTRAN
 /* Eventually, this should include only the FLOG routines.  In fact,

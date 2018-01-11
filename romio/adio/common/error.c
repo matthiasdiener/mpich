@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: error.c,v 1.1 2000/01/21 20:55:39 thakur Exp $    
+ *   $Id: error.c,v 1.2 2002/10/24 17:01:14 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

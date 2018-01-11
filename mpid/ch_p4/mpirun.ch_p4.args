@@ -2,6 +2,7 @@
 #
 # Special args for the ch_p4 device
 setrshcmd="no"
+givenPGFile=0
 case $arg in 
     --INIT)
 	p4pgfile=
@@ -30,6 +31,7 @@ case $arg in
 	p4pgfile="$1"
 	shift
       	leavePGFile=1
+	givenPGFile=1
         device_knows_arg=1
 	;;
     -p4wd)

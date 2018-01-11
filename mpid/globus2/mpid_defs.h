@@ -2,9 +2,8 @@
 #define MPID_DEFS_H 1
 
 
-/* SEBASTIEN L: experiments */
 #include "global_c_symb.h"
-/* END EXPERIMENTS */
+
 
 
 /*
@@ -19,6 +18,14 @@
 
 #define MPICH_RENAMING_MPI_FUNCS
 #define MPICH_SR_PACKED_INTRINSIC_UNSUPPORTED
+
+/* the following symbols have already been renamed in "global_c_symb.h".
+ * Avoid a million warnings commenting out all the rest. */
+
+/* the following is commented out because these symbols are already
+ * renamed in "global_c_symb.h". */
+
+#if 0
 
 #define MPI_Abort MPQ_Abort
 #define PMPI_Abort PMPQ_Abort
@@ -891,5 +898,7 @@
 /************************/
 /* End MPI-2 Extensions */
 /************************/
+
+#endif   /* 0 */
 
 #endif /* !defined(MPID_DEFS_H) */

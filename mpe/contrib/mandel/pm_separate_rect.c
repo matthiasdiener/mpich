@@ -12,7 +12,10 @@
 #define MASTER_PROC 0
 #define DEBUG_ASSIGNMENTS 0
 
-void SeparateRect_Master( winspecs, flags )
+void SplitRect(Flags *flags, rect r);
+
+void SeparateRect_Master( graph, winspecs, flags )
+MPE_XGraph graph;
 Winspecs *winspecs;
 Flags *flags;
 {
@@ -21,6 +24,21 @@ Flags *flags;
   /* recvRectBuf - when a slave process tells the master that some rectangles
      need to be calculated, the rectangle definitions are temporarily stored
      here */
+
+  /* The following 7 variables are used when only the master interacts
+     with the X display. These variables are used in receiving the data
+     from the slaves for display.
+  */
+  MPE_Point *pointData;
+  int        dataSize;
+  int        numPoints;
+  int        block_type;
+  rect       rectangle;
+  int        color;
+  int        getPoints; /* boolean, determines whether some computed points are
+                           to be received from some rank.
+                        */
+
 
   int inProgress, nidle, *idleList, splitPt, np, data,
       mesgTag, firstToEnqueue, procNum, i, randomPt;
@@ -86,6 +104,17 @@ Flags *flags;
     Q_Enqueue( &rect_q, &tempRect );
   }
 
+  if (flags->no_remote_X) {
+    int x,y;
+    /* figure out how much data might be received from a process that
+       has computed a block of the output and allocate space for it.
+    */
+    x = flags->breakout * flags->breakout;
+    y = 2 * (winspecs->height + winspecs->width );
+    dataSize = ((y>x) ? y : x );
+    pointData = (MPE_Point *) malloc( dataSize * sizeof( MPE_Point) );
+  }
+
 #if DEBUG
   fprintf( debug_file, "Master starting up\n" );
   fflush( debug_file );
@@ -101,20 +130,98 @@ Flags *flags;
     MPE_LOG_RECEIVE( procNum, mesgTag, 0 );
     MPE_LOG_EVENT( E_WAIT_FOR_MESSAGE, 0, 0 );
 
-
 #if DEBUG
     fprintf( debug_file, "Master receives %d from %d\n", mesgTag, procNum );
     fflush( debug_file );
 #endif
 
+    if (flags->no_remote_X) {
+      getPoints = 1; /* if != 0, receive computed points from some process.
+                        This is only used to distinguish between the
+                        READY_TO_START and READY_FOR_MORE messages.
+                      */
+    }
+    
+
     switch (mesgTag) {
 
     case READY_TO_START:
-      inProgress++;
+      inProgress++; /* NOTE: This falls through!!, no break; statement */
+      if (flags->no_remote_X) {
+        getPoints = 0;
+      }
+
     case READY_FOR_MORE:
-	/* Receive only the message that we probed for */
-      MPI_Recv( 0, 0, MPI_INT, procNum, mesgTag, MPI_COMM_WORLD, &mesgStatus );
-      if (IS_Q_EMPTY(rect_q)) {		      /* if the queue is empty, */
+        MPI_Recv( 0, 0, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
+		  MPI_COMM_WORLD, &mesgStatus );
+
+      if (flags->no_remote_X && getPoints) {
+        /* Receive the computed points from this rank.
+           This will either be a specification for a rectangle in which all
+           the points are the same color, or this will be a block of
+           points (int x, int y, int color), i.e. MPE_Points.
+         */
+        MPI_Recv( &block_type, 1, MPI_INT, procNum, BLOCK_TYPE,
+  	        MPI_COMM_WORLD, &mesgStatus );
+
+        if (block_type == POINTS) {
+
+          MPI_Recv( &numPoints, 1, MPI_INT, procNum, POINT_COUNT,
+  	          MPI_COMM_WORLD, &mesgStatus );
+          if (numPoints > dataSize) {
+            fprintf( stderr,"master: INTERNAL ERROR: "
+                    "too many data points to receive\n" );
+            exit( 1 );
+          }
+
+          MPI_Recv( pointData, 3*numPoints, MPI_INT, procNum, POINT_DATA,
+	            MPI_COMM_WORLD, &mesgStatus );
+
+          MPE_Draw_points( graph, pointData, numPoints );
+          MPE_Update( graph );
+
+          if (flags->with_tracking_win) {
+            int i;
+            /* Now indicate which process computed this section. */
+            MPI_Recv( &color, 1, MPI_INT, procNum, TRACKING_COLOR,
+  	            MPI_COMM_WORLD, &mesgStatus );
+            for (i=0; i<numPoints; i++) {
+              pointData[i].c = color;
+            }
+	    MPE_Draw_points( tracking_win, pointData, numPoints );
+            MPE_Update( tracking_win );
+          }
+
+        } else if (block_type == RECTANGLE) {
+
+          MPI_Recv( &rectangle, 5, MPI_INT, procNum, RECT_SPEC,
+  	          MPI_COMM_WORLD, &mesgStatus );
+          MPI_Recv( &color, 1, MPI_INT, procNum, RECT_COLOR,
+  	          MPI_COMM_WORLD, &mesgStatus );
+          pointData->c = color; /* this is all that is used from pointData */
+
+	  DrawBlock( graph, pointData, &rectangle );
+          MPE_Update( graph );
+
+          if (flags->with_tracking_win) {
+            /* Now indicate which process computed this section. */
+            MPI_Recv( &color, 1, MPI_INT, procNum, TRACKING_COLOR,
+  	             MPI_COMM_WORLD, &mesgStatus );
+            pointData[0].c = color; /* This is all that is referenced 
+                                       from the pointData pointer in
+                                       the DrawBlock routine. */
+	    DrawBlock( tracking_win, pointData, &rectangle );
+          }
+
+        } else {
+
+          fprintf( stderr,"master: INTERNAL ERROR: unknown block type\n" );
+        }
+
+        MPE_Update( graph );
+      }
+
+      if (IS_Q_EMPTY( rect_q)) {  /* if the queue is empty, */
 	idleList[nidle++] = procNum;  /* remember this process was left idle */
 	inProgress--;
       } else {
@@ -200,10 +307,19 @@ Flags *flags;
   fflush( debug_file );
 #endif
 
-  for (i=1; i<np; i++) {							 /* tell everyone to exit */
+  for (i=1; i<np; i++) {
+      /* tell everyone to exit. */
     MPI_Send( rect_q.r, sizeof( rect ), MPI_BYTE, i, ALL_DONE, MPI_COMM_WORLD );
     MPE_LOG_SEND( i, ALL_DONE, sizeof( rect ) );
   }
+
+  Q_Destroy( &rect_q );
+  free( assigList );
+  free( idleList );
+  if (flags->no_remote_X) {
+    free( pointData );
+  }
+
 }
 
 
@@ -216,6 +332,8 @@ Flags *flags;
 {
   int x, y, working, isContinuous, *borderData, *datPtr, mesgTag, myid,
       dataSize, *iterData, npoints;
+  int tracking_color;
+
   /* x, y - integer counters for the point being calculated */
   /* working - whether this process is still working or has been retired */
   /* isContinuous - whether the border just computed is one continuous color */
@@ -225,6 +343,7 @@ Flags *flags;
 
   NUM rstep, istep;
   MPE_Point *pointData;
+  int block_type;
 
   rect r, rectBuf[2];
   /* r - the rectangle being calculated */
@@ -232,6 +351,10 @@ Flags *flags;
   MPI_Status mesgStatus;
 
   MPI_Comm_rank( MPI_COMM_WORLD, &myid );
+
+  if (flags->with_tracking_win) {
+    tracking_color = winspecs->colorArray[winspecs->my_tracking_color];
+  }
 
   MPI_Send( 0, 0, MPI_INT, MASTER_PROC, READY_TO_START, MPI_COMM_WORLD );
   MPE_LOG_SEND( MASTER_PROC, READY_TO_START, 0 );
@@ -320,9 +443,33 @@ Flags *flags;
 	fprintf( debug_file, "[%d]drawing chunk\n", myid );
 	fflush( debug_file );
 #endif
-	MPE_Draw_points( graph, pointData, npoints );
-	MPE_Update( graph );
-	MPE_LOG_EVENT( E_DRAW_CHUNK, 0, 0 );
+        if (flags->no_remote_X) {
+          /* Send master the points to display */
+          block_type = POINTS;
+          MPI_Send( &block_type, 1, MPI_INT, 0, BLOCK_TYPE, MPI_COMM_WORLD );
+          MPI_Send( &npoints, 1, MPI_INT, 0, POINT_COUNT, MPI_COMM_WORLD );
+          MPI_Send( pointData, (3 * npoints), MPI_INT, 0,
+                   POINT_DATA, MPI_COMM_WORLD );
+          if (flags->with_tracking_win) {
+            MPI_Send( &tracking_color, 1, MPI_INT, 0,
+                     TRACKING_COLOR, MPI_COMM_WORLD );
+          }
+
+        } else {
+
+	    MPE_Draw_points( graph, pointData, npoints );
+	    MPE_Update( graph );
+	    MPE_LOG_EVENT( E_DRAW_CHUNK, 0, 0 );
+	    if (flags->with_tracking_win) {
+		int i;
+		for (i=0; i<npoints; i++) {
+		    pointData[i].c = tracking_color;
+		}
+		MPE_Draw_points( tracking_win, pointData, npoints );
+		MPE_Update( tracking_win );
+	    }
+	}
+
       } else {			/* otherwise, compute the boundary */
 
 	MPE_LOG_EVENT( S_COMPUTE, 0, 0 );
@@ -363,7 +510,32 @@ Flags *flags;
 	  fprintf( debug_file, "[%d]drawing block\n", myid );
 	  fflush( debug_file );
 #endif
-	  DrawBlock( graph, pointData, &r );
+          if (flags->no_remote_X) { 
+
+            /* Send the master the rectangle to display */
+            block_type = RECTANGLE;
+            MPI_Send( &block_type, 1, MPI_INT, 0, BLOCK_TYPE, MPI_COMM_WORLD );
+            MPI_Send( &r,             5, MPI_INT, 0, RECT_SPEC, MPI_COMM_WORLD );
+            MPI_Send( &(pointData->c),1, MPI_INT, 0, RECT_COLOR, MPI_COMM_WORLD );
+            if (flags->with_tracking_win) { 
+              MPI_Send( &tracking_color, 1, MPI_INT, 0,
+                       TRACKING_COLOR, MPI_COMM_WORLD );
+            }
+
+          } else {
+
+	    DrawBlock( graph, pointData, &r );
+            MPE_Update( graph );
+            if (flags->with_tracking_win) { 
+              /* Color the block to identify who computed it */
+              int i;
+              for (i=0; i<r.length; i++) {
+                pointData[i].c = tracking_color;
+              }
+	      DrawBlock( tracking_win, pointData, &r );
+              MPE_Update( tracking_win );
+            }
+          }
           MPE_LOG_EVENT( E_DRAW_BLOCK, 0, 0 );
 	} else {
 	  MPE_LOG_EVENT( S_DRAW_RECT, 0, 0 );
@@ -380,11 +552,36 @@ Flags *flags;
 	    }
 	  }
 #endif
-	  MPE_Draw_points( graph, pointData, npoints );
-	  MPE_Update( graph );
-	  MPE_LOG_EVENT( E_DRAW_RECT, 0, 0 );
-	}
+          if (flags->no_remote_X) {
 
+            /* Send master the points to display */
+            block_type = POINTS;
+            MPI_Send( &block_type, 1, MPI_INT, 0, BLOCK_TYPE, MPI_COMM_WORLD );
+            MPI_Send( &npoints, 1, MPI_INT, 0, POINT_COUNT, MPI_COMM_WORLD );
+            MPI_Send( pointData, (3 * npoints), MPI_INT, 0,
+                     POINT_DATA, MPI_COMM_WORLD );
+            if (flags->with_tracking_win) {
+              MPI_Send( &tracking_color, 1, MPI_INT, 0,
+                       TRACKING_COLOR, MPI_COMM_WORLD );
+            }
+
+          } else {
+
+	    MPE_Update( graph ); 
+
+            if (flags->with_tracking_win) {
+              int i;
+              /* Color the border to identify the computing process.  */
+              for (i=0; i<npoints; i++) {
+                pointData[i].c = tracking_color;
+              }
+
+	      MPE_Draw_points( tracking_win, pointData, npoints );
+	      MPE_Update( tracking_win );
+            }
+	  MPE_LOG_EVENT( E_DRAW_RECT, 0, 0 );
+	  }
+	}
       }	/* else !breakout */
       break;			      /* end if case ASSIGNMENT: */
 
@@ -398,9 +595,12 @@ Flags *flags;
 
     } /* end of switch */
   } /* end of while (working) */
+
+  free( iterData );
+  free( pointData );
 }
 
-
+void
 SplitRect( flags, r )
 Flags *flags;
 rect r;

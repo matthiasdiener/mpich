@@ -10,7 +10,7 @@ top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 MPICH_VERSION=@MPICH_VERSION@
 STOPFILE=$HOME/.stopmpichtests
-mpirun="@MPIRUN@"
+mpirun=${MPIRUN:-"@MPIRUN@"}
 MAKE="@MAKE@"
 #
 # Load basic procedures
@@ -106,8 +106,15 @@ fi
 #
 # If there was a Unix standard interface to ps, we could check for orphaned
 # processes...
-if ps -ef > /dev/null 2>&1 ; then
-   PSPGM="ps -ef"
+if ps -fwu $LOGNAME > /dev/null 2>&1 ; then
+   # This is a better choice than ps aux because it restricts the list of 
+   # processes to those of the running user.  The w is needed on some
+   # systems to get a long output for the command
+   PSPGM="ps -fwu $LOGNAME"
+elif ps -fu $LOGNAME > /dev/null 2>&1 ; then
+   # This is a better choice than ps aux because it restricts the list of 
+   # processes to those of the running user.
+   PSPGM="ps -fu $LOGNAME"
 else
    PSPGM="ps auxww"
 fi
@@ -117,11 +124,11 @@ testfiles="$testfiles aborttest.out"
 MakeExe aborttest
 echo "*** Tests of MPI_Abort ***"
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
-$PSPGM | grep $LOGNAME | grep -v grep > aborttest.p1
+$PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests > aborttest.p1
 $mpirun $args -np 2 ./aborttest $* < /dev/null > /dev/null 2>&1
 # allow some time for processes to exit
 sleep 5
-$PSPGM | grep $LOGNAME | grep -v grep > aborttest.p2
+$PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests > aborttest.p2
 # If there was a consistant format, we could process it ...
 ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
 ndiff=`expr $ndiff`
@@ -135,6 +142,8 @@ else
     #cat aborttest.p2 >> aborttest.out
     echo "Differences are" >> aborttest.out
     diff -b aborttest.p1 aborttest.p2 >> aborttest.out
+    # Try to kill them
+    $PSPGM | grep $LOGNAME | grep aborttest | awk '{ print "kill ", $2 }' | sh
 fi
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
 rm -f aborttest.p1 aborttest.p2
@@ -160,6 +169,8 @@ else
     #cat aborttest.p2 >> aborttest.out
     echo "Differences are" >> aborttest.out
     diff -b aborttest.p1 aborttest.p2 >> aborttest.out
+    # Try to kill them
+    $PSPGM | grep $LOGNAME | grep aborttest | awk '{ print "kill ", $2 }' | sh
 fi
 echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
 /bin/rm -f aborttest.p1 aborttest.p2

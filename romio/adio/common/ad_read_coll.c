@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_read_coll.c,v 1.13 2002/01/04 22:47:18 rross Exp $    
+ *   $Id: ad_read_coll.c,v 1.17 2002/12/19 17:56:51 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -33,10 +34,9 @@ static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 				  ADIO_Offset fd_size,
 				  ADIO_Offset *fd_start, ADIO_Offset *fd_end, 
 				  ADIOI_Access *others_req, 
-				  int *recv_buf_idx, int *curr_from_proc,
-				  int *done_from_proc, int iter, 
+				  int iter, 
 				  MPI_Aint buftype_extent, int *buf_idx);
-static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
+static void ADIOI_Fill_user_buffer(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 				   *flat_buf, char **recv_buf, ADIO_Offset 
 				   *offset_list, int *len_list, 
 				   int *recv_size, 
@@ -45,8 +45,7 @@ static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
 				   int contig_access_count, 
 				   ADIO_Offset min_st_offset, 
 				   ADIO_Offset fd_size, ADIO_Offset *fd_start, 
-				   ADIO_Offset *fd_end, int *recv_buf_idx, 
-				   int *curr_from_proc, int *done_from_proc,
+				   ADIO_Offset *fd_end,
 				   MPI_Aint buftype_extent);
 
 
@@ -473,7 +472,6 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
     char *read_buf = NULL, *tmp_buf;
     int *curr_offlen_ptr, *count, *send_size, *recv_size;
     int *partial_send, *recd_from_proc, *start_pos, for_next_iter;
-    int *recv_buf_idx, *curr_from_proc, *done_from_proc;
     int real_size, req_len, flag, for_curr_iter, rank;
     MPI_Status status;
     ADIOI_Flatlist_node *flat_buf=NULL;
@@ -547,11 +545,6 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
     recd_from_proc = (int *) ADIOI_Calloc(nprocs, sizeof(int));
     /* amount of data recd. so far from each proc. Used in
        ADIOI_Fill_user_buffer. initialized to 0 here. */
-
-    recv_buf_idx = (int *) ADIOI_Malloc(nprocs * sizeof(int));
-    curr_from_proc = (int *) ADIOI_Malloc(nprocs * sizeof(int));
-    done_from_proc = (int *) ADIOI_Malloc(nprocs * sizeof(int));
-    /* Above three are used in ADIOI_Fill_user_buffer*/
 
     start_pos = (int *) ADIOI_Malloc(nprocs*sizeof(int));
     /* used to store the starting value of curr_offlen_ptr[i] in 
@@ -699,9 +692,8 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 			    myrank, 
 			    buftype_is_contig, contig_access_count,
 			    min_st_offset, fd_size, fd_start, fd_end,
-			    others_req, recv_buf_idx, 
-                            curr_from_proc, done_from_proc, m,
-                            buftype_extent, buf_idx); 
+			    others_req, 
+                            m, buftype_extent, buf_idx); 
 
 #ifdef PROFILE
         MPE_Log_event(8, 0, "end communication");
@@ -732,8 +724,7 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
 			    myrank, 
 			    buftype_is_contig, contig_access_count,
 			    min_st_offset, fd_size, fd_start, fd_end,
-			    others_req, recv_buf_idx, 
-                            curr_from_proc, done_from_proc, m,
+			    others_req, m,
                             buftype_extent, buf_idx); 
 #ifdef PROFILE
         MPE_Log_event(8, 0, "end communication");
@@ -747,9 +738,6 @@ static void ADIOI_Read_and_exch(ADIO_File fd, void *buf, MPI_Datatype
     ADIOI_Free(recv_size);
     ADIOI_Free(recd_from_proc);
     ADIOI_Free(start_pos);
-    ADIOI_Free(recv_buf_idx);
-    ADIOI_Free(curr_from_proc);
-    ADIOI_Free(done_from_proc);
 }
 
 static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
@@ -762,9 +750,7 @@ static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 			 ADIO_Offset min_st_offset, ADIO_Offset fd_size,
 			 ADIO_Offset *fd_start, ADIO_Offset *fd_end, 
 			 ADIOI_Access *others_req, 
-                         int *recv_buf_idx, int *curr_from_proc,
-                         int *done_from_proc, int iter, 
-			 MPI_Aint buftype_extent, int *buf_idx)
+                         int iter, MPI_Aint buftype_extent, int *buf_idx)
 {
     int i, j, k=0, tmp=0, nprocs_recv, nprocs_send;
     char **recv_buf = NULL; 
@@ -847,22 +833,23 @@ static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
                                      sizeof(MPI_Status)); 
      /* +1 to avoid a 0-size malloc */
 
-    if (!buftype_is_contig && nprocs_recv) 
-	ADIOI_Fill_user_buffer(buf, flat_buf, recv_buf,
-			       offset_list, len_list, recv_size, 
-			       requests, statuses, recd_from_proc, 
-			       nprocs, contig_access_count,
-			       min_st_offset, fd_size, fd_start, fd_end,
-			       recv_buf_idx, curr_from_proc, done_from_proc,
-			       buftype_extent);
-
-    if (buftype_is_contig) {
+    /* wait on the receives */
+    if (nprocs_recv) {
 #ifdef NEEDS_MPI_TEST
 	j = 0;
 	while (!j) MPI_Testall(nprocs_recv, requests, &j, statuses);
 #else
 	MPI_Waitall(nprocs_recv, requests, statuses);
 #endif
+
+	/* if noncontiguous, to the copies from the recv buffers */
+	if (!buftype_is_contig) 
+	    ADIOI_Fill_user_buffer(fd, buf, flat_buf, recv_buf,
+				   offset_list, len_list, recv_size, 
+				   requests, statuses, recd_from_proc, 
+				   nprocs, contig_access_count,
+				   min_st_offset, fd_size, fd_start, fd_end,
+				   buftype_extent);
     }
 
     /* wait on the sends*/
@@ -926,7 +913,7 @@ static void ADIOI_R_Exchange_data(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 }
 
 
-static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
+static void ADIOI_Fill_user_buffer(ADIO_File fd, void *buf, ADIOI_Flatlist_node
 				   *flat_buf, char **recv_buf, ADIO_Offset 
 				   *offset_list, int *len_list, 
 				   int *recv_size, 
@@ -935,18 +922,16 @@ static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
 				   int contig_access_count, 
 				   ADIO_Offset min_st_offset, 
 				   ADIO_Offset fd_size, ADIO_Offset *fd_start, 
-				   ADIO_Offset *fd_end, int *recv_buf_idx, 
-				   int *curr_from_proc, int *done_from_proc,
+				   ADIO_Offset *fd_end,
 				   MPI_Aint buftype_extent)
 {
 /* this function is only called if buftype is not contig */
 
-    int i, p, flat_buf_idx, rem_len, size, buf_incr;
-    int flat_buf_sz, len, size_in_buf, jj, n_buftypes;
-    ADIO_Offset off, user_buf_idx;
-#ifdef NEEDS_MPI_TEST
-    int j;
-#endif
+    int i, p, flat_buf_idx, size, buf_incr;
+    int flat_buf_sz, size_in_buf, n_buftypes;
+    ADIO_Offset off, len, rem_len, user_buf_idx;
+
+    int *curr_from_proc, *done_from_proc, *recv_buf_idx;
 
 /*  curr_from_proc[p] = amount of data recd from proc. p that has already
                         been accounted for so far
@@ -954,12 +939,14 @@ static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
                         filled into user buffer in previous iterations
     user_buf_idx = current location in user buffer 
     recv_buf_idx[p] = current location in recv_buf of proc. p  */
+    curr_from_proc = (int *) ADIOI_Malloc(nprocs * sizeof(int));
+    done_from_proc = (int *) ADIOI_Malloc(nprocs * sizeof(int));
+    recv_buf_idx   = (int *) ADIOI_Malloc(nprocs * sizeof(int));
 
     for (i=0; i < nprocs; i++) {
 	recv_buf_idx[i] = curr_from_proc[i] = 0;
 	done_from_proc[i] = recd_from_proc[i];
     }
-    jj = 0;
 
     user_buf_idx = flat_buf->indices[0];
     flat_buf_idx = 0;
@@ -971,98 +958,60 @@ static void ADIOI_Fill_user_buffer(void *buf, ADIOI_Flatlist_node
                 flattened buf */
 
     for (i=0; i<contig_access_count; i++) { 
-	p = (int) ((offset_list[i] - min_st_offset + fd_size)/fd_size - 1);
-	off = offset_list[i];
-	len = (int) (((off+len_list[i]-1) <= fd_end[p]) ? len_list[i] : 
-	           (fd_end[p] - off + 1));
+	off     = offset_list[i];
+	rem_len = (ADIO_Offset) len_list[i];
 
-	if (recv_buf_idx[p] < recv_size[p]) {
-	    if (curr_from_proc[p]+len > done_from_proc[p]) {
-		if (!recv_buf_idx[p]) {
-#ifdef NEEDS_MPI_TEST
-		    j = 0;
-		    while (!j) MPI_Test(requests+jj, &j, statuses+jj);
-#else
-		    MPI_Wait(requests+jj, statuses+jj);
-#endif
-		    jj++;
-		}
-		if (done_from_proc[p] > curr_from_proc[p]) {
-		    size = ADIOI_MIN(curr_from_proc[p] + len - 
-			     done_from_proc[p], recv_size[p]-recv_buf_idx[p]);
-		    buf_incr = done_from_proc[p] - curr_from_proc[p];
-		    ADIOI_BUF_INCR
-                    buf_incr = curr_from_proc[p] + len - done_from_proc[p];
-		    curr_from_proc[p] = done_from_proc[p] + size;
-		    ADIOI_BUF_COPY
-		}
-		else {
-		    size = ADIOI_MIN(len, recv_size[p]-recv_buf_idx[p]); 
-		    buf_incr = len;
-		    curr_from_proc[p] += size;
-		    ADIOI_BUF_COPY
-		}
-	    }
-	    else {
-		curr_from_proc[p] += len;
-		buf_incr = len;
-		ADIOI_BUF_INCR
-	    }
-	}
-	else {
-	    buf_incr = len;
-	    ADIOI_BUF_INCR
-	}
-
-	/* this request may span the file domains of more 
-	          than one process */
-	rem_len = len_list[i] - len;
+	/* this request may span the file domains of more than one process */
 	while (rem_len != 0) {
-	    p++;
-	    off = fd_start[p];
-	    len = (int) (((off+rem_len-1) <= fd_end[p]) ? rem_len : 
-			(fd_end[p] - off + 1));
+	    len = rem_len;
+	    /* NOTE: len value is modified by ADIOI_Calc_aggregator() to be no
+	     * longer than the single region that processor "p" is responsible
+	     * for.
+	     */
+	    p = ADIOI_Calc_aggregator(fd,
+				      off,
+				      min_st_offset,
+				      &len,
+				      fd_size,
+				      fd_start,
+				      fd_end);
 
 	    if (recv_buf_idx[p] < recv_size[p]) {
 		if (curr_from_proc[p]+len > done_from_proc[p]) {
-		    if (!recv_buf_idx[p]) {
-#ifdef NEEDS_MPI_TEST
-			j = 0;
-			while (!j) MPI_Test(requests+jj, &j, statuses+jj);
-#else
-			MPI_Wait(requests+jj, statuses+jj);
-#endif
-			jj++;
-		    }
 		    if (done_from_proc[p] > curr_from_proc[p]) {
-			size = ADIOI_MIN(curr_from_proc[p] + len - 
+			size = (int)ADIOI_MIN(curr_from_proc[p] + len - 
 			      done_from_proc[p], recv_size[p]-recv_buf_idx[p]);
 			buf_incr = done_from_proc[p] - curr_from_proc[p];
 			ADIOI_BUF_INCR
-			buf_incr = curr_from_proc[p]+len-done_from_proc[p];
+			buf_incr = (int)(curr_from_proc[p]+len-done_from_proc[p]);
 			curr_from_proc[p] = done_from_proc[p] + size;
 			ADIOI_BUF_COPY
 		    }
 		    else {
-			size = ADIOI_MIN(len,recv_size[p]-recv_buf_idx[p]);
-			buf_incr = len;
+			size = (int)ADIOI_MIN(len,recv_size[p]-recv_buf_idx[p]);
+			buf_incr = (int)len;
 			curr_from_proc[p] += size;
 			ADIOI_BUF_COPY
 		    }
 		}
 		else {
-		    curr_from_proc[p] += len;
-		    buf_incr = len;
+		    curr_from_proc[p] += (int)len;
+		    buf_incr = (int)len;
 		    ADIOI_BUF_INCR
 		}
 	    }
 	    else {
-		buf_incr = len;
+		buf_incr = (int)len;
 		ADIOI_BUF_INCR
 	    }
+	    off     += len;
 	    rem_len -= len;
 	}
     }
     for (i=0; i < nprocs; i++) 
 	if (recv_size[i]) recd_from_proc[i] = curr_from_proc[i];
+
+    ADIOI_Free(curr_from_proc);
+    ADIOI_Free(done_from_proc);
+    ADIOI_Free(recv_buf_idx);
 }

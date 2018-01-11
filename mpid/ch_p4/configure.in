@@ -11,21 +11,30 @@ print_error() {
     echo "*# $*" 2>&1 ;
     }
 
+AC_ARG_ENABLE(processgroup,
+[--enable-processgroup - Use a separate process group for the MPICH processes],
+,enable_processgroup=default)
+
+AC_ARG_WITH(comm,[--with-comm=name - Specify the p4 comm type (typically empty or shared],,
+with_comm=default)
+
 AC_CONFIG_HEADER(mpich-mpid.h)
 
 # Get the compiler (should have been set with CC) and check for 
 # cross-compiling
 AC_PROG_CC
 
-# Check for a working mmap.
-MMAP=0
-PAC_HAVE_ANON_MMAP(MMAP=1,AC_DEFINE(HAVE_NO_ANON_MMAP))
-# We need to check that semctl is ok.
-PAC_SEMGET_WORKS(SEMGET=1,SEMGET=0,print_error)
+# Check for a working mmap or semget when configuring for comm=shared
+if test "$with_comm" = "shared" ; then
+    MMAP=0
+    PAC_HAVE_ANON_MMAP(MMAP=1,AC_DEFINE(HAVE_NO_ANON_MMAP))
+    # We need to check that semctl is ok.
+    PAC_SEMGET_WORKS(SEMGET=1,SEMGET=0,print_error)
 
-if test $MMAP = 0 -a "$SEMGET" = 0; then
-    print_error "Configure detected that both anonymous mmap and semget fail."
-    print_error "Configuring MPICH for shared memory may cause problems!"
+    if test $MMAP = 0 -a "$SEMGET" = 0; then
+        AC_MSG_ERROR( [Configure detected that both anonymous mmap and semget fail.
+Configuring MPICH for shared memory may cause problems!] )
+    fi
 fi
 
 PAC_SIGNALS_WORK
@@ -80,10 +89,19 @@ if test -z "$RSHCOMMAND" ; then
     AC_MSG_WARN([You must use the secure server to start programs])
 fi
 # Sizes of int and long (for sendid type)
-AC_CHECK_SIZEOF(int,0)
-AC_CHECK_SIZEOF(long,0)
+
+CROSS_SIZEOF_INT=${CROSS_SIZEOF_INT:-4}
+CROSS_SIZEOF_LONG=${CROSS_SIZEOF_LONG:-4}
+AC_CHECK_SIZEOF(int,$CROSS_SIZEOF_INT)
+AC_CHECK_SIZEOF(long,$CROSS_SIZEOF_LONG)
 
 AC_CHECK_FUNCS(gettimeofday BSDgettimeofday)
+# These are needed for the process group
+AC_CHECK_FUNCS(setsid isatty)
+if test "$enable_processgroup" = "default" -o \
+        "$enable_processgroup" = "yes" ; then
+    AC_DEFINE(SET_NEW_PGRP,,[Define to force a new process group])
+fi
 #
 # Generate a default machines file
 rootdir="../.."

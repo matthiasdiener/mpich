@@ -9,7 +9,6 @@
 #include "AdvancedConnectDialog.h"
 #include "AccountPasswordDlg.h"
 #include "mpd.h"
-#include "bsocket.h"
 #include "crypt.h"
 #include "mpdutil.h"
 #include "Translate_Error.h"
@@ -316,12 +315,12 @@ void CMPDFileTransferDlg::OnClose()
     if (m_bfd1 != BFD_INVALID_SOCKET)
     {
 	WriteString(m_bfd1, "done");
-	beasy_closesocket(m_bfd1);
+	easy_closesocket(m_bfd1);
     }
     if (m_bfd2 != BFD_INVALID_SOCKET)
     {
 	WriteString(m_bfd2, "done");
-	beasy_closesocket(m_bfd2);
+	easy_closesocket(m_bfd2);
     }
     bsocket_finalize();
 	CDialog::OnClose();
@@ -354,7 +353,7 @@ void CMPDFileTransferDlg::OnConnect1Btn()
     if (m_bfd1 != BFD_INVALID_SOCKET)
     {
 	WriteString(m_bfd1, "done");
-	beasy_closesocket(m_bfd1);
+	easy_closesocket(m_bfd1);
     }
 
     if (m_host1.GetLength() == 0)
@@ -466,7 +465,7 @@ void CMPDFileTransferDlg::OnConnect2Btn()
     if (m_bfd2 != BFD_INVALID_SOCKET)
     {
 	WriteString(m_bfd2, "done");
-	beasy_closesocket(m_bfd2);
+	easy_closesocket(m_bfd2);
     }
 
     if (m_host2.GetLength() == 0)

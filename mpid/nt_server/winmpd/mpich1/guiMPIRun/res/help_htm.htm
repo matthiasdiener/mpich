@@ -16,6 +16,7 @@ output.&nbsp; You can also enter input here that will be sent to the root
 process.</li>
 </ul>
 Advanced Options:<ul>
+  <li><b>Catch unhandled exceptions:</b> <br>Catch unhandled exceptions in the launched processes</li>
   <li><b>No color output:</b> <br>The output will not be color coded according to the rank of the process</li>
   <li><b>No mpi:</b> <br>Launch multiple processes that are not mpi applications - they never make any 
 MPI calls.</li>
@@ -36,6 +37,7 @@ is not specified the current directory is used.</li>
   <li><b>Drive mappings</b><strong>: drive:\\host\share </strong> <br>This option will map a drive on the hosts where the processes are launched.&nbsp; 
 The mappings are removed after the processes exit.&nbsp; This option can be repeated 
 multiple times separated by semi-colons. example: y:\\myserver\myapps;z:\\myserver\myhome</li>
+  <li><b>Use JobHost:</b> <br>Specify the hostname where job information can be sent</li>
   <li><b>Use configuration file:</b> <br>Select a configuration file to specify more 
   complicated launching preferences</li>
 </ul>

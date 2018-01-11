@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: lock.c,v 1.8 2001/11/27 19:23:28 ashton Exp $    
+ *   $Id: lock.c,v 1.9 2002/10/24 17:01:14 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

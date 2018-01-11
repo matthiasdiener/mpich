@@ -177,7 +177,17 @@ void CommPortWorkerThread()
 		else
 		{
 			if (!g_bInNT_ipvishm_End)
-				nt_error("GetQueuedCompletionStatus failed", GetLastError());
+			{
+				if (dwKey >= 0 && dwKey < (DWORD)g_nNproc && dwKey != (DWORD)g_nIproc && strlen(g_pProcTable[dwKey].host))
+				{
+					error = GetLastError();
+					MakeErrMsg(error, "GetQueuedCompletionStatus failed for socket %d connected to host '%s'", dwKey, g_pProcTable[dwKey].host);
+				}
+				else
+				{
+					nt_error_socket("GetQueuedCompletionStatus failed", GetLastError());
+				}
+			}
 		}
 	}
 }
@@ -199,49 +209,51 @@ void CommPortThread(HANDLE hReadyEvent)
 	BOOL opt;
 	char add_socket_ack;
 	DWORD dwThreadID;
+	HANDLE *hWorkers;
 
 	ahEvent[0] = g_hCommPortEvent;
 
 	// create a listening socket
 	if (error = NT_Tcp_create_bind_socket(&listen_socket, &ahEvent[1]))
-		nt_error("CommPortThread: NT_Tcp_create_bind_socket failed", error);
+		nt_error_socket("CommPortThread: NT_Tcp_create_bind_socket failed", error);
 
 	// associate listen_socket_event with listen_socket
 	if (WSAEventSelect(listen_socket, ahEvent[1], FD_ACCEPT) == SOCKET_ERROR)
 		nt_error("CommPortThread: WSAEventSelect failed for listen_socket", 1);
 
 	if (listen(listen_socket, SOMAXCONN) == SOCKET_ERROR)
-		nt_error("CommPortThread: listen failed", WSAGetLastError());
+		nt_error_socket("CommPortThread: listen failed", WSAGetLastError());
 
 	// get the port and local hostname for the listening socket
 	if (error = NT_Tcp_get_sock_info(listen_socket, g_pProcTable[g_nIproc].host, &g_pProcTable[g_nIproc].listen_port))
-		nt_error("CommPortThread: Unable to get host and port of listening socket", error);
+		nt_error_socket("CommPortThread: Unable to get host and port of listening socket", error);
 
 	// Create the completion port
 	g_hCommPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, g_NumCommPortThreads);
 	if (g_hCommPort == NULL)
-		nt_error("CommPortThread: CreateIoCompletionPort failed", GetLastError());
+		nt_error_socket("CommPortThread: CreateIoCompletionPort failed", GetLastError());
 
+	hWorkers = new HANDLE[g_NumCommPortThreads];
 	// Start the completion port threads
 	for (i=0; i<g_NumCommPortThreads; i++)
 	{
-	    HANDLE hWorkerThread;
-	    hWorkerThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CommPortWorkerThread, NULL, NT_THREAD_STACK_SIZE, &dwThreadID);
-	    if (hWorkerThread == NULL)
-		nt_error("CommPortThread: CreateThread(CommPortWorkerThread) failed", GetLastError());
-	    CloseHandle(hWorkerThread);
+	    //HANDLE hWorkerThread;
+	    hWorkers[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)CommPortWorkerThread, NULL, NT_THREAD_STACK_SIZE, &dwThreadID);
+	    if (hWorkers[i] == NULL)
+		nt_error_socket("CommPortThread: CreateThread(CommPortWorkerThread) failed", GetLastError());
+	    //CloseHandle(hWorkerThread);
 	}
 
 	// Signal that the port number is valid
 	if (!SetEvent(hReadyEvent))
-		nt_error("CommPortThread: SetEvent(hReadyEvent) failed", GetLastError());
+		nt_error_socket("CommPortThread: SetEvent(hReadyEvent) failed", GetLastError());
 
 	while (true)
 	{
 		ret_val = WaitForMultipleObjects(num_handles, ahEvent, FALSE, INFINITE);
 		if (ret_val != WAIT_OBJECT_0 && ret_val != WAIT_OBJECT_0+1)
 		{
-			nt_error("CommPortThread: Wait failed", GetLastError());
+			nt_error_socket("CommPortThread: Wait failed", GetLastError());
 			return;
 		}
 
@@ -254,6 +266,10 @@ void CommPortThread(HANDLE hReadyEvent)
 				DPRINTF(("process %d: Exit command.\n", g_nIproc));
 				for (i=0; i<g_NumCommPortThreads; i++)
 					PostQueuedCompletionStatus(g_hCommPort, 0, EXIT_WORKER_KEY, NULL);
+				WaitForMultipleObjects(g_NumCommPortThreads, hWorkers, TRUE, 5000);
+				for (i=0; i<g_NumCommPortThreads; i++)
+				    CloseHandle(hWorkers[i]);
+				delete hWorkers;
 				CloseHandle(g_hAddSocketMutex);
 				CloseHandle(g_hCommPortEvent); 
 				CloseHandle(g_hCommPort);
@@ -281,7 +297,7 @@ void CommPortThread(HANDLE hReadyEvent)
 			{
 				// Create an event and associate it with the newly accepted socket
 				//if (setsockopt(temp_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&opt, sizeof(BOOL)) == SOCKET_ERROR)
-					//nt_error("setsockopt failed", WSAGetLastError());
+					//nt_error_socket("setsockopt failed", WSAGetLastError());
 				if (setsockopt(temp_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&opt, sizeof(BOOL)) == SOCKET_ERROR)
 				{
 				    error = WSAGetLastError();
@@ -298,25 +314,25 @@ void CommPortThread(HANDLE hReadyEvent)
 						{
 						    error = WSAGetLastError();
 						    if (error != WSAENOBUFS)
-							nt_error("setsockopt failed in CommPortThread", error);
+							nt_error_socket("setsockopt failed in CommPortThread", error);
 						}
 					    }
 					    else
-						nt_error("setsockopt failed in CommPortThread", error);
+						nt_error_socket("setsockopt failed in CommPortThread", error);
 					}
 				    }
 				    else
-					nt_error("setsockopt failed in CommPortThread", error);
+					nt_error_socket("setsockopt failed in CommPortThread", error);
 				}
 
 				if ((temp_event = WSACreateEvent()) == WSA_INVALID_EVENT)
-					nt_error("WSACreateEvent failed after accepting socket", WSAGetLastError());
+					nt_error_socket("WSACreateEvent failed after accepting socket", WSAGetLastError());
 				if (WSAEventSelect(temp_socket, temp_event, FD_READ | FD_CLOSE) == SOCKET_ERROR)
-					nt_error("WSAEventSelect failed after accepting socket", WSAGetLastError());
+					nt_error_socket("WSAEventSelect failed after accepting socket", WSAGetLastError());
 				
 				// Receive the rank of the remote process
 				if (ret_val = ReceiveBlocking(temp_socket, temp_event, (char*)&remote_iproc, sizeof(int), 0))
-					nt_error("ReceiveBlocking remote_iproc failed after accepting socket", ret_val);
+					nt_error_socket("ReceiveBlocking remote_iproc failed after accepting socket", ret_val);
 				
 				if (remote_iproc >= 0 && remote_iproc < g_nNproc)
 				{
@@ -341,7 +357,7 @@ void CommPortThread(HANDLE hReadyEvent)
 					    
 					    // Associate the socket with the completion port
 					    if (CreateIoCompletionPort((HANDLE)temp_socket, g_hCommPort, remote_iproc, g_NumCommPortThreads) == NULL)
-						nt_error("Unable to associate completion port with socket", GetLastError());
+						nt_error_socket("Unable to associate completion port with socket", GetLastError());
 					    
 					    // Post the first read from the socket
 					    g_pProcTable[remote_iproc].msg.ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -388,7 +404,7 @@ void CommPortThread(HANDLE hReadyEvent)
 					    
 					    // Associate the socket with the completion port
 					    if (CreateIoCompletionPort((HANDLE)temp_socket, g_hCommPort, remote_iproc, g_NumCommPortThreads) == NULL)
-						nt_error("Unable to associate completion port with socket", GetLastError());
+						nt_error_socket("Unable to associate completion port with socket", GetLastError());
 					    
 					    // Post the first read from the socket
 					    g_pProcTable[remote_iproc].msg.ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -431,7 +447,7 @@ void CommPortThread(HANDLE hReadyEvent)
 				error = WSAGetLastError();
 				if (error != WSAEWOULDBLOCK)
 				{
-					nt_error("CommPortThread: accept failed", error);
+					nt_error_socket("CommPortThread: accept failed", error);
 					return;
 				}
 			}
@@ -523,11 +539,11 @@ int ConnectTo(int remote_iproc)
 	// create the event
 	temp_event = WSACreateEvent();
 	if (temp_event == WSA_INVALID_EVENT)
-		nt_error("WSACreateEvent failed in ConnectTo", WSAGetLastError());
+		nt_error_socket("WSACreateEvent failed in ConnectTo", WSAGetLastError());
 	// create the socket
 	temp_socket = WSASocket(PF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (temp_socket == INVALID_SOCKET)
-		nt_error("socket failed in ConnectTo", WSAGetLastError());
+		nt_error_socket("socket failed in ConnectTo", WSAGetLastError());
 
 	optval = 32*1024;
 	setsockopt(temp_socket, SOL_SOCKET, SO_RCVBUF, (char*)&optval, sizeof(int));
@@ -554,15 +570,15 @@ int ConnectTo(int remote_iproc)
 			    {
 				error = WSAGetLastError();
 				if (error != WSAENOBUFS)
-				    nt_error("setsockopt failed in ConnectTo", error);
+				    nt_error_socket("setsockopt failed in ConnectTo", error);
 			    }
 			}
 			else
-				nt_error("setsockopt failed in ConnectTo", error);
+				nt_error_socket("setsockopt failed in ConnectTo", error);
 		    }
 		}
 		else
-			nt_error("setsockopt failed in ConnectTo", error);
+			nt_error_socket("setsockopt failed in ConnectTo", error);
 	}
 
 #ifdef USE_LINGER_SOCKOPT
@@ -573,11 +589,11 @@ int ConnectTo(int remote_iproc)
 #endif
 
 	if (WSAEventSelect(temp_socket, temp_event, FD_READ | FD_CLOSE) == SOCKET_ERROR)
-		nt_error("WSAEventSelect failed in ConnectTo", WSAGetLastError());
+		nt_error_socket("WSAEventSelect failed in ConnectTo", WSAGetLastError());
 	
 	// Send my rank so the remote side knows who is connecting
 	if (SendBlocking(temp_socket, (char*)&g_nIproc, sizeof(int), 0) == SOCKET_ERROR)
-		nt_error("send g_nIproc failed in ConnectTo", WSAGetLastError());
+		nt_error_socket("send g_nIproc failed in ConnectTo", WSAGetLastError());
 
 	// Receive an ack determining whether the connection was added to the list or not
 	if (ret_val = ReceiveBlocking(temp_socket, temp_event, &ack, 1, 0))
@@ -591,7 +607,7 @@ int ConnectTo(int remote_iproc)
 
 		// Associate the socket with the completion port
 		if (CreateIoCompletionPort((HANDLE)temp_socket, g_hCommPort, remote_iproc, g_NumCommPortThreads) == NULL)
-			nt_error("Unable to associate completion port with socket", GetLastError());
+			nt_error_socket("Unable to associate completion port with socket", GetLastError());
 
 		// Post the first read from the socket
 		g_pProcTable[remote_iproc].msg.ovl.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);

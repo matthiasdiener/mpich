@@ -740,3 +740,94 @@ void p4_yield( void )
 #endif
 }
 #endif
+
+/*
+ * Check to see if ANY messages are available, without trying to receive them.
+ * This is basically a "probe(anytag, anysource)", and provides the function
+ * of a generalized Unix select.  In particular, we don't distinguish between
+ * actual messages and EOF or error conditions.  The idea is that those
+ * will be handled when the message is received.  The primary use of this 
+ * routine is as a blocking call for *any* message activity, where the
+ * application is receiving messages in different routines, determined by
+ * the message tag.  This routine is basically a merge of p4_recv and 
+ * recv_message, with all actual data transfers eliminated.
+ */
+int p4_waitformsg( void )
+{
+    struct p4_msg *tmsg;
+
+    p4_dprintfl(20, "waiting for message" );
+
+    ALOG_LOG(p4_local->my_id,END_USER,0,"");
+    ALOG_LOG(p4_local->my_id,BEGIN_WAIT,0,"");
+    if ((tmsg = search_p4_queue(-1,-1, 0)))
+	return 1;
+	/* If no message in the queues, wait for one to show up. */
+#if  defined(CAN_DO_SOCKET_MSGS) && \
+    !defined(CAN_DO_SHMEM_MSGS)  && \
+    !defined(CAN_DO_CUBE_MSGS)   && \
+    !defined(CAN_DO_SWITCH_MSGS) && \
+    !defined(CAN_DO_TCMP_MSGS)
+    /* Only socket messages */
+    p4_wait_for_socket_msg( 1 );
+#else
+    {
+	int i;
+#ifdef USE_YIELD
+	int cnt = 0;
+#define BACKOFF_LIMIT 8
+	/* If a yield method has been selected, yield after BACKOFF 
+	   cycles.  
+	   We also spin a few times on the shmem messages first,
+	   since communication here will be faster and the
+	   added latency of spinning on the shmem_msgs will
+	   be neglible for the other devices
+	*/
+#endif
+	while (P4_TRUE) {
+#       if defined(CAN_DO_SHMEM_MSGS)
+	    /* Optimally, this would spin for the round-trip time. 
+	       Figure that at 5 us, and a very conservative .1us per
+	       function call (in 2002, probably a gross overestimate),
+	       that suggests at least 50 iterations.  We'll try 50
+	       (that should be safe - shmem_msgs_available
+	       is a short routine).   This could be tuned for
+	       different platforms.
+	    */
+	    for (i=0; i<50; i++) {
+		if (shmem_msgs_available()) {
+		    /* Break out of while loop */
+		    goto endwhile;
+		}
+	    }
+#       endif
+
+#       if defined(CAN_DO_EUI_MSGS) || defined(CAN_DO_EUIH_MSGS) || \
+           defined(CAN_DO_CUBE_MSGS) || defined(CAN_DO_SWITCH_MSGS) || \
+           defined(CAN_DO_TCMP_MSGS)
+#          abort "Unsupported"
+#       endif
+
+#       if defined(CAN_DO_SOCKET_MSGS)
+	    if (p4_wait_for_socket_msg( 0 )) {
+		break;
+	    }
+#       endif
+
+#       ifdef USE_YIELD
+	    if (cnt++ > BACKOFF_LIMIT) {
+		cnt = 0;
+		p4_yield();
+	    }
+#       endif
+	}
+    }
+#endif /* only socket msgs */
+#ifdef CAN_DO_SHMEM_MSGS
+ endwhile:
+#endif
+    ALOG_LOG(p4_local->my_id,END_WAIT,0,"");
+    ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
+
+    return (1);
+}

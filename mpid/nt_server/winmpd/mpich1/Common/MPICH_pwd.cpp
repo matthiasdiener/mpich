@@ -415,4 +415,3 @@ BOOL ReadPasswordFromRegistry(TCHAR *szAccount, TCHAR *szPassword)
 
 	return bResult;
 }
-

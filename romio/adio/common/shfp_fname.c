@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: shfp_fname.c,v 1.3 2001/11/27 19:23:30 ashton Exp $    
+ *   $Id: shfp_fname.c,v 1.4 2002/10/24 17:01:15 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

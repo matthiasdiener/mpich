@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil2.c,v 1.13 2001/10/19 22:01:20 gropp Exp $
+ *  $Id: bsendutil2.c,v 1.14 2002/11/27 19:58:10 gropp Exp $
  *
  *  (C) 1993, 1996 by Argonne National Laboratory and 
  *      Mississipi State University.
@@ -278,7 +278,7 @@ static BSendData *MPIR_MergeBlock( BSendData *b )
 		     (long)tp, (long)b );
 #endif                 /* #DEBUG_BSEND_END# */
 	b->next = tp->next;
-	if (tp->next) tp->next->prev = b->prev;
+	if (tp->next) tp->next->prev = b;  
 	b->len += tp->len + sizeof(BSendData);
     }
     DEBUG_PRINT("Exiting MPIR_MergeBlock");

@@ -127,6 +127,61 @@ for pac_file in $1 ; do
     ifelse($2,,,chmod $2 $pac_file)
 done
 ])dnl
+dnl
+dnl This is a replacement for AC_PROG_CC that does not prefer gcc and
+dnl that does not mess with CFLAGS.  See acspecific.m4 for the original defn.
+dnl
+dnl/*D
+dnl PAC_PROG_CC - Find a working C compiler
+dnl
+dnl Synopsis:
+dnl PAC_PROG_CC
+dnl
+dnl Output Effect:
+dnl   Sets the variable CC if it is not already set
+dnl
+dnl Notes:
+dnl   Unlike AC_PROG_CC, this does not prefer gcc and does not set CFLAGS.
+dnl   It does check that the compiler can compile a simple C program.
+dnl   It also sets the variable GCC to yes if the compiler is gcc.  It does
+dnl   not yet check for some special options needed in particular for
+dnl   parallel computers, such as -Tcray-t3e, or special options to get
+dnl   full ANSI/ISO C, such as -Aa for HP.
+dnl
+dnlD*/
+AC_DEFUN(PAC_PROG_CC,[
+AC_PROVIDE([AC_PROG_CC])
+AC_CHECK_PROGS(CC, cc xlC xlc pgcc icc gcc )
+test -z "$CC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
+PAC_PROG_CC_WORKS
+AC_PROG_CC_GNU
+if test $ac_cv_prog_gcc = yes; then
+  GCC=yes
+else
+  GCC=
+fi
+])
+dnl
+#
+# This is a replacement that checks that FAILURES are signaled as well
+# (later configure macros look for the .o file, not just success from the
+# compiler, but they should not HAVE to
+#
+dnl --- insert 2.52 compatibility here ---
+dnl
+AC_DEFUN(PAC_PROG_CC_WORKS,
+[AC_PROG_CC_WORKS
+AC_MSG_CHECKING([whether the C compiler sets its return status correctly])
+AC_LANG_SAVE
+AC_LANG_C
+AC_TRY_COMPILE(,[int a = bzzzt;],notbroken=no,notbroken=yes)
+AC_MSG_RESULT($notbroken)
+if test "$notbroken" = "no" ; then
+    AC_MSG_ERROR([installation or configuration problem: C compiler does not
+correctly set error code when a fatal error occurs])
+fi
+])
+dnl
 dnl ***TAKEN FROM sowing/confdb/aclocal_cc.m4 IF YOU FIX THIS, FIX THAT
 dnl VERSION AS WELL
 dnl Check whether we need -fno-common to correctly compile the source code.

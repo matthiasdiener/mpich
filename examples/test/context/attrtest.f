@@ -11,11 +11,13 @@ C. Test data
       integer PM_TEST_INTEGER, fuzzy, Error, FazAttr
       integer PM_RANK_SELF
       integer Faz_World, FazTag
+      integer errs
       parameter (PM_TEST_INTEGER=12345)
       logical FazFlag
       external FazCreate, FazDelete
 C
 C. Initialize MPI
+      errs = 0
       call MPI_INIT(PM_GLOBAL_ERROR)
 
       PM_GLOBAL_ERROR = MPI_SUCCESS
@@ -33,6 +35,7 @@ C. is false)
      &                   FazFlag, Error)
 
       if (FazFlag) then
+         errs = errs + 1
          print *, 'Did not get flag==false when attr_get of key that'
          print *, 'had not had a value set with attr_put'
       endif
@@ -45,7 +48,8 @@ C. Check that the put worked
      &                   FazFlag, Error)
 
       if (FazAttr .ne. 120) then
-          print 1, ' Proc=',PM_Rank_self, ' ATTR=', FazAttr
+         errs = errs + 1
+         print 1, ' Proc=',PM_Rank_self, ' ATTR=', FazAttr
       endif
 C. Duplicate the Communicator and it's cached attributes
 
@@ -57,15 +61,23 @@ C. Duplicate the Communicator and it's cached attributes
 
       if (FazFlag) then
         if (FazAttr .ne. 121) then 
-            print 1, ' T-Flag, Proc=',PM_Rank_self,' ATTR=', FazAttr
+           errs = errs + 1
+           print 1, ' T-Flag, Proc=',PM_Rank_self,' ATTR=', FazAttr
         endif
       else
+         errs = errs + 1
          print 1, ' F-Flag, Proc=',PM_Rank_self,' ATTR=',FazAttr
       end if
  1    format( a, i5, a, i5 )
 
 C. Clean up MPI
-      if (PM_Rank_self .eq. 0) print *, ' End of test'
+      if (PM_Rank_self .eq. 0) then
+         if (errs .eq. 0) then
+            print *, ' No Errors'
+         else
+            print *, ' Found ', errs, ' errors'
+         endif
+      endif
       call MPI_Comm_free( Faz_WORLD, Error )
       call MPI_FINALIZE (PM_GLOBAL_ERROR)
 

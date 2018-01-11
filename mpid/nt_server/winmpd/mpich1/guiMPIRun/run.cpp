@@ -3,14 +3,13 @@
 
 #include "guiMPIRunDoc.h"
 #include "guiMPIRunView.h"
-#include "mpd.h"
 #include "MPIJobDefs.h"
+#include "mpd.h"
 #include "global.h"
 #include "MPICH_pwd.h"
 #include "LaunchProcess.h"
 #include "WaitThread.h"
 #include "UserPwdDialog.h"
-#include "bsocket.h"
 #include "RedirectIO.h"
 #include <Winnetwk.h>
 #include "mpdutil.h"
@@ -87,9 +86,9 @@ void CGuiMPIRunView::OnBreakBtn()
 	m_bNormalExit = false;
 	SetEvent(m_hAbortEvent);
 
-	if (beasy_send(m_bfdBreak, "x", 1) == SOCKET_ERROR)
+	if (easy_send(m_sockBreak, "x", 1) == SOCKET_ERROR)
 	{
-	    if (beasy_send(m_bfdStopIOSignalSocket, "x", 1) == SOCKET_ERROR)
+	    if (easy_send(m_sockStopIOSignalSocket, "x", 1) == SOCKET_ERROR)
 	    {
 		MessageBox("Break failed", "Error");
 	    }
@@ -647,7 +646,9 @@ void RunJob(CGuiMPIRunView *pDlg)
     char cMapDrive;
     CString pszMapShare;
     CString sAppOriginal;
+    CString sMapping = "";
 
+    try{
     sAppOriginal = pDlg->m_app;
     CmdLineToUnc(pDlg->m_app);
     if (pDlg->m_bUseSlaveProcess)
@@ -659,6 +660,7 @@ void RunJob(CGuiMPIRunView *pDlg)
 	pDlg->GetHosts();
     }
 
+    /*
     if (pDlg->m_bUseMapping)
     {
 	// Build the mapping nodes here
@@ -689,6 +691,7 @@ void RunJob(CGuiMPIRunView *pDlg)
 	    pDlg->m_pDriveMapList = pNode;
 	}
     }
+    */
 
     // Create a job id string
     CreateJobID(pszJobID);
@@ -767,17 +770,28 @@ void RunJob(CGuiMPIRunView *pDlg)
     }
     if (NeedToMap(pszDir, &cMapDrive, pszMapShare))
     {
+	if (pDlg->m_bUseMapping)
+	    sMapping.Format(" m='%c:%s;%s'", cMapDrive, pszMapShare, pDlg->m_Mappings);
+	else
+	    sMapping.Format(" m='%c:%s'", cMapDrive, pszMapShare);
+	/*
 	MapDriveNode *pNode = new MapDriveNode;
 	pNode->cDrive = cMapDrive;
 	strcpy(pNode->pszShare, pszMapShare);
 	pNode->pNext = pDlg->m_pDriveMapList;
 	pDlg->m_pDriveMapList = pNode;
+	*/
     }
-    
+    else
+    {
+	if (pDlg->m_bUseMapping)
+	    sMapping.Format(" m='%s'", pDlg->m_Mappings);
+    }
+
     // Allocate an array to hold handles to the LaunchProcess threads
     pDlg->m_nNumProcessThreads = 0;
     pDlg->m_pProcessThread = new HANDLE[pDlg->m_nproc];
-    pDlg->m_pProcessSocket = new int[pDlg->m_nproc];
+    pDlg->m_pProcessSocket = new SOCKET[pDlg->m_nproc];
     pDlg->m_pProcessLaunchId = new int[pDlg->m_nproc];
     pDlg->m_pLaunchIdToRank = new int[pDlg->m_nproc];
     pDlg->m_nNumProcessSockets = 0;
@@ -845,7 +859,13 @@ void RunJob(CGuiMPIRunView *pDlg)
 	for (int i = 0; i<pDlg->m_pHosts->nSMPProcs; i++)
 	{
 	    MPIRunLaunchProcessArg *arg = new MPIRunLaunchProcessArg;
+	    if (sMapping.GetLength() > 0)
+		strcpy(arg->pszMap, sMapping);
+	    else
+		arg->pszMap[0] = '\0';
+	    arg->bUseDebugFlag = pDlg->m_bCatch;
 	    arg->pDlg = pDlg;
+	    arg->n = pDlg->m_nproc;
 	    sprintf(arg->pszIOHostPort, "%s:%d", pDlg->m_pszIOHost, pDlg->m_nIOPort);
 	    strcpy(arg->pszPassPhrase, pDlg->m_Phrase);
 	    arg->i = iproc;
@@ -977,15 +997,16 @@ void RunJob(CGuiMPIRunView *pDlg)
 	char pszStr[100];
 	for (i=0; i<pDlg->m_nproc; i++)
 	{
-	    if (pDlg->m_pProcessSocket[i]!= BFD_INVALID_SOCKET)
+	    if (pDlg->m_pProcessSocket[i]!= INVALID_SOCKET)
 	    {
 		sprintf(pszStr, "kill %d", pDlg->m_pProcessLaunchId[i]);
 		WriteString(pDlg->m_pProcessSocket[i], pszStr);
-		UnmapDrives(pDlg->m_pProcessSocket[i], pDlg->m_pDriveMapList);
+		//UnmapDrives(pDlg->m_pProcessSocket[i], pDlg->m_pDriveMapList);
 		sprintf(pszStr, "freeprocess %d", pDlg->m_pProcessLaunchId[i]);
 		WriteString(pDlg->m_pProcessSocket[i], pszStr);
+		ReadString(pDlg->m_pProcessSocket[i], pszStr);
 		WriteString(pDlg->m_pProcessSocket[i], "done");
-		beasy_closesocket(pDlg->m_pProcessSocket[i]);
+		easy_closesocket(pDlg->m_pProcessSocket[i]);
 	    }
 	}
 	delete pDlg->m_pProcessThread;
@@ -1003,8 +1024,13 @@ void RunJob(CGuiMPIRunView *pDlg)
 	pDlg->m_pLaunchIdToRank = NULL;
 	pDlg->m_pForwardHost = NULL;
 	pDlg->DisableRunning();
+	if (g_bUseJobHost)
+	    UpdateJobState("ABORTED");
 	return;
     }
+
+    if (g_bUseJobHost)
+	UpdateJobState("RUNNING");
 
     pDlg->WaitForExitCommands();
 
@@ -1013,7 +1039,7 @@ void RunJob(CGuiMPIRunView *pDlg)
 
     // Signal the IO redirection thread to stop
     char ch = 0;
-    beasy_send(pDlg->m_bfdStopIOSignalSocket, &ch, 1);
+    easy_send(pDlg->m_sockStopIOSignalSocket, &ch, 1);
 
     // Signal all the threads to stop
     SetEvent(pDlg->m_hAbortEvent);
@@ -1026,7 +1052,10 @@ void RunJob(CGuiMPIRunView *pDlg)
     }
     CloseHandle(pDlg->m_hRedirectIOListenThread);
     pDlg->m_hRedirectIOListenThread = NULL;
-    beasy_closesocket(pDlg->m_bfdStopIOSignalSocket);
+    easy_closesocket(pDlg->m_sockStopIOSignalSocket);
+
+    if (g_bUseJobHost)
+	UpdateJobState("FINISHED");
 
     // Should I free the handle to this thread here?
     CloseHandle(pDlg->m_hJobThread);
@@ -1041,6 +1070,123 @@ void RunJob(CGuiMPIRunView *pDlg)
     pDlg->m_pLaunchIdToRank = NULL;
 
     pDlg->DisableRunning();
+    }catch(...)
+    {
+	MessageBox(NULL, "Unhandled exception caught in RunJob thread", "Error", MB_OK);
+    }
+}
+
+void CachePassword(const char *pszAccount, const char *pszPassword)
+{
+    int nError;
+    char *szEncodedPassword;
+    
+    TCHAR szKey[256];
+    HKEY hRegKey = NULL;
+    _tcscpy(szKey, MPICHKEY"\\cache");
+
+    RegDeleteKey(HKEY_CURRENT_USER, szKey);
+    if (RegCreateKeyEx(HKEY_CURRENT_USER, szKey,
+	0, 
+	NULL, 
+	REG_OPTION_VOLATILE,
+	KEY_ALL_ACCESS, 
+	NULL,
+	&hRegKey, 
+	NULL) != ERROR_SUCCESS) 
+    {
+	nError = GetLastError();
+	//PrintError(nError, "CachePassword:RegDeleteKey(...) failed, error: %d\n", nError);
+	return;
+    }
+    
+    // Store the account name
+    if (::RegSetValueEx(
+	hRegKey, _T("Account"), 0, REG_SZ, 
+	(BYTE*)pszAccount, 
+	sizeof(TCHAR)*(_tcslen(pszAccount)+1)
+	)!=ERROR_SUCCESS)
+    {
+	nError = GetLastError();
+	//PrintError(nError, "CachePassword:RegSetValueEx(...) failed, error: %d\n", nError);
+	::RegCloseKey(hRegKey);
+	return;
+    }
+
+    // encode the password
+    szEncodedPassword = EncodePassword((char*)pszPassword);
+
+    // Store the encoded password
+    if (::RegSetValueEx(
+	hRegKey, _T("Password"), 0, REG_SZ, 
+	(BYTE*)szEncodedPassword, 
+	sizeof(TCHAR)*(_tcslen(szEncodedPassword)+1)
+	)!=ERROR_SUCCESS)
+    {
+	nError = GetLastError();
+	//PrintError(nError, "CachePassword:RegSetValueEx(...) failed, error: %d\n", nError);
+	::RegCloseKey(hRegKey);
+	free(szEncodedPassword);
+	return;
+    }
+
+    free(szEncodedPassword);
+    ::RegCloseKey(hRegKey);
+}
+
+bool ReadCachedPassword(char *pszAccount, char *pszPassword)
+{
+    int nError;
+    char szAccount[100];
+    char szPassword[300];
+    
+    TCHAR szKey[256];
+    HKEY hRegKey = NULL;
+    _tcscpy(szKey, MPICHKEY"\\cache");
+
+    if (RegOpenKeyEx(HKEY_CURRENT_USER, szKey, 0, KEY_QUERY_VALUE, &hRegKey) == ERROR_SUCCESS) 
+    {
+	DWORD dwLength = 100;
+	*szAccount = TEXT('\0');
+	if (RegQueryValueEx(
+	    hRegKey, 
+	    _T("Account"), NULL, 
+	    NULL, 
+	    (BYTE*)szAccount, 
+	    &dwLength)!=ERROR_SUCCESS)
+	{
+	    nError = GetLastError();
+	    //PrintError(nError, "ReadPasswordFromRegistry:RegQueryValueEx(...) failed, error: %d\n", nError);
+	    ::RegCloseKey(hRegKey);
+	    return false;
+	}
+	if (_tcslen(szAccount) < 1)
+	    return false;
+
+	*szPassword = '\0';
+	dwLength = 300;
+	if (RegQueryValueEx(
+	    hRegKey, 
+	    _T("Password"), NULL, 
+	    NULL, 
+	    (BYTE*)szPassword, 
+	    &dwLength)!=ERROR_SUCCESS)
+	{
+	    nError = GetLastError();
+	    //PrintError(nError, "ReadPasswordFromRegistry:RegQueryValueEx(...) failed, error: %d\n", nError);
+	    ::RegCloseKey(hRegKey);
+	    return false;
+	}
+
+	::RegCloseKey(hRegKey);
+
+	strcpy(pszAccount, szAccount);
+	DecodePassword(szPassword);
+	strcpy(pszPassword, szPassword);
+	return true;
+    }
+
+    return false;
 }
 
 void CGuiMPIRunView::OnRunBtn()
@@ -1063,12 +1209,14 @@ void CGuiMPIRunView::OnRunBtn()
     }
     m_bLogon = false;
     m_bFirstBreak = true;
+    /*
     while (m_pDriveMapList)
     {
 	MapDriveNode *pNode = m_pDriveMapList;
 	m_pDriveMapList = m_pDriveMapList->pNext;
 	delete pNode;
     }
+    */
 
     if (m_bUseConfigFile)
     {
@@ -1115,7 +1263,10 @@ void CGuiMPIRunView::OnRunBtn()
 	m_Password = dlg.m_password;
 	if (dlg.m_remember)
 	{
-	    SavePasswordToRegistry(m_Account.GetBuffer(0), m_Password.GetBuffer(0), true);
+	    if (!SavePasswordToRegistry(m_Account.GetBuffer(0), m_Password.GetBuffer(0), true))
+	    {
+		DeleteCurrentPasswordRegistryEntry();
+	    }
 	}
 	m_bLogon = true;
     }
@@ -1127,27 +1278,34 @@ void CGuiMPIRunView::OnRunBtn()
 	    ReadMPDRegistry("SingleUser", pszTemp, NULL);
 	    if (stricmp(pszTemp, "yes"))
 	    {
-		HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
-		if (!ReadPasswordFromRegistry(m_Account.GetBuffer(100), m_Password.GetBuffer(100)))
+		if (!ReadCachedPassword(m_Account.GetBuffer(100), m_Password.GetBuffer(100)))
 		{
-		    CUserPwdDialog dlg;
-		    dlg.m_remember = FALSE;
-		    if (dlg.DoModal() != IDOK)
+		    HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
+		    if (!ReadPasswordFromRegistry(m_Account.GetBuffer(100), m_Password.GetBuffer(100)))
 		    {
-			MessageBox("No user account supplied", "Aborting application");
-			DisableRunning();
-			SetCursor(hOldCursor);
-			return;
+			CUserPwdDialog dlg;
+			dlg.m_remember = FALSE;
+			if (dlg.DoModal() != IDOK)
+			{
+			    MessageBox("No user account supplied", "Aborting application");
+			    DisableRunning();
+			    SetCursor(hOldCursor);
+			    return;
+			}
+			m_Account = dlg.m_account;
+			m_Password = dlg.m_password;
+			if (dlg.m_remember)
+			{
+			    if (!SavePasswordToRegistry(m_Account.GetBuffer(0), m_Password.GetBuffer(0), true))
+			    {
+				DeleteCurrentPasswordRegistryEntry();
+			    }
+			}
 		    }
-		    m_Account = dlg.m_account;
-		    m_Password = dlg.m_password;
-		    if (dlg.m_remember)
-		    {
-			SavePasswordToRegistry(m_Account.GetBuffer(0), m_Password.GetBuffer(0), true);
-		    }
+		    CachePassword(m_Account, m_Password);
+		    SetCursor(hOldCursor);
 		}
 		m_bLogon = true;
-		SetCursor(hOldCursor);
 	    }
 	}
 	else

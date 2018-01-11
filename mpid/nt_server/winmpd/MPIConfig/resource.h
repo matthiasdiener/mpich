@@ -16,6 +16,7 @@
 #define IDI_ICON_NO                     138
 #define IDD_CONNECTION_OPTIONS_DLG      139
 #define IDI_ICON_YES                    139
+#define IDD_WILDCARD_DLG                140
 #define IDC_FIND_BTN                    1000
 #define IDC_VERIFY_BTN                  1001
 #define IDC_SET_BTN                     1002
@@ -65,6 +66,7 @@
 #define IDC_DOMAIN_HOST_LIST            1050
 #define IDC_LAUNCH_EDIT                 1050
 #define IDC_ENCODED_HOSTS               1051
+#define IDC_CATCH_CHK                   1051
 #define IDC_HOST_HOSTS_CHK              1052
 #define IDC_DOMAIN_EDIT                 1053
 #define IDC_HOST_LAUNCH_CHK             1053
@@ -121,7 +123,28 @@
 #define IDC_APPLY_SINGLE_STATIC         1097
 #define IDC_MODIFY_STATIC               1098
 #define IDC_N_OF_M_STATIC               1099
-#define IDC_HOST_MSG_STATIC             1100
+#define IDC_CODES_CHK                   1100
+#define IDC_CATCH_YES                   1101
+#define IDC_CATCH_NO                    1102
+#define IDC_HOST_CATCH_CHK              1103
+#define IDC_HOST_CATCH_YES              1104
+#define IDC_HOST_CATCH_NO               1105
+#define IDC_HOST_MSG_STATIC             1106
+#define IDC_CODES_YES                   1107
+#define IDC_WILDSTR_EDIT                1107
+#define IDC_CODES_NO                    1108
+#define IDC_HOST_CODES_CHK              1109
+#define IDC_HOST_CODES_YES              1110
+#define IDC_HOST_CODES_NO               1111
+#define IDC_REDIRECT_MPD_CHK            1112
+#define IDC_REDIRECT_MPD_YES            1113
+#define IDC_REDIRECT_MPD_NO             1114
+#define IDC_REDIRECT_MPD_STATIC         1115
+#define IDC_REDIRECT_MPD_EDIT           1116
+#define IDC_HOST_REDIRECT_MPD_CHK       1117
+#define IDC_HOST_REDIRECT_MPD_YES       1118
+#define IDC_HOST_REDIRECT_MPD_NO        1119
+#define IDC_HOST_REDIRECT_MPD_EDIT      1120
 #define ID_FILE_FINDHOSTS               32771
 #define ID_FILE_LOADLIST                32772
 #define ID_FILE_SAVELIST                32773
@@ -129,14 +152,15 @@
 #define ID_FILE_CHANGEDOMAIN            32775
 #define ID_FILE_VERIFY                  32776
 #define ID_FILE_CONNECTIONOPTIONS       32777
+#define ID_ACTION_WILDCARDSCANHOSTS     32778
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        140
-#define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1103
+#define _APS_NEXT_RESOURCE_VALUE        141
+#define _APS_NEXT_COMMAND_VALUE         32779
+#define _APS_NEXT_CONTROL_VALUE         1108
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

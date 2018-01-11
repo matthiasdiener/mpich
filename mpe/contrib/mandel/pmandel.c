@@ -1,4 +1,4 @@
-#if HAVE_STDLIB_H
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
 #include <stdio.h>
@@ -19,9 +19,44 @@ FILE *debug_file;
 
 MPI_Datatype winspecs_type, flags_type, NUM_type, rect_type;
 
+MPE_XGraph tracking_win;
+
 void DrawImage           ( MPE_XGraph, Winspecs *, Flags * );
 void ProcessArgsFromFile ( MPE_XGraph, Winspecs *, Flags *);
 int DragZoom             ( MPE_XGraph, Flags *);
+void copyFlags(Flags *to, Flags *from);
+void free_flags_fnames(Flags *flags);
+
+void DefineMPITypes();
+void FreeMPITypes();
+
+int click_tol; /* Tolerance, in pixels, for detecting a simple mouse-click
+                  as opposed to a click and drag.
+                  This can be set from the command line with the "-tol N"
+                  option. Its default value is 2.
+               */
+
+void
+UpdateDisplay(MPE_XGraph graph, MPE_XGraph tracking_win, Flags *flags)
+{
+  int myid;
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+
+  if (flags->no_remote_X) {
+    if (myid==0) {
+      MPE_Update( graph );
+      if (flags->with_tracking_win) {
+        MPE_Update( tracking_win );
+      }
+    }
+  } else {
+    MPE_Update( graph );
+    if (flags->with_tracking_win) {
+      MPE_Update( tracking_win );
+    }
+  }
+}
 
 int main( argc, argv )
 int argc;
@@ -31,6 +66,7 @@ char **argv;
   Winspecs winspecs;
   Flags flags;
   MPE_XGraph graph;
+  int tracking_xpos, tracking_ypos; /* Position of the second X window. */
 #if DEBUG
   char fileName[50];
 #endif
@@ -44,6 +80,11 @@ char **argv;
   MPI_Init( &argc, &argv );
   MPI_Comm_rank( MPI_COMM_WORLD, &myid );
   MPI_Comm_size( MPI_COMM_WORLD, &np );
+
+  if (myid==0) {
+    click_tol = 2;
+    GetIntArg(&argc, argv, "-tol", &click_tol);
+  }
 
   if (np == 1) {
       fprintf( stderr, 
@@ -90,10 +131,60 @@ char **argv;
   GetWinspecs( &argc, argv, &winspecs );
   GetFlags( &argc, argv, &winspecs, &flags );
 
-  myWindowOpened = (MPE_Open_graphics( &graph, MPI_COMM_WORLD, (char *)0,
-				       winspecs.xpos, winspecs.ypos,
-				       winspecs.width, winspecs.height, 0 )
-		    ==MPE_SUCCESS);
+  if (flags.with_tracking_win) {
+    if ( (winspecs.xpos == -1) && (winspecs.ypos == -1))   {
+      /* Location of windows will be determined by the window manager. */
+      tracking_xpos = -1;
+      tracking_ypos = -1;
+    } else {
+      /* Place the windows side-by-side. */
+      tracking_ypos = winspecs.ypos;
+      if (winspecs.xpos >= 0) {
+        tracking_xpos = winspecs.xpos + (winspecs.width + 20);
+      } else {
+        tracking_xpos = winspecs.xpos - (winspecs.width + 20);
+      }
+    }
+  }
+
+  tracking_win = (MPE_XGraph) 0;
+  graph        = (MPE_XGraph) 0;
+  myWindowOpened = 1;
+
+  if (flags.no_remote_X) {
+
+    if (myid==0) {
+
+      /* Only rank 0 opens X display windows. */
+      myWindowOpened = (MPE_Open_graphics(&graph, MPI_COMM_SELF, 0,
+                                          winspecs.xpos, winspecs.ypos,
+                                          winspecs.width, winspecs.height, 0)
+                        == MPE_SUCCESS);
+      if (myWindowOpened && flags.with_tracking_win) {
+        myWindowOpened = myWindowOpened &&
+                         (MPE_Open_graphics(&tracking_win, MPI_COMM_SELF, 0,
+                                            tracking_xpos, tracking_ypos,
+                                            winspecs.width, winspecs.height, 0)
+                          == MPE_SUCCESS);
+      }
+    }
+
+  } else {
+
+      /* All ranks open the X display windows. */
+      myWindowOpened = (MPE_Open_graphics(&graph, MPI_COMM_WORLD, (char *)0,
+					  winspecs.xpos, winspecs.ypos,
+					  winspecs.width, winspecs.height, 0)
+		    == MPE_SUCCESS);
+    if (myWindowOpened && flags.with_tracking_win) {
+      myWindowOpened = myWindowOpened &&
+                       (MPE_Open_graphics(&tracking_win, MPI_COMM_WORLD, 0,
+	  			          tracking_xpos, tracking_ypos,
+				          winspecs.width, winspecs.height, 0)
+		      == MPE_SUCCESS);
+    }
+  }
+
 #if DEBUG
   fprintf( debug_file, "[%d] connected? %d\n", myid, myWindowOpened );
   fflush( debug_file );
@@ -103,7 +194,7 @@ char **argv;
 		 MPI_COMM_WORLD );
 
   if (allWindowsOpened) {
-    if (myid == 1) {
+    if (myid == 0) {
 	/* Check for movie file flag */
 	if (IsArgPresent( &argc, argv, "-movie" )) {
 	    int freq = 1;
@@ -111,28 +202,83 @@ char **argv;
 	    MPE_CaptureFile( graph, "mandel_out", freq );
 	    }
 	}
+
     if (!winspecs.bw) {
       winspecs.colorArray = (MPE_Color *) malloc( winspecs.numColors * 
 						  sizeof( MPE_Color ) );
-      MPE_Make_color_array( graph, winspecs.numColors, winspecs.colorArray );
+      if (flags.no_remote_X) {
+        if (myid==0) {
+          MPE_Make_color_array( graph, winspecs.numColors,
+                                winspecs.colorArray );
+
+          if (flags.with_tracking_win) {
+            MPE_Make_color_array( tracking_win, winspecs.numColors,
+                                  winspecs.colorArray );
+          }
+        }
+        MPI_Bcast(winspecs.colorArray, winspecs.numColors, MPI_INT,
+              0, MPI_COMM_WORLD );
+      } else {
+
+        MPE_Make_color_array( graph, winspecs.numColors,
+                              winspecs.colorArray );
+        if (flags.with_tracking_win) {
+          MPE_Make_color_array( tracking_win, winspecs.numColors,
+                                winspecs.colorArray );
+        }
+      }
     }
+
+    /* 
+     * DrawImage() contains the main program loop 
+     */
     DrawImage( graph, &winspecs, &flags );
     if (!myid) {
       fprintf( stderr, "Press <Return> to close window\n" );
-      while (getchar()!='\n');
+      while (getchar()!='\n')
+	  ;
     }
-    MPI_Barrier( MPI_COMM_WORLD );
-    MPE_Close_graphics( &graph );
-  } else {
-    if (!myid) {
-      fprintf( stderr, "One or more processes could not connect\n" );
-      fprintf( stderr, "to the display.  Exiting.\n\n" );
-     }
-    if (myWindowOpened)
-      MPE_Close_graphics( &graph );
-  }
 
+    if (flags.no_remote_X) {
+      if (myid==0) {
+        MPE_Close_graphics( &graph );
+        if (flags.with_tracking_win) {
+          MPE_Close_graphics( &tracking_win );
+        }
+      }
+    } else {
+      MPE_Close_graphics( &graph );
+      if (flags.with_tracking_win) {
+        MPE_Close_graphics( &tracking_win );
+      }
+    }
+
+    if (!winspecs.bw) {
+      free(winspecs.colorArray);
+    }
+  } else {
+
+    if (!myid) {
+      if (flags.no_remote_X) {
+        fprintf( stderr, "Rank 0 could not connect to the display. "
+                 "Exiting.\n\n" );
+      } else {
+	  fprintf( stderr, "One or more processes could not connect\n" );
+	  fprintf( stderr, "to the display.  Exiting.\n\n" );
+      }
+    }
+    if ( graph != (MPE_XGraph) 0) {
+	MPE_Close_graphics( &graph );
+    }
+    
+    if ( tracking_win != (MPE_XGraph) 0) {
+	MPE_Close_graphics( &tracking_win );
+    }
+  }
+  FreeMPITypes();
   MPI_Finalize();
+
+  return 0;
 }
 
 void ProcessArgsFromFile( graph, winspecs, oldFlags )
@@ -145,6 +291,9 @@ Flags *oldFlags;
   int doOneMore, ndrawn, myid, argc;
   xpand_list_Strings *argList;
   FILE *inf;
+  int x1,y1,pressed,button;
+  char copies[30][50];
+  int  c;
 
   MPI_Comm_rank( MPI_COMM_WORLD, &myid );
 
@@ -153,6 +302,7 @@ Flags *oldFlags;
 #endif
 
   if (myid == 0) {
+    doOneMore = 1;
     if (!oldFlags->inf || strcmp( oldFlags->inf, "-" ) == 0) {
       inf = stdin;
     } else {
@@ -161,9 +311,9 @@ Flags *oldFlags;
 	fprintf( stderr, "Sorry, could not open %s, skipping.\n",
 		oldFlags->inf );
 	doOneMore = 0;
-	MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
       }
     }
+    MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
 
 #if DEBUG
     fprintf( stderr, "%d opened input file\n", myid );
@@ -183,13 +333,14 @@ Flags *oldFlags;
 	argList = Strings_CreateList(10);
 	Strings_AddItem( argList, oldFlags->inf );
 	tok = strtok( line, " \t" );
+	c=0;
 	while (tok) {
-	  copy = (char *) malloc( sizeof( char ) * strlen( tok ) + 1 );
-	  strcpy( copy, tok );
-	  Strings_AddItem( argList, copy );
+	  strcpy( copies[c], tok );
+	  Strings_AddItem( argList, copies[c]);
+          c++;
 	  tok = strtok( (char *)0, " \t" );
 	}
-	newFlags = *oldFlags;
+	copyFlags(&newFlags, oldFlags);
 	newFlags.inf = (char *)0;
 	newFlags.loop = 0;
 	newFlags.zoom = 0;
@@ -199,23 +350,36 @@ Flags *oldFlags;
 	MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
 	GetFlags( &argc, argv, winspecs, &newFlags );
 	DrawImage( graph, winspecs, &newFlags );
+
+        ListDestroy(argList);
+
+        fprintf(stderr, "Press any mouse button to quit.\n" );
+        MPE_Iget_mouse_press(graph, &x1, &y1, &button, &pressed );
+        if (pressed) {
+          doOneMore = 0;
+	}
+        MPI_Bcast(&doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
+        if (!doOneMore) {
+          break;
+        }
       }
     }
-    doOneMore = 0;
-    MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
 
   } else {
+    /* For the slave processes */
     MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
     argc = 0;
     argv = 0;
+    free_flags_fnames(oldFlags);
     while (doOneMore) {
 #if DEBUG
 	fprintf( stderr, "%d About to do one more loop\n", myid );
 #endif
-      newFlags = *oldFlags;
+      copyFlags(&newFlags, oldFlags);
       GetFlags( &argc, argv, winspecs, &newFlags );
       DrawImage( graph, winspecs, &newFlags );
       MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
+      free_flags_fnames(&newFlags);
     }
   }
 
@@ -252,23 +416,37 @@ Flags *flags;
     
     drawAnother = 0;
     
+    /* Here is the MAIN LOOP */
     do {
 #if DEBUG
 	fprintf( stderr, "%d in drawing loop\n", myid );
 #endif
       MPE_INIT_LOG();
       if (myid == 0) {
+
+        /* Clear the output display */
 	MPE_Fill_rectangle( graph, 0, 0, winspecs->width, winspecs->height,
 			   MPE_WHITE );
-	fprintf( stdout, "Drawing region -rmin %.17lf -imin %.17lf -rmax %.17lf -imax %.17lf\n",
+
+        if (flags->with_tracking_win) {
+	  MPE_Fill_rectangle(tracking_win,0,0,winspecs->width, winspecs->height,
+		  	     MPE_WHITE );
+        }
+
+	fprintf(stderr, "Drawing region "
+                "-rmin %.17lf -imin %.17lf -rmax %.17lf -imax %.17lf  max. iters:%d\n",
 		NUM2DBL( flags->rmin ), NUM2DBL( flags-> imin ),
-		NUM2DBL( flags->rmax ), NUM2DBL( flags-> imax ) );
-	MPE_Update( graph );
-	SeparateRect_Master( winspecs, flags );
+		NUM2DBL( flags->rmax ), NUM2DBL( flags-> imax ), 
+                flags->maxiter);
+
+        UpdateDisplay(graph, tracking_win, flags);
+	SeparateRect_Master( graph, winspecs, flags );
       } else {
 	SeparateRect_Slave( graph, winspecs, flags );
       }
-      MPE_Update( graph );
+
+      UpdateDisplay(graph, tracking_win, flags);
+
       MPI_Barrier( MPI_COMM_WORLD );
 #if LOG
       if (!myid && flags->logfile) {
@@ -298,21 +476,17 @@ Flags *flags;
 {
   int x1, y1, x2, y2, i, myid, button;
   NUM zx1, zy1, zx2, zy2;
+  int okay = 1;
   
   MPI_Comm_rank( MPI_COMM_WORLD, &myid );
 
   if (!myid) {
-    fprintf( stdout, "Ready for zoom rectangle\n" );
-    /*
-    printf( "Ready for zoom rectangle; button 2 to quit.\n" );
-    MPE_Iget_mouse_press( graph, &x1, &y1, &button, &i );
-    if (i && button == MPE_BUTTON2) {
-	return 0;
-	}
-    else
-    */
-        {
-	MPE_Get_drag_region( graph, 1, MPE_DRAG_SQUARE, &x1, &y1, &x2, &y2 );
+    fprintf(stderr, "Ready for zoom rectangle (single mouse click to quit)\n" );
+    MPE_Get_drag_region( graph, 1, MPE_DRAG_SQUARE, &x1, &y1, &x2, &y2 );
+    if ( (abs(x1-x2)<=click_tol) && (abs(y1-y2)<=click_tol) ) {
+      okay = 0; /* Quit if the user clicked without dragging (much). */
+    } else {
+
 	if (x1>x2) {i=x1; x1=x2; x2=i;}
 	if (y1>y2) {i=y1; y1=y2; y2=i;}
 	Pixel2Complex( flags, x1, y1, &zx1, &zy1 );
@@ -327,10 +501,57 @@ Flags *flags;
 	   x1, y1, x2, y2, flags->rmin, flags->imin,
 	   flags->rmax, flags->imax );
        */
-	}
+    }
   }
 
   MPI_Bcast( flags, 1, flags_type, 0, MPI_COMM_WORLD );
-  return 1;
+  MPI_Bcast( &okay, 1, MPI_INT, 0, MPI_COMM_WORLD );
+  return okay;
 }
 
+void
+copyFlags(Flags *to, Flags *from)
+{
+  to->logfile = from->logfile;
+  to->inf = from->inf;
+  to->outf = from->outf;
+  to->winspecs = from->winspecs;
+  to->breakout = from->breakout;
+  to->randomize = from->randomize;
+  to->colReduceFactor = from->colReduceFactor;
+  to->loop = from->loop;
+  to->zoom = from->zoom;
+  to->askNeighbor = from->askNeighbor;
+  to->sendMasterComplexity = from->sendMasterComplexity;
+  to->drawBlockRegion = from->drawBlockRegion;
+  to->fractal = from->fractal;
+  to->maxiter = from->maxiter;
+  to->with_tracking_win = from->with_tracking_win;
+  to->no_remote_X = from->no_remote_X;
+  to->boundary_sq = from->boundary_sq;
+  to->epsilon = from->epsilon;
+  to->rmin = from->rmin;
+  to->rmax = from->rmax;
+  to->imin = from->imin;
+  to->imax = from->imax;
+  to->julia_r = from->julia_r;
+  to->julia_i = from->julia_i;
+}
+
+
+void
+free_flags_fnames(Flags *flags)
+{
+  if (flags->logfile != 0) {
+    free(flags->logfile);
+    flags->logfile = 0;
+  }
+  if (flags->inf != 0) {
+    free(flags->inf);
+    flags->inf = 0;
+  }
+  if (flags->outf != 0) {
+    free(flags->outf);
+    flags->outf = 0;
+  }
+}

@@ -39,8 +39,8 @@ the mpirun provided by MPICH.
 
 For a quick overview of the performance of your system, try
 
-   mpirun -np 2 -logscale
-   mpirun -np 16 -bisect -logscale
+   mpirun -np 2 mpptest -logscale
+   mpirun -np 16 mpptest -bisect -logscale
 
 (the latter assumes that you have 16 processors).
 

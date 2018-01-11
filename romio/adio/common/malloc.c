@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: malloc.c,v 1.6 2000/02/09 21:30:08 thakur Exp $    
+ *   $Id: malloc.c,v 1.9 2002/10/24 17:01:15 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -14,20 +15,22 @@
    Later on, add some tracing and error checking, similar to 
    MPID_trmalloc. */
 
-/* can't include adio.h here, because of the macro */
+/* can't include adio.h here, because of the macro, so 
+ * include romioconf.h to make sure config-time defines get included */
 
+#include "romioconf.h"
 #include "mpi.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include "mpipr.h"
 
 #define FPRINTF fprintf
-void *ADIOI_Malloc(size_t size, int lineno, char *fname);
-void *ADIOI_Calloc(size_t nelem, size_t elsize, int lineno, char *fname);
-void *ADIOI_Realloc(void *ptr, size_t size, int lineno, char *fname);
-void ADIOI_Free(void *ptr, int lineno, char *fname);
+void *ADIOI_Malloc_fn(size_t size, int lineno, char *fname);
+void *ADIOI_Calloc_fn(size_t nelem, size_t elsize, int lineno, char *fname);
+void *ADIOI_Realloc_fn(void *ptr, size_t size, int lineno, char *fname);
+void ADIOI_Free_fn(void *ptr, int lineno, char *fname);
 
-void *ADIOI_Malloc(size_t size, int lineno, char *fname)
+void *ADIOI_Malloc_fn(size_t size, int lineno, char *fname)
 {
     void *new;
 
@@ -45,7 +48,7 @@ void *ADIOI_Malloc(size_t size, int lineno, char *fname)
 }
 
 
-void *ADIOI_Calloc(size_t nelem, size_t elsize, int lineno, char *fname)
+void *ADIOI_Calloc_fn(size_t nelem, size_t elsize, int lineno, char *fname)
 {
     void *new;
 
@@ -59,7 +62,7 @@ void *ADIOI_Calloc(size_t nelem, size_t elsize, int lineno, char *fname)
 }
 
 
-void *ADIOI_Realloc(void *ptr, size_t size, int lineno, char *fname)
+void *ADIOI_Realloc_fn(void *ptr, size_t size, int lineno, char *fname)
 {
     void *new;
 
@@ -72,7 +75,7 @@ void *ADIOI_Realloc(void *ptr, size_t size, int lineno, char *fname)
 }
 
 
-void ADIOI_Free(void *ptr, int lineno, char *fname)
+void ADIOI_Free_fn(void *ptr, int lineno, char *fname)
 {
     if (!ptr) {
 	FPRINTF(stderr, "Attempt to free null pointer in file %s, line %d\n", fname, lineno);

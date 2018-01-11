@@ -1,13 +1,12 @@
 #include "global.h"
 #include <stdio.h>
-#include "bsocket.h"
 #include "mpdutil.h"
 #include "RedirectIO.h"
 
-static int g_bfdListen;
+static SOCKET g_sockListen;
 static HANDLE g_hListenReleasedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-static void RedirectStdin(int bfd)
+static void RedirectStdin(SOCKET sock)
 {
     char pBuffer[1024];
     DWORD num_read;
@@ -28,21 +27,21 @@ static void RedirectStdin(int bfd)
 
     while (ReadFile(hStdin, pBuffer, 1024, &num_read, NULL))
     {
-	if (beasy_send(bfd, pBuffer, num_read) == SOCKET_ERROR)
+	if (easy_send(sock, pBuffer, num_read) == SOCKET_ERROR)
 	    break;
     }
-    beasy_closesocket(bfd);
+    easy_closesocket(sock);
 }
 
-void RedirectIOThread2(int abort_bfd)
+void RedirectIOThread2(SOCKET abort_sock)
 {
-    int client_bfd, child_abort_bfd = BFD_INVALID_SOCKET;
-    int bfdListen;
+    SOCKET client_sock, child_abort_sock = INVALID_SOCKET;
+    SOCKET sockListen;
     int n, i;
     char pBuffer[1024];
     DWORD num_read, num_written;
-    bfd_set total_set, readset;
-    int bfdActive[FD_SETSIZE];
+    fd_set total_set, readset;
+    SOCKET sockActive[FD_SETSIZE];
     int nActive = 0;
     HANDLE hStdout, hStderr, hOut;
     int nRank;
@@ -54,25 +53,25 @@ void RedirectIOThread2(int abort_bfd)
     hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
     hStderr = GetStdHandle(STD_ERROR_HANDLE);
     
-    BFD_ZERO(&total_set);
-    BFD_SET(abort_bfd, &total_set);
-    BFD_SET(g_bfdListen, &total_set);
-    bfdListen = g_bfdListen;
+    FD_ZERO(&total_set);
+    FD_SET(abort_sock, &total_set);
+    FD_SET(g_sockListen, &total_set);
+    sockListen = g_sockListen;
 
     while (true)
     {
 	readset = total_set;
-	n = bselect(0, &readset, NULL, NULL, NULL);
+	n = select(0, &readset, NULL, NULL, NULL);
 	if (n == SOCKET_ERROR)
 	{
 	    printf("RedirectIOThread2: bselect failed, error %d\n", WSAGetLastError());fflush(stdout);
-	    beasy_closesocket(abort_bfd);
+	    easy_closesocket(abort_sock);
 	    for (i=0; i<nActive; i++)
-		beasy_closesocket(bfdActive[i]);
-	    if (bfdListen != BFD_INVALID_SOCKET)
+		easy_closesocket(sockActive[i]);
+	    if (sockListen != INVALID_SOCKET)
 	    {
 		SetEvent(g_hListenReleasedEvent);
-		//beasy_closesocket(bfdListen);
+		//easy_closesocket(sockListen);
 	    }
 	    if (hChildThread != NULL)
 		CloseHandle(hChildThread);
@@ -81,13 +80,13 @@ void RedirectIOThread2(int abort_bfd)
 	if (n == 0)
 	{
 	    printf("RedirectIOThread2: bselect returned zero sockets available\n");fflush(stdout);
-	    beasy_closesocket(abort_bfd);
+	    easy_closesocket(abort_sock);
 	    for (i=0; i<nActive; i++)
-		beasy_closesocket(bfdActive[i]);
-	    if (bfdListen != BFD_INVALID_SOCKET)
+		easy_closesocket(sockActive[i]);
+	    if (sockListen != INVALID_SOCKET)
 	    {
 		SetEvent(g_hListenReleasedEvent);
-		//beasy_closesocket(bfdListen);
+		//easy_closesocket(sockListen);
 	    }
 	    if (hChildThread != NULL)
 		CloseHandle(hChildThread);
@@ -95,17 +94,17 @@ void RedirectIOThread2(int abort_bfd)
 	}
 	else
 	{
-	    if (BFD_ISSET(abort_bfd, &readset))
+	    if (FD_ISSET(abort_sock, &readset))
 	    {
 		char c;
 		bool bCloseNow = true;
-		num_read = beasy_receive(abort_bfd, &c, 1);
+		num_read = easy_receive(abort_sock, &c, 1);
 		if (num_read == 1)
 		{
 		    if (c == 0)
 		    {
-			if (child_abort_bfd != BFD_INVALID_SOCKET)
-			    beasy_send(child_abort_bfd, &c, 1);
+			if (child_abort_sock != INVALID_SOCKET)
+			    easy_send(child_abort_sock, &c, 1);
 
 			if (nActive == 0)
 			    WaitForSingleObject(hChildThread, 10000);
@@ -118,55 +117,55 @@ void RedirectIOThread2(int abort_bfd)
 		{
 		    for (i=0; i<nActive; i++)
 		    {
-			beasy_closesocket(bfdActive[i]);
+			easy_closesocket(sockActive[i]);
 		    }
 		    nActive = 0;
-		    if (child_abort_bfd == BFD_INVALID_SOCKET)
+		    if (child_abort_sock == INVALID_SOCKET)
 			SetEvent(g_hListenReleasedEvent);
 		    else
 		    {
-			beasy_send(child_abort_bfd, "x", 1);
-			beasy_closesocket(child_abort_bfd);
+			easy_send(child_abort_sock, "x", 1);
+			easy_closesocket(child_abort_sock);
 		    }
-		    beasy_closesocket(abort_bfd);
+		    easy_closesocket(abort_sock);
 		    if (hChildThread != NULL)
 			CloseHandle(hChildThread);
 		    return;
 		}
 	    }
-	    if (bfdListen != BFD_INVALID_SOCKET && BFD_ISSET(bfdListen, &readset))
+	    if (sockListen != INVALID_SOCKET && FD_ISSET(sockListen, &readset))
 	    {
 		if ((nActive + 3) >= FD_SETSIZE)
 		{
-		    int temp_bfd;
-		    MakeLoop(&temp_bfd, &child_abort_bfd);
-		    if (temp_bfd == BFD_INVALID_SOCKET || child_abort_bfd == BFD_INVALID_SOCKET)
+		    SOCKET temp_sock;
+		    MakeLoop(&temp_sock, &child_abort_sock);
+		    if (temp_sock == INVALID_SOCKET || child_abort_sock == INVALID_SOCKET)
 		    {
 			printf("Critical error: Unable to create a socket.\n");fflush(stdout);
 			break;
 		    }
 		    DWORD dwThreadId;
-		    HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_bfd, 0, &dwThreadId);
+		    HANDLE hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
 		    if (hThread == NULL)
 		    {
 			printf("Critical error: Unable to create an io thread\n");fflush(stdout);
 			break;
 		    }
 		    CloseHandle(hThread);
-		    BFD_CLR(bfdListen, &total_set);
-		    bfdListen = BFD_INVALID_SOCKET;
+		    FD_CLR(sockListen, &total_set);
+		    sockListen = INVALID_SOCKET;
 		}
 		else
 		{
-		    client_bfd = beasy_accept(bfdListen);
-		    if (client_bfd == BFD_INVALID_SOCKET)
+		    client_sock = easy_accept(sockListen);
+		    if (client_sock == INVALID_SOCKET)
 		    {
 			int error = WSAGetLastError();
 			printf("RedirectIOThread2: baccept failed: %d\n", error);fflush(stdout);
 			break;
 		    }
 		    
-		    if (beasy_receive(client_bfd, &cType, sizeof(char)) == SOCKET_ERROR)
+		    if (easy_receive(client_sock, &cType, sizeof(char)) == SOCKET_ERROR)
 		    {
 			break;
 		    }
@@ -174,12 +173,12 @@ void RedirectIOThread2(int abort_bfd)
 		    if (cType == 0)
 		    {
 			DWORD dwThreadID;
-			hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectStdin, (void*)client_bfd, 0, &dwThreadID);
+			hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectStdin, (void*)client_sock, 0, &dwThreadID);
 		    }
 		    else
 		    {
-			bfdActive[nActive] = client_bfd;
-			BFD_SET(client_bfd, &total_set);
+			sockActive[nActive] = client_sock;
+			FD_SET(client_sock, &total_set);
 			nActive++;
 		    }
 		}
@@ -189,16 +188,16 @@ void RedirectIOThread2(int abort_bfd)
 	    {
 		for (i=0; n > 0; i++)
 		{
-		    if (BFD_ISSET(bfdActive[i], &readset))
+		    if (FD_ISSET(sockActive[i], &readset))
 		    {
 			char pTemp[sizeof(int)+sizeof(char)+sizeof(int)];
-			num_read = beasy_receive(bfdActive[i], pTemp, sizeof(int)+sizeof(char)+sizeof(int));
+			num_read = easy_receive(sockActive[i], pTemp, sizeof(int)+sizeof(char)+sizeof(int));
 			if (num_read == SOCKET_ERROR || num_read == 0)
 			{
-			    BFD_CLR(bfdActive[i], &total_set);
-			    beasy_closesocket(bfdActive[i]);
+			    FD_CLR(sockActive[i], &total_set);
+			    easy_closesocket(sockActive[i]);
 			    nActive--;
-			    bfdActive[i] = bfdActive[nActive];
+			    sockActive[i] = sockActive[nActive];
 			    i--;
 			    //printf("(-%d)", nActive);fflush(stdout);
 			}
@@ -207,13 +206,13 @@ void RedirectIOThread2(int abort_bfd)
 			    nDatalen = *(int*)pTemp;
 			    cType = pTemp[sizeof(int)];
 			    nRank = *(int*)&pTemp[sizeof(int)+sizeof(char)];
-			    num_read = beasy_receive(bfdActive[i], pBuffer, nDatalen);
+			    num_read = easy_receive(sockActive[i], pBuffer, nDatalen);
 			    if (num_read == SOCKET_ERROR || num_read == 0)
 			    {
-				BFD_CLR(bfdActive[i], &total_set);
-				beasy_closesocket(bfdActive[i]);
+				FD_CLR(sockActive[i], &total_set);
+				easy_closesocket(sockActive[i]);
 				nActive--;
-				bfdActive[i] = bfdActive[nActive];
+				sockActive[i] = sockActive[nActive];
 				i--;
 				//printf("(-%d)", nActive);fflush(stdout);
 			    }
@@ -261,26 +260,26 @@ void RedirectIOThread2(int abort_bfd)
 
     for (i=0; i<nActive; i++)
     {
-	beasy_closesocket(bfdActive[i]);
+	easy_closesocket(sockActive[i]);
     }
-    if (child_abort_bfd == BFD_INVALID_SOCKET)
+    if (child_abort_sock == INVALID_SOCKET)
 	SetEvent(g_hListenReleasedEvent);
     else
     {
-	beasy_send(child_abort_bfd, "x", 1);
-	beasy_closesocket(child_abort_bfd);
+	easy_send(child_abort_sock, "x", 1);
+	easy_closesocket(child_abort_sock);
     }
-    beasy_closesocket(abort_bfd);
+    easy_closesocket(abort_sock);
     if (hChildThread != NULL)
 	CloseHandle(hChildThread);
 }
 
 void RedirectIOThread(HANDLE hReadyEvent)
 {
-    int client_bfd, signal_bfd, child_abort_bfd = BFD_INVALID_SOCKET;
-    int bfdListen;
+    SOCKET client_sock, signal_sock, child_abort_sock = INVALID_SOCKET;
+    SOCKET sockListen;
     int n, i;
-    int bfdStopIOSignalSocket;
+    SOCKET sockStopIOSignalSocket;
     char pBuffer[1024];
     DWORD num_read, num_written;
     HANDLE hStdout, hStderr, hOut;
@@ -294,56 +293,56 @@ void RedirectIOThread(HANDLE hReadyEvent)
     hStderr = GetStdHandle(STD_ERROR_HANDLE);
 
     // Create a listener
-    if (beasy_create(&g_bfdListen, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
+    if (easy_create(&g_sockListen, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
     {
 	int error = WSAGetLastError();
-	printf("RedirectIOThread: beasy_create listen socket failed: error %d\n", error);fflush(stdout);
-	bsocket_finalize();
+	printf("RedirectIOThread: easy_create listen socket failed: error %d\n", error);fflush(stdout);
+	easy_socket_finalize();
 	ExitProcess(error);
     }
-    blisten(g_bfdListen, 5);
-    beasy_get_sock_info(g_bfdListen, g_pszIOHost, &g_nIOPort);
+    listen(g_sockListen, 5);
+    easy_get_sock_info(g_sockListen, g_pszIOHost, &g_nIOPort);
 
     // Connect a stop socket to myself
-    if (beasy_create(&g_bfdStopIOSignalSocket, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
+    if (easy_create(&g_sockStopIOSignalSocket, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
     {
 	int error = WSAGetLastError();
-	printf("beasy_create(g_bfdStopIOSignalSocket) failed, error %d\n", error);fflush(stdout);
+	printf("easy_create(g_sockStopIOSignalSocket) failed, error %d\n", error);fflush(stdout);
 	ExitProcess(error);
     }
-    if (beasy_connect(g_bfdStopIOSignalSocket, g_pszIOHost, g_nIOPort) == SOCKET_ERROR)
+    if (easy_connect(g_sockStopIOSignalSocket, g_pszIOHost, g_nIOPort) == SOCKET_ERROR)
     {
 	int error = WSAGetLastError();
-	printf("beasy_connect(g_bfdStopIOSignalSocket, %s, %d) failed, error %d\n", g_pszIOHost, g_nIOPort, error);fflush(stdout);
+	printf("easy_connect(g_sockStopIOSignalSocket, %s, %d) failed, error %d\n", g_pszIOHost, g_nIOPort, error);fflush(stdout);
 	ExitProcess(error);
     }
-    bfdStopIOSignalSocket = g_bfdStopIOSignalSocket;
+    sockStopIOSignalSocket = g_sockStopIOSignalSocket;
 
     // Accept the connection from myself
-    signal_bfd = beasy_accept(g_bfdListen);
-    if (signal_bfd == BFD_INVALID_SOCKET)
+    signal_sock = easy_accept(g_sockListen);
+    if (signal_sock == INVALID_SOCKET)
     {
 	int error = WSAGetLastError();
-	printf("beasy_accept failed, error %d\n", error);
+	printf("easy_accept failed, error %d\n", error);
 	ExitProcess(error);
     }
 
     SetEvent(hReadyEvent);
-    
-    bfd_set total_set, readset;
-    int bfdActive[FD_SETSIZE];
+
+    fd_set total_set, readset;
+    SOCKET sockActive[FD_SETSIZE];
     int nActive = 0;
+
+    FD_ZERO(&total_set);
     
-    BFD_ZERO(&total_set);
-    
-    BFD_SET(g_bfdListen, &total_set);
-    BFD_SET(signal_bfd, &total_set);
-    bfdListen = g_bfdListen;
+    FD_SET(g_sockListen, &total_set);
+    FD_SET(signal_sock, &total_set);
+    sockListen = g_sockListen;
 
     while (true)
     {
 	readset = total_set;
-	n = bselect(0, &readset, NULL, NULL, NULL);
+	n = select(0, &readset, NULL, NULL, NULL);
 	if (n == SOCKET_ERROR)
 	{
 	    printf("RedirectIOThread: bselect failed, error %d\n", WSAGetLastError());fflush(stdout);
@@ -356,16 +355,16 @@ void RedirectIOThread(HANDLE hReadyEvent)
 	}
 	else
 	{
-	    if (BFD_ISSET(signal_bfd, &readset))
+	    if (FD_ISSET(signal_sock, &readset))
 	    {
 		char c;
-		num_read = beasy_receive(signal_bfd, &c, 1);
+		num_read = easy_receive(signal_sock, &c, 1);
 		if (num_read == 1)
 		{
 		    if (c == 0)
 		    {
-			if (child_abort_bfd != BFD_INVALID_SOCKET)
-			    beasy_send(child_abort_bfd, &c, 1);
+			if (child_abort_sock != INVALID_SOCKET)
+			    easy_send(child_abort_sock, &c, 1);
 
 			if (nActive == 0)
 			{
@@ -387,46 +386,46 @@ void RedirectIOThread(HANDLE hReadyEvent)
 		}
 		n--;
 	    }
-	    if (bfdListen != BFD_INVALID_SOCKET && BFD_ISSET(bfdListen, &readset))
+	    if (sockListen != INVALID_SOCKET && FD_ISSET(sockListen, &readset))
 	    {
 		if ((nActive + 3) >= FD_SETSIZE)
 		{
-		    int temp_bfd;
-		    MakeLoop(&temp_bfd, &child_abort_bfd);
-		    if (temp_bfd == BFD_INVALID_SOCKET || child_abort_bfd == BFD_INVALID_SOCKET)
+		    SOCKET temp_sock;
+		    MakeLoop(&temp_sock, &child_abort_sock);
+		    if (temp_sock == INVALID_SOCKET || child_abort_sock == INVALID_SOCKET)
 		    {
 			printf("Critical error: Unable to create a socket\n");fflush(stdout);
 			break;
 		    }
 		    DWORD dwThreadId;
-		    hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_bfd, 0, &dwThreadId);
+		    hChildThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread2, (LPVOID)temp_sock, 0, &dwThreadId);
 		    if (hChildThread == NULL)
 		    {
 			printf("Critical error: Unable to create an io thread\n");fflush(stdout);
 			break;
 		    }
-		    BFD_CLR(bfdListen, &total_set);
-		    bfdListen = BFD_INVALID_SOCKET;
+		    FD_CLR(sockListen, &total_set);
+		    sockListen = INVALID_SOCKET;
 		    //printf("started new IO redirection thread\n");fflush(stdout);
 		}
 		else
 		{
-		    client_bfd = beasy_accept(bfdListen);
-		    if (client_bfd == BFD_INVALID_SOCKET)
+		    client_sock = easy_accept(sockListen);
+		    if (client_sock == INVALID_SOCKET)
 		    {
 			int error = WSAGetLastError();
 			printf("RedirectIOThread: baccept failed: %d\n", error);fflush(stdout);
 			break;
 		    }
 		    
-		    if (beasy_receive(client_bfd, &cType, sizeof(char)) == SOCKET_ERROR)
+		    if (easy_receive(client_sock, &cType, sizeof(char)) == SOCKET_ERROR)
 			return;
 		    
 		    if (cType == 0)
 		    {
 			HANDLE hThread;
 			DWORD dwThreadID;
-			hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectStdin, (void*)client_bfd, 0, &dwThreadID);
+			hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectStdin, (void*)client_sock, 0, &dwThreadID);
 			if (hThread == NULL)
 			{
 			    printf("Critical error: Standard input redirection thread creation failed. error %d\n", GetLastError());fflush(stdout);
@@ -436,10 +435,10 @@ void RedirectIOThread(HANDLE hReadyEvent)
 		    }
 		    else
 		    {
-			bfdActive[nActive] = client_bfd;
-			BFD_SET(client_bfd, &total_set);
+			sockActive[nActive] = client_sock;
+			FD_SET(client_sock, &total_set);
 			nActive++;
-			//printf("(+%d:%d)", nActive, bget_fd(client_bfd));fflush(stdout);
+			//printf("(+%d:%d)", nActive, bget_fd(client_sock));fflush(stdout);
 		    }
 		}
 		n--;
@@ -448,17 +447,17 @@ void RedirectIOThread(HANDLE hReadyEvent)
 	    {
 		for (i=0; n > 0; i++)
 		{
-		    if (BFD_ISSET(bfdActive[i], &readset))
+		    if (FD_ISSET(sockActive[i], &readset))
 		    {
 			char pTemp[sizeof(int)+sizeof(char)+sizeof(int)];
-			num_read = beasy_receive(bfdActive[i], pTemp, sizeof(int)+sizeof(char)+sizeof(int));
+			num_read = easy_receive(sockActive[i], pTemp, sizeof(int)+sizeof(char)+sizeof(int));
 			if (num_read == SOCKET_ERROR || num_read == 0)
 			{
-			    //printf("(-%d:%d)", nActive, bget_fd(bfdActive[i]));fflush(stdout);
-			    BFD_CLR(bfdActive[i], &total_set);
-			    beasy_closesocket(bfdActive[i]);
+			    //printf("(-%d:%d)", nActive, bget_fd(sockActive[i]));fflush(stdout);
+			    FD_CLR(sockActive[i], &total_set);
+			    easy_closesocket(sockActive[i]);
 			    nActive--;
-			    bfdActive[i] = bfdActive[nActive];
+			    sockActive[i] = sockActive[nActive];
 			    i--;
 			}
 			else
@@ -467,13 +466,13 @@ void RedirectIOThread(HANDLE hReadyEvent)
 			    cType = pTemp[sizeof(int)];
 			    nRank = *(int*)&pTemp[sizeof(int)+sizeof(char)];
 			    //printf("\nreceiving %d bytes from %d of type %d\n", nDatalen, nRank, (int)cType);fflush(stdout);
-			    num_read = beasy_receive(bfdActive[i], pBuffer, nDatalen);
+			    num_read = easy_receive(sockActive[i], pBuffer, nDatalen);
 			    if (num_read == SOCKET_ERROR || num_read == 0)
 			    {
-				BFD_CLR(bfdActive[i], &total_set);
-				beasy_closesocket(bfdActive[i]);
+				FD_CLR(sockActive[i], &total_set);
+				easy_closesocket(sockActive[i]);
 				nActive--;
-				bfdActive[i] = bfdActive[nActive];
+				sockActive[i] = sockActive[nActive];
 				i--;
 				/*
 				if (num_read == SOCKET_ERROR) 
@@ -491,7 +490,7 @@ void RedirectIOThread(HANDLE hReadyEvent)
 				{
 				    WaitForSingleObject(g_hConsoleOutputMutex, INFINITE);
 				    SetConsoleTextAttribute(hOut, aConsoleColorAttribute[nRank%NUM_OUTPUT_COLORS]);
-				    //printf("(%d)", bget_fd(bfdActive[i]));fflush(stdout);
+				    //printf("(%d)", bget_fd(sockActive[i]));fflush(stdout);
 				    if (WriteFile(hOut, pBuffer, num_read, &num_written, NULL))
 					FlushFileBuffers(hOut);
 				    else
@@ -527,25 +526,25 @@ void RedirectIOThread(HANDLE hReadyEvent)
 	}
     }
 
-    if (child_abort_bfd != BFD_INVALID_SOCKET)
+    if (child_abort_sock != INVALID_SOCKET)
     {
 	//printf("signalling child threads to shut down\n");fflush(stdout);
-	beasy_send(child_abort_bfd, "x", 1);
+	easy_send(child_abort_sock, "x", 1);
 	WaitForSingleObject(g_hListenReleasedEvent, 10000);
-	beasy_closesocket(g_bfdListen);
+	easy_closesocket(g_sockListen);
     }
-    else if (bfdListen != BFD_INVALID_SOCKET)
+    else if (sockListen != INVALID_SOCKET)
     {
 	//printf("closing listen socket\n");fflush(stdout);
-	beasy_closesocket(bfdListen);
+	easy_closesocket(sockListen);
     }
     for (i=0; i<nActive; i++)
     {
 	//printf("closing io socket %d\n", i);fflush(stdout);
-	beasy_closesocket(bfdActive[i]);
+	easy_closesocket(sockActive[i]);
     }
     //printf("closing signal socket\n");fflush(stdout);
-    beasy_closesocket(signal_bfd);
+    easy_closesocket(signal_sock);
     if (hChildThread != NULL)
 	CloseHandle(hChildThread);
     //printf("RedirectIOThread exiting\n");fflush(stdout);

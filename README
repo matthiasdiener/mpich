@@ -1,7 +1,7 @@
 
 		      Portable MPI Model Implementation
 
-			 Version 1.2.4, May, 2002
+			 Version 1.2.5, January, 2003
 
                                  David Ashton
                                  Anthony Chan
@@ -34,7 +34,16 @@ Man pages for each MPI routine, along with commands for compiling and running
 MPI programs, are provided in the directories man (Unix man format) and www
 (HTML). 
 
-Version 1.2.4 is primarily a bug-fix and improved-SMP performance release.
+Version 1.2.5 is primarily a bug-fix release.  New features include
+
+Significantly better collective algorithms are available.
+
+Major changes for the globus2 device and the ch_nt device.
+
+Information on previous versions
+--------------------------------
+
+Features new or improved in Version 1.2.4 included:
 
 SMP support has been inproved through the use of sched_yield.  SMP Systems that
 are not oversubscribed can consider configuring with --disable-yeild.
@@ -43,12 +52,12 @@ The option --with-common-prefix=dir can be used to set the directory
 path for installing tools such as upshot and jumpshot that are
 independent of the MPICH device.  For example,
 
- configure --with-device=ch_p4 --prefix=/usr/local/mpich-1.2.4/ch_p4 \
-     --with-common-prefix=/usr/local/mpich-1.2.4
+ configure --with-device=ch_p4 --prefix=/usr/local/mpich-1.2.5/ch_p4 \
+     --with-common-prefix=/usr/local/mpich-1.2.5
  make 
  make install
- configure --with-device=ch_p4mpd  --prefix=/usr/local/mpich-1.2.4/ch-p4mpd \
-     --with-common-prefix=/usr/local/mpich-1.2.4
+ configure --with-device=ch_p4mpd  --prefix=/usr/local/mpich-1.2.5/ch-p4mpd \
+     --with-common-prefix=/usr/local/mpich-1.2.5
 
 A number of bugs in the ch_p4, ch_p4mpd, and ch_shmem device hae been fixed.
 These could cause programs to hang or generate error messages.
@@ -98,23 +107,20 @@ http://www.mcs.anl.gov/mpi/mpich/r1_2_2changes.html .
 
 There is a paper on jumpshot available at
 ftp://ftp.mcs.anl.gov/pub/mpi/jumpshot.ps.gz .
-A paper on MPD is available at ftp://ftp.mcs.anl.gov/pub/mpd.ps.gz.
+A paper on MPD is available at ftp://ftp.mcs.anl.gov/pub/mpi/mpd.ps.gz.
 
 
 What's next:
-
-We continue to enhance MPICH with a goal of full MPI-2 capability.  In
-addition, we continue to explore ways to improve the performance of MPICH.  In
-the queue are improved datatype handling and a new sockets implementation.  In
-the longer term, a new ADI with better support for multithreaded applications
-and new network approaches will be introduced.  One area where we'd like
-contributions is better implementations of the collective routines.  Please
-contact us if you'd like to contribute (send mail to gropp@mcs.anl.gov).
+All of our new development effort is going towards an all-new implementation
+of MPI, including both the MPI-1 and MPI-2 functions.  This new system is 
+called MPICH2 and is still under development, though beta versions are
+available for those using MPICH as a research vehicle.  If you want an MPI
+implementation, MPICH, not MPICH2, is the right choice at this time.
 
 Reporting Bugs:
 
 If you have trouble, first check the installation and user manuals (in 
-mpich/doc/{guide,user}.ps.Z) .  Next, check the on-line bug list at
+mpich/doc/) .  Next, check the on-line bug list at
 http://www.mcs.anl.gov/mpi/mpich .  Finally, if you are still having problems,
 send
 

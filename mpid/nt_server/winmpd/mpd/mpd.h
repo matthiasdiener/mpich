@@ -14,11 +14,17 @@
 #define MPD_DEFAULT_PORT             8675
 #define MPD_DEFAULT_PASSPHRASE       "MPICHIsGreat"
 #define MPD_REGISTRY_KEY             "SOFTWARE\\MPICH\\MPD"
+#ifndef MPICHKEY
+#define MPICHKEY                     "SOFTWARE\\MPICH"
+#endif
 
 #define DBS_SUCCESS_STR	    "DBS_SUCCESS"
 #define DBS_FAIL_STR	    "DBS_FAIL"
 #define DBS_END_STR	    "DBS_END"
 
 #define CONSOLE_STR_LENGTH 10*MAX_CMD_LENGTH
+
+#define MPD_DEFAULT_TIMEOUT 30
+#define MPD_SHORT_TIMEOUT   10
 
 #endif

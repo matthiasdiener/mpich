@@ -100,7 +100,7 @@ int net_accept (int)	;
 /* int net_conn_to_addr_listener ( )	; */
 int net_conn_to_listener (char *, int, int )	;
 /* int net_conn_to_named_listener ( )	; */
-int net_create_slave (int, int, char *, char *, char *);
+int net_create_slave (int, int, char *, char *, char *, int );
 int net_recv ( int, void *, int)	;
 int net_recv_timeout ( int, void *, int, int)	;
 int net_send ( int, void *, int, int )	;
@@ -121,6 +121,7 @@ struct p4_msg *socket_recv (int);
 struct p4_msg *socket_recv_on_fd (int);
 struct p4_queued_msg *alloc_quel (void);
 void p4_yield( void );
+int p4_wait_for_socket_msg( int );
 P4VOID free_avail_quels (void);
 P4VOID process_args (int *, char **)	;
 /* P4BOOL process_connect_request (int)	; */

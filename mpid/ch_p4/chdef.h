@@ -31,6 +31,12 @@ extern int __P4FROM, __P4LEN, __P4TYPE, __P4GLOBALTYPE;
 #define PInprobe(type) (__P4TYPE=type,__P4FROM= -1,\
         p4_messages_available(&__P4TYPE,&__P4FROM))
 
+/* MPID_WaitForMsg is an optional routine that blocks until some message
+   activity is present (like a Unix select or a blocking probe with 
+   any-tag).  Used in chbrndv.c */
+#define HAVE_MPID_WAIT_FOR_MSG
+#define MPID_WaitForMsg() p4_waitformsg()
+
 #define PIsize() __P4LEN
 #define PIfrom() __P4FROM
 

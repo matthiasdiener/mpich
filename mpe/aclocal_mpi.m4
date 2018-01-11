@@ -308,8 +308,8 @@ dnl - try compile C program
     LIBS="$pac_saved_LIBS"
     AC_LANG_RESTORE
     if test "$pac_mpi_working" = "yes" ; then
-        ifelse([${10}],,:,[${10}])
+        ifelse([$10],,:,[$10])
     else
-        ifelse([${11}],,:,[${11}])
+        ifelse([$11],,:,[$11])
     fi
 ])

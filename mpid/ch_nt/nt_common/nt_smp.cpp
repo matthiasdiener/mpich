@@ -9,8 +9,7 @@ int g_ShmemQSize = 1024*1024;
 ShmemLockedQueue **g_pShmemQueue = NULL;
 int g_nMaxShmSendSize = 1024*15;
 HANDLE g_hShmRecvThread = NULL;
-int g_nSMPLow = 0;
-int g_nSMPHigh = 0;
+int g_nNumShemQueues = 0;
 
 // Shared process stuff
 HANDLE *g_hShpMutex = NULL, *g_hShpSendCompleteEvent = NULL;
@@ -50,35 +49,34 @@ void PollShmemQueue()
 // Function name	: GetShmemClique
 // Description	    : Determine which processes this process can reach through shared memory
 // Return type		: void 
-void GetShmemClique()
+int GetShmemClique()
 {
+	int nSMPLow, nSMPHigh;
+	int nCount = 0;
+	int i;
 	char pszTemp[100];
 
+	for (i=0; i<g_nNproc; i++)
+	    g_pProcTable[i].shm = 0;
+
+	try{
 	if (GetEnvironmentVariable("MPICH_SHM_CLICKS", pszTemp, 100) || GetEnvironmentVariable("MPICH_SHM_CLIQUES", pszTemp, 100))
 	{
-		int nCount=0, *pMembers = NULL;
+		int *pMembers = NULL;
 		if (ParseCliques(pszTemp, g_nIproc, g_nNproc, &nCount, &pMembers))
 		{
 			nt_error("Unable to parse the SHM cliques", 1);
-			return;
+			return 0;
 		}
 
-		// For now, the block of shared memory processes must be contiguous
-		if (nCount > 0)
-		{
-			g_nSMPLow = pMembers[0];
-			g_nSMPHigh = pMembers[nCount-1];
-		}
-		else
-			g_nSMPLow = g_nSMPHigh = g_nIproc;
-		/*
-		// In the future the mapping will be arbitrary
-		for (int i=0; i<nCount; i++)
+		for (i=0; i<nCount; i++)
 		{
 			if ( (pMembers[i] >= 0) && (pMembers[i] < g_nNproc) )
+			{
+				//printf("rank %d reachable by shared memory\n", pMembers[i]);fflush(stdout);
 				g_pProcTable[pMembers[i]].shm = 1;
+			}
 		}
-		//*/
 		if (pMembers != NULL)
 			delete pMembers;
 	}
@@ -87,14 +85,26 @@ void GetShmemClique()
 		char pszSMPLow[10]="", pszSMPHigh[10]="";
 
 		if (GetEnvironmentVariable("MPICH_SHM_LOW", pszSMPLow, 10))
-			g_nSMPLow = atoi(pszSMPLow);
+			nSMPLow = atoi(pszSMPLow);
 		else
-			g_nSMPLow = g_nIproc;
+			nSMPLow = g_nIproc;
 		if (GetEnvironmentVariable("MPICH_SHM_HIGH", pszSMPHigh, 10))
-			g_nSMPHigh = atoi(pszSMPHigh);
+			nSMPHigh = atoi(pszSMPHigh);
 		else
-			g_nSMPHigh = g_nIproc;
+			nSMPHigh = g_nIproc;
+		for (i=nSMPLow; i<=nSMPHigh; i++)
+		{
+			if ( i >= 0 && i < g_nNproc )
+				g_pProcTable[i].shm = 1;
+		}
+		nCount = (nSMPHigh - nSMPLow) + 1;
 	}
+	}catch(...)
+	{
+	    nt_error("exception caught in GetShmemClique\n", 1);
+	    return 0;
+	}
+	return nCount;
 }
 
 // Function name	: InitSMP
@@ -105,9 +115,9 @@ void InitSMP()
 	int i;
 	char nameBuffer[256], pszTemp[100], pszSMPLow[10]="", pszSMPHigh[10]="";
 
-	GetShmemClique();
+	g_nNumShemQueues = GetShmemClique();
 
-	if (g_nSMPLow == g_nSMPHigh)
+	if (g_nNumShemQueues < 2)
 		return;
 
 	// Initialize shared memory stuff
@@ -125,57 +135,64 @@ void InitSMP()
 	}
 
 	g_pShmemQueue = new ShmemLockedQueue*[g_nNproc];
-
 	for (i=0; i<g_nNproc; i++)
 		g_pShmemQueue[i] = NULL;
-
-	for (i=g_nSMPLow; i<=g_nSMPHigh; i++)
+	for (i=0; i<g_nNproc; i++)
 	{
-		g_pShmemQueue[i] = new ShmemLockedQueue;
-		sprintf(nameBuffer, "%s.shm%d", g_pszJobID, i);
-		if (!g_pShmemQueue[i]->Init(nameBuffer, g_ShmemQSize))
+		if (g_pProcTable[i].shm == 1)
+		{
+		    /*printf("initializing shmem queue %d\n", i);fflush(stdout);*/
+		    g_pShmemQueue[i] = new ShmemLockedQueue;
+		    sprintf(nameBuffer, "%s.shm%d", g_pszJobID, i);
+		    if (!g_pShmemQueue[i]->Init(nameBuffer, g_ShmemQSize))
 			nt_error("unable to initialize ShmemQueue", i);
-		g_pProcTable[i].shm = 1;
+		}
 	}
 
 	// Initialize shared process stuff
-	int nSMP = g_nSMPHigh - g_nSMPLow + 1;
-	g_hShpMutex = new HANDLE[nSMP];
-	g_hShpSendCompleteEvent = new HANDLE[nSMP];
-	g_hProcesses = new HANDLE[nSMP];
+	g_hShpMutex = new HANDLE[g_nNproc];
+	g_hShpSendCompleteEvent = new HANDLE[g_nNproc];
+	g_hProcesses = new HANDLE[g_nNproc];
 
 	// Create all the named events and mutexes
-	for (i=0; i<nSMP; i++)
+	for (i=0; i<g_nNproc; i++)
 	{
-		char pBuffer[100];
-		sprintf(pBuffer, "%s.shp%dMutex", g_pszJobID, i);
-		g_hShpMutex[i] = CreateMutex(NULL, FALSE, pBuffer);
-		if (g_hShpMutex[i] == NULL)
+		if (g_pProcTable[i].shm == 1)
+		{
+		    char pBuffer[100];
+		    sprintf(pBuffer, "%s.shp%dMutex", g_pszJobID, i);
+		    g_hShpMutex[i] = CreateMutex(NULL, FALSE, pBuffer);
+		    if (g_hShpMutex[i] == NULL)
 			MakeErrMsg(GetLastError(), "InitSMP: CreateMutex failed for g_hShmMutex[%d]", i);
-		sprintf(pBuffer, "%s.shp%dSendComplete", g_pszJobID, i);
-		g_hShpSendCompleteEvent[i] = CreateEvent(NULL, TRUE, FALSE, pBuffer);
-		if (g_hShpSendCompleteEvent[i] == NULL)
+		    sprintf(pBuffer, "%s.shp%dSendComplete", g_pszJobID, i);
+		    g_hShpSendCompleteEvent[i] = CreateEvent(NULL, TRUE, FALSE, pBuffer);
+		    if (g_hShpSendCompleteEvent[i] == NULL)
 			MakeErrMsg(GetLastError(), "InitSMP: CreateEvent failed for g_hShpSendCompleteEvent[%d]", i);
+		}
 	}
 
 	unsigned long pid = GetCurrentProcessId();
 	// Send my information to the other processes
-	for (i=g_nSMPLow; i<=g_nSMPHigh; i++)
+	for (i=0; i<g_nNproc; i++)
 	{
-		if (i != g_nIproc)
+		if (i != g_nIproc && g_pProcTable[i].shm == 1)
 		{
 			if (!g_pShmemQueue[i]->Insert((unsigned char *)&pid, sizeof(unsigned long), 0, g_nIproc))
 				nt_error("InitSMP: Unable to send pid info to remote process", i);
 		}
 	}
 	// Get the information about the other processes
-	for (i=1; i<nSMP; i++)
+	for (i=0; i<g_nNproc; i++)
 	{
+	    if (i != g_nIproc && g_pProcTable[i].shm == 1)
+	    {
 		int tag, from;
 		unsigned int length = sizeof(unsigned long);
 		if (!g_pShmemQueue[g_nIproc]->RemoveNext((unsigned char *)&pid, &length, &tag, &from))
 			nt_error("InitSMP: Unable to receive pid information from remote processes", 0);
-		g_hProcesses[from - g_nSMPLow] = OpenProcess(STANDARD_RIGHTS_REQUIRED | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, pid);
+		/*printf("received pid %d from shmem queue %d\n", pid, from);fflush(stdout);*/
+		g_hProcesses[from] = OpenProcess(STANDARD_RIGHTS_REQUIRED | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, pid);
+	    }
 	}
 
 	pszTemp[0] = '\0';
@@ -204,7 +221,7 @@ void EndSMP()
 {
 	int i;
 
-	if (g_nSMPLow == g_nSMPHigh)
+	if (g_nNumShemQueues < 2)
 		return;
 
 	if (g_hShmRecvThread != NULL)
@@ -217,21 +234,24 @@ void EndSMP()
 	}
 
 	// Delete the shared memory queues
-	for (i=g_nSMPLow; i<=g_nSMPHigh; i++)
+	for (i=0; i<g_nNproc; i++)
 	{
+	    if (g_pProcTable[i].shm == 1)
 		delete g_pShmemQueue[i];
 	}
 	delete g_pShmemQueue;
 
 	// Delete all the shared process stuff
-	int nSMP = g_nSMPHigh - g_nSMPLow + 1;
 
 	// Delete all the named events and mutexes
-	for (i=0; i<nSMP; i++)
+	for (i=0; i<g_nNproc; i++)
 	{
+	    if (g_pProcTable[i].shm == 1)
+	    {
 		CloseHandle(g_hShpMutex[i]);
 		CloseHandle(g_hShpSendCompleteEvent[i]);
 		CloseHandle(g_hProcesses[i]);
+	    }
 	}
 	delete g_hShpMutex;
 	delete g_hShpSendCompleteEvent;
@@ -253,7 +273,7 @@ void NT_ShmSend(int type, void *buffer, int length, int to)
 	if (length > g_nMaxShmSendSize)
 	{
 		// Shared process send
-		if (!g_pShmemQueue[to]->InsertSHP((unsigned char *)buffer, length, type, g_nIproc, g_hShpMutex[to-g_nSMPLow], g_hShpSendCompleteEvent[to-g_nSMPLow], g_pShmemQueue[g_nIproc]))
+		if (!g_pShmemQueue[to]->InsertSHP((unsigned char *)buffer, length, type, g_nIproc, g_hShpMutex[to], g_hShpSendCompleteEvent[to], g_pShmemQueue[g_nIproc]))
 		{
 			nt_error("shared process send failed", to);
 		}

@@ -178,7 +178,7 @@ int main( int argc, char **argv )
     MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
     if (world_rank == 0) {
 	if (toterr == 0) 
-	    printf( "No errors in Truncated Message Multiple Completion test\n" );
+	    printf( " No Errors\n" );
 	else
 	    printf( "Found %d errors in Truncated Message Multiple Completion test\n", toterr );
     }

@@ -34,7 +34,7 @@ int NT_Tcp_create_bind_socket(SOCKET *sock, WSAEVENT *event, int port /*=0*/, un
 	
 	if (bind(*sock, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) == SOCKET_ERROR)
 		return WSAGetLastError();
-	
+
 #ifdef USE_LINGER_SOCKOPT
 	/* Set the linger on close option */
 	linger.l_onoff = 1 ;

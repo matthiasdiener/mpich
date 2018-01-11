@@ -155,6 +155,10 @@
 #undef HAVE_CLOCK_GETTIME
 #undef HAVE_CLOCK_GETRES
 
+/* Define if mpid/<device> provided an mpich-mpid.h header file (needed for
+   mpid.h) */
+#undef HAVE_MPICH_MPID_H
+
 /* Define if you have catclose.  */
 #undef HAVE_CATCLOSE
 

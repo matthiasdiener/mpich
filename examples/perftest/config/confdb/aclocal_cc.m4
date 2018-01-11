@@ -19,14 +19,16 @@ dnl   not yet check for some special options needed in particular for
 dnl   parallel computers, such as -Tcray-t3e, or special options to get
 dnl   full ANSI/ISO C, such as -Aa for HP.
 dnl
-dnlD*/
+dnl D*/
+dnl 2.52 doesn't have AC_PROG_CC_GNU
+ifdef([AC_PROG_CC_GNU],,[AC_DEFUN([AC_PROG_CC_GNU],)])
 AC_DEFUN(PAC_PROG_CC,[
 AC_PROVIDE([AC_PROG_CC])
 AC_CHECK_PROGS(CC, cc xlC xlc pgcc icc gcc )
 test -z "$CC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
 PAC_PROG_CC_WORKS
 AC_PROG_CC_GNU
-if test $ac_cv_prog_gcc = yes; then
+if test "$ac_cv_prog_gcc" = yes; then
   GCC=yes
 else
   GCC=
@@ -708,6 +710,7 @@ dnl.ve
 dnl 
 dnlD*/
 AC_DEFUN(PAC_PROG_C_WEAK_SYMBOLS,[
+pragma_extra_message=""
 AC_CACHE_CHECK([for type of weak symbol support],
 pac_cv_prog_c_weak_symbols,[
 # Test for weak symbol support...
@@ -716,7 +719,35 @@ pac_cv_prog_c_weak_symbols,[
 AC_TRY_LINK([
 #pragma weak PFoo = Foo
 int Foo(a) { return a; }
-],[return PFoo(1);],pac_cv_prog_c_weak_symbols="pragma weak")
+],[return PFoo(1);],has_pragma_weak=yes)
+#
+# Some systems (Linux ia64 and ecc, for example), support weak symbols
+# only within a single object file!  This tests that case.
+if test "$has_pragma_weak" = yes ; then
+    rm -f conftest*
+    cat >>conftest1.c <<EOF
+#pragma weak PFoo = Foo
+int Foo(int);
+int Foo(a) { return a; }
+EOF
+    cat >>conftest2.c <<EOF
+int main() {
+return PFoo(0);}
+EOF
+    ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
+    if eval $ac_link2 ; then
+        pac_cv_prog_c_weak_symbols="pragma weak"
+    else
+      echo "$ac_link2" >>config.log
+      echo "Failed program was" >>config.log
+      cat conftest1.c >>config.log
+      cat conftest2.c >>config.log
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+      has_pragma_weak=0
+      pragma_extra_message="pragma weak does not work outside of a file"
+    fi
+    rm -f conftest*
+fi
 dnl
 if test -z "$pac_cv_prog_c_weak_symbols" ; then 
     AC_TRY_LINK([
@@ -736,6 +767,12 @@ if test -z "$pac_cv_prog_c_weak_symbols" ; then
     pac_cv_prog_c_weak_symbols="no"
 fi
 ])
+dnl
+dnl If there is an extra explanatory message, echo it now so that it
+dnl doesn't interfere with the cache result value
+if test -n "$pragma_extra_message" ; then
+    echo $pragma_extra_message
+fi
 dnl
 if test "$pac_cv_prog_c_weak_symbols" = "no" ; then
     ifelse([$2],,:,[$2])
@@ -757,6 +794,8 @@ fi
 # compiler, but they should not HAVE to
 #
 dnl --- insert 2.52 compatibility here ---
+dnl 2.52 does not have AC_PROG_CC_WORKS
+ifdef([AC_PROG_CC_WORKS],,[AC_DEFUN([AC_PROG_CC_WORKS],)])
 dnl
 AC_DEFUN(PAC_PROG_CC_WORKS,
 [AC_PROG_CC_WORKS
@@ -987,6 +1026,15 @@ AC_MSG_RESULT($ac_cv_prog_cc_globals_work)
 dnl
 dnl
 dnl Return the structure alignment in pac_cv_c_struct_align
+dnl Possible values include
+dnl	packed
+dnl	largest
+dnl	two
+dnl	four
+dnl	eight
+dnl
+dnl In addition, a "Could not determine alignment" and a 
+dnl "Multiple cases:" return is possible.  
 AC_DEFUN(PAC_C_STRUCT_ALIGNMENT,[
 AC_CACHE_CHECK([for C struct alignment],pac_cv_c_struct_align,[
 AC_TRY_RUN([
@@ -1143,3 +1191,33 @@ changequote([, ])dnl
     AC_DEFINE_UNQUOTED($ac_tr_func,,[Define if $2 needs a declaration])
 fi
 ])dnl
+dnl
+dnl /*D
+dnl PAC_CHECK_SIZEOF_DERIVED - Get the size of a user-defined type,
+dnl such as a struct
+dnl
+dnl PAC_CHECK_SIZEOF_DERIVED(shortname,definition,defaultsize)
+dnl Like AC_CHECK_SIZEOF, but handles arbitrary types.
+dnl Unlike AC_CHECK_SIZEOF, does not define SIZEOF_xxx (because
+dnl autoheader can't handle this case)
+dnl D*/
+AC_DEFUN(PAC_CHECK_SIZEOF_DERIVED,[
+changequote(<<,>>)dnl
+define(<<AC_TYPE_NAME>>,translit(sizeof_$1,[a-z *], [A-Z_P]))dnl
+define(<<AC_CV_NAME>>,translit(pac_cv_sizeof_$1,[ *], [_p]))dnl
+changequote([,])dnl
+AC_MSG_CHECKING(size of $1)
+AC_CACHE_VAL(AC_CV_NAME,
+[AC_TRY_RUN([#include <stdio.h>
+main()
+{
+  $2 a;
+  FILE *f=fopen("conftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", sizeof(a));
+  exit(0);
+}],AC_CV_NAME=`cat conftestval`,AC_CV_NAME=0,ifelse([$3],,,AC_CV_NAME=$3))])
+AC_MSG_RESULT($AC_CV_NAME)
+dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
+undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])
+])

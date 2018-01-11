@@ -1,11 +1,12 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: openf.c,v 1.12 2001/12/12 23:38:10 ashton Exp $    
+ *   $Id: openf.c,v 1.15 2002/10/24 17:01:22 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#if _UNICOS
+#ifdef _UNICOS
 #include <fortran.h>
 #endif
 #include "adio.h"
@@ -13,21 +14,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_open_ PMPI_FILE_OPEN
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_open_ pmpi_file_open__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_open pmpi_file_open_
-#endif
-#define mpi_file_open_ pmpi_file_open
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_open_ pmpi_file_open
-#endif
-#define mpi_file_open_ pmpi_file_open_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -67,6 +53,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpi_file_open_ PMPI_FILE_OPEN
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_open_ pmpi_file_open__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_open pmpi_file_open_
+#endif
+#define mpi_file_open_ pmpi_file_open
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_open_ pmpi_file_open
+#endif
+#define mpi_file_open_ pmpi_file_open_
 #endif
 
 #else
@@ -128,7 +130,7 @@ void mpi_file_open_(MPI_Fint *comm,char *filename,int *amode,
 
 #else
 
-#if _UNICOS
+#ifdef _UNICOS
 void mpi_file_open_(MPI_Comm *comm,_fcd filename_fcd,int *amode,
                   MPI_Fint *info, MPI_Fint *fh, int *ierr)
 {

@@ -1,6 +1,6 @@
 
 /*
- *  $Id: mpi_errno.h,v 1.2 1999/03/28 17:35:02 gropp Exp $
+ *  $Id: mpi_errno.h,v 1.3 2002/11/04 13:32:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -75,7 +75,7 @@
 #define MPI_ERR_INFO_NOKEY  31      /* */
 
 #define MPI_ERR_NAME        33      /* */
-#define MPI_ERR_NOMEM       34      /* */
+#define MPI_ERR_NO_MEM      34      /* */
 #define MPI_ERR_NOT_SAME    35      /* */
 #define MPI_ERR_PORT        38      /* */
 #define MPI_ERR_QUOTA       39      /* */

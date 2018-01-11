@@ -34,6 +34,7 @@
 #include "privileges.h"
 #include "service.h"
 #include <ntsecapi.h>
+#include "mpdimpl.h"
 
 // global variables
 BOOL                    bDebug = FALSE;
@@ -361,28 +362,38 @@ VOID AddInfoToMessageLog(LPTSTR lpszMsg)
 //
 static BOOL Setup_Service_restart( SC_HANDLE schService )
 {
-	SC_ACTION	actionList[3];
-	SERVICE_FAILURE_ACTIONS schActionOptions;
+    SC_ACTION	actionList[3];
+    SERVICE_FAILURE_ACTIONS schActionOptions;
+    HMODULE hModule;
+    BOOL ( WINAPI * ChangeServiceConfig2_fn)(SC_HANDLE hService, DWORD dwInfoLevel, LPVOID lpInfo);
 
-	// The actions in this array are performed in order each time the service fails 
-	// within the specified reset period.
-	// This array attempts to restart mpd twice and then alloy it to stay dead.
-	actionList[0].Type = SC_ACTION_RESTART;
-	actionList[0].Delay = 0;
-	actionList[1].Type = SC_ACTION_RESTART;
-	actionList[1].Delay = 0;
-	actionList[2].Type = SC_ACTION_NONE;
-	actionList[2].Delay = 0;
-	
-	schActionOptions.dwResetPeriod = (DWORD) 300;  /* 5 minute reset */
-	schActionOptions.lpRebootMsg = NULL;
-	schActionOptions.lpCommand = NULL;
-	schActionOptions.cActions = (DWORD) (sizeof actionList / sizeof actionList[0]);
-	schActionOptions.lpsaActions = actionList;
-	
-	return ChangeServiceConfig2(schService,
-	                            SERVICE_CONFIG_FAILURE_ACTIONS,
-	                            &schActionOptions);
+    hModule = GetModuleHandle("Advapi32");
+    if (hModule == NULL)
+	return FALSE;
+
+    ChangeServiceConfig2_fn = (BOOL ( WINAPI *)(SC_HANDLE, DWORD, LPVOID))GetProcAddress(hModule, "ChangeServiceConfig2A");
+    if (ChangeServiceConfig2_fn == NULL)
+	return FALSE;
+
+    // The actions in this array are performed in order each time the service fails 
+    // within the specified reset period.
+    // This array attempts to restart mpd twice and then allow it to stay dead.
+    actionList[0].Type = SC_ACTION_RESTART;
+    actionList[0].Delay = 0;
+    actionList[1].Type = SC_ACTION_RESTART;
+    actionList[1].Delay = 0;
+    actionList[2].Type = SC_ACTION_NONE;
+    actionList[2].Delay = 0;
+    
+    schActionOptions.dwResetPeriod = (DWORD) 300;  /* 5 minute reset */
+    schActionOptions.lpRebootMsg = NULL;
+    schActionOptions.lpCommand = NULL;
+    schActionOptions.cActions = (DWORD) (sizeof actionList / sizeof actionList[0]);
+    schActionOptions.lpsaActions = actionList;
+    
+    return ChangeServiceConfig2_fn(schService,
+	SERVICE_CONFIG_FAILURE_ACTIONS,
+	&schActionOptions);
 }
 
 
@@ -406,7 +417,7 @@ static BOOL Setup_Service_restart( SC_HANDLE schService )
 //
 //  COMMENTS:
 //
-void CmdInstallService(LPTSTR account, LPTSTR password)
+void CmdInstallService(LPTSTR account, LPTSTR password, bool bMPDUserCapable /* = false */)
 {
     SC_HANDLE   schService;
     SC_HANDLE   schSCManager;
@@ -517,6 +528,8 @@ void CmdInstallService(LPTSTR account, LPTSTR password)
 	    if (bSetupRestart)
 		Setup_Service_restart( schService );
 
+	    WriteMPDRegistry("mpdUserCapable", bMPDUserCapable ? "yes" : "no");
+	    
 	    // Start the service
 	    if (StartService(schService, 0, NULL))
 		_tprintf(TEXT("%s installed.\n"), TEXT(SZSERVICEDISPLAYNAME) );
@@ -851,7 +864,10 @@ BOOL WINAPI ControlHandler ( DWORD dwCtrlType )
     case CTRL_BREAK_EVENT:  // use Ctrl+C or Ctrl+Break to simulate
     case CTRL_C_EVENT:      // SERVICE_CONTROL_STOP in debug mode
 	if (g_bHandlerCalled == TRUE)
+	{
+	    printf("ControlHandler: Exiting.\n");fflush(stdout);
 	    ExitProcess(0);
+	}
 	_tprintf(TEXT("Stopping %s.\n"), TEXT(SZSERVICEDISPLAYNAME));
 	fflush(stdout);
 	ServiceStop();

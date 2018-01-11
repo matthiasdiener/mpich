@@ -138,7 +138,6 @@ EOF
 done
 
 if test $globus_packaged -eq 0 ; then
-    DEVICE_KIND=network
     if test -z "$GLOBUSDIR" ; then
     	if test -x $GLOBUS_INSTALL_PATH/bin/globus-development-path ; then
     	    if test -n "$arch_IRIX64" ; then
@@ -167,24 +166,37 @@ if test $globus_packaged -eq 0 ; then
 
     globus_makefile_path=$GLOBUSDIR/etc/$makefile_name
 else
+    #
+    # Starting with Globus v2.2 they have moved the location
+    # of globus-makefile-header to $GLOBUS_LOCATION/bin.
+    # Prior to v2.2 globus-makefile-header was in $GLOBUS_LOCATION/sbin.
+    # We now need to check both locations ... so much for 
+    # backward compatibility ;-).
+    #
     if test -f $GLOBUS_LOCATION/sbin/globus-makefile-header ; then
-	makefile_name=Makefile.mpich
-	if test ! -f mpid/${DEVICE}/${makefile_name}  ; then
-	    cp ${top_srcdir}/mpid/${DEVICE}/${makefile_name} mpid/${DEVICE}/
-	fi
-	$GLOBUS_LOCATION/sbin/globus-makefile-header -flavor=$flavor \
-	    globus_common globus_gram_client globus_io globus_data_conversion \
-	    globus_duroc_runtime globus_duroc_bootstrap >mpid/${DEVICE}/Makefile.mpich.header
-        if test $? != 0 ; then
-            print_error "ERROR: failed globus-makefile-header: missing Globus co"
-            cat mpid/${DEVICE}/Makefile.mpich.header
-            exit 1
-        fi
-        globus_makefile_path=mpid/${DEVICE}/$makefile_name
+	gmh=$GLOBUS_LOCATION/sbin/globus-makefile-header
     else
-        print_error "Unable to locate $GLOBUS_LOCATION/sbin/globus-makefile-header" 
+	if test -f $GLOBUS_LOCATION/bin/globus-makefile-header ; then
+	    gmh=$GLOBUS_LOCATION/bin/globus-makefile-header
+	else
+	    print_error "Unable to locate either $GLOBUS_LOCATION/{sbin,bin}/globus-makefile-header" 
+	    exit 1
+	fi
+    fi
+
+    makefile_name=Makefile.mpich
+    if test ! -f mpid/${DEVICE}/${makefile_name}  ; then
+	cp ${top_srcdir}/mpid/${DEVICE}/${makefile_name} mpid/${DEVICE}/
+    fi
+    $gmh -flavor=$flavor \
+	globus_common globus_gram_client globus_io globus_data_conversion \
+	globus_duroc_runtime globus_duroc_bootstrap >mpid/${DEVICE}/Makefile.mpich.header
+    if test $? != 0 ; then
+	print_error "ERROR: failed globus-makefile-header: missing Globus components"
+	cat mpid/${DEVICE}/Makefile.mpich.header
 	exit 1
     fi
+    globus_makefile_path=mpid/${DEVICE}/$makefile_name
 fi
 
 if test ! -f $globus_makefile_path ; then
@@ -192,6 +204,14 @@ if test ! -f $globus_makefile_path ; then
     exit 1
 fi
 
+#
+# Tell top-level configure not to check for rsh/ssh
+#
+DEVICE_KIND=wan
+#
+# Tell top-level configure not to define MPIRUN_DEVICE
+#
+define_mpirun_device="no"
 #
 # Function to extract compiler settings, etc. from the globus supplied
 # configuration make file.
@@ -276,6 +296,7 @@ get_globus_setting GLOBUS_CLDFLAGS clinkerflags
 get_globus_setting GLOBUS_TEST_CLDFLAGS base_clinkerflags
 
 CC=${binbuild_dir}/mpich-globus2-cc
+TESTCC=$CC
 if test "$USERCC" = 1 ; then
     print_error "Globus device overrode C compiler setting"
 fi
@@ -328,6 +349,7 @@ if test $NOF77 -eq 0 ; then
 
     FC=${binbuild_dir}/mpich-globus2-f77
     F77=$FC
+    TESTF77=$FC
     if test "$USERF77" = 1 ; then
     	print_error "Globus device overrode F77 compiler setting"
     fi
@@ -386,6 +408,7 @@ if test $NO_F90 -eq 0 ; then
 
     if test $NO_F90 -eq 0 ; then
     	F90=${binbuild_dir}/mpich-globus2-f90
+	TESTF90=$F90
 	if test "$USERF90" = 1 ; then
 	    print_error "Globus device overrode F90 compiler setting"
 	fi

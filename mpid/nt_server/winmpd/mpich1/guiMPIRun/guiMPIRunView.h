@@ -60,7 +60,7 @@ public:
     HANDLE m_hJobThread;
     
     HANDLE m_hRedirectIOListenThread;
-    int m_bfdStopIOSignalSocket;
+    SOCKET m_sockStopIOSignalSocket;
     char m_pszIOHost[100];
     int m_nIOPort;
     bool m_bLogon;
@@ -76,6 +76,7 @@ public:
     bool m_bNoColor;
     HANDLE m_hConsoleOutputMutex;
     long m_nRootPort;
+    bool m_bCatch;
 
     bool m_bUseWorkingDirectory;
     CString m_WorkingDirectory;
@@ -113,12 +114,12 @@ public:
     HANDLE *m_pProcessThread;
     int m_nNumProcessThreads;
 
-    int *m_pProcessSocket;
+    SOCKET *m_pProcessSocket;
     int *m_pProcessLaunchId;
     LONG m_nNumProcessSockets;
     void WaitForExitCommands();
 
-    int m_bfdBreak;
+    SOCKET m_sockBreak;
     HANDLE m_hBreakReadyEvent;
 
     ForwardHostStruct *m_pForwardHost;
@@ -126,7 +127,7 @@ public:
 
     HANDLE m_hRedirectRicheditThread;
 
-    MapDriveNode *m_pDriveMapList;
+    //MapDriveNode *m_pDriveMapList;
 
     int m_nMinWidth, m_nMinHeight;
     // Operations

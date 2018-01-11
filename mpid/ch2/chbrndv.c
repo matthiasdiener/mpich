@@ -1,5 +1,5 @@
 /*
- *  $Id: chbrndv.c,v 1.12 2001/11/13 22:53:46 ashton Exp $
+ *  $Id: chbrndv.c,v 1.15 2002/05/29 13:08:56 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -392,9 +392,32 @@ int MPID_CH_Rndvb_unxrecv_end(
        endlessly by waiting for any message; this handles the case of cycles 
        rather than head-to-head rendezvous */
     DEBUG_PRINT_MSG("Entering while !MPID_TestRecvTransfer");
+    /* An alternative here is wait-for-anyincoming, then have a check for 
+       whether it is the desired RecvTransfer or something else */
+
+    /* WaitForMsg waits for *any* incoming message.  It is like
+       Unix select, and does no processing.  Knowing whether the data is
+       control or transfer would be useful here, but following the select/poll
+       model (without out-of-band data), we just check provide a point to 
+       wait until *something* is available.  This also allows the device to
+       yield the processor if no data is available.  */
+#ifdef HAVE_MPID_WAIT_FOR_MSG
+    while (!MPID_TestRecvTransfer( rhandle )) {
+        MPID_WaitForMsg( );
+	/* Process any pending control messages */
+	MPID_DeviceCheck( MPID_NOTBLOCKING );
+	/* Note that we should handle any pending transfer messages.
+	   If MPID_DeviceCheck returns false and TestRecvTransfer is 
+	   also false, then there is another available message.  We
+	   should handle that by invoking the matching MPID_RecvTransfer
+	   operation.  
+	*/
+    }
+#else
     while (!MPID_TestRecvTransfer( rhandle )) {
 	MPID_DeviceCheck( MPID_NOTBLOCKING );
     }
+#endif
     DEBUG_PRINT_MSG("Leaving while !MPID_TestRecvTransfer");
     MPID_RecvTransfer( rhandle->buf, rhandle->s.count, 
 		       rhandle->from, 

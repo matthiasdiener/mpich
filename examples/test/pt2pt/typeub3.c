@@ -1,7 +1,7 @@
 /* This test checks that all of the MPI Type routines correctly compute 
    the UB and LB of a datatype from the greatest/least instance */
 
-#include <mpi.h>
+#include "mpi.h"
 #include <stdio.h>
 
 #if defined(NEEDS_STDLIB_PROTOTYPES)

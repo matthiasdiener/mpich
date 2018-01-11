@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns.c,v 1.18 2002/04/12 22:51:34 thakur Exp $
+ *  $Id: intra_fns.c,v 1.21 2002/11/06 00:15:59 thakur Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -826,7 +826,7 @@ static int intra_Alltoall(
 	struct MPIR_DATATYPE *recvtype, 
 	struct MPIR_COMMUNICATOR *comm )
 {
-  int          size, i, j;
+  int          size, i, j, rank, dest;
   MPI_Aint     send_extent, recv_extent;
   int          mpi_errno = MPI_SUCCESS;
   MPI_Status  *starray;
@@ -835,6 +835,7 @@ static int intra_Alltoall(
 
   /* Get size and switch to collective communicator */
   MPIR_Comm_size ( comm, &size );
+  MPIR_Comm_rank ( comm, &rank );
   comm = comm->comm_coll;
   
   /* Get extent of send and recv types */
@@ -854,38 +855,39 @@ static int intra_Alltoall(
 	     comm, MPI_ERR_EXHAUSTED, myname );
 
   /* do the communication -- post *all* sends and receives: */
-  /* We could order these, for example, starting with rank+1, so that
-     the FIRST operations involve different nodes, rather than all to
-     node 0.
-   */
   for ( i=0; i<size; i++ ) { 
-      /* We'd like to avoid sending and receiving to ourselves; 
-	 however, this is complicated by the presence of different
-	 sendtype and recvtypes. */
+      /* Performance fix sent in by Duncan Grove <duncan@cs.adelaide.edu.au>.
+         Instead of posting irecvs and isends from rank=0 to size-1, scatter
+         the destinations so that messages don't all go to rank 0 first. 
+         Thanks Duncan! */
+      dest = (rank+i) % size;
+
       if ( (mpi_errno=MPI_Irecv(
-	  (void *)((char *)recvbuf + i*recvcnt*recv_extent),
+	  (void *)((char *)recvbuf + dest*recvcnt*recv_extent),
                            recvcnt,
                            recvtype->self,
-                           i,
+                           dest,
                            MPIR_ALLTOALL_TAG,
                            comm->self,
-                           &reqarray[2*i+1]))
+                           &reqarray[i]))
           )
-          break;
+          return mpi_errno;
+  }
+
+  for ( i=0; i<size; i++ ) { 
+      dest = (rank+i) % size;
       if ((mpi_errno=MPI_Isend(
-	  (void *)((char *)sendbuf+i*sendcount*send_extent),
+	  (void *)((char *)sendbuf + dest*sendcount*send_extent),
                            sendcount,
                            sendtype->self,
-                           i,
+                           dest,
                            MPIR_ALLTOALL_TAG,
                            comm->self,
-                           &reqarray[2*i]))
+                           &reqarray[i+size]))
           )
-          break;
+          return mpi_errno;
   }
   
-  if (mpi_errno) return mpi_errno;
-
   /* ... then wait for *all* of them to finish: */
   mpi_errno = MPI_Waitall(2*size,reqarray,starray);
   if (mpi_errno == MPI_ERR_IN_STATUS) {
@@ -916,7 +918,7 @@ static int intra_Alltoallv (
 	struct MPIR_DATATYPE *recvtype, 
 	struct MPIR_COMMUNICATOR *comm )
 {
-  int        size, i, j, rcnt;
+  int        size, i, j, rcnt, rank, dest;
   MPI_Aint   send_extent, recv_extent;
   int        mpi_errno = MPI_SUCCESS;
   MPI_Status  *starray;
@@ -924,6 +926,7 @@ static int intra_Alltoallv (
   
   /* Get size and switch to collective communicator */
   MPIR_Comm_size ( comm, &size );
+  MPIR_Comm_rank ( comm, &rank );
   comm = comm->comm_coll;
 
   /* Get extent of send and recv types */
@@ -943,29 +946,39 @@ static int intra_Alltoallv (
   /* do the communication -- post *all* sends and receives: */
   rcnt = 0;
   for ( i=0; i<size; i++ ) { 
-      reqarray[2*i] = MPI_REQUEST_NULL;
+      /* Performance fix sent in by Duncan Grove <duncan@cs.adelaide.edu.au>.
+         Instead of posting irecvs and isends from rank=0 to size-1, scatter
+         the destinations so that messages don't all go to rank 0 first. 
+         Thanks Duncan! */
+      dest = (rank+i) % size;
       if (( mpi_errno=MPI_Irecv(
-	                  (void *)((char *)recvbuf+rdispls[i]*recv_extent), 
-                           recvcnts[i], 
+	                  (void *)((char *)recvbuf+rdispls[dest]*recv_extent), 
+                           recvcnts[dest], 
                            recvtype->self,
-                           i,
+                           dest,
                            MPIR_ALLTOALLV_TAG,
                            comm->self,
-                           &reqarray[2*i+1]))
+                           &reqarray[i]))
           )
           break;
       rcnt++;
-      if (( mpi_errno=MPI_Isend(
-	                   (void *)((char *)sendbuf+sdispls[i]*send_extent), 
-                           sendcnts[i], 
-                           sendtype->self,
-                           i,
-                           MPIR_ALLTOALLV_TAG,
-                           comm->self,
-                           &reqarray[2*i]))
-          )
-          break;
-      rcnt++;
+  }
+
+  if (!mpi_errno) {
+      for ( i=0; i<size; i++ ) { 
+          dest = (rank+i) % size;
+          if (( mpi_errno=MPI_Isend(
+                     (void *)((char *)sendbuf+sdispls[dest]*send_extent), 
+                     sendcnts[dest], 
+                     sendtype->self,
+                     dest,
+                     MPIR_ALLTOALLV_TAG,
+                     comm->self,
+                     &reqarray[i+size]))
+           )
+              break;
+          rcnt++;
+      }
   }
   
   /* ... then wait for *all* of them to finish: */
@@ -1196,6 +1209,8 @@ static int intra_Allreduce (
 	struct MPIR_COMMUNICATOR *comm )
 {
   int mpi_errno, rc;
+
+  if (count == 0) return MPI_SUCCESS;
 
   /* Reduce to 0, then bcast */
   mpi_errno = MPI_Reduce ( sendbuf, recvbuf, count, datatype->self, op, 0, 

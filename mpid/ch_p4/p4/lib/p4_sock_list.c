@@ -142,10 +142,18 @@ lookup_slave_by_pid(int pid)
 static void
 message_to_slave( int idx, struct slave_listener_msg *msg)
 {
+/*    fprintf (stderr, "send to %d\n", listener_info->slave_fd[idx] ); */
     net_send(listener_info->slave_fd[idx], msg, sizeof(*msg), P4_FALSE);
     sock_state[idx].state = BUSY;
     ++sock_state[idx].busycount;
+/*    if (sock_state[idx].busycount > 1) {
+ 	fprintf( stderr, "busy count to %d = %d on fd %d\n", 
+	     idx, sock_state[idx].busycount, listener_info->slave_fd[idx] ) ;
+    } 
+*/
     wakeup_slave(idx);
+    /*  fprintf( stderr, "signal sent\n" );
+	fflush( stderr );*/
 }
 
 /* 
@@ -164,6 +172,9 @@ poke_slave( int idx )
 /*
  * Send a signal to the process telling him to pay attention to the
  * pipe from the listener.
+ * Question: is there a possible race condition here when the 
+ * processes are exiting?  We've seen some failures the appear to happen
+ * near or during MPI_Finalize.
  */
 static void
 wakeup_slave( int idx )
@@ -598,8 +609,7 @@ P4VOID thread_listener( void )
  * established.  It is called ONLY by the process, which is waiting for the
  * listener thread to complete.
  */
-int establish_connection(dest_id)
-int dest_id;
+int establish_connection(int dest_id)
 {
     int                       myid = p4_get_my_id();
     struct slave_listener_msg msg;

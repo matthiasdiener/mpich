@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: req_malloc.c,v 1.2 1998/06/02 18:57:29 thakur Exp $    
+ *   $Id: req_malloc.c,v 1.3 2002/10/24 17:01:15 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

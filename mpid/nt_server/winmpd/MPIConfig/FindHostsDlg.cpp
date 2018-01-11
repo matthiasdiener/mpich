@@ -6,12 +6,12 @@
 #include "FindHostsDlg.h"
 #include "DomainDlg.h"
 #include "mpd.h"
-#include "bsocket.h"
 #include "PwdDialog.h"
 #include "mpdutil.h"
 #include "qvs.h"
 #include "MPDConnectionOptionsDlg.h"
 #include "ConnectToHost.h"
+#include "WildStrDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -40,6 +40,8 @@ CFindHostsDlg::CFindHostsDlg(CWnd* pParent /*=NULL*/)
     m_nPort = MPD_DEFAULT_PORT;
     m_num_items = 0;
     m_pImageList = NULL;
+    m_bWildcard = false;
+    m_wildstr = "*";
 }
 
 
@@ -70,6 +72,7 @@ BEGIN_MESSAGE_MAP(CFindHostsDlg, CDialog)
 	ON_COMMAND(ID_FILE_VERIFY, OnVerify)
 	ON_NOTIFY(NM_CLICK, IDC_DOMAIN_HOST_LIST, OnClickDomainHostList)
 	ON_COMMAND(ID_FILE_CONNECTIONOPTIONS, OnConnectionOptions)
+	ON_COMMAND(ID_ACTION_WILDCARDSCANHOSTS, OnActionWildcardScanHosts)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -235,6 +238,51 @@ void CFindHostsDlg::Refresh()
     SetCursor(hOldCursor);
 }
 
+static int wildcmp(LPCTSTR wild, LPCTSTR string)
+{
+    LPCTSTR cp;
+    LPCTSTR mp;
+    
+    while ((*string) && (*wild != '*'))
+    {
+	if ((*wild != *string) && (*wild != '?'))
+	{
+	    return 0;
+	}
+	wild++;
+	string++;
+    }
+    
+    while (*string)
+    {
+	if (*wild == '*')
+	{
+	    if (!*++wild)
+	    {
+		return 1;
+	    }
+	    mp = wild;
+	    cp = string+1;
+	}
+	else if ((*wild == *string) || (*wild == '?'))
+	{
+	    wild++;
+	    string++;
+	}
+	else
+	{
+	    wild = mp;
+	    string = cp++;
+	}
+    }
+    
+    while (*wild == '*')
+    {
+	wild++;
+    }
+    return !*wild;
+}
+
 struct FindThreadSingleArg
 {
     CListCtrl *list;
@@ -243,15 +291,24 @@ struct FindThreadSingleArg
     int port;
     char phrase[100];
     bool fast;
+    bool wildcard;
+    CString wildstr;
 };
 
 void FindThreadSingle(FindThreadSingleArg *arg)
 {
     TCHAR host[100];
     char str[100];
-    int bfd;
+    SOCKET sock;
     
     if (arg->list->GetItemText(arg->i, 0, host, 100) == 0)
+    {
+	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
+	delete arg;
+	return;
+    }
+
+    if (arg->wildcard && (!wildcmp(arg->wildstr, host)))
     {
 	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
 	delete arg;
@@ -260,29 +317,29 @@ void FindThreadSingle(FindThreadSingleArg *arg)
     
     ::PostMessage(arg->hWnd, WM_USER+1, arg->i, TRUE);
     
-    if (!ConnectToHost(host, arg->port, arg->phrase, &bfd, arg->fast))
+    if (!ConnectToHost(host, arg->port, arg->phrase, &sock, arg->fast))
     {
 	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
 	delete arg;
 	return;
     }
     
-    if (WriteString(bfd, "version") == SOCKET_ERROR)
+    if (WriteString(sock, "version") == SOCKET_ERROR)
     {
 	printf("WriteString failed after attempting passphrase authentication: %d\n", WSAGetLastError());fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
 	delete arg;
 	return;
     }
-    if (!ReadString(bfd, str))
+    if (!ReadString(sock, str))
     {
 	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
 	delete arg;
 	return;
     }
-    WriteString(bfd, "done");
-    beasy_closesocket(bfd);
+    WriteString(sock, "done");
+    easy_closesocket(sock);
     
     if (mpd_version_string_to_int(str) == 0)
 	::PostMessage(arg->hWnd, WM_USER+1, arg->i, FALSE);
@@ -322,6 +379,8 @@ void OnFindBtnThread(CFindHostsDlg *pDlg)
     for (DWORD i=0; i<count; i++)
     {
 	FindThreadSingleArg *arg = new FindThreadSingleArg;
+	arg->wildcard = pDlg->m_bWildcard;
+	arg->wildstr = pDlg->m_wildstr;
 	arg->hWnd = pDlg->m_hWnd;
 	arg->list = &pDlg->m_list;
 	arg->i = i;
@@ -351,6 +410,43 @@ void OnFindBtnThread(CFindHostsDlg *pDlg)
     pDlg->m_hFindThread = NULL;
 }
 
+void CFindHostsDlg::OnActionWildcardScanHosts() 
+{
+    DWORD dwThreadID;
+    CWildStrDlg dlg;
+
+    dlg.m_wildstr = m_wildstr;
+    if (dlg.DoModal() == IDOK)
+    {
+	m_bWildcard = true;
+	m_wildstr = dlg.m_wildstr;
+	
+	UpdateData();
+	
+	m_nofm = "";
+	UpdateData(FALSE);
+	
+	m_num_items = m_list.GetItemCount();
+	if (m_num_items < 1)
+	    return;
+	
+	m_ok_btn.EnableWindow(FALSE);
+	m_cancel_btn.EnableWindow(FALSE);
+	
+	m_progress.SetRange(0, m_num_items);
+	m_progress.SetStep(1);
+	m_progress.SetPos(0);
+	
+	m_bWildcard = true;
+	
+	m_hFindThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)OnFindBtnThread, this, 0, &dwThreadID);
+	if (m_hFindThread == NULL)
+	{
+	    MessageBox("Unable to create a Find thread", "Error", MB_OK);
+	}
+    }
+}
+
 void CFindHostsDlg::OnFindhosts() 
 {
     DWORD dwThreadID;
@@ -370,6 +466,8 @@ void CFindHostsDlg::OnFindhosts()
     m_progress.SetRange(0, m_num_items);
     m_progress.SetStep(1);
     m_progress.SetPos(0);
+
+    m_bWildcard = false;
 
     m_hFindThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)OnFindBtnThread, this, 0, &dwThreadID);
     if (m_hFindThread == NULL)
@@ -554,7 +652,7 @@ LRESULT CFindHostsDlg::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 void CFindHostsDlg::OnVerify() 
 {
     char host[100];
-    int bfd;
+    SOCKET sock;
     int index;
     char str[100];
     HCURSOR hOldCursor;
@@ -607,27 +705,27 @@ void CFindHostsDlg::OnVerify()
 	    return;
 	}
 
-	if (!ConnectToHost(host, m_nPort, m_pszPhrase, &bfd))
+	if (!ConnectToHost(host, m_nPort, m_pszPhrase, &sock))
 	{
-	    beasy_closesocket(bfd);
+	    easy_closesocket(sock);
 	    ::PostMessage(m_hWnd, WM_USER+1, index, FALSE);
 	    continue;
 	}
 	
-	if (WriteString(bfd, "version") == SOCKET_ERROR)
+	if (WriteString(sock, "version") == SOCKET_ERROR)
 	{
-	    beasy_closesocket(bfd);
+	    easy_closesocket(sock);
 	    ::PostMessage(m_hWnd, WM_USER+1, index, FALSE);
 	    continue;
 	}
-	if (!ReadString(bfd, str))
+	if (!ReadString(sock, str))
 	{
-	    beasy_closesocket(bfd);
+	    easy_closesocket(sock);
 	    ::PostMessage(m_hWnd, WM_USER+1, index, FALSE);
 	    continue;
 	}
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
 	
 	::PostMessage(m_hWnd, WM_USER+2, index, FALSE);
     }

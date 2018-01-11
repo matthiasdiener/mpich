@@ -1,7 +1,7 @@
-This is a partial list of the known problems in MPICH. 
+This is a partial list of the known bugs and problems in MPICH. 
 
 
-Current as of Release 1.2.2
+Current as of Release 1.2.4
 
 General:
 ========
@@ -15,9 +15,9 @@ files, you may need to accept "long long".
 shared-library flags (e.g., -PIC).  Some Fortran 90 compilers may not
 recognize the same flags, and generate an "unrecognized argument" warning.
 
-3. Totalview access to the message queues may not work.  We've done some
-preliminary testing but due to bureaucratic snafus haven't been able to fully
-test this.
+3. Some C++ compilers, particularly newer compilers under Solaris, may not
+be able to compile the C++ interface code.  Configure with --disable-cxx to
+turn off the C++ interface.
 
 4. Debugger switches to mpirun (e.g., -dbx, -gdb) may require site-specific
 customization.  This is caused by differences in the command line syntax for
@@ -87,8 +87,8 @@ plan to fix this, since all new operating systems support longer names.
 
 14. On Cray PVP (XMP,YMP,C90) and Cray T3D, some operations with character
 data are not supported from Fortran.  This causes examples/test/pt2pt/structf
-to fail.  The 1.0.12 release contains code from Laurie Costella of CRAY that
-should fix some of the problems.
+to fail.  The 1.0.12 and all subsequent releases contains code from
+Laurie Costella of CRAY that should fix some of the problems.
 
 15. Fortran LOGICAL data is not handled correctly on some HETEROGENEOUS
 systems (basically, there is no XDR type for Fortran LOGICAL, and the current
@@ -112,7 +112,7 @@ particularly when nonblocking sends and receives are used.
 JUMPSHOT:
 ========
 
-1.  There are no man pages for the java routines.
+1.  There are no man pages for the java-based programs.
 
 ROMIO:
 ======
@@ -179,12 +179,6 @@ On the plus side, in MPICH version 1.2.0, we introduced a better flow control
 algorithm that can reduce but not eliminate the likelyhood of the TCP
 implementation dropping the connection.
 
-2: Heterogeneous systems containing LINUX on different architectures does not
-work.  The p4 layer that is used for workstation networks predates portable
-operating systems, as a result, it isn't prepared for the fact that LINUX can
-run on x86 and ALPHA (and other) processors.  This will be fixed when the p4
-layer is replaced. 
-
 ch_meiko:
 
 1. This device is no longer supported.  If someone would like to send us a
@@ -199,8 +193,9 @@ instructions (e.g., a write sync) or special compiler options.  You can't just
 configure/make this device, alas.
 
 globus2:
-1.  See the web page http://www.cs/niu/edu/~karonis/g2.html for information
-about known problems with the globus2 device.
+
+1.  See the web page http://www.niu.edu/mpi for information about known
+problems with the globus2 device. 
 
 System Specific:
 ================
@@ -242,12 +237,10 @@ Miscellaneous
 servers running AIX, providing NFS file systems for LINUX machines, you may
 experience file corruption problems.  You can either (1) work entirely in a
 local (UFS, not NFS) file system or (2) change to an NFS file system on
-something other than AIX.  One serious consequence of this bug is that we have
-not been able to test MPICH with LINUX as throughly as we would like, because
-our only shared file system is provided by an AIX server.
+something other than AIX.  
 
-2. This is also not an MPICH bug.  Some versions of the Absoft Fortran
-compiler has a serious bug: it only allows one -I option, and if there are
+2. This is also not an MPICH bug.  Some older versions of the Absoft Fortran
+compiler had a serious bug: it only allowed one -I option, and if there are
 several -I options on the command line, it ignores all but one.  In this case,
 you must either copy the include files to the current directory, or setup
 links to the necessary files.  More recent versions do not have this problem;
@@ -264,4 +257,6 @@ If you are having this problem, you should try ghostscript instead (there is
 nothing wrong with the Postscript).  For example, Adobe tools that convert
 Postscript files into PDF do a remarkably poor job; we recommend that you view
 the Postscript files rather than converting them into PDF.
+
+An alternative solution is to view the PDF versions of the documents.
 

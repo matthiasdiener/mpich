@@ -8,6 +8,7 @@
 #include "protofix.h"
 #endif
 
+int verbose = 0;
 /* 
    Multiple completions
    
@@ -23,7 +24,7 @@ char         **names;
 int          *counts, *bytesize, ntype;
 MPI_Comm     comms[20];
 int          ncomm = 20, rank, np, partner, tag;
-int          i, j, k, err, world_rank;
+int          i, j, k, err, toterr, world_rank;
 MPI_Status   status, statuses[2];
 int          flag;
 char         *obuf;
@@ -59,7 +60,7 @@ for (i=0; i<ncomm; i++) {
        testall  (should succeed)                  
      */
     for (j=0; j<ntype; j++) {
-	if (world_rank == 0) 
+	if (world_rank == 0 && verbose) 
 	    fprintf( stdout, "Testing type %s\n", names[j] );
         if (rank == 0) {
 	    /* Master */
@@ -151,6 +152,15 @@ for (i=0; i<ncomm; i++) {
 if (err > 0) {
     fprintf( stderr, "%d errors on %d\n", err, rank );
     }
+MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+ if (world_rank == 0) {
+     if (toterr == 0) {
+	 printf( " No Errors\n" );
+     }
+     else {
+	 printf (" Found %d errors\n", toterr );
+     }
+ }
 FreeDatatypes( types, inbufs, outbufs, counts, bytesize, names, ntype );
 FreeComms( comms, ncomm );
 MPI_Finalize();

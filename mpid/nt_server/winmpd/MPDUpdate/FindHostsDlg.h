@@ -40,6 +40,8 @@ public:
     bool m_bInitDialogCalled;
     int m_num_items;
     CImageList *m_pImageList;
+    bool m_bWildcard;
+    CString m_wildstr;
 
 // Dialog Data
 	//{{AFX_DATA(CFindHostsDlg)
@@ -78,6 +80,7 @@ protected:
 	afx_msg void OnVerify();
 	afx_msg void OnClickDomainHostList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnConnectionOptions();
+	afx_msg void OnActionWildcardScanHosts();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 private:

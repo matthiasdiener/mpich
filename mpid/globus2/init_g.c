@@ -6,8 +6,9 @@
 
 #include <strings.h>   /* for index */
 #include <sys/time.h> /* for gettimeofday() */
-extern int MPICHX_TOPOLOGY_COLORS;
-extern int MPICHX_TOPOLOGY_DEPTHS;
+
+/* allow the user to access the underlying topology */
+#include "topology_access.h"
 
 #include <globus_duroc_runtime.h>
 #include <globus_duroc_bootstrap.h>
@@ -47,7 +48,10 @@ extern int MPICHX_TOPOLOGY_DEPTHS;
 /* Global Variables */
 /********************/
 
-globus_mutex_t      MessageQueuesLock;
+#ifdef GLOBUS_CALLBACK_GLOBAL_SPACE
+globus_callback_space_t MpichG2Space;    
+#endif
+
 extern volatile int TcpOutstandingRecvReqs;
 extern volatile int TcpOutstandingSendReqs;
 extern int          MpichGlobus2TcpBufsz;
@@ -206,6 +210,7 @@ void MPID_Init(int *argc, char ***argv, void *config, int *error_code)
     } /* endifdef */
 #   endif
 
+    create_topology_access_keys();
   fn_exit: 
     /* to supress compile warnings */ ;
 } /* end MPID_Init() */
@@ -292,11 +297,23 @@ void MPID_End(void)
 
     DEBUG_FN_ENTRY(DEBUG_MODULE_INIT);
 
-    /* freeing keys to access the underlying topology (attribute caching) */
-    if ( MPICHX_TOPOLOGY_COLORS != MPI_KEYVAL_INVALID )
-        MPI_Keyval_free(&MPICHX_TOPOLOGY_COLORS);
-    if ( MPICHX_TOPOLOGY_DEPTHS != MPI_KEYVAL_INVALID )
-        MPI_Keyval_free(&MPICHX_TOPOLOGY_DEPTHS);
+#   if defined(GLOBUS_CALLBACK_GLOBAL_SPACE)
+    {
+        globus_result_t result;
+        result = globus_callback_space_destroy(MpichG2Space);
+        if (result != GLOBUS_SUCCESS)
+        {
+            globus_object_t* err = globus_error_get(result);
+            char *errstring = globus_object_printable_to_string(err);
+            globus_libc_fprintf(stderr, 
+                "WARNING: MPID_End: failed globus_callback_space_destroy "
+                "during shutdown: %s\n", 
+                errstring);
+        } /* endif */
+    } 
+#endif
+
+    destroy_topology_access_keys();
 
 #   if defined(VMPI)
     {
@@ -319,8 +336,6 @@ void MPID_End(void)
     }
 #   endif
 
-    globus_mutex_destroy(&MessageQueuesLock);
-
     /* freeing CommWorldChannelsTable */
     for (i = 0; i < CommworldChannelsTableNcommWorlds; i ++)
     {
@@ -329,7 +344,7 @@ void MPID_End(void)
 	for (j = 0; j < CommWorldChannelsTable[i].nprocs; j ++)
 	{
 	    struct miproto_t *mp;
-	    while (mp = cp[j].proto_list)
+	    while ((mp = cp[j].proto_list) != NULL)
 	    {
 		cp[j].proto_list = mp->next;
 		if (mp->type == tcp)
@@ -396,7 +411,7 @@ void MPID_End(void)
 /*
  * MPID_DeviceCheck
  *
- * NICK: for now just call globus_poll and return 1.
+ * NICK: for now just call G2_POLL and return 1.
  *       need to understand if it's OK to call globus_poll_blocking
  *       when 'is_blocking != 0'
  */
@@ -412,7 +427,6 @@ int MPID_DeviceCheck(MPID_BLOCKING_TYPE is_blocking)
 	 * take one pass through the MpiPostedQueue trying to 
 	 * satisfy each req.
 	 */
-	globus_mutex_lock(&MessageQueuesLock);
 	for (curr = MpiPostedQueue.head; curr; curr = next)
 	{
 	    /* 
@@ -422,20 +436,19 @@ int MPID_DeviceCheck(MPID_BLOCKING_TYPE is_blocking)
 	    next = curr->next;
 	    mpi_recv_or_post(curr->req, (int *) NULL);
 	} /* endfor */
-	globus_mutex_unlock(&MessageQueuesLock);
     }
 #   endif
 
     /* nudge TCP */
     {
 	globus_bool_t outstanding_tcp_reqs;
-	RC_mutex_lock(&MessageQueuesLock);
 	outstanding_tcp_reqs = ((TcpOutstandingRecvReqs > 0 
 					|| TcpOutstandingSendReqs > 0)
 					    ? GLOBUS_TRUE : GLOBUS_FALSE);
-	RC_mutex_unlock(&MessageQueuesLock);
 	if (outstanding_tcp_reqs)
-	    globus_poll();
+	{
+	    G2_POLL
+	} /* endif */
     }
 
     return 1;
@@ -503,9 +516,10 @@ void MPID_Request_free(MPI_Request request)
     {
 	case MPIR_SEND:
 	    {
-		MPIR_SHANDLE *sreq = (MPIR_SHANDLE *) rq;
 #               if defined(VMPI)
 		{
+		    MPIR_SHANDLE *sreq = (MPIR_SHANDLE *) rq;
+
 		    if (sreq->req_src_proto == mpi)
 		    {
 			/* MPI */
@@ -620,7 +634,8 @@ void build_channels(int nprocs,
                 mp = (*channels)[i].proto_list;
             } /* endif */
             mp->next = (struct miproto_t *) NULL;
-            sscanf(cp, "%d ", &(mp->type));
+            sscanf(cp, "%d ", &dummy);
+	    mp->type = dummy;
             cp = index(cp, ' ')+1;
             switch (mp->type)
             {
@@ -635,10 +650,6 @@ void build_channels(int nprocs,
 		    mp->info = tp;
                     tp->handlep = (struct tcp_rw_handle_t *) NULL;
                     tp->whandle = (globus_io_handle_t *) NULL;
-		    globus_mutex_init(&(tp->connection_lock), 
-			(globus_mutexattr_t *) GLOBUS_NULL);
-		    globus_cond_init(&(tp->connection_cond), 
-			(globus_condattr_t *) GLOBUS_NULL);
 		    tp->cancel_head = tp->cancel_tail = 
 			tp->send_head = tp->send_tail = 
 			    (struct tcpsendreq *) NULL;
@@ -918,6 +929,16 @@ static int globus_init(int *argc, char ***argv)
 
     int rc;
 
+    /* 
+     * using GLOBUS_CALLBACK_GLOBAL_SPACE as cheap test
+     * to see if MPICH-G2 is being configured against
+     * Globus v2.2 or later ... GLOBUS_CALLBACK_GLOBAL_SPACE
+     * was introduced in GLobus v2.2
+     */
+#if defined(GLOBUS_CALLBACK_GLOBAL_SPACE)
+    globus_module_set_args(argc, argv);
+#endif
+
     rc = globus_module_activate(GLOBUS_DUROC_RUNTIME_MODULE);
     if (rc != GLOBUS_SUCCESS)
     {
@@ -991,6 +1012,7 @@ static int globus_init(int *argc, char ***argv)
 	    MpichGlobus2TcpBufsz = 0;
 	} /* endif */
     } /* endif */
+
     /****************************************************************/
     /* making sure there's enough room in a ulong to hold a pointer */
     /* ... this is REQUIRED for liba of our TCP headers.            */
@@ -1006,14 +1028,57 @@ static int globus_init(int *argc, char ***argv)
 	return 1;
     } /* endif */
 
+    /*************************************************************************/
+    /* making sure there's enough room in G2_MAXHOSTNAMELEN to hold hostname */
+    /*************************************************************************/
+
+    if (G2_MAXHOSTNAMELEN < MAXHOSTNAMELEN)
+    {
+	globus_libc_fprintf(stderr, 
+	    "ERROR: globus_init: detected that the MPICH-G2-defined value\n"
+	    "       G2_MAXHOSTNAMELEN %d is less OS-defined value "
+	    "MAXHOSTNAMELEN %d\n."
+	    "       The solution is to increase the value of G2_MAXHOSTNAMELEN "
+	    "(defined in\n"
+	    "       a header file in <mpichdir>/mpid/globus2 directory) so that"
+	    "it is at\n"
+	    "       it least %d and re-build/install MPICH-G2.\n"
+	    "NOTE: If you change the value of G2_MAXHOSTNAMELEN on this" 
+	    "system then\n"
+	    "      you _MUST_ also change it to the exact same value on all "
+	    "systems you plan\n"
+	    "      to run your application on.  This will require a "
+	    "re-build/install of\n"
+	    "      MPICH-G2 on those systems as well.\n"
+	    "      Within a single computation, the value of G2_MAXHOSTNAMELEN "
+	    "must be\n"
+	    "      identical in all MPICH-G2 installations.\n\n",
+	    G2_MAXHOSTNAMELEN,
+	    MAXHOSTNAMELEN,
+	    MAXHOSTNAMELEN); 
+	return 1;
+    } /* endif */
+
     /*********************************/
     /* initializing global variables */
     /*********************************/
 
-    /* lock that must be acquired before accessing any of the MPID_ */
-    /* queueing functions found in mpich/util/queue.c               */
-    globus_mutex_init(&MessageQueuesLock, (globus_mutexattr_t *) GLOBUS_NULL);
-
+#   if defined(GLOBUS_CALLBACK_GLOBAL_SPACE)
+    {
+        globus_result_t result;
+        result = globus_callback_space_init(&MpichG2Space, GLOBUS_NULL_HANDLE);
+        if (result != GLOBUS_SUCCESS)
+        {
+            globus_object_t* err = globus_error_get(result);
+            char *errstring = globus_object_printable_to_string(err);
+            globus_libc_fprintf(stderr, 
+                "ERROR: globus_init: failed globus_callback_space_init: %s\n", 
+                errstring);
+            return 1;
+        } /* endif */
+    } 
+#endif
+ 
 #   if defined(VMPI)
     {
         MpiPostedQueue.head = MpiPostedQueue.tail = (struct mpircvreq *) NULL;
@@ -1050,7 +1115,7 @@ static int globus_init(int *argc, char ***argv)
 	    globus_libc_malloc(MPID_MyWorldSize*sizeof(globus_byte_t *))))
     {
         globus_libc_fprintf(stderr,
-            "ERROR: failed malloc of %ld bytes\n",
+            "ERROR: failed malloc of %d bytes\n",
             MPID_MyWorldSize*sizeof(globus_byte_t *));
         exit(1);
     } /* endif */
@@ -1059,7 +1124,7 @@ static int globus_init(int *argc, char ***argv)
 	    (int *) globus_libc_malloc(MPID_MyWorldSize*sizeof(int))))
     {
         globus_libc_fprintf(stderr,
-            "ERROR: failed malloc of %ld bytes\n", 
+            "ERROR: failed malloc of %d bytes\n", 
 	    MPID_MyWorldSize*sizeof(int));
         exit(1);
     } /* endif */
@@ -1109,9 +1174,9 @@ static int globus_init(int *argc, char ***argv)
 	if (MPID_MyWorldRank == 0)
 	{
 	    /* creating universally unique name = {hostname,pid} for rank 0 */
-	    char hostname[MAXHOSTNAMELEN];
+	    char hostname[G2_MAXHOSTNAMELEN];
 
-	    if (globus_libc_gethostname(hostname, MAXHOSTNAMELEN))
+	    if (globus_libc_gethostname(hostname, G2_MAXHOSTNAMELEN))
 	    {
 		    globus_libc_fprintf(stderr,
 		    "ERROR: globus_init(): failed globus_libc_gethostname()\n");
@@ -1129,7 +1194,7 @@ static int globus_init(int *argc, char ***argv)
 		globus_libc_malloc(MPID_MyWorldSize*sizeof(globus_byte_t *))))
 	{
 	    globus_libc_fprintf(stderr,
-		"ERROR: failed malloc of %ld bytes\n",
+		"ERROR: failed malloc of %d bytes\n",
 		MPID_MyWorldSize*sizeof(globus_byte_t *));
 	    exit(1);
 	} /* endif */
@@ -1138,7 +1203,7 @@ static int globus_init(int *argc, char ***argv)
 		(int *) globus_libc_malloc(MPID_MyWorldSize*sizeof(int))))
 	{
 	    globus_libc_fprintf(stderr,
-		"ERROR: failed malloc of %ld bytes\n",
+		"ERROR: failed malloc of %d bytes\n",
 		MPID_MyWorldSize*sizeof(int));
 	    exit(1);
 	} /* endif */
@@ -1161,7 +1226,7 @@ static int globus_init(int *argc, char ***argv)
 	    COMMWORLDCHANNELS_TABLE_STEPSIZE*sizeof(struct commworldchannels))))
 	{
 	    globus_libc_fprintf(stderr,
-		"ERROR: failed malloc of %ld bytes\n",
+		"ERROR: failed malloc of %d bytes\n",
 	    COMMWORLDCHANNELS_TABLE_STEPSIZE*sizeof(struct commworldchannels));
 	    exit(1);
 	} /* endif */
@@ -1188,7 +1253,6 @@ static int globus_init(int *argc, char ***argv)
     /**********************************************************************/
 
     {
-	int nprocs, myrank;
 	int *vector_lengths;
 
 	if (!(MyGlobusGramJobContact = 
@@ -1204,7 +1268,7 @@ static int globus_init(int *argc, char ***argv)
 		globus_libc_malloc(MPID_MyWorldSize*sizeof(globus_byte_t *))))
 	{
 	    globus_libc_fprintf(stderr,
-		"ERROR: failed malloc of %ld bytes\n",
+		"ERROR: failed malloc of %d bytes\n",
 		MPID_MyWorldSize*sizeof(globus_byte_t *));
 	    exit(1);
 	} /* endif */
@@ -1213,7 +1277,7 @@ static int globus_init(int *argc, char ***argv)
 		(int *) globus_libc_malloc(MPID_MyWorldSize*sizeof(int))))
 	{
 	    globus_libc_fprintf(stderr,
-		"ERROR: failed malloc of %ld bytes\n",
+		"ERROR: failed malloc of %d bytes\n",
 		MPID_MyWorldSize*sizeof(int));
 	    exit(1);
 	} /* endif */
@@ -1487,7 +1551,7 @@ mpich_globus2_get_network_address_and_mask(
 
 static void create_my_miproto(globus_byte_t **my_miproto, int *nbytes)
 {
-    char hostname[MAXHOSTNAMELEN];
+    char hostname[G2_MAXHOSTNAMELEN];
     char s_port[10];
     char s_tcptype[10];
     char s_nprotos[10];
@@ -1525,12 +1589,30 @@ static void create_my_miproto(globus_byte_t **my_miproto, int *nbytes)
 
     nprotos ++;
 
-    if (globus_libc_gethostname(hostname, MAXHOSTNAMELEN))
+    if (globus_libc_gethostname(hostname, G2_MAXHOSTNAMELEN))
     {
 	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPICH-G2", 
 		    "create_my_miproto() - failed globus_libc_gethostname()" );
     } /* endif */
     globus_io_tcpattr_init(&attr);
+#   if defined(GLOBUS_CALLBACK_GLOBAL_SPACE)
+    { 
+        globus_result_t result;
+        result = globus_io_attr_set_callback_space(&attr, MpichG2Space);
+        if (result != GLOBUS_SUCCESS)
+        {
+            globus_object_t* err = globus_error_get(result);
+            char *errstring = globus_object_printable_to_string(err);
+            char msg[1024];
+            globus_libc_sprintf(msg, 
+                "ERROR: create_my_miproto: "
+		"failed globus_io_attr_set_callback_space:"
+                " %s", 
+                errstring);
+            MPID_Abort((struct MPIR_COMMUNICATOR *)0, 1, "MPICH-G2", msg);
+        } /* endif */
+    }
+#endif
     
     net_if_str = globus_libc_getenv("MPICH_GLOBUS2_USE_NETWORK_INTERFACE");
 
@@ -2064,7 +2146,7 @@ static void get_topology(int rank_in_my_subjob,
 		(int *) globus_libc_malloc(*nsubjobs*sizeof(int))))
 	    {
 		globus_libc_fprintf(stderr, 
-		    "ERROR: failed malloc of %ld bytes\n", 
+		    "ERROR: failed malloc of %d bytes\n", 
 		    *nsubjobs*sizeof(int));
 		exit(1);
 	    } /* endif */
@@ -2072,14 +2154,14 @@ static void get_topology(int rank_in_my_subjob,
 		(int *) globus_libc_malloc(*nsubjobs*sizeof(int))))
 	    {
 		globus_libc_fprintf(stderr, 
-		    "ERROR: failed malloc of %ld bytes\n", 
+		    "ERROR: failed malloc of %d bytes\n", 
 		    *nsubjobs*sizeof(int));
 		exit(1);
 	    } /* endif */
 	    if (!(g_ranks = (int *) globus_libc_malloc(*nsubjobs*sizeof(int))))
 	    {
 		globus_libc_fprintf(stderr, 
-		    "ERROR: failed malloc of %ld bytes\n", 
+		    "ERROR: failed malloc of %d bytes\n", 
 		    *nsubjobs*sizeof(int));
 		exit(1);
 	    } /* endif */
@@ -2431,12 +2513,12 @@ static void distribute_byte_array(globus_byte_t *inbuff,
 	/* subjob master */
 	char *my_subjob_buff;
 	int my_subjob_buffsize;
-	char *dest;
 /* globus_libc_fprintf(stderr, "%d: distribute_byte_array: i am subjob master\n", MPID_MyWorldRank); */
 
 #       if defined(VMPI)
         {
 	    char *temp_buff;
+	    char *dest;
 	    int *rcounts;
 	    int *displs;
 	    int rc;

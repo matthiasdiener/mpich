@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_xfs_read.c,v 1.8 2000/03/14 23:34:16 thakur Exp $    
+ *   $Id: ad_xfs_read.c,v 1.9 2002/10/24 17:01:10 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

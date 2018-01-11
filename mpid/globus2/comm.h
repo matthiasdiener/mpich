@@ -1,42 +1,55 @@
+#ifndef MPICH_GLOBUS2_COMM_H
+#define MPICH_GLOBUS2_COMM_H
+
 #ifndef MPIR_GROUP_COOKIE
 
-/* do not use the general collective functions defined in src/coll/intra_fns.c,
- * use the ones defined for globus2 device */
+
+/**********************************************************************/
+/* do not use the general collective functions defined in
+ * src/coll/intra_fns.c or src/coll/intra_fns_new.c; use the ones
+ * defined for globus2 device */
 
 #include "topology_intra_fns.h"
 
-#define MPID_Barrier
+/* SEBASTIEN: improve Alltoall to exchange less data (create better
+ * tuned data types).
+ *
+ * Improve Reduce_scatter() in non-commutative case: in 1st phase
+ * (gather to the roots), at each level: start posting all the send's
+ * when I'm local slave, then post all the recv's when I'm local root. */
+
+#define MPID_Barrier /* symmetric operation: check performance gain */
 #define MPID_Bcast
-#define MPID_Gather
-#undef MPID_Gatherv
-#define MPID_Scatter
-#undef MPID_Scatterv
-#undef MPID_Allgather
-#undef MPID_Allgatherv
-#undef MPID_Alltoall
-#undef MPID_Alltoallv
-#define MPID_Reduce
-#undef MPID_Allreduce
-#undef MPID_Reduce_scatter
-#undef MPID_Scan
+#define MPID_Gather   /* comparing with and without packing/unpacking */
+#undef MPID_Gatherv /* this function works: evaluate its performance */
+#define MPID_Scatter   /* comparing with and without packing/unpacking */
+#undef MPID_Scatterv /* not written yet: see MPID_Gatherv's performance 1st */
+#define MPID_Allgather /* symmetric operation: check performance gain */
+#define MPID_Allgatherv /* symmetric operation: check performance gain */
+#define MPID_Alltoall /* symmetric operation: check performance gain */
+#undef MPID_Alltoallv /* same problem as MPI_Gatherv, in a worse version */
+#define MPID_Reduce /* check perf for non-commutative case, with large msg */
+#define MPID_Allreduce
+#define MPID_Reduce_scatter   /* possible improvements */
+#define MPID_Scan   /* compare performance with Rajeev's topol. UNaware */
+/* The followings are MPI-2 */
+#undef MPID_Alltoallw
+#undef MPID_Exscan
+
 
 /* some data structures used by the topology aware functions */
 
+/* set of processes which will have to talk together at a given level */
 typedef struct
 {
-   int size;            /* number of processes in the set */
-   int level;           /* level at which the message is received */
-   int root_index;      /* position of the source process in the receive set */
-   int my_rank_index;   /* position of the current process in the set */
-   int *set;            /* array of process ids participating in the bcast */
-} single_set_t;
+   int size;               /* number of processes in the set */
+   int root_index;         /* position of the root process in the set */
+   int my_rank_index;      /* position of the current process in the set */
+   int *set;               /* array of process ids in the set */
+} comm_set_t;
 
-typedef struct
-{
-   int num;             /* number of sets */
-   single_set_t *sets;  /* array of sets of processes */
-} multiple_set_t;
 
+/**********************************************************************/
 
 /*
  * Definition of a communicator and group
@@ -165,16 +178,16 @@ struct MPIR_COMMUNICATOR {
     char 		     *comm_name; /* A print name for this 
 					    communicator */
 
-    /* Topology aware stuff */
-    int *Topology_Depths;
-    int **Topology_ClusterIds;
-    /* pre-allocated pointers to the sets of procs at each level */
-    int **Topology_ClusterSets;
-    /* Size of my cluster at each level */
-    int *Topology_ClusterSizes;
-    /* pre-allocated pointer */
-    single_set_t *Topology_InfoSets;
-    int **Topology_ColorTable;
+    /*** Topology aware stuff ***/
+    int *Topology_Depths;   /* Depths[proc] */
+    int **Topology_ClusterIds;   /* ClusterIds[proc][level] */
+    int **Topology_Colors;   /* Colors[proc][level] */
+    /* size of each cluster at each level: ClusterSizes[level][color] */
+    int **Topology_ClusterSizes;
+    /* array of communicating procs at each level */
+    comm_set_t *Topology_CommSets;   /* CommSets[level] */
+    /* 2D-array for the process ranks inside a cluster (at a given level) */
+    int **Topology_Ranks;   /* Ranks[proc][level] */
 };
 
 /*
@@ -232,3 +245,6 @@ int MPID_Comm_free(
 
 void MPID_ZeroStatusCount(
     MPI_Status *			status);
+
+#endif   /* MPICH_GLOBUS2_COMM_H */
+

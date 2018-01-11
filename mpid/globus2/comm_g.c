@@ -58,7 +58,7 @@ int MPID_Comm_init(
 	globus_libc_malloc(VMPI_MyWorldSize * sizeof(int));
     if (newcomm->vgrank_to_vlrank == NULL)
     {
-	rc = MPI_ERR_NOMEM;
+	rc = MPI_ERR_EXHAUSTED;
 	goto fn_abort;
     }
     for (i = 0; i < VMPI_MyWorldSize; i++)
@@ -70,7 +70,7 @@ int MPID_Comm_init(
 	globus_libc_malloc(newcomm->np * sizeof(int));
     if (newcomm->lrank_to_vlrank == NULL)
     {
-	rc = MPI_ERR_NOMEM;
+	rc = MPI_ERR_EXHAUSTED;
 	goto fn_abort;
     }
 
@@ -143,7 +143,7 @@ int MPID_Comm_init(
 	globus_libc_malloc(vlnp * sizeof(int));
     if (newcomm->vlrank_to_lrank == NULL)
     {
-	rc = MPI_ERR_NOMEM;
+	rc = MPI_ERR_EXHAUSTED;
 	goto fn_abort;
     }
 
@@ -181,7 +181,7 @@ int MPID_Comm_init(
 	globus_libc_malloc(mp_comm_get_size());
     if (newcomm->vmpi_comm == NULL)
     {
-	rc = MPI_ERR_NOMEM;
+	rc = MPI_ERR_EXHAUSTED;
 	goto fn_abort;
     }
 
@@ -340,9 +340,9 @@ int MPID_Comm_init(
     newcomm->vgrank_to_vlrank = NULL;
 #endif   /* VMPI */
 
-  fn_exit:
+  /* fn_exit: */
     if ( rc == MPI_SUCCESS  &&  newcomm )
-        rc = cluster_table(newcomm);
+        rc = topology_initialization(newcomm);
     DEBUG_FN_EXIT(DEBUG_MODULE_COMM);
     return rc;
 }
@@ -371,8 +371,8 @@ int MPID_Comm_free(
     comm->vgrank_to_vlrank = NULL;
 #endif   /* VMPI */
 
-  fn_exit:
-    destroy_cluster_table(comm);
+  /* fn_exit: */
+    topology_destruction(comm);
     DEBUG_FN_EXIT(DEBUG_MODULE_COMM);
     return MPI_SUCCESS;
 }

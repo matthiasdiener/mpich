@@ -38,7 +38,8 @@ int create_remote_processes(struct p4_procgroup *pg)
 	    rm_fd = net_create_slave(serv_port,serv_fd,
 				     pe->host_name,
 				     pe->slave_full_pathname,
-				     pe->username);
+				     pe->username,
+				     pe->rm_rank );
 #ifdef SCYLD_BEOWULF
 	    if (rm_fd < 0) 
 		break;
@@ -159,13 +160,12 @@ int rm_fd, rm_num;
 #define TIMEOUT_VALUE 300
 #endif
 static char *curhostname = 0;
-static char errbuf[256];
+static char errbuf[512];
 static int  child_pid = 0;
 /* active_fd is the fd that we're waiting on when the timeout happened */
 static int  active_fd = -1;
 P4VOID p4_accept_timeout ( int );
-P4VOID p4_accept_timeout(sigval)
-int sigval;
+P4VOID p4_accept_timeout( int sigval)
 {
     /* First, we should check that the timeout has actually be reached,
        and this isn't some other alarm */
@@ -186,19 +186,50 @@ int sigval;
 	close( active_fd );
     exit(1);
 }
+#ifdef HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+P4VOID p4_accept_sigchild ( int );
+P4VOID p4_accept_sigchild( int sigval )
+{
+    int status;
+    /* See if this is a child that we're waiting on */
+    if (!child_pid) return;
+
+    /* If we did not find sys/wait.h , WHOHANG won't be defined.  What
+       can we do? */
+    if (waitpid( child_pid, &status, WNOHANG )) {
+	/* waitpid returns 0 if the child hasn't exited */
+    }
+
+    if (curhostname) {
+	sprintf( errbuf, 
+		 "Child process exited while making connection to remote process on %s", 
+		 curhostname );
+	p4_error( errbuf, 0 );
+    }
+    else {
+	p4_error( "Child process exited while making connection to remote process", 0 );
+    }
+    if (active_fd >= 0)
+	close( active_fd );
+    exit(1);
+}
 
 /*
  *	Run the slave pgm on host; returns the file descriptor of the
- *	connection to the slave.
+ *	connection to the slave.  This creates the remote slave, which
+ *      in turn is responsible for creating the slaves.
  */
 int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm, 
-		      char *username)
+		      char *username, int rm_rank )
 {
     struct net_initial_handshake hs;
     char myhostname[100];
     char remote_shell[P4_MAX_PGM_LEN];
     char serv_port_c[64];
     int rc;
+    char rm_rank_str[12];
 #ifdef USE_OLD_SERVER
     struct net_message_t msg;
     int success, connection_fd;
@@ -217,6 +248,8 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
     defined(SP1)
 /*     char *getpw_ss (char *); */
 #   endif
+
+    sprintf( rm_rank_str, "%d", rm_rank );
 
 #   if defined(SP1)
     strcpy(myhostname,p4_global->proctable[0].host_name);
@@ -401,7 +434,9 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 		    strcmp( myhostname, host ) == 0) { 
 		    p4_dprintfl( 80, "Not using rsh to localhost\n" );
 		    rc = execlp(pgm, pgm,
-			    myhostname, serv_port_c, am_slave_c, NULL);
+			    myhostname, serv_port_c, am_slave_c, 
+			    "-p4yourname", host, "-p4rmrank", rm_rank_str, 
+				NULL);
 		}
 		else {
 		    rc = execlp(remote_shell, remote_shell,
@@ -411,10 +446,15 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 #endif
 			    "-n", pgm,
 			    myhostname, serv_port_c, am_slave_c, 
-			    "-p4yourname", host, NULL);
+#ifdef HAVE_BROKEN_RSH
+			    "\\-p4yourname", host, "\\-p4rmrank", rm_rank_str,
+#else
+			    "-p4yourname", host, "-p4rmrank", rm_rank_str,
+#endif
+				NULL);
 		}
 #else
-#   if defined(LINUX)
+#   if defined(HAVE_BROKEN_RSH)
 		/* This must be in this branch because the backslash 
 		   is not stripped off if rsh is not used */
 		/* On some LINUX systems, it was necessary to escape the
@@ -448,7 +488,7 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 		    argv[argcount++] = "-l";
 		    argv[argcount++] = username;
 #endif
-		    while (next_parm && argcount < 55) {
+		    while (next_parm && argcount < 51) {
 			argv[argcount++] = next_parm;
 			next_parm = strchr( next_parm, ' ' );
 			if (next_parm) {
@@ -460,8 +500,18 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 		    argv[argcount++] = myhostname;
 		    argv[argcount++] = serv_port_c;
 		    argv[argcount++] = am_slave_c;
+#ifdef HAVE_BROKEN_RSH
+		    argv[argcount++] = "\\-p4yourname";
+#else
 		    argv[argcount++] = "-p4yourname";
+#endif
 		    argv[argcount++] = host;
+#ifdef HAVE_BROKEN_RSH
+		    argv[argcount++] = "\\-p4rmrank";
+#else
+		    argv[argcount++] = "-p4rmrank";
+#endif
+		    argv[argcount++] = rm_rank_str;
 		    argv[argcount++] = 0;
 		    rc = execvp( rshell_string, argv );
 		}
@@ -475,13 +525,46 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 #endif
 			    "-n", pgm,
 			    myhostname, serv_port_c, am_slave_c, 
-			    "-p4yourname", host,
+#ifdef HAVE_BROKEN_RSH
+			    "\\-p4yourname", host, "\\-p4rmrank", rm_rank_str,
+#else
+			    "-p4yourname", host, "-p4rmrank", rm_rank_str,
+#endif
 			    NULL);
 #endif /* RSH_NEEDS_OPTS */
 #endif /* Short_circuit_localhost */
 		/* host,"-n","cluster","5",pgm,myhostname,serv_port_c,0); for butterfly */
-		if (rc < 0)
-		    p4_error("net_create_slave: execlp", rc);
+		if (rc < 0) {
+		    /* Trap common user errors and generate a more 
+		       helpful error message */
+		    char *pmsg = "net_create_slave: execlp";
+		    char fullmsg[512];
+		    switch (errno) {
+			/* noent - component of file doesn't exist */
+		    case ENOENT: pmsg = "Path to program is invalid"; 
+			break;
+			/* notdir - component of file isn't a directory */
+		    case ENOTDIR: 
+			pmsg = "A directory in the program path is not a valid directory"; 
+			break;
+			/* acces - Search permission denied, file not 
+			   executable */
+		    case EACCES: 
+			pmsg = "Program is not an executable or is not accessible"; break;
+			/* interrupt received! */
+		    case EINTR: pmsg = "Interrupt received while starting program"; break;
+		    default:
+			;
+		    }
+		    strcpy( fullmsg, pmsg );
+		    strcat( fullmsg, " while starting " );
+		    strncat( fullmsg, pgm, 511 );
+		    strncat( fullmsg, " with ", 511 );
+		    strncat( fullmsg, remote_shell, 511 );
+		    strncat( fullmsg, " on ", 511 );
+		    strncat( fullmsg, myhostname, 511 );
+		    p4_error(fullmsg, rc);
+		}
 	    }
 	    p4_dprintfl(10, "created remote slave on %s via remote shell\n",host);
 	    p4_dprintfl(90, "remote slave is running program %s as user %s\n",
@@ -513,6 +596,16 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 #else
     alarm( TIMEOUT_VALUE );
 #endif
+    /* 
+       If the user's program never starts and the forked child process
+       fails, then this step will hang (eventually failing due to the
+       timeout).  The p4 code in general needs to manage SIGCHLD, 
+       but this gives a simple way to warn of problems.
+     */
+#ifndef SIGCHLD
+#define SIGCHLD SIGCLD
+#endif
+    SIGNAL_P4(SIGCHLD,p4_accept_sigchild)
     slave_fd		  = net_accept(serv_fd);
     /* 
        Thanks to Laurie Costello (lmc@cray.com) for this fix.  This 
@@ -547,6 +640,8 @@ int net_create_slave( int serv_port, int serv_fd, char *host, char *pgm,
 #endif
     active_fd             = -1;
     SIGNAL_P4(SIGALRM,SIG_DFL);
+    /* We should be more careful about cigchld */
+    SIGNAL_P4(SIGCHLD,SIG_DFL);
     }
 
     hs.pid = (int) htonl(getpid());

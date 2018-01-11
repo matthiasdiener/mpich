@@ -17,7 +17,9 @@ c
         integer dims(2), coords(2)
         integer nerrs, toterrs
         logical periods(2)
+        logical verbose
         data periods/2*.false./
+        data verbose/.false./
 c
         call MPI_INIT( ierr )
         call MPI_COMM_RANK( MPI_COMM_WORLD, myid, ierr )
@@ -35,12 +37,17 @@ c        print *, "Process ", myid, " of ", numprocs, " is alive"
         call MPI_CART_CREATE( MPI_COMM_WORLD, 2, dims, periods, .true.,
      *                      comm2d, ierr )
         call MPI_COMM_RANK( comm2d, newid, ierr )
-c        print *, "Process ", myid, " of ", numprocs, " is now ", newid
+        if (verbose) then
+           print *, "Process ", myid, " of ", numprocs, " is now ",
+     $          newid
+        endif
         myid = newid
         call MPI_Cart_shift( comm2d, 0,  1, nbrleft,   nbrright, ierr )
         call MPI_Cart_shift( comm2d, 1,  1, nbrbottom, nbrtop,   ierr )
-c        print *, "Process ", myid, " has nbrs", nbrleft, nbrright,
-c     &            nbrtop, nbrbottom
+        if (verbose) then
+            print *, "Process ", myid, " has nbrs", nbrleft, nbrright,
+     &            nbrtop, nbrbottom
+        endif
         call MPI_Cart_get( comm2d, 2, dims, periods, coords, ierr )
         call MPE_DECOMP1D( nx, dims(1), coords(1), sx, ex )
         call MPE_DECOMP1D( ny, dims(2), coords(2), sy, ey )
@@ -50,8 +57,11 @@ c       So, we use an explicit Format
         if ( myid .eq. 0 )
      &    print 10, dims(1), dims(2)
  10     format( " Dims: ", i4, i4 )
-c        print *, "Process ", myid, " has coords of ", coords
-c        print *, "Process ", myid, " has sx,ex/sy,ey ", sx, ex, sy, ey
+        if (verbose) then
+           print *, "Process ", myid, " has coords of ", coords
+           print *, "Process ", myid, " has sx,ex/sy,ey ", sx,
+     $          ex, sy, ey
+        endif
         call MPI_TYPE_VECTOR( ey-sy+3, 1, ex-sx+3,
      $                        MPI_DOUBLE_PRECISION, stride, ierr )
         call MPI_TYPE_COMMIT( stride, ierr )

@@ -21,16 +21,16 @@ struct MPIRunLaunchProcessArg
     char pszPassword[300];
     char pszIOHostPort[100];
     char pszPassPhrase[257];
-    //bool bMapDrive;
-    //char cMapDrive;
-    //char pszMapShare[MAX_PATH];
-    //char pszMapAccount[40];
-    //char pszMapPassword[40];
+    bool bUseDebugFlag;
+    bool bUsePriorities;
+    int nPriorityClass;
+    int nPriority;
 };
 
 void MPIRunLaunchProcess(MPIRunLaunchProcessArg *arg);
 void PutJobInDatabase(MPIRunLaunchProcessArg *arg);
 void PutJobProcessInDatabase(MPIRunLaunchProcessArg *arg, int pid);
 void UpdateJobState(char *state);
+void UpdateJobKeyValue(int rank, char *key, char *value);
 
 #endif

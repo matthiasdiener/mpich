@@ -1,18 +1,16 @@
 #include "global.h"
-#include "bsocket.h"
 
 // Global variables
 MapDriveNode *g_pDriveMapList = NULL;
-bool g_bNoDriveMapping = false;
 HANDLE g_hRedirectIOListenThread = NULL;
-int g_bfdStopIOSignalSocket = BFD_INVALID_SOCKET;
+SOCKET g_sockStopIOSignalSocket = INVALID_SOCKET;
 HANDLE g_hAbortEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-int *g_pProcessSocket = NULL;
+SOCKET *g_pProcessSocket = NULL;
 int *g_pProcessLaunchId = NULL;
 int *g_pLaunchIdToRank = NULL;
 LONG g_nNumProcessSockets = 0;
 ForwardHostStruct *g_pForwardHost = NULL;
-int g_bfdBreak = BFD_INVALID_SOCKET;
+SOCKET g_sockBreak = INVALID_SOCKET;
 HANDLE g_hBreakReadyEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 long g_nRootPort = 0;
 HostNode *g_pHosts = NULL;
@@ -30,9 +28,16 @@ char g_pszIOHost[MAX_HOST_LENGTH];
 int g_nIOPort;
 bool g_bDoMultiColorOutput = true;
 bool g_bUseJobHost = false;
+bool g_bOutputExitCodes = false;
 char g_pszJobHost[MAX_HOST_LENGTH] = "";
 bool g_bUseJobMPDPwd = false;
 char g_pszJobHostMPDPwd[100];
+int g_nLaunchTimeout = MPIRUN_DEFAULT_TIMEOUT;
+bool g_bSuppressErrorOutput = false;
+bool g_bUseMPDUser = false;
+int g_nMPIRUN_DEFAULT_TIMEOUT = MPIRUN_DEFAULT_TIMEOUT;
+int g_nMPIRUN_SHORT_TIMEOUT = MPIRUN_SHORT_TIMEOUT;
+int g_nMPIRUN_CREATE_PROCESS_TIMEOUT = MPIRUN_CREATE_PROCESS_TIMEOUT;
 
 WORD g_ConsoleAttribute;
 WORD aConsoleColorAttribute[NUM_OUTPUT_COLORS] = {

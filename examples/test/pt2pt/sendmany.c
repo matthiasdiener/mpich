@@ -1,8 +1,10 @@
 #include <stdio.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <stdlib.h>
 #include <assert.h>
-#include <mpi.h>
+#include "mpi.h"
 
 #if defined(NEEDS_STDLIB_PROTOTYPES)
 #include "protofix.h"

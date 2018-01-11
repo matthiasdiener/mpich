@@ -105,14 +105,21 @@ FORTRAN_API void FORT_CALL mpi_group_range_incl_ ( MPI_Fint *, MPI_Fint *,
 FORTRAN_API void FORT_CALL mpi_group_range_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fint ranges[][3], MPI_Fint *newgroup, MPI_Fint *__ierr )
 {
     MPI_Group l_newgroup;
- 
+
+#ifdef FINT_IS_INT
+    *__ierr = MPI_Group_range_incl(MPI_Group_f2c(*group), *n,
+				   (int (*)[3])ranges, &l_newgroup);
+#else 
+#ifdef FINT_TYPE_UNKNOWN
     if (sizeof(MPI_Fint) == sizeof(int)) {
 	/* We cast ranges here in case MPI_Fint != int and the compiler
 	   wants to complain...*/
         *__ierr = MPI_Group_range_incl(MPI_Group_f2c(*group), *n,
                                        (int (*)[3])ranges, &l_newgroup);
     }
-    else {
+    else 
+#endif
+{
 	int *l_ranges;
 	int i;
 	int j = 0;
@@ -132,6 +139,7 @@ FORTRAN_API void FORT_CALL mpi_group_range_incl_ ( MPI_Fint *group, MPI_Fint *n,
                                         &l_newgroup);
 	FREE( l_ranges );
     }
+#endif
     if (*__ierr == MPI_SUCCESS) 		     
         *newgroup = MPI_Group_c2f(l_newgroup);
 }

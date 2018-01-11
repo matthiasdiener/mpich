@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iwrite_sh.c,v 1.6 2000/02/09 21:30:15 thakur Exp $    
+ *   $Id: iwrite_sh.c,v 1.7 2002/10/24 15:54:41 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

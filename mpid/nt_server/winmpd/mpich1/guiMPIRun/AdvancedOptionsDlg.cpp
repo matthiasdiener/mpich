@@ -37,6 +37,9 @@ CAdvancedOptionsDlg::CAdvancedOptionsDlg(CWnd* pParent /*=NULL*/)
 	m_bNoColor = FALSE;
 	m_map = _T("");
 	m_bMap = FALSE;
+	m_bCatch = FALSE;
+	m_jobhost = _T("");
+	m_bUseJobHost = FALSE;
 	//}}AFX_DATA_INIT
 }
 
@@ -45,6 +48,7 @@ void CAdvancedOptionsDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CAdvancedOptionsDlg)
+	DDX_Control(pDX, IDC_JOBHOST, m_jobhost_edit);
 	DDX_Control(pDX, IDC_MAP_CHK, m_map_chk);
 	DDX_Control(pDX, IDC_DIR_CHK, m_dir_chk);
 	DDX_Control(pDX, IDC_DRIVEMAPPINGS, m_map_edit);
@@ -75,6 +79,9 @@ void CAdvancedOptionsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_NOCOLOR_CHK, m_bNoColor);
 	DDX_Text(pDX, IDC_DRIVEMAPPINGS, m_map);
 	DDX_Check(pDX, IDC_MAP_CHK, m_bMap);
+	DDX_Check(pDX, IDC_CATCH_CHK, m_bCatch);
+	DDX_Text(pDX, IDC_JOBHOST, m_jobhost);
+	DDX_Check(pDX, IDC_JOBHOST_CHK, m_bUseJobHost);
 	//}}AFX_DATA_MAP
 }
 
@@ -92,6 +99,7 @@ BEGIN_MESSAGE_MAP(CAdvancedOptionsDlg, CDialog)
 	ON_BN_CLICKED(IDC_REDIRECT_BROWSE_BTN, OnRedirectBrowseBtn)
 	ON_BN_CLICKED(IDC_MAP_CHK, OnMapChk)
 	ON_BN_CLICKED(IDC_HELP_BTN, OnHelpBtn)
+	ON_BN_CLICKED(IDC_JOBHOST_CHK, OnJobhostChk)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -107,8 +115,7 @@ BOOL CAdvancedOptionsDlg::OnInitDialog()
 	    m_slave_edit.EnableWindow(FALSE);
 	    m_slave_browse_btn.EnableWindow(FALSE);
 	}
-	if (!m_bDir)
-	    m_dir_edit.EnableWindow(FALSE);
+	m_dir_edit.EnableWindow(m_bDir);
 	if (!m_bEnv || m_bConfig)
 	{
 	    m_env_edit.EnableWindow(FALSE);
@@ -130,8 +137,8 @@ BOOL CAdvancedOptionsDlg::OnInitDialog()
 	    m_output_edit.EnableWindow(FALSE);
 	    m_redirect_browse_btn.EnableWindow(FALSE);
 	}
-	if (!m_bMap)
-	    m_map_edit.EnableWindow(FALSE);
+	m_map_edit.EnableWindow(m_bMap);
+	m_jobhost_edit.EnableWindow(m_bUseJobHost);
 	
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
@@ -325,4 +332,10 @@ void CAdvancedOptionsDlg::OnHelpBtn()
 {
     CHelpDlg dlg;
     dlg.DoModal();
+}
+
+void CAdvancedOptionsDlg::OnJobhostChk() 
+{
+    UpdateData();
+    m_jobhost_edit.EnableWindow(m_bUseJobHost);
 }

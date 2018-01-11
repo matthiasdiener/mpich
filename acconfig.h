@@ -184,3 +184,7 @@
 /* Define for POSIX Clocks.  See the tests to see why these are here */
 #undef HAVE_CLOCK_GETTIME
 #undef HAVE_CLOCK_GETRES
+
+/* Define if mpid/<device> provided an mpich-mpid.h header file (needed for
+   mpid.h) */
+#undef HAVE_MPICH_MPID_H

@@ -10,6 +10,7 @@
 #define LISTEN_STREAM   5
 #define TEMP_STREAM     6
 #define USER_STDIN      7
+#define MAXTOTPROCS  4096  
 
 #define PATSIZE 64
 #define TIMEOUTVAL 5
@@ -113,7 +114,7 @@ int main( int argc, char *argv[] )
 
     /* mpirun must not require -np in the first position (doing so
        keeps the test suite from running */
-    if ( strcmp( pgmname, "mpirun" ) == 0) {
+    if ( strncmp( pgmname, "mpirun", 6 ) == 0) {
 	/* Look for -np in the arg list */
 	int i = argc, found = 0;
 	for (i=1; i<argc; i++) {
@@ -155,7 +156,7 @@ int main( int argc, char *argv[] )
 	cfd = local_connect( console_name );
 #       if defined(AUTO_START)
 	if ( cfd == -1 ) {  
-	    if ( strcmp( pgmname,"mpirun" ) == 0 )
+	    if ( strncmp( pgmname, "mpirun", 6 ) == 0 )
 		cfd = start_mpds( console_name );
 	}
 #       endif
@@ -234,7 +235,7 @@ int main( int argc, char *argv[] )
 	    rc = mpdshutdown( argc, argv );
 	else if ( strcmp( pgmname,"mpdbomb" ) == 0 )
 	    rc = mpdbomb( argc, argv );
-	else if ( strcmp( pgmname,"mpirun" ) == 0 )
+	else if ( strncmp( pgmname,"mpirun",6 ) == 0 )
 	    rc = mpirun( argc, argv );
 	else if ( strcmp( pgmname,"mpigdb" ) == 0 )
 	    rc = mpigdb( argc, argv );
@@ -623,8 +624,8 @@ int mpdmpexec( int argc, char *argv[] )
 		}
 	    }
 	    jobsize = atoi( argv[optcount + 1] );
-	    if ( ( jobsize == 0 ) || ( jobsize > MAXPROCS ) ) {
-		fprintf( stderr, "jobsize must be > 0 and < %d\n", MAXPROCS );
+	    if ( ( jobsize == 0 ) || ( jobsize > MAXTOTPROCS ) ) {
+		fprintf( stderr, "jobsize must be > 0 and < %d\n", MAXTOTPROCS );
 		return( -1 );
 	    }
 	    optcount += 2;
@@ -1596,6 +1597,8 @@ int squash( char*  machines_filename, char outstring[][PATSIZE] )
 
     inidx = 0;
     while ( fgets( buf, BUFSIZ, fp ) != NULL ) {
+	if (buf[strlen(buf)-1] == '\n')
+	    buf[strlen(buf)-1] = '\0';
 	parsename( buf, inpat1[inidx], &innum[inidx], inpat2[inidx] );
 	inidx++;
     }
@@ -1663,25 +1666,32 @@ int squash( char*  machines_filename, char outstring[][PATSIZE] )
 	 
 void parsename( char *buf, char *pattern1, int *num, char *pattern2 )
 {
-    char inpat1[16], inpat2[16], anum[8];
-    int i, j;
+    char inpat1[32], inpat2[32], anum[32];
+    int le, re;    /* left-end and right-end of right-most digits */
 
     inpat1[0] = inpat2[0] = anum[0] = '\0';
-    i = 0;
-    j = 0;
-    while ( isalpha( buf[i] ) || buf[i] == '0' ) /* treat leading 0's as chars */
-	inpat1[j++] = buf[i++];
-    inpat1[j] = '\0';
 
-    j = 0;
-    while ( isdigit( buf[i] ) )
-	anum[j++] = buf[i++];
-    anum[j] = '\0';
-
-    j = 0;
-    while ( isalpha( buf[i] ) || ispunct( buf[i] ) )
-	inpat2[j++] = buf[i++];
-    inpat2[j] = '\0';
+    re = 0;
+    while ( re < strlen(buf)  &&  buf[re] != '.' )
+	re++;
+    while ( re >= 0  &&  !isdigit(buf[re]) )
+	re--;
+    if (re < 0)
+        strcpy(inpat1,buf);
+    else
+    {
+	strcpy(inpat2,&buf[re+1]);
+	le = re;
+	while ( le >= 0  &&  isdigit(buf[le]) )
+	    le--;
+	le++;
+	while ( buf[le] == '0' )    /* leading 0 */
+	    le++;
+	strncpy(inpat1,buf,le);
+	inpat1[le] = '\0';
+	strncpy(anum,&buf[le],re-le+1);
+	anum[re-le+1] = '\0';
+    }
 
     sprintf( pattern1, "%s", inpat1 );
     if (anum[0])

@@ -34,6 +34,8 @@ for arg in "$@" ; do
 	;;
 	-cc=*) CC=`echo A$arg | sed -e 's/A-cc=//g'`
 	;;
+	-clinker=*) CLINKER=`echo A$arg | sed -e 's/A-clinker=//g'`
+	;;
 	-echo) set -x ;;
 	-noecho) set +x ; setecho=0 ;;
 	-local) nolink=1 ; islocal=1 ;;
@@ -72,6 +74,7 @@ if [ "$GetPathSpec" = "yes" ] ; then
 	freebsd|solaris) echo "-R" ;;
         rs6000|aix|aix-4) echo "-L" ;; # ???
         irix|irix64|irixn32|sgi) echo "-rpath " ;;
+	osf) echo "-shared -rpath " ;;
 	*) echo "" ;;
     esac
     exit 0
@@ -313,6 +316,46 @@ case $kind in
     # permissions 555 (chmod 555 $lib)
     ;;
 
+    osf)
+    for libname in $SHLIBS ; do
+        $Verbose "Making a shared library of $libname"
+        rm -rf .tmp
+        mkdir .tmp
+	if [ -z "$objs" ] ; then
+            cd .tmp
+            $AR x ../$libname
+	    if [ -n "$except_objs" ] ; then
+	        rm -f $except_objs
+	    fi
+        else
+	    cp $objs .tmp
+	    cd .tmp
+	fi
+	libbase=`basename $libname .a`
+        if $CLINKER -shared  -Wl,-expect_unresolved -Wl,\* \
+	    -Wl,-msym \
+	    -o ../shared/$libbase.$slsuffix *.o ; then
+	    :
+	else
+	    exit 1
+        fi
+        cd ..
+	if [ $islocal = 1 ] ; then
+	    mv shared/$libbase.$slsuffix .
+  	    if [ $slsuffix != $req_slsuffix  -a $nolink = 0 ] ; then
+	        rm -f $libbase.$req_slsuffix
+	        ln -s $libbase.$slsuffix $libbase.$req_slsuffix
+            fi
+	else
+  	    if [ $slsuffix != $req_slsuffix  -a $nolink = 0 ] ; then
+	        rm -f shared/$libbase.$req_slsuffix
+	        ( cd shared ; ln -s $libbase.$slsuffix $libbase.$req_slsuffix )
+            fi
+        fi
+        rm -rf .tmp
+    done
+    ;;
+    
     *)	
     if [ -z "$kind" ] ; then
         echo "Shared library type not specified"

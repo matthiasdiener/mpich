@@ -11,8 +11,6 @@ struct accepted_connection_t
 {
     globus_io_handle_t handle;
     volatile globus_bool_t connected;
-    globus_cond_t conn_cond;
-    globus_mutex_t conn_lock;
 }; /* end struct accepted_connection_t */
 
 struct open_port_t
@@ -26,6 +24,9 @@ struct open_port_t
 /* Global Variables */
 /********************/
 
+#ifdef GLOBUS_CALLBACK_GLOBAL_SPACE
+extern globus_callback_space_t MpichG2Space;   
+#endif
 extern int MPID_MyWorldSize, MPID_MyWorldRank;
 extern int CommworldChannelsTableSize;
 extern int CommworldChannelsTableNcommWorlds;
@@ -105,12 +106,12 @@ static void connect_listen_callback(void *callback_arg,
  */
 int MPI_Open_port(MPI_Info info, char *port_name) 
 {
-    char hostname[MAXHOSTNAMELEN];
+    char hostname[G2_MAXHOSTNAMELEN];
     unsigned short port;
     globus_io_attr_t attr;
     struct open_port_t *p;
 
-    if (globus_libc_gethostname(hostname, MAXHOSTNAMELEN))
+    if (globus_libc_gethostname(hostname, G2_MAXHOSTNAMELEN))
     {
         globus_libc_fprintf(stderr, 
 	    "ERROR: MPI_Open_port: failed globus_libc_gethostname()\n");
@@ -126,6 +127,23 @@ int MPI_Open_port(MPI_Info info, char *port_name)
     } /* endif */
 
     globus_io_tcpattr_init(&attr);
+#   if defined(GLOBUS_CALLBACK_GLOBAL_SPACE)
+    {
+        globus_result_t result;
+        result = globus_io_attr_set_callback_space(&attr, MpichG2Space);
+        if (result != GLOBUS_SUCCESS)
+        {
+            globus_object_t* err = globus_error_get(result);
+            char *errstring = globus_object_printable_to_string(err);
+            globus_libc_fprintf(stderr,
+                "ERROR: MPI_Open_port: failed "
+                "globus_io_attr_set_callback_space: %s",
+                errstring);
+            return MPI_ERR_INTERN;
+        } /* endif */
+    } 
+#endif
+
     /*
      * Don't delay small messages; avoiding the extra latency incurred by this
      * delay is probably far more important than saving the little bit of
@@ -213,7 +231,7 @@ int MPI_Comm_accept(char *port_name,
 		    MPI_Comm comm, 
 		    MPI_Comm *newcomm) 
 {
-    struct MPIR_COMMUNICATOR *comm_ptr, *new_comm;
+    struct MPIR_COMMUNICATOR *comm_ptr;
     int root_grank;
     MPIR_CONTEXT remote_context;
     MPIR_CONTEXT local_context;
@@ -295,8 +313,6 @@ int MPI_Comm_accept(char *port_name,
 	    return MPI_ERR_INTERN;
 	} /* endif */
 
-	globus_cond_init(&(cp->conn_cond), (globus_condattr_t *) GLOBUS_NULL);
-	globus_mutex_init(&(cp->conn_lock), (globus_mutexattr_t *) GLOBUS_NULL);
 	cp->connected = GLOBUS_FALSE;
 
 	/* when client connects to socket specified by    */
@@ -308,15 +324,10 @@ int MPI_Comm_accept(char *port_name,
 	/****************************************/
 	/* wait for connect on from client side */
 	/****************************************/
-	globus_mutex_lock(&(cp->conn_lock));
 	while (!(cp->connected))
 	{
-	    globus_cond_wait(&(cp->conn_cond), &(cp->conn_lock));
+	    G2_WAIT
 	} /* endwhile */
-	globus_mutex_unlock(&(cp->conn_lock));
-
-	globus_cond_destroy(&(cp->conn_cond));
-	globus_mutex_destroy(&(cp->conn_lock));
 
 	/* handshaking over new connection */
 	rc = connect_server_handshake(&(cp->handle), 
@@ -419,7 +430,7 @@ int MPI_Comm_connect(char *port_name,
 
     if (root_grank == MPID_MyWorldRank)
     {
-	char hostname[MAXHOSTNAMELEN];
+	char hostname[G2_MAXHOSTNAMELEN];
 	unsigned short port;
 	globus_io_attr_t attr;
 	globus_io_handle_t handle;
@@ -428,6 +439,22 @@ int MPI_Comm_connect(char *port_name,
 	sscanf(port_name, "%s %d", hostname, &rc);
 	port = (unsigned short) rc;
 	globus_io_tcpattr_init(&attr);
+#if     defined(GLOBUS_CALLBACK_GLOBAL_SPACE)
+        {
+            globus_result_t result;
+            result = globus_io_attr_set_callback_space(&attr, MpichG2Space);
+            if (result != GLOBUS_SUCCESS)
+            {
+                globus_object_t* err = globus_error_get(result);
+                char *errstring = globus_object_printable_to_string(err);
+                globus_libc_fprintf(stderr,
+                    "ERROR: MPI_Comm_connect: failed "
+                    "globus_io_attr_set_callback_space: %s",
+                    errstring);
+                return MPI_ERR_INTERN;
+            } /* endif */
+        } 
+#endif
 	/*
 	* Don't delay small messages; avoiding the extra latency 
 	* incurred by this delay is probably far more important 
@@ -906,12 +933,9 @@ static int send_commworldchannels(globus_io_handle_t *handle,
     globus_size_t nbytes;
     globus_byte_t hbuff[HEADERLEN];
     int i;
-    int j;
     int worldsize;
     int nsent;
-    char *cp;
     int rc;
-    int nlens = 0;
     int *channellens = (int *) NULL;
     int buffsize = 0;
     globus_byte_t *buff = (globus_byte_t *) NULL;
@@ -1859,6 +1883,6 @@ static void connect_listen_callback(void *callback_arg,
 
     /* signalling MPI_Accept() that client has 'MPI_Connect'ed to us */
     cp->connected = GLOBUS_TRUE;
-    globus_cond_signal(&(cp->conn_cond));
+    G2_SIGNAL
 
 } /* end connect_listen_callback() */

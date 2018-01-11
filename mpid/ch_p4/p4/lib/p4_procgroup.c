@@ -29,6 +29,7 @@ struct p4_procgroup *read_procgroup( void )
     struct p4_procgroup *pg;
     struct passwd *pwent;
     char *logname; 
+    int  running_rm_rank;
 
 
     p4_dprintfl(90,"entering read_procgroup pgfname=%s\n",procgroup_file);
@@ -93,10 +94,15 @@ struct p4_procgroup *read_procgroup( void )
 
     pe = pg->entries;
 
+    /* We start at 1 because the first line of the procgroup file uses one 
+       less than the number of processes */
+    running_rm_rank = 1;
     while (fp != NULL && fgets(buf, sizeof(buf), fp) != NULL)
     {
 	/* Some compilers complain about *s being a subscript 
 	   of type char (!) */
+
+	/* Skip leading spaces */
 	for (s = buf; isspace((int)(*s)); s++)
 	    ;
 
@@ -113,6 +119,21 @@ struct p4_procgroup *read_procgroup( void )
 		   &pe->numslaves_in_group,
 		   pe->slave_full_pathname,
 		   pe->username);
+
+	pe->rm_rank = running_rm_rank;
+	running_rm_rank += pe->numslaves_in_group;
+
+	/* Check *now* that the procgroup file is valid for this configuation of p4. */
+#if !defined(SYSV_IPC) && !defined(VENDOR_IPC)
+	/* printf( "%x ? %x\n", pe, pg->entries);
+	   printf( "pe->numslaves = %d\n", pe->numslaves_in_group ); */
+	if (pe->numslaves_in_group > 1 ||
+	    (pe == pg->entries && pe->numslaves_in_group > 0)) { 
+	    p4_dprintf("Specified multiple processes sharing memory without configuring for shared memory.");
+	    p4_dprintf("Check the users manual for more information.\n" );
+	    p4_error( "read_procgroup", 0 );
+	}
+#endif	
 
 	if (n == 3)
 	{
@@ -137,6 +158,11 @@ struct p4_procgroup *read_procgroup( void )
     }
 
     fclose( fp );
+
+    /* Correct the rank of the big master */
+    pe = pg->entries;
+    pe->rm_rank = 0;
+
     dump_procgroup(pg,50);
     return (pg);
 }				/* read_procgroup */

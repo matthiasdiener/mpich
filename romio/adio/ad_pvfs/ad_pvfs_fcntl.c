@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs_fcntl.c,v 1.5 2001/10/23 17:47:38 rross Exp $    
+ *   $Id: ad_pvfs_fcntl.c,v 1.6 2002/10/24 17:00:57 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

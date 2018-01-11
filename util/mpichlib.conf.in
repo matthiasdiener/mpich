@@ -7,7 +7,9 @@ CC="@CC@"
 mpich_includes='@mpich_includes@'
 #
 # Installation directories defined at configure time for mpich
+# We need execprefix because libdir and bindir may be in terms of execprefix
 prefix='@prefix@'
+exec_prefix='@exec_prefix@'
 libdir='@libdir@'
 bindir='@bindir@'
 #
@@ -16,7 +18,7 @@ MPILIBNAME="@MPILIBNAME@"
 LIB_PATH='@LIB_PATH@'
 BASE_LIB_LIST="@BASE_LIB_LIST@"
 LDFLAGSBASE="@LDFLAGS@"
-HASMPE="@HASMPE@"
+HASMPE="@hasMPE@"
 ROMIO_LFLAGS="@ROMIO_LFLAGS@"
 ROMIO_TFFLAGS="@ROMIO_TFFLAGS@"
 ROMIO_TCFLAGS="@ROMIO_TCFLAGS@"
@@ -30,3 +32,16 @@ sharedlibbuild_dir='@sharedlibbuild_dir@'
 #
 # Information about MPI data structures
 MPI_STATUS_SIZE=@MPI_STATUS_SIZE@
+#
+# Variables used by mpicc and mpiCC/mpicxx that are needed to support
+# alternate C compilers
+CLINKER="@CLINKER@"
+FLIBNAME="@FLIBNAME@"
+F77_IN_C_LIBS="@F77_IN_C_LIBS@"
+sharedlibdir=@sharedlibbuild_dir@
+# C++ flags
+CCC="@CPP_COMPILER@"
+CCFLAGS="@CCFLAGS@"
+CXXFLAGS="@CXXFLAGS@"
+CCLINKER="@CCLINKER@"
+

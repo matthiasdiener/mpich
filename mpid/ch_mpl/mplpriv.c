@@ -1,5 +1,5 @@
 /* 
- * This file contains code private to the p4 implementation of the ADI device
+ * This file contains code private to the mpl implementation of the ADI device
  * Primarily, this contains the code to setup the initial environment
  * and terminate the program
  */

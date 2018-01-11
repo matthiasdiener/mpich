@@ -1,12 +1,11 @@
 #include "mpdutil.h"
 #include "mpd.h"
-#include "bsocket.h"
 #include "GetStringOpt.h"
 #include "Translate_Error.h"
 
 #define MAX_FILENAME MAX_PATH * 2
 
-void GetFile(int bfd, char *pszInputStr)
+void GetFile(int sock, char *pszInputStr)
 {
     bool bReplace = true, bCreateDir = false;
     char pszFileName[MAX_FILENAME];
@@ -75,7 +74,7 @@ void GetFile(int bfd, char *pszInputStr)
 
     // Send the getfile command
     _snprintf(pszStr, MAX_FILENAME, "getfile name=%s", pszRemoteFileName);
-    if (WriteString(bfd, pszStr) == SOCKET_ERROR)
+    if (WriteString(sock, pszStr) == SOCKET_ERROR)
     {
 	Translate_Error(WSAGetLastError(), pszStr, "Error: Writing getfile command failed, ");
 	printf("%s\n", pszStr);
@@ -83,7 +82,7 @@ void GetFile(int bfd, char *pszInputStr)
 	return;
     }
 
-    if (!ReadString(bfd, pszStr))
+    if (!ReadString(sock, pszStr))
     {
 	printf("Error: failed to read the response from the getfile command.\n");
 	fclose(fout);
@@ -93,7 +92,7 @@ void GetFile(int bfd, char *pszInputStr)
     nLength = atoi(pszStr);
     if (nLength == -1)
     {
-	if (!ReadString(bfd, pszStr))
+	if (!ReadString(sock, pszStr))
 	{
 	    printf("Error: failed to read the error message from the getfile command.\n");
 	    fclose(fout);
@@ -107,9 +106,9 @@ void GetFile(int bfd, char *pszInputStr)
     while (nLength)
     {
 	nNumRead = min(nLength, TRANSFER_BUFFER_SIZE);
-	if (beasy_receive(bfd, pBuffer, nNumRead) == SOCKET_ERROR)
+	if (easy_receive(sock, pBuffer, nNumRead) == SOCKET_ERROR)
 	{
-	    err_printf("ERROR: beasy_receive failed, error %d\n", WSAGetLastError());
+	    err_printf("ERROR: easy_receive failed, error %d\n", WSAGetLastError());
 	    fclose(fout);
 	    DeleteFile(pszFileName);
 	    return;

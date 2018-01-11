@@ -26,10 +26,13 @@ SHELL       = /bin/sh
 
 LIBS = ${libbuild_dir}/lib@MPILIBNAME@.a
 
+# @ MPI_INTRA @ may be either intra_fns or intra_fns_new (set in configure)
+MPI_INTRA = @MPI_INTRA@
+
 MPI_CSOURCES = barrier.c bcast.c gather.c gatherv.c scatter.c scatterv.c \
                allgather.c allgatherv.c alltoall.c alltoallv.c reduce.c \
                allreduce.c red_scat.c scan.c global_ops.c \
-	       opcreate.c opfree.c oputil.c intra_fns.c inter_fns.c \
+	       opcreate.c opfree.c oputil.c inter_fns.c ${MPI_INTRA}.c \
 	       intra_scan.c
 
 MPI_TSOURCES = global_ops.c 
@@ -37,7 +40,7 @@ MPI_TSOURCES = global_ops.c
 MPI_COBJECTS = barrier.o bcast.o gather.o gatherv.o scatter.o scatterv.o \
                allgather.o allgatherv.o alltoall.o alltoallv.o reduce.o \
                allreduce.o red_scat.o scan.o global_ops.o \
-	       opcreate.o opfree.o oputil.o intra_fns.o inter_fns.o \
+	       opcreate.o opfree.o oputil.o inter_fns.o ${MPI_INTRA}.o \
 	       intra_scan.o
 
 default: ${libbuild_dir}/lib@MPILIBNAME@.a

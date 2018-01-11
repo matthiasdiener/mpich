@@ -12,6 +12,8 @@
 
 /* #define DEBUG */
 
+int verbose = 0;
+
 int main( int argc, char **argv )
 {
   int size, rank, key, lrank, rsize, result;
@@ -165,6 +167,7 @@ int main( int argc, char **argv )
 	}
 
     /* Free communicators */
+    if (verbose) printf( "about to free communicators\n" );
     MPI_Comm_free( &newComm );
     if (peerComm != MPI_COMM_NULL) MPI_Comm_free( &peerComm );
     MPI_Comm_free( &myFirstComm );
@@ -183,7 +186,7 @@ int main( int argc, char **argv )
       printf( "%d errors on process %d\n", errors, rank );
       }
   else if (rank == 0) {
-      printf( "Completed successfully\n" );
+      printf( " No Errors\n" );
       }
   /* Finalize and end! */
 

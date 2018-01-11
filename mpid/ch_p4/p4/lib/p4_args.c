@@ -257,7 +257,15 @@ P4VOID process_args(int *argc, char **argv)
 	    strip_out_args(a, argc, &c, 2);
 	    continue;
 	}
-
+	if (!strcmp( *a, "-p4rmrank")) {
+	    /* Capture the base rank for this remote master.  That is,
+	       the rank of the remote master.  */
+	    if (bad_arg(a[1]))
+		usage();
+	    p4_rm_rank = atoi(a[1]);
+	    strip_out_args(a, argc, &c, 2);
+	    continue;
+	}
 	if (!strcmp(*a, "-p4help"))
 	    usage();
     }

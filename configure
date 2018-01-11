@@ -63,6 +63,7 @@ Usage: ${progname} [--with-arch=ARCH_TYPE] [--with-comm=COMM_TYPE]
 	    [--disable-f90modules]
             [--disable-gencat] [--disable-doc]
             [--enable-cxx ] [--disable-cxx]
+            [--with-coll[=filename]]
             [--enable-mpedbg] [--disable-mpedbg] 
             [--enable-devdebug] [--disable-devdebug] 
             [--enable-debug] [--disable-debug] 
@@ -140,6 +141,13 @@ Packages that may be included with MPICH
                          xfs (SGI), combined with '+'.  If romio is not
                          included, the Fortran 90 modules cannot be built.
 --with-mpe             - Build the MPE environment (default)
+--with-coll[=name]     - Select the implementation of the MPI collective
+                         routines that should be used.  By default, uses
+                         the most advanced version.  The name is the name of
+                         the file (without the suffix) in src/coll that should 
+                         be used for the collective routines.  Currently, 
+                         name may be either intra_fns_new (the default) or
+                         intra_fns .
 --with-f90nag          - Choose the NAG f90 compiler for Fortran 
                          (preliminary version intended for use *instead* 
                          of a Fortran 77 compiler)
@@ -324,6 +332,7 @@ Known devices are
         ch_lfshmem(for shared memory systems, such as SMPs; uses
                    lock-free message buffers), 
         ch_cenju3 (native NEC Cenju-3 calls)
+	ch_gm     (native Myrinet GM, distributed and supported by Myricom)
 
 The following devices were supported with ADI-1, but are currently
 unsupported.  Please contact us if you are interested in helping us
@@ -456,6 +465,7 @@ DEVCFLAGS=""
 CONFIGURE_ARGS="$*"
 DEFAULT_MACHINE=''
 DEVICE_KIND=MPP
+rshcommand=${RSHCOMMAND}
 #
 # Some autoconf tests check for cross_compiling being empty, rather than
 # having a value of 0 or 1 (or no or yes).
@@ -484,6 +494,8 @@ usesysv=0
 MPE_MPI_EXT_C="$MPE_MPI_EXT_C mpehname.c"
 MPE_MPI_EXT_O="$MPE_MPI_EXT_O mpehname.o"
 #
+# --with-coll
+MPI_INTRA=intra_fns_new
 # -devdebug
 DEVDEBUGCFLAGS="-DMPID_DEBUG_NONE -DMPID_STAT_NONE"
 # -dlast
@@ -542,7 +554,7 @@ do
   else
     # Code from autoconf 2 to get any option after an =
     case "$arg" in
-    -*=*) ac_optarg=`echo "$ac_option" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
+    -*=*) ac_optarg=`echo "$arg" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
     *) ac_optarg= ;;
     esac
     case $arg in
@@ -630,7 +642,7 @@ do
        # Delete all the valid chars; see if any are left.
        # Extract device-specific args
        DEVICE=`echo $package | sed 's/:.*//g'`
-       device_args=`echo $package | sed 's/[^:]*://g'`
+       device_args=`echo $package | sed 's/[^:]*://'`
        if test "$device_args" = "$package" ; then 
 	    device_args='' 
        else
@@ -692,9 +704,9 @@ do
 	# code when gcc generates a spurious error message, particularly
 	# for uninitialized data.
 	# -wshadow?
-	CFLAGS="$CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
-	USER_CFLAGS="$USER_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
-	ROMIO_CFLAGS="$ROMIO_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
+	CFLAGS="$CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wundef -Wpointer-arith -Wbad-function-cast -DGCC_WALL"
+	USER_CFLAGS="$USER_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wundef -Wpointer-arith -Wbad-function-casti -DGCC_WALL"
+	ROMIO_CFLAGS="$ROMIO_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wundef -Wpointer-arith -Wbad-function-cast -DGCC_WALL"
 	needs_gcc=yes
 	if test -z "$CC" ; then
 	    CC=gcc
@@ -704,6 +716,10 @@ do
         export COPTIONS
         enable_args="$enable_args $arg"
 	enable_strict="yes"
+	;;
+
+	--enable-coverage|-enable-coverage)
+	CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
 	;;
 
      --enable-weak-symbols|-enable-weak-symbols)
@@ -1036,6 +1052,10 @@ do
        #fi
        CPP_DIR="MPI-2-C++"
        CPP_COMPILER=`echo $package`
+       if test -z "$package" ; then
+           echo "Use the environment variable CXX to specify a c++ compiler if"
+	   echo "you do not want the default (often g++)."
+       fi
        USERCPP=1
        # We need to use mpCC for ch_mpl device!
        if test "$CPP_COMPILER" = "xlC" -a "$DEVICE" = "ch_mpl" ; then
@@ -1216,6 +1236,13 @@ do
      -with-intercommcoll | --with-intercommcoll)
 	Use_Intercomm_coll="yes"
 	;;
+
+     --with-coll* | -with-coll* )
+     # If there is a name, use it (no .c suffix on name)
+     if test -n "$ac_optarg" ; then
+          MPI_INTRA=$ac_optarg
+     fi
+     ;;
 
      -with-* | --with-* | --without-* | -without-* )
 	# Unrecognized with argument.  Just remember it
@@ -1682,6 +1709,7 @@ if test -n "$arch_tflops"; then
    CROSS_F77_SIZEOF_INTEGER=${CROSS_F77_SIZEOF_INTEGER:-4}
    CROSS_F77_SIZEOF_REAL=${CROSS_F77_SIZEOF_REAL:-4}
    CROSS_F77_SIZEOF_DOUBLE_PRECISION=${CROSS_F77_SIZEOF_DOUBLE_PRECISION:-8}
+   CROSS_BIGENDIAN=${CROSS_BIGENDIAN:-false}
    FORT_INT8=1
    ROMIO_ARGS="-intsize=$CROSS_SIZEOF_INT -ptrsize=$CROSS_SIZEOF_VOID_P -longsize=$CROSS_SIZEOF_LONG -longlongsize=$CROSS_SIZEOF_LONG_LONG"
 
@@ -2916,7 +2944,8 @@ if test -n "$CC"; then
   ac_pg_CC="$CC" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CC="$p"
        ac_prog_where=$p
   else
@@ -3009,21 +3038,26 @@ case $CARCH in
 	    CFLAGS="$CFLAGS -nx"
 	  fi
 	;;
-   cm5) CC=cc ; GCC="" ;   if test -z "$USERCLINKER" ; then
-		      CLINKER="cmmd-ld -comp $CC"
-		  fi ;;
+   cm5) CC=cc ; GCC="" ;   
+	if test -z "$USERCLINKER" ; then
+	     CLINKER="cmmd-ld -comp $CC"
+	fi ;;
    cray_t3d)        
 	# Some Cray's require -Ccray-t3d instead of -Tcray-t3d.  
         # We have no diagnostic for this behavior yet.
-                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d -DT3D" ; GCC="" 
-                    if test -z "$USERCLINKER" ; then 
-	            CLINKER="$CC -Tcray-t3d" ; fi ;;
+	if test -x /mpp/bin/cc ; then 
+            CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d -DT3D" ; GCC="" 
+	fi
+        if test -z "$USERCLINKER" ; then 
+	       CLINKER="$CC -Tcray-t3d" ; fi ;;
    cray_t3e)        
 	# Some Cray's require -Ccray-t3e instead of -Tcray-t3e.  
         # We have no diagnostic for this behavior yet.
-                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3e -DT3E" ; GCC="" 
-                    if test -z "$USERCLINKER" ; then 
-	            CLINKER="$CC -Tcray-t3e" ; fi ;;
+	if test -x /mpp/bin/cc ; then 
+            CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3e -DT3E" ; GCC="" 
+	fi
+        if test -z "$USERCLINKER" ; then 
+	    CLINKER="$CC -Tcray-t3e" ; fi ;;
    hpux)
 	# For some systems, the (linker) option 
         #  -Wl,+vnocompatwarnings 
@@ -3687,7 +3721,8 @@ if test -n "$CCval"; then
   ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "xlC" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "xlC" ; then
+  # Use ac_word instead of xlC in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CCval="xlC"
        ac_prog_where=xlC
   else
@@ -3754,7 +3789,8 @@ if test -n "$CCval"; then
   ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "mpCC" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "mpCC" ; then
+  # Use ac_word instead of mpCC in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CCval="mpCC"
        ac_prog_where=mpCC
   else
@@ -3819,7 +3855,8 @@ if test -n "$CCval"; then
   ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "xlc" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "xlc" ; then
+  # Use ac_word instead of xlc in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CCval="xlc"
        ac_prog_where=xlc
   else
@@ -3886,7 +3923,8 @@ if test -n "$CCval"; then
   ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "mpcc" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "mpcc" ; then
+  # Use ac_word instead of mpcc in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CCval="mpcc"
        ac_prog_where=mpcc
   else
@@ -3963,7 +4001,8 @@ if test -n "$CCval"; then
   ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CCval="$p"
        ac_prog_where=$p
   else
@@ -4051,7 +4090,8 @@ if test -n "$CCval"; then
   ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CCval="$p"
        ac_prog_where=$p
   else
@@ -4139,7 +4179,8 @@ if test -n "$CCval"; then
   ac_pg_CCval="$CCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CCval="$p"
        ac_prog_where=$p
   else
@@ -4354,7 +4395,8 @@ if test -n "$CC"; then
   ac_pg_CC="$CC" # Let the user override the test.
 else
   ac_first_char=`expr "gcc" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "gcc" ; then
+  # Use ac_word instead of gcc in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_CC="gcc"
        ac_prog_where=gcc
   else
@@ -4748,7 +4790,8 @@ if test -n "$F77"; then
   ac_pg_F77="$F77" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_F77="$p"
        ac_prog_where=$p
   else
@@ -4949,7 +4992,8 @@ if test -n "$FCval"; then
   ac_pg_FCval="$FCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_FCval="$p"
        ac_prog_where=$p
   else
@@ -5034,7 +5078,8 @@ if test -n "$FCval"; then
   ac_pg_FCval="$FCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_FCval="$p"
        ac_prog_where=$p
   else
@@ -5119,7 +5164,8 @@ if test -n "$FCval"; then
   ac_pg_FCval="$FCval" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_FCval="$p"
        ac_prog_where=$p
   else
@@ -5213,7 +5259,8 @@ if test -n "$HAS_F77"; then
   ac_pg_HAS_F77="$HAS_F77" # Let the user override the test.
 else
   ac_first_char=`expr "$F77" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$F77" ; then
+  # Use ac_word instead of $F77 in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_HAS_F77="1"
        ac_prog_where=$F77
   else
@@ -5367,7 +5414,8 @@ if test -n "$ARNAME"; then
   ac_pg_ARNAME="$ARNAME" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_ARNAME="$p"
        ac_prog_where=$p
   else
@@ -6359,6 +6407,8 @@ rm -f conftest*
 	    elif test $ARCH = "IRIX" -o $ARCH = "IRIX64" -o $ARCH = "IRIXN32" ; then
 		# for testing only
 		SHAREDKIND=irix
+            elif test $ARCH = "ALPHA" -o $ARCH = "OSF" ; then
+	        SHAREDKIND=osf
             fi
 	    if test -z "$CC_SHARED_OPT" -a "$ARCH" = "hpux" ; then
                 
@@ -7290,10 +7340,27 @@ if test -f "$srcdir/mpid/$DEVICE/$device_setupfile" ; then
 	print_error "Setup of $DEVICE failed!  Aborting configure"
 	exit 1
     fi
+    # If we created an mpich-mpid.h file, add that definition
+    if test -s mpid/$DEVICE/mpich-mpid.h ; then
+        
+{
+test -n "$verbose" && \
+echo "	defining HAVE_MPICH_MPID_H"
+echo "#define" HAVE_MPICH_MPID_H 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_MPICH_MPID_H=1"
+SEDDEFS="${SEDDEFS}\${SEDdA}HAVE_MPICH_MPID_H\${SEDdB}HAVE_MPICH_MPID_H\${SEDdC}1\${SEDdD}
+\${SEDuA}HAVE_MPICH_MPID_H\${SEDuB}HAVE_MPICH_MPID_H\${SEDuC}1\${SEDuD}
+\${SEDeA}HAVE_MPICH_MPID_H\${SEDeB}HAVE_MPICH_MPID_H\${SEDeC}1\${SEDeD}
+"
+}
+
+    fi
 fi
 
 #
 # ch_shmem/ch_lfshmem have a setup_ch_shmem file 
+#
+# ch_gm have a setup file
 #
 # meiko and ch_meiko have a setup file
 #
@@ -7927,7 +7994,7 @@ rm -f conftest*
 #       CFLAGS="$CFLAGS -woff 1152,1174,1184"
 #       1184 not in the p4 list
         if test "$CC" != "gcc" ; then
-            CFLAGS="$CFLAGS -woff 1184,1174"
+            CFLAGS="$CFLAGS -woff 1185,1184,1174"
         fi
 	# Check whether we need to add SYMTYPE to CFLAGS and FFLAGS
 	hasarg=`echo A$CFLAGS | sed -n -e '/-n32/p' -e '/-32/p' -e '/-64/p'`
@@ -9510,7 +9577,8 @@ if test -n "$RSHCOMMAND"; then
   ac_pg_RSHCOMMAND="$RSHCOMMAND" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_RSHCOMMAND="$p"
        ac_prog_where=$p
   else
@@ -9591,7 +9659,8 @@ if test -n "$PERL"; then
   ac_pg_PERL="$PERL" # Let the user override the test.
 else
   ac_first_char=`expr "$p" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$p" ; then
+  # Use ac_word instead of $p in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_PERL="$p"
        ac_prog_where=$p
   else
@@ -10770,7 +10839,8 @@ if test -n "$has_domainname"; then
   ac_pg_has_domainname="$has_domainname" # Let the user override the test.
 else
   ac_first_char=`expr "domainname" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "domainname" ; then
+  # Use ac_word instead of domainname in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_has_domainname="1"
        ac_prog_where=domainname
   else
@@ -10835,7 +10905,8 @@ if test -n "$has_hostname"; then
   ac_pg_has_hostname="$has_hostname" # Let the user override the test.
 else
   ac_first_char=`expr "hostname" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "hostname" ; then
+  # Use ac_word instead of hostname in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_has_hostname="1"
        ac_prog_where=hostname
   else
@@ -10900,7 +10971,8 @@ if test -n "$has_rup"; then
   ac_pg_has_rup="$has_rup" # Let the user override the test.
 else
   ac_first_char=`expr "rup" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "rup" ; then
+  # Use ac_word instead of rup in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_has_rup="1"
        ac_prog_where=rup
   else
@@ -11299,7 +11371,8 @@ if test -n "$has_gencat"; then
   ac_pg_has_gencat="$has_gencat" # Let the user override the test.
 else
   ac_first_char=`expr "gencat" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "gencat" ; then
+  # Use ac_word instead of gencat in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_has_gencat="1"
        ac_prog_where=gencat
   else
@@ -13505,7 +13578,8 @@ if test -n "$ARFOUND"; then
   ac_pg_ARFOUND="$ARFOUND" # Let the user override the test.
 else
   ac_first_char=`expr "$ARTEST" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "$ARTEST" ; then
+  # Use ac_word instead of $ARTEST in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_ARFOUND="1"
        ac_prog_where=$ARTEST
   else
@@ -15218,7 +15292,8 @@ if test -n "$SYNCFOUND"; then
   ac_pg_SYNCFOUND="$SYNCFOUND" # Let the user override the test.
 else
   ac_first_char=`expr "sync" : "\(.\)"`
-  if test "$ac_first_char" = "/" -a -x "sync" ; then
+  # Use ac_word instead of sync in case the command has options on it.
+  if test "$ac_first_char" = "/" -a -x "$ac_word" ; then
        ac_pg_SYNCFOUND="1"
        ac_prog_where=sync
   else
@@ -15731,6 +15806,11 @@ if test "$NOMPE" = 0 -a -d "${top_srcdir}/mpe" ; then
       CC="${TESTCC}" ; export CC ; \
       F77="${TESTF77}" ; export F77 ; \
       export CLINKER ; export FLINKER ; \
+      export CROSS_SIZEOF_CHAR ; \
+      export CROSS_SIZEOF_SHORT ; \
+      export CROSS_SIZEOF_INT ; \
+      export CROSS_SIZEOF_LONG_LONG ; \
+      export CROSS_BIGENDIAN ; \
       "${top_srcdir}/mpe/configure" --enable-mpich --disable-checkMPI \
                                   --with-f2cmpilibs=-lf$MPILIBNAME \
                                   --with-flib_path_leader=$LIB_PATH_LEADER \
@@ -15784,7 +15864,11 @@ SEDDEFS="${SEDDEFS}\${SEDdA}MPIRUN_MACHINE\${SEDdB}MPIRUN_MACHINE\${SEDdC}$q$DEF
 "
 }
 
-
+#
+# Because the Globus2 device can use a nested mpirun, it needs the
+# option to ignore this step
+if test "$define_mpirun_device" != "no" ; then
+    
 {
 test -n "$verbose" && \
 echo "	defining" MPIRUN_DEVICE to be $q$DEVICE$q
@@ -15796,6 +15880,7 @@ SEDDEFS="${SEDDEFS}\${SEDdA}MPIRUN_DEVICE\${SEDdB}MPIRUN_DEVICE\${SEDdC}$q$DEVIC
 "
 }
 
+fi
 # COMM is currently used in mpirun.ch_p4.in to decide if SMP support is
 # turned on
 
@@ -15994,6 +16079,7 @@ NO_F90='$NO_F90'
 NOMPE='$NOMPE'
 hasMPE='$hasMPE'
 MPE_OPTS='$MPE_OPTS'
+MPI_INTRA='$MPI_INTRA'
 LIBS='$LIBS'
 prefix='$prefix'
 exec_prefix='$exec_prefix'
@@ -16162,6 +16248,7 @@ s%@NO_F90@%$NO_F90%g
 s%@NOMPE@%$NOMPE%g
 s%@hasMPE@%$hasMPE%g
 s%@MPE_OPTS@%$MPE_OPTS%g
+s%@MPI_INTRA@%$MPI_INTRA%g
 s%@LIBS@%$LIBS%g
 s%@DEFS@%-DHAVE_CONFIG_H%" >> $file
 fi; done

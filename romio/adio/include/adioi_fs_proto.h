@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adioi_fs_proto.h,v 1.10 2001/11/27 19:23:33 ashton Exp $    
+ *   $Id: adioi_fs_proto.h,v 1.11 2002/10/24 17:01:16 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

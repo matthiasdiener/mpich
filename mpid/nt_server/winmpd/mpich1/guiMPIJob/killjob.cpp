@@ -3,7 +3,6 @@
 #include "guiMPIJobDlg.h"
 #include "mpd.h"
 #include "mpdutil.h"
-#include "bsocket.h"
 #include "MPDConnectDlg.h"
 #include "Translate_Error.h"
 
@@ -93,35 +92,35 @@ static void FindSaveHostPid(char *key, char *value)
 
 void KillJobProcess(char *host, int port, const char *altphrase, int pid)
 {
-    int bfd;
+    SOCKET sock;
     char str[256];
     int error;
 
-    if (ConnectToMPD(host, port, (altphrase == NULL) ? MPD_DEFAULT_PASSPHRASE : altphrase, &bfd) != 0)
+    if (ConnectToMPD(host, port, (altphrase == NULL) ? MPD_DEFAULT_PASSPHRASE : altphrase, &sock) != 0)
     {
 	printf("Error: KillJobProcess(%s:%d) unable to connect to the mpd on %s\n", host, pid, host);
 	return;
     }
 
     sprintf(str, "kill host=%s pid=%d", host, pid);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	printf("Error: KillJobProcess, writing '%s' failed, %d\n", str, error);
 	Translate_Error(error, str);
 	printf("%s\n", str);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return;
     }
 
-    if (WriteString(bfd, "done") == SOCKET_ERROR)
+    if (WriteString(sock, "done") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
 	printf("Error: KillJobProcess, WriteString failed: %d\n%s\n", error, str);
 	fflush(stdout);
     }
-    beasy_closesocket(bfd);
+    easy_closesocket(sock);
 }
 
 void KillJobProcesses(int port, const char *altphrase)
@@ -148,7 +147,7 @@ void CGuiMPIJobDlg::OnKillBtn()
 
     UpdateData();
 
-    if ((m_job.GetLength() < 1) || (m_bfd == BFD_INVALID_SOCKET))
+    if ((m_job.GetLength() < 1) || (m_sock == INVALID_SOCKET))
 	return;
 
     jobstr = m_job;
@@ -158,7 +157,7 @@ void CGuiMPIJobDlg::OnKillBtn()
     HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
 
     sprintf(str, "dbfirst %s", jobstr);
-    if (WriteString(m_bfd, str) == SOCKET_ERROR)
+    if (WriteString(m_sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	sprintf(value, "Error: KillJob, writing '%s' failed, %d\n", str, error);
@@ -169,7 +168,7 @@ void CGuiMPIJobDlg::OnKillBtn()
 	SetCursor(hOldCursor);
 	return;
     }
-    if (ReadStringTimeout(m_bfd, str, 10))
+    if (ReadStringTimeout(m_sock, str, MPD_DEFAULT_TIMEOUT))
     {
 	if (strcmp(str, "DBS_FAIL") == 0)
 	{
@@ -198,7 +197,7 @@ void CGuiMPIJobDlg::OnKillBtn()
     while (true)
     {
 	sprintf(str, "dbnext %s", jobstr);
-	if (WriteString(m_bfd, str) == SOCKET_ERROR)
+	if (WriteString(m_sock, str) == SOCKET_ERROR)
 	{
 	    error = WSAGetLastError();
 	    sprintf(value, "Error: KillJob, writing '%s' failed, %d\n", str, error);
@@ -209,7 +208,7 @@ void CGuiMPIJobDlg::OnKillBtn()
 	    SetCursor(hOldCursor);
 	    return;
 	}
-	if (ReadStringTimeout(m_bfd, str, 10))
+	if (ReadStringTimeout(m_sock, str, MPD_DEFAULT_TIMEOUT))
 	{
 	    if (strcmp(str, "DBS_FAIL") == 0)
 	    {

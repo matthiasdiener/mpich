@@ -333,7 +333,7 @@ P4VOID handle_connection_interrupt( int sig )
 #ifdef USE_NONBLOCKING_LISTENER_SOCKETS
     /* This parameter gives the number of attempts to read before 
        deciding that something has gone wrong */
-    #define MAX_DRY_ITERATIONS 1000000
+#    define MAX_DRY_ITERATIONS 1000000
     /*
      * Must read non-blocking due to race conditions with using
      * signals as IPC mechanism.  See the fcntl near get_pipe where
@@ -591,6 +591,10 @@ P4VOID handle_connection_interrupt( int sig )
        every .1 seconds until there is a response, we can simply return.
        This test does have a race condition, but it is very small, and
        we're going to ignore it.
+
+       In fact, if signal blocking works correctly, we should *never* 
+       enter the handler while we are already in it.  Perhaps this
+       test should abort if in_handler?
     */
     if (in_handler) return;
     in_handler = 1;
@@ -602,7 +606,7 @@ P4VOID handle_connection_interrupt( int sig )
 #ifdef USE_NONBLOCKING_LISTENER_SOCKETS
     /* This parameter gives the number of attempts to read before 
        deciding that something has gone wrong */
-    #define MAX_DRY_ITERATIONS 1000000
+#    define MAX_DRY_ITERATIONS 1000000
     /*
      * Must read non-blocking due to race conditions with using
      * signals as IPC mechanism.  See the fcntl near get_pipe where
@@ -623,7 +627,16 @@ P4VOID handle_connection_interrupt( int sig )
 		if (errno == EAGAIN || errno == EWOULDBLOCK) {
 		    it_count ++;
 		    if (it_count > MAX_DRY_ITERATIONS) {
-			p4_error("handled_connection_interrupt: listener is not sending", -1 );
+			/* Temporary */
+			/* 
+			 printf( "zillion iterations, resetting\n"); 
+			 it_count = 0; 
+ 			p4_error("handled_connection_interrupt: listener is not sending", -1 );   
+			*/
+			/* give up; the listener will try again */
+			in_handler = 0;
+			return;
+			
 		    }
 		    continue;
 		}

@@ -66,14 +66,21 @@ if test -n "$SLOG_CFLAGS" ; then
 fi
  
 AC_ARG_ENABLE( g, 
-[--enable-g                         - Turn on/off the debugging and 
-                                     diagnostic code, default=disabled],
+[--enable-g                         - Turn on/off the -g flag,
+                                     default=disabled],
 , enable_g=no )
 if test "$enable_g" = "yes" ; then
-    AC_DEFINE( DEBUG )
     if test -z "`echo $CFLAGS | grep "\-g"`"; then
         CFLAGS="-g $CFLAGS" 
     fi
+fi
+ 
+AC_ARG_ENABLE( debugcheck, 
+[--enable-debugcheck                - Turn on/off the debugging and 
+                                     diagnostic code, default=disabled],
+, enable_debugcheck=no )
+if test "$enable_debugcheck" = "yes" ; then
+    AC_DEFINE( DEBUG )
 fi
 
 # echo "prefix = $prefix"
@@ -166,41 +173,52 @@ fi
 
 #
 AC_PROG_CC
+
 AC_C_CONST
- 
+#
 
-# Check if size of char, short, int and long long are as expected
-PAC_GET_TYPE_SIZE( char, cc_char )
-if test "$char_len" != "1" ; then
+AC_CHECK_SIZEOF( char, $CROSS_SIZEOF_CHAR )
+if test "$ac_cv_sizeof_char" != "1" ; then
     AC_MSG_ERROR( [**** Unexpected byte length for char.  Abort!!!] )
-fi    
-PAC_GET_TYPE_SIZE( short, cc_short )
-if test "$short_len" != "2" ; then
+fi
+AC_CHECK_SIZEOF( short, $CROSS_SIZEOF_SHORT )
+if test "$ac_cv_sizeof_short" != "2" ; then
     AC_MSG_ERROR( [**** Unexpected byte length for short.  Abort!!!] )
-fi    
-PAC_GET_TYPE_SIZE( int, cc_int )
-if test "$int_len" != "4" ; then
+fi
+AC_CHECK_SIZEOF( int, $CROSS_SIZEOF_INT )
+if test "$ac_cv_sizeof_int" != "4" ; then
     AC_MSG_ERROR( [**** Unexpected byte length for int.  Abort!!!] )
-fi    
-PAC_GET_TYPE_SIZE( long long, cc_longlong )
-if test "$long_long_len" != "8" ; then
+fi
+AC_CHECK_SIZEOF( long long, $CROSS_SIZEOF_LONG_LONG )
+if test "$ac_cv_sizeof_long_long" != "8" ; then
     AC_MSG_ERROR( [**** Unexpected byte length for long long.  Abort!!!] )
-fi    
+fi
 
-#
-AC_PROG_LN_S
-AC_PROG_RANLIB
-AC_CHECK_PROG(AR, ar, ar, ;)
-#
 #   -- Check if byteswapping needs to be done.
-if test $cross_compiling = "yes" ; then
-    AC_MSG_WARN([Cannot test for endianess when cross compiling, assuming big endian])
-    AC_DEFINE(WORDS_BIGENDIAN)
+if test "$cross_compiling" = "yes" -o "$cross_compiling" = 1 ; then
+    AC_MSG_CHECKING([for byte ordering])
+    if test "X$CROSS_BIGENDIAN" != "X" ; then
+        if test "$CROSS_BIGENDIAN" = "true" \
+             -o "$CROSS_BIGENDIAN" = "false" ; then
+            if test "$CROSS_BIGENDIAN" = "true" ; then
+                AC_DEFINE(WORDS_BIGENDIAN)
+                AC_MSG_RESULT([defined to be big endian])
+            else
+                AC_MSG_RESULT([defined to be little endian])
+            fi
+        else
+            AC_DEFINE(WORDS_BIGENDIAN)
+            AC_MSG_RESULT([Unknown value $CROSS_BIGENDIAN! Assumed big endian])
+        fi
+    else
+        AC_DEFINE(WORDS_BIGENDIAN)
+        AC_MSG_RESULT([Undefined CROSS_BIGENDIAN! Assumed big endian])
+    fi
 else
     AC_C_BIGENDIAN
 fi
 
-# Try to workaround the va_arg bug found gcc-2.96 
+#
 AC_MSG_CHECKING([if the C compiler treats stdarg consistently])
 AC_TRY_COMPILE( [
 #include <stdarg.h>
@@ -235,10 +253,10 @@ else
 fi
 
 #   -- Check if there is any memory leak checking tool like "electric fence"
-if test "$enable_g" = "yes"; then
+if test "$enable_debugcheck" = "yes"; then
     AC_CHECK_LIB( efence, malloc, DEBUG_LIBS="-lefence" )
 fi
-##if test "$enable_g" = "yes"; then
+##if test "$enable_debugcheck" = "yes"; then
 ##    AC_MSG_CHECKING( whether electric fence exists )
 ##    TMP_LIBS=$LIBS
 ##    LIBS="-lefence"
@@ -259,6 +277,12 @@ AC_FUNC_ALLOCA
 #
 #
 CFLAGS="$CFLAGS $COPTIONS"
+
+AC_PROG_LN_S
+AC_PROG_RANLIB
+AC_CHECK_PROG(AR, ar, ar, ;)
+#
+# Try to workaround the va_arg bug found gcc-2.96 
 #
 if test -z "$CLINKER" ; then CLINKER="$CC" ; fi
 AC_SUBST(LN_S)

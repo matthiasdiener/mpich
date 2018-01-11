@@ -72,6 +72,7 @@ Usage: ${progname} [--with-arch=ARCH_TYPE] [--with-comm=COMM_TYPE]
 	    [--disable-f90modules]
             [--disable-gencat] [--disable-doc]
             [--enable-cxx ] [--disable-cxx]
+            [--with-coll[=filename]]
             [--enable-mpedbg] [--disable-mpedbg] 
             [--enable-devdebug] [--disable-devdebug] 
             [--enable-debug] [--disable-debug] 
@@ -149,6 +150,13 @@ Packages that may be included with MPICH
                          xfs (SGI), combined with '+'.  If romio is not
                          included, the Fortran 90 modules cannot be built.
 --with-mpe             - Build the MPE environment (default)
+--with-coll[=name]     - Select the implementation of the MPI collective
+                         routines that should be used.  By default, uses
+                         the most advanced version.  The name is the name of
+                         the file (without the suffix) in src/coll that should 
+                         be used for the collective routines.  Currently, 
+                         name may be either intra_fns_new (the default) or
+                         intra_fns .
 --with-f90nag          - Choose the NAG f90 compiler for Fortran 
                          (preliminary version intended for use *instead* 
                          of a Fortran 77 compiler)
@@ -333,6 +341,7 @@ Known devices are
         ch_lfshmem(for shared memory systems, such as SMPs; uses
                    lock-free message buffers), 
         ch_cenju3 (native NEC Cenju-3 calls)
+	ch_gm     (native Myrinet GM, distributed and supported by Myricom)
 
 The following devices were supported with ADI-1, but are currently
 unsupported.  Please contact us if you are interested in helping us
@@ -465,6 +474,7 @@ DEVCFLAGS=""
 CONFIGURE_ARGS="$*"
 DEFAULT_MACHINE=''
 DEVICE_KIND=MPP
+rshcommand=${RSHCOMMAND}
 #
 # Some autoconf tests check for cross_compiling being empty, rather than
 # having a value of 0 or 1 (or no or yes).
@@ -493,6 +503,8 @@ usesysv=0
 MPE_MPI_EXT_C="$MPE_MPI_EXT_C mpehname.c"
 MPE_MPI_EXT_O="$MPE_MPI_EXT_O mpehname.o"
 #
+# --with-coll
+MPI_INTRA=intra_fns_new
 # -devdebug
 DEVDEBUGCFLAGS="-DMPID_DEBUG_NONE -DMPID_STAT_NONE"
 # -dlast
@@ -551,7 +563,7 @@ do
   else
     # Code from autoconf 2 to get any option after an =
     case "$arg" in
-    -*=*) ac_optarg=`echo "$ac_option" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
+    -*=*) ac_optarg=`echo "$arg" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
     *) ac_optarg= ;;
     esac
     case $arg in
@@ -639,7 +651,7 @@ do
        # Delete all the valid chars; see if any are left.
        # Extract device-specific args
        DEVICE=`echo $package | sed 's/:.*//g'`
-       device_args=`echo $package | sed 's/[^:]*://g'`
+       device_args=`echo $package | sed 's/[^:]*://'`
        if test "$device_args" = "$package" ; then 
 	    device_args='' 
        else
@@ -701,9 +713,9 @@ do
 	# code when gcc generates a spurious error message, particularly
 	# for uninitialized data.
 	# -wshadow?
-	CFLAGS="$CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
-	USER_CFLAGS="$USER_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
-	ROMIO_CFLAGS="$ROMIO_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -DGCC_WALL"
+	CFLAGS="$CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wundef -Wpointer-arith -Wbad-function-cast -DGCC_WALL"
+	USER_CFLAGS="$USER_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wundef -Wpointer-arith -Wbad-function-casti -DGCC_WALL"
+	ROMIO_CFLAGS="$ROMIO_CFLAGS -O -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wundef -Wpointer-arith -Wbad-function-cast -DGCC_WALL"
 	needs_gcc=yes
 	if test -z "$CC" ; then
 	    CC=gcc
@@ -713,6 +725,10 @@ do
         export COPTIONS
         enable_args="$enable_args $arg"
 	enable_strict="yes"
+	;;
+
+	--enable-coverage|-enable-coverage)
+	CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
 	;;
 
      --enable-weak-symbols|-enable-weak-symbols)
@@ -1045,6 +1061,10 @@ do
        #fi
        CPP_DIR="MPI-2-C++"
        CPP_COMPILER=`echo $package`
+       if test -z "$package" ; then
+           echo "Use the environment variable CXX to specify a c++ compiler if"
+	   echo "you do not want the default (often g++)."
+       fi
        USERCPP=1
        # We need to use mpCC for ch_mpl device!
        if test "$CPP_COMPILER" = "xlC" -a "$DEVICE" = "ch_mpl" ; then
@@ -1225,6 +1245,13 @@ do
      -with-intercommcoll | --with-intercommcoll)
 	Use_Intercomm_coll="yes"
 	;;
+
+     --with-coll* | -with-coll* )
+     # If there is a name, use it (no .c suffix on name)
+     if test -n "$ac_optarg" ; then
+          MPI_INTRA=$ac_optarg
+     fi
+     ;;
 
      -with-* | --with-* | --without-* | -without-* )
 	# Unrecognized with argument.  Just remember it
@@ -1432,6 +1459,7 @@ if test -n "$arch_tflops"; then
    CROSS_F77_SIZEOF_INTEGER=${CROSS_F77_SIZEOF_INTEGER:-4}
    CROSS_F77_SIZEOF_REAL=${CROSS_F77_SIZEOF_REAL:-4}
    CROSS_F77_SIZEOF_DOUBLE_PRECISION=${CROSS_F77_SIZEOF_DOUBLE_PRECISION:-8}
+   CROSS_BIGENDIAN=${CROSS_BIGENDIAN:-false}
    FORT_INT8=1
    ROMIO_ARGS="-intsize=$CROSS_SIZEOF_INT -ptrsize=$CROSS_SIZEOF_VOID_P -longsize=$CROSS_SIZEOF_LONG -longlongsize=$CROSS_SIZEOF_LONG_LONG"
 
@@ -2042,6 +2070,8 @@ if test "$UseSharedLibs" = 1 -o "$debug_version" = 1 ; then
 	    elif test $ARCH = "IRIX" -o $ARCH = "IRIX64" -o $ARCH = "IRIXN32" ; then
 		# for testing only
 		SHAREDKIND=irix
+            elif test $ARCH = "ALPHA" -o $ARCH = "OSF" ; then
+	        SHAREDKIND=osf
             fi
 	    if test -z "$CC_SHARED_OPT" -a "$ARCH" = "hpux" ; then
                 PAC_CHECK_COMPILER_OPTION(-KPIC,CC_SHARED_OPT=+Z)
@@ -2206,10 +2236,16 @@ if test -f "$srcdir/mpid/$DEVICE/$device_setupfile" ; then
 	print_error "Setup of $DEVICE failed!  Aborting configure"
 	exit 1
     fi
+    # If we created an mpich-mpid.h file, add that definition
+    if test -s mpid/$DEVICE/mpich-mpid.h ; then
+        AC_DEFINE(HAVE_MPICH_MPID_H,,[define if the device creates an mpich-mpid.h include file])
+    fi
 fi
 
 #
 # ch_shmem/ch_lfshmem have a setup_ch_shmem file 
+#
+# ch_gm have a setup file
 #
 # meiko and ch_meiko have a setup file
 #
@@ -2340,7 +2376,7 @@ if test -n "$arch_IRIX"; then
 #       CFLAGS="$CFLAGS -woff 1152,1174,1184"
 #       1184 not in the p4 list
         if test "$CC" != "gcc" ; then
-            CFLAGS="$CFLAGS -woff 1184,1174"
+            CFLAGS="$CFLAGS -woff 1185,1184,1174"
         fi
 	# Check whether we need to add SYMTYPE to CFLAGS and FFLAGS
 	hasarg=`echo A$CFLAGS | sed -n -e '/-n32/p' -e '/-32/p' -e '/-64/p'`
@@ -3710,6 +3746,11 @@ if test "$NOMPE" = 0 -a -d "${top_srcdir}/mpe" ; then
       CC="${TESTCC}" ; export CC ; \
       F77="${TESTF77}" ; export F77 ; \
       export CLINKER ; export FLINKER ; \
+      export CROSS_SIZEOF_CHAR ; \
+      export CROSS_SIZEOF_SHORT ; \
+      export CROSS_SIZEOF_INT ; \
+      export CROSS_SIZEOF_LONG_LONG ; \
+      export CROSS_BIGENDIAN ; \
       "${top_srcdir}/mpe/configure" --enable-mpich --disable-checkMPI \
                                   --with-f2cmpilibs=-lf$MPILIBNAME \
                                   --with-flib_path_leader=$LIB_PATH_LEADER \
@@ -3798,7 +3839,12 @@ dnl also uses quotes.
 q='"'
 AC_DEFINE_UNQUOTED(CONFIGURE_ARGS_CLEAN,$q$CONFIGURE_ARGS_CLEAN$q)
 AC_DEFINE_UNQUOTED(MPIRUN_MACHINE,$q$DEFAULT_MACHINE$q)
-AC_DEFINE_UNQUOTED(MPIRUN_DEVICE,$q$DEVICE$q)
+#
+# Because the Globus2 device can use a nested mpirun, it needs the
+# option to ignore this step
+if test "$define_mpirun_device" != "no" ; then
+    AC_DEFINE_UNQUOTED(MPIRUN_DEVICE,$q$DEVICE$q)
+fi
 # COMM is currently used in mpirun.ch_p4.in to decide if SMP support is
 # turned on
 AC_SUBST(COMM)
@@ -3844,6 +3890,9 @@ AC_SUBST(NO_F90)dnl
 AC_SUBST(NOMPE)dnl
 AC_SUBST(hasMPE)dnl
 AC_SUBST(MPE_OPTS)dnl
+dnl MPI_INTRA is the name of the file that implements the collective routines
+dnl (intra_fns_new is the default)
+AC_SUBST(MPI_INTRA)dnl
 #
 # End configuration file
 #

@@ -86,5 +86,5 @@ FORTRAN_API void FORT_CALL mpi_intercomm_merge_ ( MPI_Fint *comm, MPI_Fint *high
     *__ierr = MPI_Intercomm_merge( MPI_Comm_f2c(*comm), (int)*high, 
                                    &l_comm_out);
     if (*__ierr == MPI_SUCCESS) 		     
-        *comm_out = MPI_Comm_c2f(l_comm_out);
+        *comm_out = MPI_Comm_c2f(l_comm_out); 
 }

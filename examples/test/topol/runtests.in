@@ -10,7 +10,7 @@ top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 MPICH_VERSION=@MPICH_VERSION@
 STOPFILE=$HOME/.stopmpichtests
-mpirun="@MPIRUN@"
+mpirun=${MPIRUN:-"@MPIRUN@"}
 MAKE="@MAKE@"
 #
 # Load basic procedures

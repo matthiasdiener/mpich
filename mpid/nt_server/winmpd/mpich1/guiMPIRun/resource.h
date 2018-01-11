@@ -49,6 +49,9 @@
 #define IDC_MAP_CHK                     1036
 #define IDC_DRIVEMAPPINGS               1037
 #define IDC_HELP_BTN                    1038
+#define IDC_CATCH_CHK                   1040
+#define IDC_JOBHOST_CHK                 1041
+#define IDC_JOBHOST                     1042
 #define ID_HELP_HELP                    32771
 
 // Next default values for new objects

@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_fp_posn.c,v 1.3 1999/10/26 22:57:24 thakur Exp $    
+ *   $Id: get_fp_posn.c,v 1.4 2002/10/24 17:01:14 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

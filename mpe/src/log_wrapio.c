@@ -58,6 +58,10 @@
 #define MPE_FILE_GET_ATOMICITY_ID 178
 #define MPE_FILE_SYNC_ID 179
 
+#if defined( HAVE_NO_MPIO_REQUEST )
+#define  MPIO_Request  MPI_Request
+#endif
+
 
 void MPE_Init_MPIIO( void )
 {

@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_write_str.c,v 1.7 2001/03/07 22:13:10 rross Exp $    
+ *   $Id: ad_write_str.c,v 1.8 2002/10/24 17:01:13 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

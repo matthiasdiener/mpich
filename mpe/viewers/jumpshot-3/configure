@@ -1235,8 +1235,8 @@ fi
     fi
 done
 
-echo $ac_n "checking if $JC compiles Swing code""... $ac_c" 1>&6
-echo "configure:1240: checking if $JC compiles Swing code" >&5
+echo $ac_n "checking if $JC compiles Swing-1.1.1 code""... $ac_c" 1>&6
+echo "configure:1240: checking if $JC compiles Swing-1.1.1 code" >&5
 
 pac_JC="$JC"
 pac_JFLAGS=""
@@ -1286,9 +1286,56 @@ fi
     fi
 fi
 
+if test "$enable_internalswing" = "yes" ; then
+    echo $ac_n "checking if $JC with swing.jar compiles Swing-1.1.1 code""... $ac_c" 1>&6
+echo "configure:1292: checking if $JC with swing.jar compiles Swing-1.1.1 code" >&5
+    
+pac_JC="$JC"
+pac_JFLAGS="-classpath $JAVA_LIBS:$srcdir/swing/swing.jar:. -d ."
+
+    rm -f conftest*
+    cat > conftest.java <<EOF
+
+import javax.swing.*;
+
+class conftest {
+
+public static void main( String args[] )
+{
+    JFrame frame = new JFrame();
+    System.out.println( "Checking Swing" );
+}
+                          
+}
+EOF
+
+    pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
+    if { (eval echo configure:1314: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+        rm -rf conftest* ;  pac_java_working=yes 
+    else
+        rm -rf conftest* ;  pac_java_working=no  
+    fi
+
+    if test "$pac_java_working" = "yes" ; then
+        echo "$ac_t""yes" 1>&6
+    else
+        echo "$ac_t""no" 1>&6
+        echo "configure: warning: $JC cannot compile with Jumpshot-3 !" 1>&2
+        
+if test "$enable_softerror" = "yes" ; then
+    echo "configure: warning:  Jumpshot-3 can be compiled with Java 1.1.5 or better including any Java 2 SDK. " 1>&2
+    exit 0
+else
+    { echo "configure: error:  Jumpshot-3 can be compiled with Java 1.1.5 or better including any Java 2 SDK. " 1>&2; exit 1; }
+fi
+
+    fi
+fi
+
+
 # Try to filter out the broken RMIC from JDK-1.2 pre-release
 echo $ac_n "checking if $RMIC generates stub""... $ac_c" 1>&6
-echo "configure:1292: checking if $RMIC generates stub" >&5
+echo "configure:1339: checking if $RMIC generates stub" >&5
 
 pac_RMIC="$RMIC"
 pac_JRFLAGS="-classpath $JAVA_LIBS:. -d . $JFLAGS"
@@ -1317,9 +1364,9 @@ public class conftest_rmic extends UnicastRemoteObject
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest_remote.java conftest_rmic.java 1>&5'
-    if { (eval echo configure:1321: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest_rmic.class ; then
+    if { (eval echo configure:1368: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest_rmic.class ; then
         pac_jrmic='${pac_RMIC} ${pac_JRFLAGS} conftest_rmic 1>&5'
-        if { (eval echo configure:1323: \"$pac_jrmic\") 1>&5; (eval $pac_jrmic) 2>&5; } && test -s conftest_rmic_Stub.class ; then
+        if { (eval echo configure:1370: \"$pac_jrmic\") 1>&5; (eval $pac_jrmic) 2>&5; } && test -s conftest_rmic_Stub.class ; then
             rm -rf conftest* ;  pac_java_working=yes 
         else
             rm -rf conftest* ;  pac_java_working=no  
@@ -1339,7 +1386,7 @@ fi
 # Filter out the version of JDK that causes problem
 if test "$enable_checkversion" = "yes" ; then
     echo $ac_n "checking for Java version""... $ac_c" 1>&6
-echo "configure:1343: checking for Java version" >&5
+echo "configure:1390: checking for Java version" >&5
     VERSION=`$JAVA_HOME/bin/java -fullversion 2>&1`
     case "$VERSION" in
 	*1.0*)
@@ -1366,7 +1413,7 @@ else
 fi
 
             ;;
-	*1.1*)
+	*1.1.5*|*1.1.6*|*1.1.7*|*1.1.8*)
             echo "$ac_t""$VERSION, i.e. newer than 1.1.5" 1>&6
             ;;
 	*1.2*|*1.3*|*1.4*|*1.5*)
@@ -1402,7 +1449,7 @@ if test "$enable_internalswing" = "yes" ; then
     SWING_LIBRARIES=`echo $SWING_LIBS | sed 's/:/ /g'`
     for library in $SWING_LIBRARIES ; do
         echo $ac_n "checking for $library""... $ac_c" 1>&6
-echo "configure:1406: checking for $library" >&5
+echo "configure:1453: checking for $library" >&5
         if test -f "$library" ; then
             echo "$ac_t""yes" 1>&6
         else

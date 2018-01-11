@@ -1,5 +1,5 @@
 /*
- *  $Id: queue.c,v 1.10 2001/11/06 21:40:57 gropp Exp $
+ *  $Id: queue.c,v 1.11 2003/01/02 19:54:14 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -125,7 +125,7 @@ MPID_QHDR *header;
 	}
 	p = p->next;
 	}
-    MPID_THREAD_DS_UNLOCK(p)
+    MPID_THREAD_DS_UNLOCK(header)
 }
 
 
@@ -409,7 +409,7 @@ MPIR_RHANDLE **dmpi_recv_handle;
 {
     MPIR_RHANDLE *handleptr;
 
-    MPID_THREAD_DS_LOCK(MPID_recv)
+    MPID_THREAD_DS_LOCK(&MPID_recv)
     MPID_Search_posted_queue( src, tag, context_id, 1, dmpi_recv_handle);
     if ( *dmpi_recv_handle )
     {

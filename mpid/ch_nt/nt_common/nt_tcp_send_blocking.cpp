@@ -131,13 +131,13 @@ int SendStreamBlocking(SOCKET sock, char *buffer, int length, int type)
     {
 	if (WSAGetLastError() != WSA_IO_PENDING)
 	{
-	    nt_error("SendStreamBlocking failed to send the type and length", WSAGetLastError());
+	    nt_error_socket("SendStreamBlocking failed to send the type and length", WSAGetLastError());
 	    return SOCKET_ERROR;
 	}
 	
 	if (!WSAGetOverlappedResult(sock, &ovl, &num_sent, TRUE, &flags))
 	{
-	    nt_error("SendStreamBlocking: WSAGetOverlappedResult failed", WSAGetLastError());
+	    nt_error_socket("SendStreamBlocking: WSAGetOverlappedResult failed", WSAGetLastError());
 	    return SOCKET_ERROR;
 	}
     }
@@ -161,13 +161,13 @@ int SendStreamBlocking(SOCKET sock, char *buffer, int length, int type)
 	{
 	    if (WSAGetLastError() != WSA_IO_PENDING)
 	    {
-		nt_error("SendStreamBlocking failed", WSAGetLastError());
+		nt_error_socket("SendStreamBlocking failed", WSAGetLastError());
 		return SOCKET_ERROR;
 	    }
 	    
 	    if (!WSAGetOverlappedResult(sock, &ovl, &num_sent, TRUE, &flags))
 	    {
-		nt_error("SendStreamBlocking: WSAGetOverlappedResult failed", WSAGetLastError());
+		nt_error_socket("SendStreamBlocking: WSAGetOverlappedResult failed", WSAGetLastError());
 		return SOCKET_ERROR;
 	    }
 	}

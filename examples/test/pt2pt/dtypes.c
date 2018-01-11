@@ -27,6 +27,9 @@
 #include "protofix.h"
 #endif
 
+/* Change this to test only the basic, predefined types */
+static int basic_only = 0;
+
 /* 
    Arrays types, inbufs, outbufs, and counts are allocated by the
    CALLER.  n on input is the maximum number; on output, it is the
@@ -137,16 +140,20 @@ names[cnt] = (char *)malloc(100);\
 sprintf( names[cnt], "Struct (MPI_UB) type %s", name );\
 counts[cnt]  = TYPECNT;  bytesize[cnt] = sizeof(c) * TYPECNT * STRIDE;cnt++; }
 
+/* 
+ * Set whether only the basic types should be generated
+ */
+void BasicDatatypesOnly( void )
+{
+    basic_only = 1;
+}
+
 static int nbasic_types = 0;
 /* On input, n is the size of the various buffers.  On output, 
    it is the number available types 
  */
-void GenerateData( types, inbufs, outbufs, counts, bytesize, names, n )
-MPI_Datatype *types;
-void **inbufs;
-void **outbufs;
-char **names;
-int  *counts, *bytesize, *n;
+void GenerateData( MPI_Datatype *types, void **inbufs, void **outbufs, 
+		   int *counts, int *bytesize, char **names, int *n )
 {
 int cnt = 0;   /* Number of defined types */
 
@@ -170,6 +177,10 @@ SETUPBASICTYPE(MPI_LONG_DOUBLE,long double,"MPI_LONG_DOUBLE");
 #endif
 nbasic_types = cnt;
 
+ if (basic_only) {
+     *n = cnt;
+     return;
+ }
 /* Generate contiguous data items */
 SETUPCONTIGTYPE(MPI_CHAR,char,"MPI_CHAR");
 SETUPCONTIGTYPE(MPI_SHORT,short,"MPI_SHORT");
@@ -310,27 +321,23 @@ int CheckDataAndPrint( void *inbuf, void *outbuf, int size_bytes,
     return errloc;
 }
 
-void FreeDatatypes( types, inbufs, outbufs, counts, bytesize, names, n )
-MPI_Datatype *types;
-void **inbufs;
-void **outbufs;
-char **names;
-int  *counts, *bytesize, n;
+void FreeDatatypes( MPI_Datatype *types, void **inbufs, void **outbufs, 
+		    int *counts, int *bytesize, char **names, int n )
 {
-int i;
-for (i=0; i<n; i++) {
-    if (inbufs[i]) 
-	free( inbufs[i] );
-    if (outbufs[i]) 
-	free( outbufs[i] );
-    free( names[i] );
-    /* Only if not basic ... */
-    if (i > nbasic_types) 
-	MPI_Type_free( types + i );
+    int i;
+    for (i=0; i<n; i++) {
+	if (inbufs[i]) 
+	    free( inbufs[i] );
+	if (outbufs[i]) 
+	    free( outbufs[i] );
+	free( names[i] );
+	/* Only if not basic ... */
+	if (i >= nbasic_types) 
+	    MPI_Type_free( types + i );
     }
-free( inbufs );
-free( outbufs );
-free( names );
-free( counts );
-free( bytesize );
+    free( inbufs );
+    free( outbufs );
+    free( names );
+    free( counts );
+    free( bytesize );
 }

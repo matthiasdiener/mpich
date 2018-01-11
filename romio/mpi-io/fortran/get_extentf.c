@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_extentf.c,v 1.12 2001/12/12 23:38:06 ashton Exp $    
+ *   $Id: get_extentf.c,v 1.14 2002/10/24 17:01:20 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,21 +11,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_get_type_extent_ PMPI_FILE_GET_TYPE_EXTENT
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_get_type_extent_ pmpi_file_get_type_extent__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_get_type_extent pmpi_file_get_type_extent_
-#endif
-#define mpi_file_get_type_extent_ pmpi_file_get_type_extent
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_get_type_extent_ pmpi_file_get_type_extent
-#endif
-#define mpi_file_get_type_extent_ pmpi_file_get_type_extent_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -64,6 +50,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpi_file_get_type_extent_ PMPI_FILE_GET_TYPE_EXTENT
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_get_type_extent_ pmpi_file_get_type_extent__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_get_type_extent pmpi_file_get_type_extent_
+#endif
+#define mpi_file_get_type_extent_ pmpi_file_get_type_extent
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_get_type_extent_ pmpi_file_get_type_extent
+#endif
+#define mpi_file_get_type_extent_ pmpi_file_get_type_extent_
 #endif
 
 #else

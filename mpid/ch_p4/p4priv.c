@@ -16,12 +16,14 @@ static char *P4Argstr = 0;
  * This routine must be careful NOT to update argv[0], the name of the
  * program.  It does handle propagating the args to all of the processes.
  */
-void MPID_P4_Init( argc, argv )
-int *argc;
-char ***argv;
+void MPID_P4_Init( int *argc, char ***argv )
 {
     int narg,nlen,i,*arglen;
     char *p,*argstr;
+
+    /* If requested, setup a separate process group before creating the
+       other MPI processes */
+    (void) MPID_Process_group_init();
 
     p4_initenv(argc,*argv);
     MPID_MyWorldRank = p4_get_my_id();
@@ -111,7 +113,7 @@ or program started without mpirun.\n" );
     FREE(arglen);
 }
 
-void MPID_P4_End()
+void MPID_P4_End( void )
 {
     /* String containing the values */
     if (P4Argstr) {

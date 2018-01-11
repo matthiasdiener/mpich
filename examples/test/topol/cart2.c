@@ -4,6 +4,8 @@
 
 #define NUM_DIMS 2
 
+int verbose = 0; 
+
 int main( int argc, char **argv )
 {
     int              rank, size, i;
@@ -12,6 +14,7 @@ int main( int argc, char **argv )
     int              new_coords[NUM_DIMS];
     int              new_new_coords[NUM_DIMS];
     int              reorder = 1;
+    int              left, right, top, bottom;
     MPI_Comm         comm_cart;
 
     MPI_Init( &argc, &argv );
@@ -31,6 +34,24 @@ int main( int argc, char **argv )
 
     /* 2nd call to Cart coords gives us an error - why? */
     MPI_Cart_coords ( comm_cart, rank, NUM_DIMS, new_new_coords ); /***34***/ 
+
+    /* Try cart shift */
+    MPI_Cart_shift( comm_cart, 0, 1, &left, &right );
+    MPI_Cart_shift( comm_cart, 1, 1, &bottom, &top );
+
+    if (dims[0] == 2) {
+	/* We should see
+	   [0] -1 2 -1 1
+	   [1] -1 3 0 -1
+	   [2] 0 -1 -1 3
+	   [3] 1 -1 2 -1
+	*/
+	if (verbose) {
+	    printf( "[%d] final dims = [%d,%d]\n", rank, dims[0], dims[1] );
+	    printf( "[%d] left = %d, right = %d, bottom = %d, top = %d\n", 
+		    rank, left, right, bottom, top );
+	}
+    }
 
     MPI_Comm_free( &comm_cart );
     Test_Waitforall( );

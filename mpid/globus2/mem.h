@@ -30,4 +30,11 @@ globus_libc_printf("FATAL ERROR: failed malloc %d bytes: file %s line %d\n", \
     if ((Ptr) != NULL) {  globus_libc_free((void *)(Ptr));  } \
 }
 
+/**********************************************************************/
+/* allocate memory and check the return pointer.  MPID_Abort if NULL */
+#define g_malloc_chk(sz) g_malloc_chk_internal(sz, __FILE__, __LINE__)
+
+extern void *
+g_malloc_chk_internal (const size_t, const char *, const int);
+
 #endif /* __glodev_mem__ */

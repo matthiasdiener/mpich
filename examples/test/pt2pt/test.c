@@ -157,5 +157,6 @@ void Test_Errors_warn( MPI_Comm *comm, int *code, char *string, char *file,
 #endif
   fprintf( stderr, "%d - %s : %s\n", myid, 
           string ? string : "<NO ERROR MESSAGE>", buf );
+  fflush( stderr );
   in_handler = 0;
 }

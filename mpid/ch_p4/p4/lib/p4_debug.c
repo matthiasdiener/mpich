@@ -320,9 +320,7 @@ P4VOID dump_listener(int level)
     p4_dprintf("    listening_fd = %d\n", l->listening_fd);
 }
 
-P4VOID dump_procgroup(procgroup, level)
-struct p4_procgroup *procgroup;
-int level;
+P4VOID dump_procgroup(struct p4_procgroup *procgroup, int level)
 {
     struct p4_procgroup_entry *pe;
     int i;
@@ -334,16 +332,16 @@ int level;
     for (pe = procgroup->entries, i = 0;
 	 i < procgroup->num_entries;
 	 pe++, i++)
-	p4_dprintf("    entry %d: %s %d %s %s \n",
+	p4_dprintf("    entry %d: %s %d %d %s %s \n",
 		   i,
 		   pe->host_name,
 		   pe->numslaves_in_group,
+		   pe->rm_rank, 
 		   pe->slave_full_pathname,
 		   pe->username);
 }
 
-P4VOID dump_tmsg(tmsg)
-struct p4_msg *tmsg;
+P4VOID dump_tmsg(struct p4_msg *tmsg)
 {
     p4_dprintf("type=%d, to=%d, from=%d, len=%d, ack_req=%x, msg=%s\n",
 	       tmsg->type, tmsg->to, tmsg->from, tmsg->len, tmsg->ack_req,

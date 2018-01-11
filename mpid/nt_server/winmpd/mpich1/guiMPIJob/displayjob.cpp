@@ -3,7 +3,6 @@
 #include "guiMPIJobDlg.h"
 #include "mpd.h"
 #include "mpdutil.h"
-#include "bsocket.h"
 #include "MPDConnectDlg.h"
 #include "Translate_Error.h"
 
@@ -309,7 +308,7 @@ void CGuiMPIJobDlg::GetJobDetails()
 
     UpdateData();
 
-    if ((m_job.GetLength() < 1) || (m_bfd == BFD_INVALID_SOCKET))
+    if ((m_job.GetLength() < 1) || (m_sock == INVALID_SOCKET))
 	return;
 
     jobstr = m_job;
@@ -319,7 +318,7 @@ void CGuiMPIJobDlg::GetJobDetails()
     m_job_details = "";
 
     sprintf(str, "dbfirst %s", jobstr);
-    if (WriteString(m_bfd, str) == SOCKET_ERROR)
+    if (WriteString(m_sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	sprintf(value, "writing '%s' failed, %d\r\n", str, error);
@@ -329,7 +328,7 @@ void CGuiMPIJobDlg::GetJobDetails()
 	Disconnect();
 	return;
     }
-    if (ReadStringTimeout(m_bfd, str, 10))
+    if (ReadStringTimeout(m_sock, str, MPD_DEFAULT_TIMEOUT))
     {
 	if (strcmp(str, "DBS_FAIL") == 0)
 	{
@@ -360,7 +359,7 @@ void CGuiMPIJobDlg::GetJobDetails()
     while (true)
     {
 	sprintf(str, "dbnext %s", jobstr);
-	if (WriteString(m_bfd, str) == SOCKET_ERROR)
+	if (WriteString(m_sock, str) == SOCKET_ERROR)
 	{
 	    error = WSAGetLastError();
 	    sprintf(value, "writing '%s' failed, %d\r\n", str, error);
@@ -370,7 +369,7 @@ void CGuiMPIJobDlg::GetJobDetails()
 	    Disconnect();
 	    return;
 	}
-	if (ReadStringTimeout(m_bfd, str, 10))
+	if (ReadStringTimeout(m_sock, str, MPD_DEFAULT_TIMEOUT))
 	{
 	    if (strcmp(str, "DBS_FAIL") == 0)
 	    {

@@ -549,9 +549,7 @@ bool ShmemLockedQueue::RemoveNextInsert(MessageQueue *pMsgQueue, bool bBlocking)
 	}
 	if (pMessage->state == SHMEM_Q_SHP_AVAIL_FOR_READ)
 	{
-		int myIndex;
 		shpData data;
-		myIndex = g_nIproc - g_nSMPLow;
 
 		memcpy(&data, (LPBYTE)pMessage + sizeof(ShmemLockedQueueHeader), 
 			sizeof(shpData));
@@ -560,11 +558,11 @@ bool ShmemLockedQueue::RemoveNextInsert(MessageQueue *pMsgQueue, bool bBlocking)
 			g_MsgQueue.GetBufferToFill(pMessage->tag, data.length, 
 										pMessage->from, &pElement);
 		if (!ReadProcessMemory(	
-				g_hProcesses[pMessage->from-g_nSMPLow], 
+				g_hProcesses[pMessage->from], 
 				data.address, pLocal, data.length , NULL))
 			//nt_error("Unable to read remote memory", pMessage->from);
 			MakeErrMsg(GetLastError(), "Unable to read remote memory in process %d", pMessage->from);
-		SetEvent(g_hShpSendCompleteEvent[myIndex]);
+		SetEvent(g_hShpSendCompleteEvent[g_nIproc]);
 		g_MsgQueue.SetElementEvent(pElement);
 	}
 	else

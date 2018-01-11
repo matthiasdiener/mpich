@@ -77,8 +77,17 @@ int main( int argc, char *argv[])
 		}
 		if ( s1[j].c != 'a' + j + status.MPI_SOURCE ) {
 		    errs++;
-		    printf( "Got s[%d].c = %c; expected %c\n", j, s1[j].c,
-			    j + status.MPI_SOURCE + 'a');
+		    /* If the character is not a printing character, 
+		       this can generate an file that diff, for example,
+		       believes is a binary file */
+		    if (isprint( (int)(s1[j].c) )) {
+			printf( "Got s[%d].c = %c; expected %c\n", j, s1[j].c,
+				j + status.MPI_SOURCE + 'a');
+		    }
+		    else {
+			printf( "Got s[%d].c = %x; expected %c\n", j, (int)s1[j].c,
+				j + status.MPI_SOURCE + 'a');
+		    }
 		}
 	}
 

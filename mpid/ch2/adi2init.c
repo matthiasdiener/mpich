@@ -139,6 +139,15 @@ void MPID_Init( int *argc, char ***argv, void *config, int *error_code )
 
     MPID_InitQueue();
 
+#ifdef NEEDS_PROCESS_GROUP_FIX
+    /* Call this to force each MPI job into a separate process group
+       if there is no attached terminal.  This is necessary on some
+       systems to overcome runtime libraries that kill a process group
+       on abnormal exit (the proces group can contain the invoking 
+       shell scripts and programs otherwise) */
+    MPID_FixupProcessGroup();
+#endif
+
     /* Initialize the send/receive handle allocation system */
     /* Use the persistent version of send/receive (since we don't have
        separate MPIR_pshandles/MPIR_prhandles) */

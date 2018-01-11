@@ -63,7 +63,7 @@ AC_ARG_WITH(fwrapname,
 routines],[FWRAPNAME=$withval;set_FWRAPNAME="yes"],FWRAPNAME=fmpich)
 AC_SUBST(FWRAPNAME)
 
-AC_ARG_WITH(mpi,
+AC_ARG_WITH(mpe,
 [--with-mpe - MPI includes the MPE libraries],hasMPE=$withval,hasMPE="unknown")
 AC_SUBST(hasMPE)
 
@@ -286,6 +286,11 @@ if test "$f90nag" = "1" -o "$f95nag" = "1" ; then
 else
     NOG2C=no
 fi
+dnl
+dnl Eventually, we'd like to change this to check to see if we can use
+dnl "hidden" variables to access the command line from C or Fortran,
+dnl rather than using the Fortran native getarg/iargc.
+dnl
 if test "$pac_lib_mpi_is_building" = "yes" ; then
     dnl This must occur before the test for name mangling
     PAC_PROG_F77_CMDARGS
@@ -325,7 +330,11 @@ EOF
 	    if test "$libs" = "0" ; then libs="" ; fi
             for flags in $trial_FLAGS ; do
 		if test "$flags" = "0" ; then flags="" ; fi
-		AC_MSG_CHECKING([if $F90 $flags $libs works with $MSG])
+		if test -z "$MSG" ; then
+  	  	    AC_MSG_CHECKING([if $F90 $flags $libs works])
+		else
+  	  	    AC_MSG_CHECKING([if $F90 $flags $libs works with $MSG])
+                fi
 	        ac_f90compilelink_test="${F90-f90} -o conftest $F90FLAGS $flags conftest.f $libs $LIBS 1>&AC_FD_CC"
 		if AC_TRY_EVAL(ac_f90compilelink_test) && test -x conftest ; then
 		    AC_MSG_RESULT([yes])
@@ -353,7 +362,7 @@ EOF
     # names are generated)
     F77="$F77 $F77_GETARG_FFLAGS"
     # We need to update the saved Fortran name
-    pac_save_F77="$F77"    
+    pac_save_F77="$pac_save_F77 $F77_GETARG_FFLAGS"
 fi
 dnl
 dnl This option requires the config.guess etc.
@@ -586,6 +595,7 @@ if test "$noval" = "yes" ; then
     # Set a default
     MPI_FINT_TYPE="int"
     AC_MSG_RESULT([unavailable])
+    AC_DEFINE(FINT_TYPE_UNKNOWN,,[Define if we cannot determine the type of MPI_Fint at compile time])
 fi
 AC_SUBST(MPI_FINT_TYPE)
 dnl
@@ -857,7 +867,7 @@ AC_OUTPUT_COMMANDS([chmod a+x src/mpif77])
 AC_OUTPUT_COMMANDS([chmod a+x src/mpif90])
 AC_OUTPUT(Makefile src/Makefile src/farg.f \
 	  include/mpif.h include/mpi_fortdefs.h src/mpif77 src/mpif77.conf \
-	  src/mpif90 src/mpif90.conf src/initfcmn.f )
+	  src/mpif90 src/mpif90.conf src/initfcmn.f src/initfdte.f )
 exit 0
 dnl
 dnl Add the following to the output step after the AC_OUTPUT

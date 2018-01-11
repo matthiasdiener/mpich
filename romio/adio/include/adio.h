@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adio.h,v 1.16 2001/12/12 23:38:02 ashton Exp $    
+ *   $Id: adio.h,v 1.18 2002/10/24 17:01:15 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -363,6 +364,8 @@ void ADIO_ResolveFileType(MPI_Comm comm, char *filename, int *fstype,
 void ADIO_Get_shared_fp(ADIO_File fd, int size, ADIO_Offset *shared_fp, 
 			 int *error_code);
 void ADIO_Set_shared_fp(ADIO_File fd, ADIO_Offset offset, int *error_code);
+void ADIO_Set_view(ADIO_File fd, ADIO_Offset disp, MPI_Datatype etype, 
+		MPI_Datatype filetype, MPI_Info info,  int *error_code);
 
 
 #include "adioi.h"

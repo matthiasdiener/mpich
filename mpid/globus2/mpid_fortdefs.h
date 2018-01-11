@@ -2,10 +2,6 @@
 #define MPID_FORT_H
 
 
-/* SEBASTIEN L: experimental!!! */
-#include "global_fort_symb.h"
-/* END OF EXPERIMENTATION */
-
 
 /*
  * This header file converts all MPI_ names into MPQ_ names, so that we avoid
@@ -21,6 +17,7 @@
  * choice.
  *
  */
+
 
 #if defined(F77_NAME_UPPER)
 #   define MPI_ISEND MPQ_ISEND

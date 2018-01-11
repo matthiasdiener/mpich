@@ -15,6 +15,7 @@
 #define IDI_ICON_NO                     138
 #define IDD_CONNECTION_OPTIONS_DLG      139
 #define IDI_ICON_YES                    139
+#define IDD_WILDCARD_DLG                140
 #define IDC_FIND_BTN                    1000
 #define IDC_VERIFY_BTN                  1001
 #define IDC_SET_BTN                     1002
@@ -103,6 +104,7 @@
 #define IDC_PROGRESS                    1078
 #define IDC_HOST_STATIC                 1079
 #define IDC_N_OF_M_STATIC               1099
+#define IDC_WILDSTR_EDIT                1107
 #define ID_FILE_FINDHOSTS               32771
 #define ID_FILE_LOADLIST                32772
 #define ID_FILE_SAVELIST                32773
@@ -110,13 +112,14 @@
 #define ID_FILE_CHANGEDOMAIN            32775
 #define ID_FILE_VERIFY                  32776
 #define ID_FILE_CONNECTIONOPTIONS       32777
+#define ID_ACTION_WILDCARDSCANHOSTS     32778
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        140
-#define _APS_NEXT_COMMAND_VALUE         32778
+#define _APS_NEXT_COMMAND_VALUE         32779
 #define _APS_NEXT_CONTROL_VALUE         1080
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

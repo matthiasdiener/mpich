@@ -80,7 +80,7 @@ STYLE WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU |
     WS_THICKFRAME
 EXSTYLE WS_EX_APPWINDOW
 CAPTION "MPI Configuration Tool"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     EDITTEXT        IDC_HOSTNAME,11,17,51,14,ES_AUTOHSCROLL
     DEFPUSHBUTTON   "&Add",IDC_EDIT_ADD_BTN,65,17,35,14
@@ -171,7 +171,7 @@ IDD_FIND_HOSTS_DLG DIALOGEX 0, 0, 246, 140
 STYLE WS_POPUP | WS_CAPTION | WS_THICKFRAME
 CAPTION "Select hosts"
 MENU IDR_FIND_MENU
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     CONTROL         "List1",IDC_DOMAIN_HOST_LIST,"SysListView32",LVS_LIST | 
                     WS_BORDER | WS_TABSTOP,7,18,232,98
@@ -218,7 +218,7 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,88,98,10
 END
 
-IDD_CONFIG_DLG DIALOG DISCARDABLE  0, 0, 465, 298
+IDD_CONFIG_DLG DIALOG DISCARDABLE  0, 0, 465, 342
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
 CAPTION "MPICH Configuration"
 FONT 8, "MS Sans Serif"
@@ -282,16 +282,16 @@ BEGIN
     CONTROL         "I installed using the default passphrase",
                     IDC_MPD_PHRASE_DEFAULT_RADIO,"Button",BS_AUTORADIOBUTTON | 
                     BS_MULTILINE,21,266,79,18
-    PUSHBUTTON      "A&pply",IDC_APPLY_BTN,154,223,33,14
-    LTEXT           "Set the selected options",IDC_APPLY_STATIC,194,226,77,8
-    PUSHBUTTON      "Apply Single",IDC_APPLY_SINGLE_BTN,154,245,50,14
+    PUSHBUTTON      "A&pply",IDC_APPLY_BTN,154,271,33,14
+    LTEXT           "Set the selected options",IDC_APPLY_STATIC,194,274,77,8
+    PUSHBUTTON      "Apply Single",IDC_APPLY_SINGLE_BTN,154,288,50,14
     LTEXT           "Set the selected options on the highlighted host only",
-                    IDC_APPLY_SINGLE_STATIC,209,244,67,27
-    RTEXT           "",IDC_N_OF_M_STATIC,157,278,47,8
+                    IDC_APPLY_SINGLE_STATIC,209,287,67,27
+    RTEXT           "",IDC_N_OF_M_STATIC,157,321,47,8
     CONTROL         "Progress1",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | 
-                    WS_BORDER,208,279,67,6
-    CONTROL         "Show host configuration",IDC_SHOW_CONFIG_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,326,13,92,10
+                    WS_BORDER,208,322,67,6
+    CONTROL         "Show configuration:",IDC_SHOW_CONFIG_CHK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,326,10,76,10
     PUSHBUTTON      "v",IDC_HOST_TOGGLE_BTN,325,31,10,9
     CONTROL         "",IDC_HOST_HOSTS_CHK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,326,47,12,8
@@ -315,7 +315,7 @@ BEGIN
     CONTROL         "yes",IDC_HOST_COLOR_YES,"Button",BS_AUTOCHECKBOX | 
                     BS_PUSHLIKE | WS_TABSTOP,344,131,19,11
     CONTROL         "no",IDC_HOST_COLOR_NO,"Button",BS_AUTOCHECKBOX | 
-                    BS_PUSHLIKE | WS_TABSTOP,367,131,19,11
+                    BS_PUSHLIKE | WS_TABSTOP,366,131,19,11
     CONTROL         "",IDC_HOST_DOTS_CHK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,326,145,12,8
     CONTROL         "yes",IDC_HOST_DOTS_YES,"Button",BS_AUTOCHECKBOX | 
@@ -334,20 +334,74 @@ BEGIN
                     BS_PUSHLIKE | WS_TABSTOP,344,192,19,11
     CONTROL         "no",IDC_HOST_POPUP_DEBUG_NO,"Button",BS_AUTOCHECKBOX | 
                     BS_PUSHLIKE | WS_TABSTOP,365,192,19,11
-    PUSHBUTTON      "Modify",IDC_MODIFY_BTN,330,221,35,14
+    PUSHBUTTON      "Modify",IDC_MODIFY_BTN,330,274,35,14
     LTEXT           "Modify the selected options on the above host only",
-                    IDC_MODIFY_STATIC,368,219,90,18
-    PUSHBUTTON      "OK",IDOK,408,259,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,408,277,50,14
+                    IDC_MODIFY_STATIC,368,272,90,18
+    PUSHBUTTON      "OK",IDOK,408,302,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,408,320,50,14
     GROUPBOX        "1) Select the hosts to configure",IDC_ONE_STATIC,7,7,
                     138,211
     GROUPBOX        "2) Select the options to set and their values",
-                    IDC_TWO_STATIC,149,7,172,284
-    CTEXT           "",IDC_HOST_STATIC,345,26,113,8
+                    IDC_TWO_STATIC,149,7,172,328
+    CTEXT           "",IDC_HOST_STATIC,339,20,119,8
     CONTROL         "List1",IDC_HOST_LIST,"SysListView32",LVS_LIST | 
                     LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | 
                     WS_TABSTOP,12,34,129,181
-    CTEXT           "",IDC_HOST_MSG_STATIC,345,35,113,8
+    CONTROL         "catch unhandled exceptions........",IDC_CATCH_CHK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,156,212,118,10
+    CONTROL         "yes",IDC_CATCH_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,276,212,19,11
+    CONTROL         "no",IDC_CATCH_NO,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | 
+                    WS_TABSTOP,297,212,19,11
+    CONTROL         "",IDC_HOST_CATCH_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,213,12,8
+    CONTROL         "yes",IDC_HOST_CATCH_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,212,19,11
+    CONTROL         "no",IDC_HOST_CATCH_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,365,212,19,11
+    EDITTEXT        IDC_HOST_MSG_STATIC,338,30,120,12,ES_CENTER | 
+                    ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER | NOT 
+                    WS_TABSTOP
+    CONTROL         "mpirun prints the exit codes .........",IDC_CODES_CHK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,156,226,118,10
+    CONTROL         "yes",IDC_CODES_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,276,226,19,11
+    CONTROL         "no",IDC_CODES_NO,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | 
+                    WS_TABSTOP,298,226,19,11
+    CONTROL         "",IDC_HOST_CODES_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,227,12,8
+    CONTROL         "yes",IDC_HOST_CODES_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,226,19,11
+    CONTROL         "no",IDC_HOST_CODES_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,366,226,19,11
+    CONTROL         "redirect mpd output to log ............",
+                    IDC_REDIRECT_MPD_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,156,239,118,10
+    CONTROL         "yes",IDC_REDIRECT_MPD_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,275,239,19,11
+    CONTROL         "no",IDC_REDIRECT_MPD_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,297,239,19,11
+    LTEXT           "log file name:",IDC_REDIRECT_MPD_STATIC,169,254,42,8
+    EDITTEXT        IDC_REDIRECT_MPD_EDIT,212,251,104,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_HOST_REDIRECT_MPD_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,326,240,11,8
+    CONTROL         "yes",IDC_HOST_REDIRECT_MPD_YES,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,344,239,19,11
+    CONTROL         "no",IDC_HOST_REDIRECT_MPD_NO,"Button",BS_AUTOCHECKBOX | 
+                    BS_PUSHLIKE | WS_TABSTOP,366,239,19,11
+    EDITTEXT        IDC_HOST_REDIRECT_MPD_EDIT,344,251,104,14,ES_AUTOHSCROLL
+END
+
+IDD_WILDCARD_DLG DIALOG DISCARDABLE  0, 0, 186, 57
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
+CAPTION "Wildcard string"
+FONT 8, "MS Sans Serif"
+BEGIN
+    EDITTEXT        IDC_WILDSTR_EDIT,7,31,114,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,129,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,24,50,14
+    LTEXT           "Input a wildcard string to match hostnames to:",
+                    IDC_STATIC,7,7,91,23
 END
 
 
@@ -458,7 +512,15 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 458
         TOPMARGIN, 7
-        BOTTOMMARGIN, 291
+        BOTTOMMARGIN, 335
+    END
+
+    IDD_WILDCARD_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 50
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -490,6 +552,7 @@ BEGIN
     POPUP "&Action"
     BEGIN
         MENUITEM "&Scan hosts",                 ID_FILE_FINDHOSTS
+        MENUITEM "&Wildcard scan hosts",        ID_ACTION_WILDCARDSCANHOSTS
         MENUITEM "&Verify selected hosts",      ID_FILE_VERIFY
         MENUITEM "&Change network domain",      ID_FILE_CHANGEDOMAIN
         MENUITEM "Connection &Options",         ID_FILE_CONNECTIONOPTIONS

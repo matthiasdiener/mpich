@@ -32,12 +32,8 @@ int main( int argc, char **argv )
  * Proposals to specify particular values (e.g., user's value) failed.
  */
 /* Return an error as the value */
-int copybomb_fn(oldcomm, keyval, extra_state,
-		attribute_val_in, attribute_val_out, flag)
-MPI_Comm oldcomm;
-int      keyval;
-void     *extra_state, *attribute_val_in, *attribute_val_out;
-int      *flag;
+int copybomb_fn( MPI_Comm oldcomm, int keyval, void *extra_state,
+		 void *attribute_val_in, void *attribute_val_out, int *flag)
 {
 /* Note that if (sizeof(int) < sizeof(void *), just setting the int
    part of attribute_val_out may leave some dirty bits
@@ -48,24 +44,20 @@ int      *flag;
 
 /* Set delete flag to 1 to allow the attribute to be deleted */
 static int delete_flag = 0;
-int deletebomb_fn(comm, keyval, attribute_val, extra_state)
-MPI_Comm comm;
-int      keyval;
-void     *attribute_val, *extra_state;
+int deletebomb_fn( MPI_Comm comm, int keyval, void *attribute_val, 
+		   void *extra_state)
 {
     if (delete_flag) return MPI_SUCCESS;
     return MPI_ERR_OTHER;
 }
 
-void abort_msg( str, code )
-char *str;
-int code;
+void abort_msg( char *str, int code )
 {
     fprintf( stderr, "%s, err = %d\n", str, code );
     MPI_Abort( MPI_COMM_WORLD, code );
 }
 
-int test_communicators()
+int test_communicators( void )
 {
     MPI_Comm dup_comm_world, d2;
     int world_rank, world_size, key_1;
@@ -97,6 +89,8 @@ int test_communicators()
 	printf( "delete function return code was MPI_SUCCESS in put\n" );
     }
 
+    /* Because the attribute delete function should fail, the attribute
+       should *not be removed* */
     err = MPI_Attr_delete( dup_comm_world, key_1 );
     if (err == MPI_SUCCESS) {
 	printf( "delete function return code was MPI_SUCCESS in delete\n" );
@@ -106,7 +100,7 @@ int test_communicators()
     if (err == MPI_SUCCESS) {
 	printf( "copy function return code was MPI_SUCCESS in dup\n" );
     }
-    if (d2 != MPI_COMM_NULL) {
+    if (err && d2 != MPI_COMM_NULL) {
 	printf( "dup did not return MPI_COMM_NULL on error\n" );
     }
 

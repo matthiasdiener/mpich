@@ -69,7 +69,6 @@ struct tcp_rw_handle_t
     globus_io_handle_t     handle;
     enum tcp_read_state    state;
     globus_byte_t          instruction_buff[INSTRUCTIONBUFFLEN]; /* handshake */
-    globus_cond_t          format_cond;                          /* handshake */
     volatile globus_bool_t recvd_format;                         /* handshake */
     globus_byte_t          remote_format;
     globus_byte_t          *incoming_header;
@@ -93,12 +92,10 @@ struct tcp_rw_handle_t
 
 struct tcp_miproto_t
 {
-    char                            hostname[MAXHOSTNAMELEN];
+    char                            hostname[G2_MAXHOSTNAMELEN];
     unsigned short                  port;
     globus_io_attr_t                attr;
     volatile struct tcp_rw_handle_t *handlep;
-    globus_mutex_t                  connection_lock; /* handshake */
-    globus_cond_t                   connection_cond; /* handshake */
 
     /* 
      * 'to_self' used only when send/rcv to myself 
@@ -121,17 +118,6 @@ struct tcp_miproto_t
      */
     globus_byte_t *		    header;
     
-    /* 
-     * access to {cancel,send}_{head,tail} must be controlled 
-     * by MessageQueuesLock.  it may be possible to place a individual
-     * locks into this struct, but that may be hard because when we
-     * add/remove nodes from _any_ tcp_miproto_t's list we have to 
-     * update the single global variable TcpOutstandingSendReqs
-     * which also has it's access controlled by MessageQueuesLock.
-     * didn't want to figure out how to coordinate individual tcp_miproto_t
-     * locks with MessageQueuesLock so i just used MessageQueuesLock for
-     * everything.
-     */
     struct tcpsendreq *cancel_head;
     struct tcpsendreq *cancel_tail;
     struct tcpsendreq *send_head;
@@ -148,7 +134,7 @@ struct tcp_miproto_t
 
 struct mpi_miproto_t
 {
-    char unique_session_string[MAXHOSTNAMELEN+32];
+    char unique_session_string[G2_MAXHOSTNAMELEN+32];
     int  rank;
 };
 

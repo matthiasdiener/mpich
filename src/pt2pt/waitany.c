@@ -1,5 +1,5 @@
 /*
- *  $Id: waitany.c,v 1.18 2002/03/15 15:21:17 gropp Exp $
+ *  $Id: waitany.c,v 1.19 2002/11/27 19:58:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -97,7 +97,7 @@ int MPI_Waitany(
 	    status->MPI_ERROR  = MPI_SUCCESS;
 	    MPID_ZERO_STATUS_COUNT(status);
 	}
-        *index             = MPI_UNDEFINED;
+        *index             = MPI_UNDEFINED;  /* Also required in 1.1 */
 	TR_POP;
 	return mpi_errno;
 	}

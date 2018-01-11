@@ -1161,7 +1161,7 @@ static int mpi_error_to_vmpi_error(
       case MPI_ERR_INFO_NOKEY:	rc=VMPI_ERR_INFO_NOKEY;	break;
       case MPI_ERR_IO:		rc=VMPI_ERR_IO;		break;
       case MPI_ERR_NAME:	rc=VMPI_ERR_NAME;	break;
-	/* case MPI_ERR_NOMEM:	rc=VMPI_ERR_NOMEM;	break; */
+	/* case MPI_ERR_EXHAUSTED:	rc=VMPI_ERR_EXHAUSTED;	break; */
       case MPI_ERR_NOT_SAME:	rc=VMPI_ERR_NOT_SAME;	break;
       case MPI_ERR_NO_SPACE:	rc=VMPI_ERR_NO_SPACE;	break;
       case MPI_ERR_NO_SUCH_FILE:

@@ -226,10 +226,10 @@ int p4_get_my_id_from_proc( void )
     int i, my_unix_id;
     int n_match, match_id, best_match_id, best_match_nchars;
     struct proc_info *pi;
-    struct hostent *myhp, *pghp;
+    struct hostent *pghp;
+    struct hostent myh;		
     struct in_addr myaddr;       /* 8/14/96, llewins@msmail4.hac.com */
     char myname[MAXHOSTNAMELEN]; /* 9/10/96, llewins@msmail4.hac.com */
-    struct hostent myh;			/* 7/12/95, bri@sgi.com */
 
 #   if (defined(IPSC860)  &&  !defined(IPSC860_SOCKETS))  ||  \
        (defined(CM5)      &&  !defined(CM5_SOCKETS))      ||  \
@@ -241,18 +241,6 @@ int p4_get_my_id_from_proc( void )
     my_unix_id = getpid();
     if (p4_local->my_id == LISTENER_ID)
 	return (LISTENER_ID);
-
-    /* gethostbyname returns a pointer to a shared (!) structure.  
-       Rather than being very careful not to change it, we immediately
-       copy the structure into myh; then get a pointer to that structure
-       (just to simplify the code below).  This version was originally
-       due to Ron Brightwell while at SGI (bri@sgi.com) 
-     */
-    myh = *gethostbyname_p4(p4_global->my_host_name);	/* 7/12/95, bri@sgi.com */
-    myhp = &myh;					/* 7/12/95, bri@sgi.com */
-    bcopy(myhp->h_addr, (char *)&myaddr, myhp->h_length); /* 8/14/96, llewins@msmail4.hac.com */
-    strcpy(myname, myhp->h_name);                         /* 9/10/96, llewins@msmail4.hac.com */
-    p4_dprintfl(60,"p4_get_my_id_from_proc: hostname = :%s:\n", myname);
 
 /*    p4_dprintf( "proctable size is %d\n", p4_global->num_in_proctable ); */
     /*
@@ -289,36 +277,93 @@ int p4_get_my_id_from_proc( void )
      * used to identify this process as an argument pair (-p4yourname host) 
      * in the argument list given to the remote process creation routine.
      * This name is stored in p4_myname_in_procgroup.  We can use this
-     * for a match if it is non-empty.
+     * for a match if it is non-empty.  This is the name that is used
+     * to identify the process, and it is the one that is in the
+     * procgroup table.
+     *
+     * 9/19/02: WDG
+     * There have been problems with this for clusters whose nodes are
+     * rebooted together, leading to multiple processes having the same
+     * pid on different nodes.  The use of p4_myname_in_procgroup was
+     * intended to fix this problem but failed (and in fact made the
+     * problem worse, according to some bug reports.
+     *
+     * To fix and debug this problem, the loop that searches for the matching
+     * process has been factored into several separate loops, with more
+     * debugging information generated.  The algorithm is 
+     *   Look for a match between (pi->unix_id,my_unix_id) and
+     *                             (pi->host_name,p4_myname_in_procgroup).
+     *   If found, this provides a unique match since (host,pid) are unique.
+     *
+     *   If that doesn't work, there is an error!
+     *
      */
-    n_match = 0;
-    match_id = -1;
-    best_match_id = -1;
+    n_match           = 0;
+    match_id          = -1;
+
+    /* Question: why not allow localhost? We'll try (should work for
+       processes all created locally) */
+    if (p4_myname_in_procgroup[0] 
+       /* && strcmp( p4_myname_in_procgroup, "localhost" ) != 0 */
+	) {
+	p4_dprintfl( 88, "myname in procgroup = %s\n", 
+		     p4_myname_in_procgroup );
+
+	for (pi = p4_global->proctable, i = 0; 
+	     i < p4_global->num_in_proctable; i++, pi++) {
+	    p4_dprintfl(88, "pid %d ?= %d\n", pi->unix_id, my_unix_id );
+	    if (pi->unix_id == my_unix_id) {
+		/* Save match in case hostname test fails */
+		n_match++;
+		match_id = i;
+		if (strcmp( p4_myname_in_procgroup, pi->host_name ) == 0) {
+		    p4_dprintfl(60,
+  "get_my_id_from_proc (myname from arg with pi->host_name): returning %d\n",i);
+		    return (i);
+		}
+	    }
+	}
+    }
+
+    /* The following code is the old code, minus the tests on 
+       p4_myname_in_procgroup */
+
+    /* Get a cannonicallized version of the name of this process */
+    /* gethostbyname returns a pointer to a shared (!) structure.  
+       Rather than being very careful not to change it, we immediately
+       copy the structure into myh; then get a pointer to that structure
+       (just to simplify the code below).  This version was originally
+       due to Ron Brightwell while at SGI (bri@sgi.com) .
+
+       Also note that this call is not cheap, so we avoid making it
+       if we can (that's why we wait until after the simpler loop
+       on pid and names from the procgroup file).
+     */
+    myh = *gethostbyname_p4(p4_global->my_host_name);	
+    bcopy(myh.h_addr, (char *)&myaddr, myh.h_length);
+    strcpy(myname, myh.h_name);                        
+
+    /* If we get here, something is wrong. */
+    p4_dprintfl( 10, "Could not find process pid=%d host %s in procgroup\n",
+		 my_unix_id, myname );
+    
+    p4_dprintfl(60,"p4_get_my_id_from_proc: hostname = :%s:\n", myname);
+
+    best_match_id     = -1;
     best_match_nchars = 0;
     for (pi = p4_global->proctable, i = 0; i < p4_global->num_in_proctable; i++, pi++)
     {
 	p4_dprintfl(88, "pid %d ?= %d\n", pi->unix_id, my_unix_id );
+	/* Note that after a cluster is booted, all of the nodes may
+	   assign the pids in the same way.  In this event, matching on the
+	   pid is not sufficient */
 	if (pi->unix_id == my_unix_id)
 	{
-	    /* Save match incase hostname test fails */
+	    /* Save match in case hostname test fails */
 	    n_match++;
 	    match_id = i;
-	    
-	    /* Check for exact match with delivered name.  Ignore
-	       if the name is localhost.  Putting the test here
-	       could eliminate some calls to gethostbyname; if this
-	       works well, we could structure the "find my entry" to
-	       first check the pair (pi->unix_id, pi->hostname) against 
-	       (my_unix_id, p4_myname_in_procgroup), and if a match is
-	       found, return that match.  Only if that fails should
-	       we enter this loop */
-	    if (p4_myname_in_procgroup[0] && 
-		strcmp( p4_myname_in_procgroup, pi->host_name ) == 0 &&
-		strcmp( p4_myname_in_procgroup, "localhost" ) != 0) {
-		p4_dprintfl(60,
-  "get_my_id_from_proc (myname from arg with pi->host_name): returning %d\n",i);
-                return (i);
-	    }
+
+	    /* Try to canonicallize the hostnames */
             pghp = gethostbyname_p4(pi->host_name);
 	    p4_dprintfl( 60, ":%s: ?= :%s:\n", pghp->h_name, myname );
 	    /* We might have localhost.... and the same system.  
@@ -818,6 +863,7 @@ int p4_wait_for_end( void )
     }
 #endif
 #   if defined(IPSC860)
+    /* Wait for any pending messages to complete */
     for (i=0; i < NUMAVAILS; i++)
     {
 	struct p4_msg *mptr;
@@ -835,8 +881,34 @@ int p4_wait_for_end( void )
     mpsc_fini();
 #   endif
 
-    if (p4_get_my_cluster_id() != 0)
+    /* Question: should we just close all the connections, whether we are
+     the master or the slave *first*, before doing the test on is-master
+     or waiting for the other processes to exit. */
+    if (p4_get_my_cluster_id() != 0) {
+	/* Local slaves don't need to wait for other processes.  However, 
+	   they do need to cleanly close down any open sockets.  This
+	   is the same code that is used below by the master. */
+
+#   if defined(CAN_DO_SOCKET_MSGS)
+	/* Tell all of the established connections that we are going away */
+	for (i = 0; i < p4_global->num_in_proctable; i++) {
+	    if (p4_local->conntab[i].type == CONN_REMOTE_EST) {
+		/* Check the socket for any remaining messages,
+		   including socket close.  Resets connection 
+		   type to closed if found */
+		p4_look_for_close( i );
+		/* If it is still open, send the close message */
+		if (p4_local->conntab[i].type == CONN_REMOTE_EST) {
+		    socket_close_conn( p4_local->conntab[i].port );
+		    /* We could wait for the partner to close; but 
+		       this should be enough */
+		    p4_local->conntab[i].type = CONN_REMOTE_CLOSED;
+		}
+	    }
+	}
+#    endif
 	return (0);
+    }
 
     /* Free avail buffers */
     free_avail_buffs();
@@ -1056,7 +1128,9 @@ P4VOID zap_p4_processes( void )
     p4_dprintfl(99,"DOING ZAP of %d local processes\n",n);
     while (n--)
     {
-	kill(pid_list[n], SIGINT);
+	if (pid_list[n] > 0) {
+	    kill(pid_list[n], SIGINT);
+	}
     }
 }
 

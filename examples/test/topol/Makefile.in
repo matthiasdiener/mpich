@@ -12,6 +12,9 @@ OPTFLAGS     = @OPTFLAGS@
 MPIFDEP      = @MPIFDEP@
 ### End User configurable options ###
 
+# Add .f90 as a known suffix
+.SUFFIXES: .f90
+
 SHELL = /bin/sh
 prefix     = @prefix@
 top_srcdir = @top_srcdir@
@@ -81,3 +84,8 @@ clean:
 	$(FLINKER) $(OPTFLAGS) -o $* $< $(FLIBS)
 .f.o:
 	$(F77) $(FFLAGS) -c $<
+
+# The following allows us to build a Fortran 90 test with those compilers that 
+# allow .f90 extensions (cartc.f90)
+.f90:
+	$(F90) $(F90FLAGS) -o $* $< $(FLIBS)

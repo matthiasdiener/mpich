@@ -39,16 +39,19 @@ DefineMPITypes()
   rect rectangle;
   MPI_Aint a, b;
 
-  int len[3];
-  MPI_Aint disp[3];
-  MPI_Datatype types[3];
+  int len[4];
+  MPI_Aint disp[4];
+  MPI_Datatype types[4];
 
   NUM_type = MPI_DOUBLE;
 
-  MPI_Type_contiguous( 6, MPI_INT, &winspecs_type );
+  MPI_Type_contiguous( 8, MPI_INT, &winspecs_type );
   MPI_Type_commit( &winspecs_type );
 
-  len[0] = 10; /* 10 ints */
+  /* Skip the initial 4 pointers in flags, these should not
+     be exchanged between processes.
+   */
+  len[0] = 12; /* 12 ints */
   len[1] = 2;  /* 2 doubles */
   len[2] = 6;  /* 6 NUM_types */
 
@@ -121,6 +124,10 @@ Flags *flags;
   NUM_ASSIGN( flags->imax, DEF_imax);
   NUM_ASSIGN( flags->julia_r, DEF_julia_r);
   NUM_ASSIGN( flags->julia_i, DEF_julia_i);
+
+  flags->no_remote_X       = DEF_no_remote_X;
+  flags->with_tracking_win = DEF_with_tracking_win;
+
 #if DEBUG
   fprintf( debug_file, "logfile = %s\n", flags->logfile );
   fprintf( debug_file, "inf = %s\n", flags->inf );
@@ -143,19 +150,24 @@ Flags *flags;
   fprintf( debug_file, "imax = %lf\n", flags->imax );
   fprintf( debug_file, "julia_r = %lf\n", flags->julia_r );
   fprintf( debug_file, "julia_i = %lf\n", flags->julia_i );
+  fprintf( debug_file, "no_remote_X = %d\n", flags->no_remote_X );
+  fprintf( debug_file, "with_tracking_win = %d\n", flags->with_tracking_win );
   fflush( debug_file );
 #endif
   return 0;
 }
 
+int
 GetWinspecs( argc, argv, winspecs )
 int *argc;
 char **argv;
 Winspecs *winspecs;
 {
   int myid;
+  int numranks;
 
   MPI_Comm_rank( MPI_COMM_WORLD, &myid );
+  MPI_Comm_size( MPI_COMM_WORLD, &numranks );
   
   if (!myid) {
     GetIntArg( argc, argv, "-height", &(winspecs->height) );
@@ -175,6 +187,9 @@ Winspecs *winspecs;
   fprintf( debug_file, "[%d] after windspecs bcast\n", myid );
   fflush( debug_file );
 #endif
+
+  /* Each rank gets a color. Divide color range evenly.  */
+  winspecs->my_tracking_color = (winspecs->numColors/numranks) * myid;
 
 #if DEBUG
   fprintf( debug_file, "[%d]height = %d\n", myid, winspecs->height );
@@ -225,6 +240,9 @@ Flags *flags;
     flags->askNeighbor = IsArgPresent( argc, argv, "-neighbor" );
     flags->sendMasterComplexity = IsArgPresent( argc, argv, "-complexity" );
     flags->drawBlockRegion = IsArgPresent( argc, argv, "-delaydraw" );
+
+    GetIntArg( argc, argv, "-with_tracking_win", &(flags->with_tracking_win) );
+    GetIntArg( argc, argv, "-no_remote_X", &(flags->no_remote_X) );
     
     if (IsArgPresent( argc, argv, "-mandel" )) {
       flags->fractal = MBROT;
@@ -333,6 +351,8 @@ Flags *flags;
   fprintf( debug_file, "[%d]imax = %lf\n", myid, flags->imax );
   fprintf( debug_file, "[%d]julia_r = %lf\n", myid, flags->julia_r );
   fprintf( debug_file, "[%d]julia_i = %lf\n", myid, flags->julia_i );
+  fprintf( debug_file, "[%d]no_remote_X = %d\n", myid, flags->no_remote_X );
+  fprintf( debug_file, "[%d]with_tracking_win = %d\n", myid, flags->with_tracking_win );
   fflush( debug_file );
 #endif
   return 0;
@@ -400,6 +420,13 @@ int randomize;
   q->randomize = randomize;
 }
 
+void Q_Destroy(q)
+rect_queue *q;
+{
+  if ( (q != NULL) && (q->r != NULL) ) {
+    free(q->r);
+  }
+}
 
 /* Q_Checksize - check if the queue is full.  If so, double the size */
 void Q_Checksize( q )
@@ -578,6 +605,15 @@ char *progName;
   printf( "\n" );
   printf( "   -breakout <breakout size>  (%d) maximum length or width rectangle to\n", DEF_breakout );
   printf( "                              subdivide\n" );
+  printf( "   -no_remote_X <0|1>         (%d) Boolean, if true (1) all X display is handled\n", DEF_no_remote_X );
+  printf( "                                   is handled by rank 0.\n");
+  printf( "   -with_tracking_win <0|1>   (%d) Boolean, if true (1) add a second output window\n", DEF_with_tracking_win );
+  printf( "                                   showing who computed what part of the output.\n");
+  printf( "   -tol <num pixels>          (2) Integer (mouse drag tolerence),\n"
+          "                                  When using the mouse to zoom in on a picture,\n"
+          "                                  dragging less than this number of pixels\n"
+          "                                  will be interpreted as a simple click for\n" );
+  printf( "                                  the purpose of quitting the program.\n" );
   printf( "   -colors <# of colors>      (%d) number of colors to request\n", DEF_numColors );
   printf( "   -colreduce <reduce factor> (%d) factor by which to scale down iteration\n", DEF_colReduceFactor );
   printf( "                              values to reduce color changes\n" );
@@ -613,7 +649,7 @@ int iter;
   }
 }
 
-
+void
 ChunkIter2Color( flags, iterData, colorData, size )
 Flags *flags;
 int *iterData, size;
@@ -670,10 +706,11 @@ MPE_Point *pointData;
 
 
 
-DrawChunk( graph, colorData, r )
+DrawChunk( graph, colorData, r, flags )
 MPE_XGraph graph;
 int *colorData;
 rect r;
+Flags *flags;
 {
   int a, b;
 
@@ -688,7 +725,12 @@ rect r;
       colorData++;
     }
   }
-  MPE_Update( graph );
+
+  if (flags->with_tracking_win) {
+    MPE_Update(tracking_win);
+  }
+
+  MPE_Update(graph);
   return 0;
 }
 
@@ -850,7 +892,7 @@ int maxnpoints, *npoints, *isContinuous;
   return 0;
 }
 
-
+void
 DrawBorder( graph, colorData, r )
 MPE_XGraph graph;
 int *colorData;
@@ -895,7 +937,7 @@ rect r;
   MPE_Update( graph );
 }
 
-
+void
 DrawBlock( graph, pointData, r )
 MPE_XGraph graph;
 MPE_Point *pointData;

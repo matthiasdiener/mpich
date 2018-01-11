@@ -29,7 +29,25 @@ public:
 // Dialog Data
 	//{{AFX_DATA(CMPICHConfigDlg)
 	enum { IDD = IDD_CONFIG_DLG };
-	CStatic	m_config_host_msg_static;
+	CStatic	m_logfile_static;
+	CButton	m_host_logfile_yes_btn;
+	CButton	m_host_logfile_no_btn;
+	CEdit	m_host_logfile_edit;
+	CButton	m_host_logfile_chk;
+	CButton	m_logfile_yes_btn;
+	CButton	m_logfile_no_btn;
+	CEdit	m_logfile_edit;
+	CButton	m_host_codes_yes_btn;
+	CButton	m_host_codes_no_btn;
+	CButton	m_host_codes_chk;
+	CButton	m_codes_yes_btn;
+	CButton	m_codes_no_btn;
+	CEdit	m_config_host_msg_static;
+	CButton	m_host_catch_yes_btn;
+	CButton	m_host_catch_no_btn;
+	CButton	m_host_catch_chk;
+	CButton	m_catch_yes_btn;
+	CButton	m_catch_no_btn;
 	CStatic	m_config_host_static;
 	CStatic	m_modify_static;
 	CButton	m_use_jobhost_pwd_chk;
@@ -130,6 +148,26 @@ public:
 	BOOL	m_bshow_config;
 	CButton m_mpd_default_radio;
 	CString	m_config_host_msg;
+	BOOL	m_bcatch;
+	BOOL	m_catch_no;
+	BOOL	m_catch_yes;
+	BOOL	m_bhost_catch;
+	BOOL	m_host_catch_no;
+	BOOL	m_host_catch_yes;
+	BOOL	m_bcodes;
+	BOOL	m_codes_no;
+	BOOL	m_codes_yes;
+	BOOL	m_bhost_codes;
+	BOOL	m_host_codes_no;
+	BOOL	m_host_codes_yes;
+	BOOL	m_blogfile;
+	CString	m_logfile;
+	BOOL	m_logfile_no;
+	BOOL	m_logfile_yes;
+	BOOL	m_bhost_logfile;
+	CString	m_host_logfile;
+	BOOL	m_host_logfile_no;
+	BOOL	m_host_logfile_yes;
 	//}}AFX_DATA
 
 
@@ -196,6 +234,24 @@ protected:
 	afx_msg void OnKeydownHostList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnClose();
 	afx_msg void OnItemchangingHostList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnHostCatchChk();
+	afx_msg void OnHostCatchYes();
+	afx_msg void OnHostCatchNo();
+	afx_msg void OnCatchChk();
+	afx_msg void OnCatchYes();
+	afx_msg void OnCatchNo();
+	afx_msg void OnHostCodesYes();
+	afx_msg void OnHostCodesNo();
+	afx_msg void OnHostCodesChk();
+	afx_msg void OnCodesChk();
+	afx_msg void OnCodesYes();
+	afx_msg void OnCodesNo();
+	afx_msg void OnRedirectMpdChk();
+	afx_msg void OnRedirectMpdNo();
+	afx_msg void OnRedirectMpdYes();
+	afx_msg void OnHostRedirectMpdChk();
+	afx_msg void OnHostRedirectMpdNo();
+	afx_msg void OnHostRedirectMpdYes();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 private:

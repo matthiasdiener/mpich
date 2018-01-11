@@ -1,6 +1,5 @@
 #include "mpdimpl.h"
 #include "mpdutil.h"
-#include "bsocket.h"
 #include <string.h>
 #include <winsock2.h>
 #include <windows.h>
@@ -233,21 +232,19 @@ static void HandleDBCommandRead(MPD_Context *p)
     char pszBfd[10] = "";
     char *pszCmdData;
 
-    int bfd;
-
-    PUSH_FUNC("HandleDBCommandRead");
+    SOCKET sock;
 
     GetStringOpt(p->pszIn, "src", pszSrc);
-    //GetStringOpt(p->pszIn, "bfd", pszBfd); // don't use GetStringOpt because the data after bfd= may be too long
-    pszCmdData = strstr(p->pszIn, "bfd=");
-    pszCmdData += 4;
-    bfd = atoi(pszCmdData);
-    sprintf(pszBfd, "%d", bfd);
+    //GetStringOpt(p->pszIn, "sock", pszBfd); // don't use GetStringOpt because the data after sock= may be too long
+    pszCmdData = strstr(p->pszIn, "sock=");
+    pszCmdData += 5; // length of string "sock="
+    sock = atoi(pszCmdData);
+    sprintf(pszBfd, "%d", sock);
     while (*pszCmdData != ' ')
 	pszCmdData++;
     pszCmdData++;
 
-    //printf("left - HandleDBCommand: src='%s' bfd='%s' data='%s'\n", pszSrc, pszBfd, pszCmdData);
+    //dbg_printf("left - HandleDBCommand: src='%s' sock='%s' data='%s'\n", pszSrc, pszBfd, pszCmdData);
 
     if ((stricmp(pszSrc, g_pszHost) == 0) || (strcmp(pszSrc, g_pszIP) == 0))
     {
@@ -256,26 +253,23 @@ static void HandleDBCommandRead(MPD_Context *p)
 	    (strnicmp(p->pszIn, "dbdestroy ", 10) == 0) ||
 	    (strnicmp(p->pszIn, "dbfirst ", 8) == 0))
 	{
-	    POP_FUNC();
 	    return;
 	}
 
 	// Handle the full ring commands
 	if (strnicmp(p->pszIn, "dbnext ", 7) == 0)
 	{
-	    EnqueueWrite(GetContext(atoi(pszBfd)), DBS_END_STR, MPD_WRITING_RESULT);
-	    POP_FUNC();
+	    ContextWriteString(GetContext(atoi(pszBfd)), DBS_END_STR);
 	    return;
 	}
 
 	// The command has gone full circle without succeeding
-	if (p = GetContext(bfd))
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
+	if (p = GetContext(sock))
+	    ContextWriteString(p, DBS_FAIL_STR);
 	else
 	{
 	    err_printf("GetContext failed for '%s'\n", pszBfd);
 	}
-	POP_FUNC();
 	return;
     }
 
@@ -290,9 +284,9 @@ static void HandleDBCommandRead(MPD_Context *p)
 	    if (token != NULL)
 	    {
 		token = &token[7];
-		p = GetContext(bfd);
+		p = GetContext(sock);
 		if (p)
-		    EnqueueWrite(p, token, MPD_WRITING_RESULT);
+		    ContextWriteString(p, token);
 		else
 		{
 		    err_printf("GetContext failed for '%s'\n", pszBfd);
@@ -305,7 +299,7 @@ static void HandleDBCommandRead(MPD_Context *p)
 	}
 	else
 	{
-	    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, p->pszIn);
 	}
     }
     else if (strnicmp(p->pszIn, "dbget ", 6) == 0)
@@ -313,12 +307,12 @@ static void HandleDBCommandRead(MPD_Context *p)
 	GetNameKeyValue(pszCmdData, name, key, NULL);
 	if (dbs_get(name, key, value) == DBS_SUCCESS)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbresult dest=%s bfd=%s result=%s", pszSrc, pszBfd, value);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbresult dest=%s sock=%s result=%s", pszSrc, pszBfd, value);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else
 	{
-	    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, p->pszIn);
 	}
     }
     else if (strnicmp(p->pszIn, "dbcreate ", 9) == 0)
@@ -326,7 +320,7 @@ static void HandleDBCommandRead(MPD_Context *p)
 	if (GetStringOpt(p->pszIn, "name", name))
 	{
 	    dbs_create_name_in(name);
-	    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, p->pszIn);
 	}
 	else
 	{
@@ -337,13 +331,13 @@ static void HandleDBCommandRead(MPD_Context *p)
     {
 	GetNameKeyValue(pszCmdData, name, NULL, NULL);
 	dbs_destroy(name);
-	EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+	ContextWriteString(g_pRightContext, p->pszIn);
     }
     else if (strnicmp(p->pszIn, "dbfirst ", 8) == 0)
     {
 	GetNameKeyValue(pszCmdData, name, NULL, NULL);
 	dbs_first(name, NULL, NULL);
-	EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+	ContextWriteString(g_pRightContext, p->pszIn);
     }
     else if (strnicmp(p->pszIn, "dbnext ", 7) == 0)
     {
@@ -351,16 +345,16 @@ static void HandleDBCommandRead(MPD_Context *p)
 	if (dbs_next(name, key, value) == DBS_SUCCESS)
 	{
 	    if (*key == '\0')
-		EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+		ContextWriteString(g_pRightContext, p->pszIn);
 	    else
 	    {
-		_snprintf(pszStr, MAX_CMD_LENGTH, "dbresult dest=%s bfd=%s result=key=%s value=%s", pszSrc, pszBfd, key, value);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		_snprintf(pszStr, MAX_CMD_LENGTH, "dbresult dest=%s sock=%s result=key=%s value=%s", pszSrc, pszBfd, key, value);
+		ContextWriteString(g_pRightContext, pszStr);
 	    }
 	}
 	else
 	{
-	    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, p->pszIn);
 	}
     }
     else if (strnicmp(p->pszIn, "dbdelete ", 9) == 0)
@@ -368,19 +362,18 @@ static void HandleDBCommandRead(MPD_Context *p)
 	GetNameKeyValue(pszCmdData, name, key, NULL);
 	if (dbs_delete(name, key) == DBS_SUCCESS)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbresult dest=%s bfd=%s result=DBS_SUCCESS", pszSrc, pszBfd);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbresult dest=%s sock=%s result=DBS_SUCCESS", pszSrc, pszBfd);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else
 	{
-	    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, p->pszIn);
 	}
     }
     else
     {
 	err_printf("unknown command '%s'", p->pszIn);
     }
-    POP_FUNC();
 }
 
 bool GetIPString(char *pszHost, char *pszIPStr)
@@ -408,655 +401,574 @@ void HandleLeftRead(MPD_Context *p)
     char pszStr[MAX_CMD_LENGTH];
     char pszHost[MAX_HOST_LENGTH] = "";
 
-    PUSH_FUNC("HandleLeftRead");
+    dbg_printf("LeftRead[%d]: '%s'\n", p->sock, p->pszIn);
 
-    dbg_printf("LeftRead[%d]: '%s'\n", p->bfd, p->pszIn);
-    switch (p->nLLState)
+    if (strnicmp(p->pszIn, "db", 2) == 0)
     {
-    case MPD_READING_CMD:
-	if (strnicmp(p->pszIn, "db", 2) == 0)
+	HandleDBCommandRead(p);
+    }
+    else if (strnicmp(p->pszIn, "launch ", 7) == 0)
+    {
+	pszHost[0] = '\0';
+	GetStringOpt(p->pszIn, "h", pszHost);
+	if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
 	{
-	    HandleDBCommandRead(p);
+	    Launch(p->pszIn);
 	}
-	else if (strnicmp(p->pszIn, "launch ", 7) == 0)
+	else
 	{
-	    pszHost[0] = '\0';
-	    GetStringOpt(p->pszIn, "h", pszHost);
-	    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    bool bNoHost = pszHost[0] == '\0';
+	    GetStringOpt(p->pszIn, "src", pszHost);
+	    if (strcmp(pszHost, g_pszHost) == 0)
 	    {
-		Launch(p->pszIn);
-	    }
-	    else
-	    {
-		bool bNoHost = pszHost[0] == '\0';
-		GetStringOpt(p->pszIn, "src", pszHost);
-		if (strcmp(pszHost, g_pszHost) == 0)
+		if (bNoHost)
 		{
-		    if (bNoHost)
+		    // This needs to be handled by HandleConsoleRead
+		    Launch(p->pszIn);
+		}
+		else
+		{
+		    if (GetStringOpt(p->pszIn, "try", pszStr))
 		    {
-			// This needs to be handled by HandleConsoleRead
-			Launch(p->pszIn);
+			//dbg_printf("launch command went full circle without a match, discarding\n");
+			char pszId[10];
+			GetStringOpt(p->pszIn, "src", pszHost);
+			GetStringOpt(p->pszIn, "id", pszId);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "launched src=%s dest=%s id=%s error=invalid host", g_pszHost, pszHost, pszId);
+			ContextWriteString(g_pRightContext, pszStr);
 		    }
 		    else
 		    {
-			if (GetStringOpt(p->pszIn, "try", pszStr))
+			pszHost[0] = '\0';
+			GetStringOpt(p->pszIn, "h", pszHost);
+			
+			if (GetIPString(pszHost, pszHost))
 			{
-			    //dbg_printf("launch command went full circle without a match, discarding\n");
+			    _snprintf(pszStr, MAX_CMD_LENGTH, "launch h=%s try=2 %s", pszHost, &p->pszIn[7]);
+			    dbg_printf("trying launch again with ip string replacing the old hostname\n");
+			    ContextWriteString(g_pRightContext, pszStr);
+			}
+			else
+			{
 			    char pszId[10];
 			    GetStringOpt(p->pszIn, "src", pszHost);
 			    GetStringOpt(p->pszIn, "id", pszId);
 			    _snprintf(pszStr, MAX_CMD_LENGTH, "launched src=%s dest=%s id=%s error=invalid host", g_pszHost, pszHost, pszId);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_LAUNCH_RESULT);
-			}
-			else
-			{
-			    pszHost[0] = '\0';
-			    GetStringOpt(p->pszIn, "h", pszHost);
-
-			    if (GetIPString(pszHost, pszHost))
-			    {
-				_snprintf(pszStr, MAX_CMD_LENGTH, "launch h=%s try=2 %s", pszHost, &p->pszIn[7]);
-				dbg_printf("trying launch again with ip string replacing the old hostname\n");
-				EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_LAUNCH_CMD);
-			    }
-			    else
-			    {
-				char pszId[10];
-				GetStringOpt(p->pszIn, "src", pszHost);
-				GetStringOpt(p->pszIn, "id", pszId);
-				_snprintf(pszStr, MAX_CMD_LENGTH, "launched src=%s dest=%s id=%s error=invalid host", g_pszHost, pszHost, pszId);
-				EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_LAUNCH_RESULT);
-			    }
+			    ContextWriteString(g_pRightContext, pszStr);
 			}
 		    }
 		}
-		else
+	    }
+	    else
+	    {
+		dbg_printf("forwarding launch command\n");
+		ContextWriteString(g_pRightContext, p->pszIn);
+	    }
+	}
+    }
+    else if (strnicmp(p->pszIn, "launched ", 9) == 0)
+    {
+	GetStringOpt(p->pszIn, "dest", pszHost);
+	if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	{
+	    char pszId[10];
+	    char pszPid[10];
+	    GetStringOpt(p->pszIn, "id", pszId);
+	    if (GetStringOpt(p->pszIn, "pid", pszPid))
+	    {
+		SavePid(atoi(pszId), atoi(pszPid));
+	    }
+	    else
+	    {
+		if (GetStringOpt(p->pszIn, "error", pszStr))
 		{
-		    dbg_printf("forwarding launch command\n");
-		    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_LAUNCH_CMD);
+		    SaveError(atoi(pszId), pszStr);
 		}
 	    }
 	}
-	else if (strnicmp(p->pszIn, "launched ", 9) == 0)
+	else
 	{
-	    GetStringOpt(p->pszIn, "dest", pszHost);
+	    GetStringOpt(p->pszIn, "src", pszHost);
 	    if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
 	    {
-		char pszId[10];
+		err_printf("launched result went full circle, discarding\n");
+	    }
+	    else
+	    {
+		// forward the message along
+		ContextWriteString(g_pRightContext, p->pszIn);
+	    }
+	}
+    }
+    else if (strnicmp(p->pszIn, "exitcode ", 9) == 0)
+    {
+	GetStringOpt(p->pszIn, "dest", pszHost);
+	if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	{
+	    int id = 0;
+	    char pszId[10];
+	    char pszExitCode[20];
+	    char pszError[256];
+	    char timestamp[256];
+	    if (GetStringOpt(p->pszIn, "id", pszId))
+		id = atoi(pszId);
+	    GetStringOpt(p->pszIn, "code", pszExitCode);
+	    if (GetStringOpt(p->pszIn, "time", timestamp))
+		SaveTimestamp(id, timestamp);
+	    else
+		SaveTimestamp(id, "unknown");
+	    if (GetStringOpt(p->pszIn, "error", pszError))
+	    {
+		SaveError(id, pszError);
+	    }
+	    else
+	    {
+		SaveExitCode(id, atoi(pszExitCode));
+	    }
+	}
+	else
+	{
+	    GetStringOpt(p->pszIn, "src", pszHost);
+	    if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		err_printf("exitcode result went full circle, discarding\n");
+	    }
+	    else
+	    {
+		// forward the message along
+		ContextWriteString(g_pRightContext, p->pszIn);
+	    }
+	}
+    }
+    else if (strnicmp(p->pszIn, "hosts ", 6) == 0)
+    {
+	if (GetStringOpt(p->pszIn, "src", pszHost))
+	{
+	    if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		char pszBFD[10];
+		MPD_Context *pContext;
+		
+		GetStringOpt(p->pszIn, "result", pszStr);
+		GetStringOpt(p->pszIn, "sock", pszBFD);
+		pContext = GetContext(atoi(pszBFD));
+		if (pContext != NULL)
+		{
+		    ContextWriteString(pContext, pszStr);
+		}
+		else
+		{
+		    err_printf("console context not found\n");
+		}
+	    }
+	    else
+	    {
+		strncpy(pszStr, p->pszIn, MAX_CMD_LENGTH);
+		pszStr[MAX_CMD_LENGTH-1] = '\0';
+		strncat(pszStr, ",", MAX_CMD_LENGTH - 1 - strlen(pszStr));
+		strncat(pszStr, g_pszHost, MAX_CMD_LENGTH - 1 - strlen(pszStr));
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	}
+	else
+	{
+	    err_printf("invalid hosts command '%s' read\n", p->pszIn);
+	}
+    }
+    else if (strnicmp(p->pszIn, "next ", 5) == 0)
+    {
+	char pszBfd[10];
+	char pszN[10] = "0";
+	int n;
+	GetStringOpt(p->pszIn, "n", pszN);
+	GetStringOpt(p->pszIn, "src", pszHost);
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	n = atoi(pszN);
+	if ((n > 0) && (n < 16384))
+	{
+	    n--;
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=%s", g_pszHost, pszHost, pszBfd, g_pszHost);
+	    ContextWriteString(g_pRightContext, pszStr);
+	    if (n > 0)
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "next src=%s sock=%s n=%d", pszHost, pszBfd, n);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	}
+	else
+	{
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=Error: invalid number of hosts requested", g_pszHost, pszHost, pszBfd);
+	    ContextWriteString(g_pRightContext, pszStr);
+	}
+    }
+    else if (strnicmp(p->pszIn, "barrier ", 8) == 0)
+    {
+	if (GetStringOpt(p->pszIn, "src", pszHost))
+	{
+	    if (strcmp(pszHost, g_pszHost) && strcmp(pszHost, g_pszIP))
+	    {
+		char pszName[100], pszCount[10];
+		if (GetStringOpt(p->pszIn, "name", pszName))
+		{
+		    if (GetStringOpt(p->pszIn, "count", pszCount))
+		    {
+			SetBarrier(pszName, atoi(pszCount), INVALID_SOCKET);
+			ContextWriteString(g_pRightContext, p->pszIn);
+		    }
+		}
+	    }
+	}
+    }
+    else if (strnicmp(p->pszIn, "ps ", 3) == 0)
+    {
+	if (GetStringOpt(p->pszIn, "src", pszHost))
+	{
+	    if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		char pszBFD[10];
+		MPD_Context *pContext;
+		
+		if (GetStringOpt(p->pszIn, "result", pszStr))
+		{
+		    // Chop off the trailing carriage return
+		    int nLength = strlen(pszStr);
+		    if (nLength > 2)
+		    {
+			if (pszStr[nLength-1] == '\r' || pszStr[nLength-1] == '\n')
+			    pszStr[nLength-1] = '\0';
+			if (pszStr[nLength-2] == '\r' || pszStr[nLength-2] == '\n')
+			    pszStr[nLength-2] = '\0';
+		    }
+		}
+		GetStringOpt(p->pszIn, "sock", pszBFD);
+		pContext = GetContext(atoi(pszBFD));
+		if (pContext != NULL)
+		{
+		    ContextWriteString(pContext, pszStr);
+		}
+		else
+		{
+		    err_printf("console context not found\n");
+		}
+	    }
+	    else
+	    {
+		strncpy(pszStr, p->pszIn, MAX_CMD_LENGTH);
+		pszStr[MAX_CMD_LENGTH-1] = '\0';
+		ConcatenateProcessesToString(pszStr);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	}
+	else
+	{
+	    err_printf("invalid ps command '%s' read\n", p->pszIn);
+	}
+    }
+    else if (strnicmp(p->pszIn, "lefthost ", 9) == 0)
+    {
+	if (GetStringOpt(p->pszIn, "src", pszHost) && GetStringOpt(p->pszIn, "host", g_pszInsertHost))
+	{
+	    WriteMPDRegistry(INSERT1, g_pszInsertHost);
+	    
+	    if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "leftlefthost src=%s host=%s", g_pszHost, g_pszInsertHost);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	    else
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "lefthost src=%s host=%s", pszHost, g_pszHost);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	}
+	else
+	{
+	    err_printf("invalid lefthost command '%s'\n", p->pszIn);
+	}
+    }
+    else if (strnicmp(p->pszIn, "leftlefthost ", 13) == 0)
+    {
+	if (GetStringOpt(p->pszIn, "src", pszHost) && GetStringOpt(p->pszIn, "host", g_pszInsertHost2))
+	{
+	    WriteMPDRegistry(INSERT2, g_pszInsertHost2);
+	    
+	    if ((strcmp(pszHost, g_pszHost)) && (strcmp(pszHost, g_pszIP)))
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "leftlefthost src=%s host=%s", pszHost, g_pszInsertHost);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	}
+	else
+	{
+	    err_printf("invalid lefthost command '%s'\n", p->pszIn);
+	}
+    }
+    else if (strnicmp(p->pszIn, "kill ", 5) == 0)
+    {
+	if (GetStringOpt(p->pszIn, "host", pszHost))
+	{
+	    if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
 		char pszPid[10];
-		GetStringOpt(p->pszIn, "id", pszId);
 		if (GetStringOpt(p->pszIn, "pid", pszPid))
 		{
-		    SavePid(atoi(pszId), atoi(pszPid));
-		}
-		else
-		{
-		    if (GetStringOpt(p->pszIn, "error", pszStr))
-		    {
-			SaveError(atoi(pszId), pszStr);
-		    }
+		    int nPid = atoi(pszPid);
+		    //dbg_printf("MPD_KillProcess host=%s pid=%d\n", g_pszHost, nPid);
+		    MPD_KillProcess(nPid);
 		}
 	    }
 	    else
 	    {
-		GetStringOpt(p->pszIn, "src", pszHost);
-		if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		if (GetStringOpt(p->pszIn, "src", pszStr))
 		{
-		    err_printf("launched result went full circle, discarding\n");
-		}
-		else
-		{
-		    // forward the message along
-		    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_LAUNCH_RESULT);
-		}
-	    }
-	}
-	else if (strnicmp(p->pszIn, "exitcode ", 9) == 0)
-	{
-	    GetStringOpt(p->pszIn, "dest", pszHost);
-	    if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-	    {
-		char pszId[10];
-		char pszExitCode[10];
-		GetStringOpt(p->pszIn, "id", pszId);
-		GetStringOpt(p->pszIn, "code", pszExitCode);
-		SaveExitCode(atoi(pszId), atoi(pszExitCode));
-	    }
-	    else
-	    {
-		GetStringOpt(p->pszIn, "src", pszHost);
-		if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    err_printf("exitcode result went full circle, discarding\n");
-		}
-		else
-		{
-		    // forward the message along
-		    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_EXITCODE);
-		}
-	    }
-	}
-	else if (strnicmp(p->pszIn, "hosts ", 6) == 0)
-	{
-	    if (GetStringOpt(p->pszIn, "src", pszHost))
-	    {
-		if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    char pszBFD[10];
-		    MPD_Context *pContext;
-		    
-		    GetStringOpt(p->pszIn, "result", pszStr);
-		    GetStringOpt(p->pszIn, "bfd", pszBFD);
-		    pContext = GetContext(atoi(pszBFD));
-		    if (pContext != NULL)
+		    if (stricmp(pszStr, g_pszHost) == 0)
 		    {
-			EnqueueWrite(pContext, pszStr, MPD_WRITING_HOSTS_RESULT);
-		    }
-		    else
-		    {
-			err_printf("console context not found\n");
-		    }
-		}
-		else
-		{
-		    strncpy(pszStr, p->pszIn, MAX_CMD_LENGTH);
-		    pszStr[MAX_CMD_LENGTH-1] = '\0';
-		    strncat(pszStr, ",", MAX_CMD_LENGTH - 1 - strlen(pszStr));
-		    strncat(pszStr, g_pszHost, MAX_CMD_LENGTH - 1 - strlen(pszStr));
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_HOSTS_CMD);
-		}
-	    }
-	    else
-	    {
-		err_printf("invalid hosts command '%s' read\n", p->pszIn);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "next ", 5) == 0)
-	{
-	    char pszBfd[10];
-	    char pszN[10] = "0";
-	    int n;
-	    GetStringOpt(p->pszIn, "n", pszN);
-	    GetStringOpt(p->pszIn, "src", pszHost);
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    n = atoi(pszN);
-	    if ((n > 0) && (n < 16384))
-	    {
-		n--;
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=%s", g_pszHost, pszHost, pszBfd, g_pszHost);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		if (n > 0)
-		{
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "next src=%s bfd=%s n=%d", pszHost, pszBfd, n);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-	    }
-	    else
-	    {
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=Error: invalid number of hosts requested", g_pszHost, pszHost, pszBfd);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "barrier ", 8) == 0)
-	{
-	    if (GetStringOpt(p->pszIn, "src", pszHost))
-	    {
-		if (strcmp(pszHost, g_pszHost) && strcmp(pszHost, g_pszIP))
-		{
-		    char pszName[100], pszCount[10];
-		    if (GetStringOpt(p->pszIn, "name", pszName))
-		    {
-			if (GetStringOpt(p->pszIn, "count", pszCount))
-			{
-			    SetBarrier(pszName, atoi(pszCount), BFD_INVALID_SOCKET);
-			    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-			}
-		    }
-		}
-	    }
-	}
-	else if (strnicmp(p->pszIn, "ps ", 3) == 0)
-	{
-	    if (GetStringOpt(p->pszIn, "src", pszHost))
-	    {
-		if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    char pszBFD[10];
-		    MPD_Context *pContext;
-		    
-		    if (GetStringOpt(p->pszIn, "result", pszStr))
-		    {
-			// Chop off the trailing carriage return
-			int nLength = strlen(pszStr);
-			if (nLength > 2)
-			{
-			    if (pszStr[nLength-1] == '\r' || pszStr[nLength-1] == '\n')
-				pszStr[nLength-1] = '\0';
-			    if (pszStr[nLength-2] == '\r' || pszStr[nLength-2] == '\n')
-				pszStr[nLength-2] = '\0';
-			}
-		    }
-		    GetStringOpt(p->pszIn, "bfd", pszBFD);
-		    pContext = GetContext(atoi(pszBFD));
-		    if (pContext != NULL)
-		    {
-			EnqueueWrite(pContext, pszStr, MPD_WRITING_RESULT);
-		    }
-		    else
-		    {
-			err_printf("console context not found\n");
-		    }
-		}
-		else
-		{
-		    strncpy(pszStr, p->pszIn, MAX_CMD_LENGTH);
-		    pszStr[MAX_CMD_LENGTH-1] = '\0';
-		    ConcatenateProcessesToString(pszStr);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_HOSTS_CMD);
-		}
-	    }
-	    else
-	    {
-		err_printf("invalid ps command '%s' read\n", p->pszIn);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "lefthost ", 9) == 0)
-	{
-	    if (GetStringOpt(p->pszIn, "src", pszHost) && GetStringOpt(p->pszIn, "host", g_pszInsertHost))
-	    {
-		WriteMPDRegistry(INSERT1, g_pszInsertHost);
-		
-		if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "leftlefthost src=%s host=%s", g_pszHost, g_pszInsertHost);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-		else
-		{
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "lefthost src=%s host=%s", pszHost, g_pszHost);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-	    }
-	    else
-	    {
-		err_printf("invalid lefthost command '%s'\n", p->pszIn);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "leftlefthost ", 13) == 0)
-	{
-	    if (GetStringOpt(p->pszIn, "src", pszHost) && GetStringOpt(p->pszIn, "host", g_pszInsertHost2))
-	    {
-		WriteMPDRegistry(INSERT2, g_pszInsertHost2);
-		
-		if ((strcmp(pszHost, g_pszHost)) && (strcmp(pszHost, g_pszIP)))
-		{
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "leftlefthost src=%s host=%s", pszHost, g_pszInsertHost);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-	    }
-	    else
-	    {
-		err_printf("invalid lefthost command '%s'\n", p->pszIn);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "kill ", 5) == 0)
-	{
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
-	    {
-		if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    char pszPid[10];
-		    if (GetStringOpt(p->pszIn, "pid", pszPid))
-		    {
-			int nPid = atoi(pszPid);
-			//dbg_printf("MPD_KillProcess host=%s pid=%d\n", g_pszHost, nPid);
-			MPD_KillProcess(nPid);
-		    }
-		}
-		else
-		{
-		    if (GetStringOpt(p->pszIn, "src", pszStr))
-		    {
-			if (stricmp(pszStr, g_pszHost) == 0)
-			{
-			    char pszTry[10], pszPid[10];
-			    if (!GetStringOpt(p->pszIn, "try", pszTry))
-			    {
-				if (GetIPString(pszStr, pszHost))
-				{
-				    // try the kill command again with the ip string instead of the host name
-				    _snprintf(pszStr, MAX_CMD_LENGTH, "kill src=%s host=%s pid=%s try=2", g_pszHost, pszHost, pszPid);
-				    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-				}
-			    }
-			    else
-			    {
-				dbg_printf("kill command went full circle without matching any hosts, '%s'\n", p->pszIn);
-			    }
-			}
-		    }
-		    else
-		    {
-			err_printf("kill command has no source, '%s'\n", p->pszIn);
-		    }
-		}
-	    }
-	}
-	else if (strnicmp(p->pszIn, "map ", 4) == 0)
-	{
-	    char pszBfd[10];
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
-	    {
-		char pszDrive[10];
-		char pszShare[MAX_PATH];
-		char pszAccount[40];
-		char pszPassword[40];
-		char pszError[256];
-		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    if (!GetStringOpt(p->pszIn, "drive", pszDrive))
-		    {
-			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no drive specified", g_pszHost, pszHost, pszBfd);
-		    }
-		    else if (!GetStringOpt(p->pszIn, "share", pszShare))
-		    {
-			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no share specified", g_pszHost, pszHost, pszBfd);
-		    }
-		    else if (!GetStringOpt(p->pszIn, "account", pszAccount))
-		    {
-			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no user account specified", g_pszHost, pszHost, pszBfd);
-		    }
-		    else if (GetStringOpt(p->pszIn, "password", pszPassword))
-		    {
-			DecodePassword(pszPassword);
-			if (!MapDrive(pszDrive, pszShare, pszAccount, pszPassword, pszError))
-			{
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - %s", g_pszHost, pszHost, pszBfd, pszError);
-			}
-			else
-			{
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=SUCCESS", g_pszHost, pszHost, pszBfd);
-			}
-		    }
-		    else
-		    {
-			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no password specified", g_pszHost, pszHost, pszBfd);
-		    }
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-		else
-		{
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		    {
-			char pszTry[10];
-			GetStringOpt(p->pszIn, "host", pszHost);
+			char pszTry[10], pszPid[10];
 			if (!GetStringOpt(p->pszIn, "try", pszTry))
 			{
-			    if (!GetStringOpt(p->pszIn, "drive", pszDrive))
+			    if (GetStringOpt(p->pszIn, "pid", pszPid) && GetIPString(pszStr, pszHost))
 			    {
-				_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no drive specified", g_pszHost, pszHost, pszBfd);
+				// try the kill command again with the ip string instead of the host name
+				_snprintf(pszStr, MAX_CMD_LENGTH, "kill src=%s host=%s pid=%s try=2", g_pszHost, pszHost, pszPid);
+				ContextWriteString(g_pRightContext, pszStr);
 			    }
-			    else if (!GetStringOpt(p->pszIn, "share", pszShare))
-			    {
-				_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no share specified", g_pszHost, pszHost, pszBfd);
-			    }
-			    else if (!GetStringOpt(p->pszIn, "account", pszAccount))
-			    {
-				_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no user account specified", g_pszHost, pszHost, pszBfd);
-			    }
-			    else if (GetStringOpt(p->pszIn, "password", pszPassword))
-			    {
-				/* don't decode the password because we are just sending it along again */
-				GetIPString(pszHost, pszHost);
-				_snprintf(pszStr, MAX_CMD_LENGTH, "map src=%s host=%s bfd=%s try=2 drive=%s share=%s account=%s password=%s", g_pszHost, pszHost, pszBfd, pszDrive, pszShare, pszAccount, pszPassword);
-			    }
-			    else
-			    {
-				_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no password specified", g_pszHost, pszHost, pszBfd);
-			    }
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
 			}
 			else
 			{
-			    // command went full circle, send fail result
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - host not in the ring", g_pszHost, pszHost, pszBfd);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+			    dbg_printf("kill command went full circle without matching any hosts, '%s'\n", p->pszIn);
 			}
 		    }
-		    else
-		    {
-			// forward command
-			EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		    }
-		}
-	    }
-	    else
-	    {
-		// no host provided, send fail result
-		GetStringOpt(p->pszIn, "src", pszHost);
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "unmap ", 6) == 0)
-	{
-	    char pszBfd[10];
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
-	    {
-		char pszDrive[10];
-		char pszError[256];
-		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    if (GetStringOpt(p->pszIn, "drive", pszDrive))
-		    {
-			if (!UnmapDrive(pszDrive, pszError))
-			{
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - %s", g_pszHost, pszHost, pszBfd, pszError);
-			}
-			else
-			{
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=SUCCESS", g_pszHost, pszHost, pszBfd);
-			}
-		    }
-		    else
-		    {
-			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no drive specified", g_pszHost, pszHost, pszBfd);
-		    }
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
 		}
 		else
 		{
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		    {
-			char pszTry[10];
-			GetStringOpt(p->pszIn, "host", pszHost);
-			if (!GetStringOpt(p->pszIn, "try", pszTry))
-			{
-			    if (GetStringOpt(p->pszIn, "drive", pszDrive))
-			    {
-				GetIPString(pszHost, pszHost);
-				_snprintf(pszStr, MAX_CMD_LENGTH, "unmap src=%s host=%s bfd=%s try=2 drive=%s", g_pszHost, pszHost, pszBfd, pszDrive);
-			    }
-			    else
-			    {
-				_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no drive specified", g_pszHost, pszHost, pszBfd);
-			    }
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-			else
-			{
-			    // command went full circle, send fail result
-			    char pszBadHost[MAX_HOST_LENGTH];
-			    GetStringOpt(p->pszIn, "host", pszBadHost);
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - host '%s' not in the ring", g_pszHost, pszHost, pszBfd, pszBadHost);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-		    }
-		    else
-		    {
-			// forward command
-			EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		    }
+		    err_printf("kill command has no source, '%s'\n", p->pszIn);
 		}
 	    }
-	    else
+	}
+    }
+    else if (strnicmp(p->pszIn, "killall ", 8) == 0)
+    {
+	if (GetStringOpt(p->pszIn, "src", pszHost))
+	{
+	    ShutdownAllProcesses();
+	    // Conceivably there could be forwarders at this node not associated with processes in this ring.
+	    // In that case you should not call AbortAllForwarders(), but I am not going to figure out how to track that
+	    // case any time soon.
+	    AbortAllForwarders();
+	    if ((strcmp(pszHost, g_pszHost) != 0) && (strcmp(pszHost, g_pszIP) != 0))
 	    {
-		// no host provided, send fail result
-		GetStringOpt(p->pszIn, "src", pszHost);
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		ContextWriteString(g_pRightContext, p->pszIn);
 	    }
 	}
-	else if (strnicmp(p->pszIn, "killall ", 8) == 0)
+	else
 	{
-	    if (GetStringOpt(p->pszIn, "src", pszHost))
-	    {
-		ShutdownAllProcesses();
-		// Conceivably there could be forwarders at this node not associated with processes in this ring.
-		// In that case you should not call AbortAllForwarders(), but I am not going to figure out how to track that
-		// case any time soon.
-		AbortAllForwarders();
-		if ((strcmp(pszHost, g_pszHost) != 0) && (strcmp(pszHost, g_pszIP) != 0))
-		{
-		    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		}
-	    }
-	    else
-	    {
-		err_printf("invalid killall command '%s' read\n", p->pszIn);
-	    }
+	    err_printf("invalid killall command '%s' read\n", p->pszIn);
 	}
-	else if (stricmp(p->pszIn, "exitall") == 0)
+    }
+    else if (stricmp(p->pszIn, "exitall") == 0)
+    {
+	if (g_bExitAllRoot)
 	{
-	    if (g_bExitAllRoot)
-	    {
-		RemoveContext(g_pRightContext);
-		p->nState = MPD_INVALID;
-		p->bDeleteMe = true;
-		SignalExit();
-		SignalExit();
-	    }
-	    else
-	    {
-		EnqueueWrite(g_pRightContext, "exitall", MPD_WRITING_EXITALL_CMD);
-	    }
+	    RemoveContext(g_pRightContext);
+	    g_pRightContext = NULL;
 	}
-	else if (stricmp(p->pszIn, "done") == 0)
+	else
 	{
-	    dbg_printf("left[%d] read 'done'\n", p->bfd);
-	    p->nState = MPD_INVALID;
-	    p->bDeleteMe = true;
+	    ContextWriteString(g_pRightContext, "exitall");
 	}
-	else if (stricmp(p->pszIn, "new left") == 0)
+	p->nState = MPD_INVALID;
+	p->bDeleteMe = true;
+	SignalExit();
+	SignalExit(); // Signal twice to get the service to stop
+    }
+    else if (stricmp(p->pszIn, "done") == 0)
+    {
+	dbg_printf("left[%d] read 'done'\n", p->sock);
+	p->nState = MPD_INVALID;
+	p->bDeleteMe = true;
+    }
+    else if (stricmp(p->pszIn, "new left") == 0)
+    {
+	if (p == g_pLeftContext)
 	{
-	    if (p == g_pLeftContext)
-	    {
-		err_printf("Error, current left thread context read 'new left' command\n");
-	    }
-	    EnqueueWrite(p, g_pLeftContext->pszHost, MPD_WRITING_OLD_LEFT_HOST);
-	    EnqueueWrite(g_pLeftContext, "done", MPD_WRITING_DONE);
-	    POP_FUNC();
+	    err_printf("Error, current left thread context read 'new left' command\n");
+	}
+	// save the old left host
+	strcpy(pszStr, g_pLeftContext->pszHost);
+	// send a "done bounce" command to close the old left context
+	ContextWriteString(g_pLeftContext, "done bounce");
+	// send the old left host back to the caller
+	ContextWriteString(p, pszStr);
+	dbg_printf("wrote old left host '%s'\n", pszStr);
+	// Make p the new left context and add it to the global list of contexts
+	g_pLeftContext = p;
+	strncpy(g_pszLeftHost, p->pszHost, MAX_HOST_LENGTH);
+	g_pszLeftHost[MAX_HOST_LENGTH-1] = '\0';
+	return;
+    }
+    else if (strnicmp(p->pszIn, "connect left ", 13) == 0)
+    {
+	//dbg_printf("connecting to new left host: '%s'\n", &p->pszIn[13]);
+	//dbg_printf("removing left[%d]\n", p->sock);
+	
+	// write a "done" message to close the other end of this context
+	dbg_printf("writing 'done' to close old left context.\n");
+	ContextWriteString(p, "done");
+	// close this context
+	p->bDeleteMe = true;
+	p->nState = MPD_INVALID;
+	// create a new left context
+	pContext = CreateContext();
+	pContext->nState = MPD_IDLE;
+	easy_create(&pContext->sock);
+	// connect to the new left host
+	dbg_printf("connecting to new left host: %s\n", &p->pszIn[13]);
+	if (easy_connect(pContext->sock, &p->pszIn[13], g_nPort) == SOCKET_ERROR)
+	{
+	    err_printf("connect to new left host '%s' failed\n", &p->pszIn[13]);
+	    RemoveContext(pContext);
+	    pContext = NULL;
+	    Extract(true);
 	    return;
 	}
-	else if (stricmp(p->pszIn, "connect left") == 0)
+	strncpy(pContext->pszHost, &p->pszIn[13], MAX_HOST_LENGTH);
+	pContext->pszHost[MAX_HOST_LENGTH-1] = '\0';
+	strncpy(g_pszLeftHost, &p->pszIn[13], MAX_HOST_LENGTH);
+	g_pszLeftHost[MAX_HOST_LENGTH-1] = '\0';
+	// authenticate with the mpd
+	if (!AuthenticateConnectedConnection(&pContext))
 	{
-	    p->nLLState = MPD_READING_NEW_LEFT_HOST;
-	    p->nCurPos = 0;
-	    POP_FUNC();
+	    err_printf("HandleLeftRead: Error, authenticating new left connection to %s failed\n", &p->pszIn[13]);
+	    RemoveContext(pContext);
+	    pContext = NULL;
+	    Extract(true);
 	    return;
 	}
-	else if (strnicmp(p->pszIn, "set ", 4) == 0)
+	// indicate that this is a right connection for the remote mpd
+	dbg_printf("sending 'right' to indicate a new right context.\n");
+	_snprintf(pszStr, MAX_CMD_LENGTH, "right %s", g_pszHost);
+	ContextWriteString(pContext, pszStr);
+	// tell the remote mpd to use this context to replace its old right context
+	dbg_printf("sending new right command.\n");
+	ContextWriteString(pContext, "new right");
+	
+	pContext->nType = MPD_LEFT_SOCKET;
+	pContext->nState = MPD_IDLE;
+	g_pLeftContext = pContext;
+	if (CreateIoCompletionPort((HANDLE)pContext->sock, g_hCommPort, (DWORD)pContext, g_NumCommPortThreads) == NULL)
 	{
-	    char pszKey[100];
-	    GetStringOpt(p->pszIn, "key", pszKey);
-	    GetStringOpt(p->pszIn, "value", pszStr);
-	    
-	    WriteMPDRegistry(pszKey, pszStr);
-	    GetStringOpt(p->pszIn, "src", pszHost);
-	    if ((stricmp(pszHost, g_pszHost)) && (strcmp(pszHost, g_pszIP)))
-	    {
-		EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-	    }
+	    err_printf("HandleLeftRead: Unable to associate completion port with socket, error %d\n", GetLastError());
+	    RemoveContext(pContext);
+	    Extract(true);
+	    return;
 	}
-	else if (strnicmp(p->pszIn, "createforwarder ", 16) == 0)
+	PostContextRead(pContext);
+	return;
+    }
+    else if (strnicmp(p->pszIn, "set ", 4) == 0)
+    {
+	char pszKey[100];
+	GetStringOpt(p->pszIn, "key", pszKey);
+	GetStringOpt(p->pszIn, "value", pszStr);
+	
+	WriteMPDRegistry(pszKey, pszStr);
+	GetStringOpt(p->pszIn, "src", pszHost);
+	if ((stricmp(pszHost, g_pszHost)) && (strcmp(pszHost, g_pszIP)))
 	{
-	    char pszBfd[10];
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
+	    ContextWriteString(g_pRightContext, p->pszIn);
+	}
+    }
+    else if (strnicmp(p->pszIn, "createforwarder ", 16) == 0)
+    {
+	char pszBfd[10];
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	if (GetStringOpt(p->pszIn, "host", pszHost))
+	{
+	    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
 	    {
-		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		if (GetStringOpt(p->pszIn, "forward", pszHost))
 		{
-		    if (GetStringOpt(p->pszIn, "forward", pszHost))
+		    char *token = strtok(pszHost, ":");
+		    if (token != NULL)
 		    {
-			char *token = strtok(pszHost, ":");
-			if (token != NULL)
-			{
-			    token = strtok(NULL, "\n");
-			    int nPort = CreateIOForwarder(pszHost, atoi(token));
-
-			    GetStringOpt(p->pszIn, "src", pszHost);
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=%d", g_pszHost, pszHost, pszBfd, nPort);
-			}
-			else
-			{
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=-1", g_pszHost, pszHost, pszBfd);
-			}
+			token = strtok(NULL, "\n");
+			int nPort = CreateIOForwarder(pszHost, atoi(token));
+			
+			GetStringOpt(p->pszIn, "src", pszHost);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=%d", g_pszHost, pszHost, pszBfd, nPort);
 		    }
 		    else
 		    {
-			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=-1", g_pszHost, pszHost, pszBfd);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=-1", g_pszHost, pszHost, pszBfd);
 		    }
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
 		}
 		else
 		{
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=-1", g_pszHost, pszHost, pszBfd);
+		}
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	    else
+	    {
+		GetStringOpt(p->pszIn, "src", pszHost);
+		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		{
+		    char pszTry[10];
+		    char pszForward[100];
+		    if (!GetStringOpt(p->pszIn, "try", pszTry))
 		    {
-			char pszTry[10];
-			char pszForward[100];
-			if (!GetStringOpt(p->pszIn, "try", pszTry))
-			{
-			    GetStringOpt(p->pszIn, "forward", pszForward);
-			    GetStringOpt(p->pszIn, "host", pszHost);
-			    GetIPString(pszHost, pszHost);
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "createforwarder src=%s host=%s bfd=%s try=2 forward=%s", g_pszHost, pszHost, pszBfd, pszForward);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-			else
-			{
-			    // command went full circle, send fail result
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=-1", g_pszHost, pszHost, pszBfd);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
+			GetStringOpt(p->pszIn, "forward", pszForward);
+			GetStringOpt(p->pszIn, "host", pszHost);
+			GetIPString(pszHost, pszHost);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "createforwarder src=%s host=%s sock=%s try=2 forward=%s", g_pszHost, pszHost, pszBfd, pszForward);
+			ContextWriteString(g_pRightContext, pszStr);
 		    }
 		    else
 		    {
-			// forward command
-			EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+			// command went full circle, send fail result
+			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=-1", g_pszHost, pszHost, pszBfd);
+			ContextWriteString(g_pRightContext, pszStr);
 		    }
+		}
+		else
+		{
+		    // forward command
+		    ContextWriteString(g_pRightContext, p->pszIn);
+		}
+	    }
+	}
+	else
+	{
+	    // no host provided, send fail result
+	    GetStringOpt(p->pszIn, "src", pszHost);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=-1", g_pszHost, pszHost, pszBfd);
+	    ContextWriteString(g_pRightContext, pszStr);
+	}
+    }
+    else if (strnicmp(p->pszIn, "stopforwarder ", 14) == 0)
+    {
+	char pszBfd[10];
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	if (GetStringOpt(p->pszIn, "host", pszHost))
+	{
+	    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		char pszPort[10];
+		char pszAbort[10];
+		bool bAbort = true;
+		if (GetStringOpt(p->pszIn, "port", pszPort))
+		{
+		    if (GetStringOpt(p->pszIn, "abort", pszAbort))
+			bAbort = (stricmp(pszAbort, "yes") == 0);
+		    StopIOForwarder(atoi(pszPort), !bAbort);
 		}
 	    }
 	    else
 	    {
-		// no host provided, send fail result
 		GetStringOpt(p->pszIn, "src", pszHost);
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=-1", g_pszHost, pszHost, pszBfd);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "stopforwarder ", 14) == 0)
-	{
-	    char pszBfd[10];
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
-	    {
 		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
 		{
+		    char pszTry[10];
 		    char pszPort[10];
 		    char pszAbort[10];
 		    bool bAbort = true;
@@ -1064,455 +976,429 @@ void HandleLeftRead(MPD_Context *p)
 		    {
 			if (GetStringOpt(p->pszIn, "abort", pszAbort))
 			    bAbort = (stricmp(pszAbort, "yes") == 0);
-			StopIOForwarder(atoi(pszPort), !bAbort);
-		    }
-		}
-		else
-		{
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		    {
-			char pszTry[10];
-			char pszPort[10];
-			char pszAbort[10];
-			bool bAbort = true;
-			if (GetStringOpt(p->pszIn, "port", pszPort))
-			{
-			    if (GetStringOpt(p->pszIn, "abort", pszAbort))
-				bAbort = (stricmp(pszAbort, "yes") == 0);
-			    if (!GetStringOpt(p->pszIn, "try", pszTry))
-			    {
-				GetStringOpt(p->pszIn, "host", pszHost);
-				GetIPString(pszHost, pszHost);
-				_snprintf(pszStr, MAX_CMD_LENGTH, "stopforwarder src=%s host=%s bfd=%s try=2 port=%s", g_pszHost, pszHost, pszBfd, pszPort);
-				if (!bAbort)
-				{
-				    strncat(pszStr, " abort=no", MAX_CMD_LENGTH - 1 - strlen(pszStr));
-				}
-				EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			    }
-			}
-		    }
-		    else
-		    {
-			// forward command
-			EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		    }
-		}
-	    }
-	}
-	else if (strnicmp(p->pszIn, "forwarders ", 11) == 0)
-	{
-	    if (GetStringOpt(p->pszIn, "src", pszHost))
-	    {
-		if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    char pszBFD[10];
-		    MPD_Context *pContext;
-		    
-		    if (GetStringOpt(p->pszIn, "result", pszStr))
-		    {
-			// Chop off the trailing carriage return
-			int nLength = strlen(pszStr);
-			if (nLength > 2)
-			{
-			    if (pszStr[nLength-1] == '\r' || pszStr[nLength-1] == '\n')
-				pszStr[nLength-1] = '\0';
-			    if (pszStr[nLength-2] == '\r' || pszStr[nLength-2] == '\n')
-				pszStr[nLength-2] = '\0';
-			}
-		    }
-		    GetStringOpt(p->pszIn, "bfd", pszBFD);
-		    pContext = GetContext(atoi(pszBFD));
-		    if (pContext != NULL)
-		    {
-			EnqueueWrite(pContext, pszStr, MPD_WRITING_RESULT);
-		    }
-		    else
-		    {
-			err_printf("console context not found\n");
-		    }
-		}
-		else
-		{
-		    strncpy(pszStr, p->pszIn, MAX_CMD_LENGTH);
-		    pszStr[MAX_CMD_LENGTH-1] = '\0';
-		    ConcatenateForwardersToString(pszStr);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_HOSTS_CMD);
-		}
-	    }
-	    else
-	    {
-		err_printf("invalid forwarders command '%s' read\n", p->pszIn);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "killforwarders ", 15) == 0)
-	{
-	    if (GetStringOpt(p->pszIn, "src", pszHost))
-	    {
-		AbortAllForwarders();
-		if ((strcmp(pszHost, g_pszHost) != 0) && (strcmp(pszHost, g_pszIP) != 0))
-		{
-		    EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		}
-	    }
-	    else
-	    {
-		err_printf("invalid killforwarders command '%s' read\n", p->pszIn);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "createtmpfile ", 14) == 0)
-	{
-	    char pszBfd[10];
-	    bool bDelete = true;
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    if (GetStringOpt(p->pszIn, "delete", pszStr))
-	    {
-		bDelete = (stricmp(pszStr, "no") != 0);
-	    }
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
-	    {
-		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    char pszTemp[MAX_PATH];
-		    CreateTmpFile(pszTemp, bDelete);
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=%s", g_pszHost, pszHost, pszBfd, pszTemp);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-		else
-		{
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		    {
-			char pszTry[10];
 			if (!GetStringOpt(p->pszIn, "try", pszTry))
 			{
 			    GetStringOpt(p->pszIn, "host", pszHost);
 			    GetIPString(pszHost, pszHost);
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "createtmpfile src=%s host=%s bfd=%s try=2", g_pszHost, pszHost, pszBfd);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-			else
-			{
-			    // command went full circle, send fail result
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - bad hostname", g_pszHost, pszHost, pszBfd);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-		    }
-		    else
-		    {
-			// forward command
-			EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		    }
-		}
-	    }
-	    else
-	    {
-		// no host provided, send fail result
-		GetStringOpt(p->pszIn, "src", pszHost);
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "deletetmpfile ", 14) == 0)
-	{
-	    char pszBfd[10];
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
-	    {
-		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    char pszTemp[MAX_PATH];
-		    if (GetStringOpt(p->pszIn, "file", pszTemp))
-		    {
-			if (DeleteTmpFile(pszTemp))
-			    strcpy(pszTemp, "SUCCESS");
-			else
-			{
-			    int error = GetLastError();
-			    if (error == 0)
-				_snprintf(pszTemp, MAX_PATH, "FAIL - file not found in list of created tmp files");
-			    else
-				_snprintf(pszTemp, MAX_PATH, "FAIL - error %d", error);
-			}
-		    }
-		    else
-			strcpy(pszTemp, "FAIL - no filename provided");
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=%s", g_pszHost, pszHost, pszBfd, pszTemp);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-		else
-		{
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		    {
-			char pszTry[10];
-			if (!GetStringOpt(p->pszIn, "try", pszTry))
-			{
-			    GetStringOpt(p->pszIn, "host", pszHost);
-			    GetIPString(pszHost, pszHost);
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "deletetmpfile src=%s host=%s bfd=%s try=2", g_pszHost, pszHost, pszBfd);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-			else
-			{
-			    // command went full circle, send fail result
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - bad hostname", g_pszHost, pszHost, pszBfd);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-		    }
-		    else
-		    {
-			// forward command
-			EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		    }
-		}
-	    }
-	    else
-	    {
-		// no host provided, send fail result
-		GetStringOpt(p->pszIn, "src", pszHost);
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "mpich1readint ", 14) == 0)
-	{
-	    char pszBfd[10];
-	    char pszPid[10] = "0";
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    GetStringOpt(p->pszIn, "pid", pszPid);
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
-	    {
-		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    char pszTemp[MAX_PATH];
-		    if (GetStringOpt(p->pszIn, "file", pszTemp))
-		    {
-			int nPort, nError;
-			nError = GetPortFromFile(pszTemp, atoi(pszPid), &nPort);
-			if (nError == 0)
-			    sprintf(pszTemp, "%d", nPort);
-			else
-			{
-			    //sprintf(pszTemp, "FAIL - error %d", nError);
-			    if (nError == -1)
+			    _snprintf(pszStr, MAX_CMD_LENGTH, "stopforwarder src=%s host=%s sock=%s try=2 port=%s", g_pszHost, pszHost, pszBfd, pszPort);
+			    if (!bAbort)
 			    {
-				strcpy(pszTemp, "FAIL - timed out");
+				strncat(pszStr, " abort=no", MAX_CMD_LENGTH - 1 - strlen(pszStr));
 			    }
-			    else if (nError == -2)
-			    {
-				strcpy(pszTemp, "FAIL - missing dll");
-			    }
-			    else if (nError == -3)
-			    {
-				_snprintf(pszTemp, MAX_PATH, "FAIL - process exited with code %d", nPort);
-			    }
-			    else
-			    {
-				Translate_Error(nError, pszTemp, "FAIL - ");
-			    }
+			    ContextWriteString(g_pRightContext, pszStr);
 			}
-		    }
-		    else
-			strcpy(pszTemp, "FAIL - no filename provided");
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=%s", g_pszHost, pszHost, pszBfd, pszTemp);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-		else
-		{
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		    {
-			char pszTry[10];
-			char pszTemp[MAX_PATH];
-			if (!GetStringOpt(p->pszIn, "try", pszTry))
-			{
-			    GetStringOpt(p->pszIn, "file", pszTemp);
-			    GetStringOpt(p->pszIn, "host", pszHost);
-			    GetIPString(pszHost, pszHost);
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "mpich1readint src=%s host=%s bfd=%s try=2 pid=%s file=%s", g_pszHost, pszHost, pszBfd, pszPid, pszTemp);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-			else
-			{
-			    // command went full circle, send fail result
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - bad hostname", g_pszHost, pszHost, pszBfd);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-		    }
-		    else
-		    {
-			// forward command
-			EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		    }
-		}
-	    }
-	    else
-	    {
-		// no host provided, send fail result
-		GetStringOpt(p->pszIn, "src", pszHost);
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "stat ", 5) == 0)
-	{
-	    char pszBfd[10];
-	    char pszParam[100];
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    GetStringOpt(p->pszIn, "param", pszParam);
-	    if (GetStringOpt(p->pszIn, "host", pszHost))
-	    {
-		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		{
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=", g_pszHost, pszHost, pszBfd);
-		    statMPD(pszParam, &pszStr[strlen(pszStr)], MAX_CMD_LENGTH - strlen(pszStr));
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-		}
-		else
-		{
-		    GetStringOpt(p->pszIn, "src", pszHost);
-		    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
-		    {
-			char pszTry[10];
-			GetStringOpt(p->pszIn, "host", pszHost);
-			if (!GetStringOpt(p->pszIn, "try", pszTry))
-			{
-			    if (GetStringOpt(p->pszIn, "param", pszParam))
-			    {
-				GetIPString(pszHost, pszHost);
-				_snprintf(pszStr, MAX_CMD_LENGTH, "stat src=%s host=%s bfd=%s try=2 param=%s", g_pszHost, pszHost, pszBfd, pszParam);
-			    }
-			    else
-			    {
-				_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no stat param specified", g_pszHost, pszHost, pszBfd);
-			    }
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-			else
-			{
-			    // command went full circle, send fail result
-			    char pszBadHost[MAX_HOST_LENGTH];
-			    GetStringOpt(p->pszIn, "host", pszBadHost);
-			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - host '%s' not in the ring", g_pszHost, pszHost, pszBfd, pszBadHost);
-			    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-			}
-		    }
-		    else
-		    {
-			// forward command
-			EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
-		    }
-		}
-	    }
-	    else
-	    {
-		// no host provided, send fail result
-		GetStringOpt(p->pszIn, "src", pszHost);
-		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s bfd=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
-	    }
-	}
-	else if (strnicmp(p->pszIn, "result ", 7) == 0)
-	{
-	    char pszDest[MAX_HOST_LENGTH] = "";
-	    char pszBfd[10];
-	    GetStringOpt(p->pszIn, "dest", pszDest);
-	    GetStringOpt(p->pszIn, "bfd", pszBfd);
-	    if ((stricmp(pszDest, g_pszHost) == 0) || (strcmp(pszDest, g_pszIP) == 0))
-	    {
-		char *token;
-		token = strstr(p->pszIn, "result=");
-		if (token != NULL)
-		{
-		    token = &token[7];
-		    p = GetContext(atoi(pszBfd));
-		    if (p)
-			EnqueueWrite(p, token, MPD_WRITING_RESULT);
-		    else
-		    {
-			err_printf("GetContext failed for '%s'\n", pszBfd);
 		    }
 		}
 		else
 		{
-		    err_printf("'result=' not found in result command\n");
+		    // forward command
+		    ContextWriteString(g_pRightContext, p->pszIn);
+		}
+	    }
+	}
+    }
+    else if (strnicmp(p->pszIn, "forwarders ", 11) == 0)
+    {
+	if (GetStringOpt(p->pszIn, "src", pszHost))
+	{
+	    if ((strcmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		char pszBFD[10];
+		MPD_Context *pContext;
+		
+		if (GetStringOpt(p->pszIn, "result", pszStr))
+		{
+		    // Chop off the trailing carriage return
+		    int nLength = strlen(pszStr);
+		    if (nLength > 2)
+		    {
+			if (pszStr[nLength-1] == '\r' || pszStr[nLength-1] == '\n')
+			    pszStr[nLength-1] = '\0';
+			if (pszStr[nLength-2] == '\r' || pszStr[nLength-2] == '\n')
+			    pszStr[nLength-2] = '\0';
+		    }
+		}
+		GetStringOpt(p->pszIn, "sock", pszBFD);
+		pContext = GetContext(atoi(pszBFD));
+		if (pContext != NULL)
+		{
+		    ContextWriteString(pContext, pszStr);
+		}
+		else
+		{
+		    err_printf("console context not found\n");
 		}
 	    }
 	    else
 	    {
-		EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+		strncpy(pszStr, p->pszIn, MAX_CMD_LENGTH);
+		pszStr[MAX_CMD_LENGTH-1] = '\0';
+		ConcatenateForwardersToString(pszStr);
+		ContextWriteString(g_pRightContext, pszStr);
 	    }
 	}
 	else
 	{
-	    err_printf("left socket %d read unknown command '%s'\n", p->bfd, p->pszIn);
+	    err_printf("invalid forwarders command '%s' read\n", p->pszIn);
 	}
-	p->nLLState = MPD_READING_CMD;
-	break;
-    case MPD_READING_NEW_LEFT_HOST:
-	dbg_printf("connecting to new left host: '%s'\n", p->pszIn);
-	dbg_printf("removing left[%d]\n", p->bfd);
-	p->bDeleteMe = true;
-	p->nState = MPD_INVALID;
-	pContext = new MPD_Context;
-	pContext->nState = MPD_IDLE;
-	beasy_create(&pContext->bfd, ADDR_ANY, INADDR_ANY);
-	if (beasy_connect(pContext->bfd, p->pszIn, g_nPort) == SOCKET_ERROR)
-	{
-	    err_printf("connect to new left host '%s' failed\n", p->pszIn);
-	    RemoveContext(pContext);
-	    Extract(true);
-	    break;
-	}
-	strncpy(pContext->pszHost, p->pszIn, MAX_HOST_LENGTH);
-	pContext->pszHost[MAX_HOST_LENGTH-1] = '\0';
-	strncpy(g_pszLeftHost, p->pszIn, MAX_HOST_LENGTH);
-	g_pszLeftHost[MAX_HOST_LENGTH-1] = '\0';
-
-	pContext->nType = MPD_SOCKET;
-	pContext->nState = MPD_IDLE;
-	pContext->nLLState = MPD_AUTHENTICATE_READING_APPEND;
-	pContext->nConnectingState = MPD_CONNECTING_LEFT;
-	pContext->pNext = g_pList;
-	g_pList = pContext;
-	DoReadSet(pContext->bfd);
-	break;
-    default:
-	err_printf("left context read '%s' while in unhandled state %d\n", p->pszIn, p->nLLState);
-	break;
     }
-    POP_FUNC();
-}
-
-void HandleLeftWritten(MPD_Context *p)
-{
-    PUSH_FUNC("HandleLeftWritten");
-    dbg_printf("LeftWritten[%d]: '%s'\n", p->bfd, p->pszOut);
-    switch (p->nLLState)
+    else if (strnicmp(p->pszIn, "killforwarders ", 15) == 0)
     {
-    case MPD_WRITING_DONE_EXIT:
-	SignalExit();
-    case MPD_WRITING_DONE:
-	//dbg_printf("done written, left[%d] state: MPD_INVALID\n", p->bfd);
-	p->bDeleteMe = true;
-	p->nState = MPD_INVALID;
-	break;
-    case MPD_WRITING_OLD_LEFT_HOST:
-	dbg_printf("wrote old left host '%s'\n", p->pszOut);
-	// Make p the new left context and add it to the global list of contexts
-	g_pLeftContext = p;
-	strncpy(g_pszLeftHost, p->pszHost, MAX_HOST_LENGTH);
-	g_pszLeftHost[MAX_HOST_LENGTH-1] = '\0';
-	break;
-    default:
-	err_printf("unhandled low level state %d after write on left socket %d\n", p->nLLState, p->bfd);
-	break;
+	if (GetStringOpt(p->pszIn, "src", pszHost))
+	{
+	    AbortAllForwarders();
+	    if ((strcmp(pszHost, g_pszHost) != 0) && (strcmp(pszHost, g_pszIP) != 0))
+	    {
+		ContextWriteString(g_pRightContext, p->pszIn);
+	    }
+	}
+	else
+	{
+	    err_printf("invalid killforwarders command '%s' read\n", p->pszIn);
+	}
     }
-    DequeueWrite(p);
-    POP_FUNC();
+    else if (strnicmp(p->pszIn, "createtmpfile ", 14) == 0)
+    {
+	char pszBfd[10];
+	bool bDelete = true;
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	if (GetStringOpt(p->pszIn, "delete", pszStr))
+	{
+	    bDelete = (stricmp(pszStr, "no") != 0);
+	}
+	if (GetStringOpt(p->pszIn, "host", pszHost))
+	{
+	    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		char pszTemp[MAX_PATH];
+		CreateTmpFile(pszTemp, bDelete);
+		GetStringOpt(p->pszIn, "src", pszHost);
+		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=%s", g_pszHost, pszHost, pszBfd, pszTemp);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	    else
+	    {
+		GetStringOpt(p->pszIn, "src", pszHost);
+		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		{
+		    char pszTry[10];
+		    if (!GetStringOpt(p->pszIn, "try", pszTry))
+		    {
+			GetStringOpt(p->pszIn, "host", pszHost);
+			GetIPString(pszHost, pszHost);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "createtmpfile src=%s host=%s sock=%s try=2", g_pszHost, pszHost, pszBfd);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		    else
+		    {
+			// command went full circle, send fail result
+			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - bad hostname", g_pszHost, pszHost, pszBfd);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		}
+		else
+		{
+		    // forward command
+		    ContextWriteString(g_pRightContext, p->pszIn);
+		}
+	    }
+	}
+	else
+	{
+	    // no host provided, send fail result
+	    GetStringOpt(p->pszIn, "src", pszHost);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
+	    ContextWriteString(g_pRightContext, pszStr);
+	}
+    }
+    else if (strnicmp(p->pszIn, "deletetmpfile ", 14) == 0)
+    {
+	char pszBfd[10];
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	if (GetStringOpt(p->pszIn, "host", pszHost))
+	{
+	    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		char pszTemp[MAX_PATH];
+		if (GetStringOpt(p->pszIn, "file", pszTemp))
+		{
+		    if (DeleteTmpFile(pszTemp))
+			strcpy(pszTemp, "SUCCESS");
+		    else
+		    {
+			int error = GetLastError();
+			if (error == 0)
+			    _snprintf(pszTemp, MAX_PATH, "FAIL - file not found in list of created tmp files");
+			else
+			    _snprintf(pszTemp, MAX_PATH, "FAIL - error %d", error);
+		    }
+		}
+		else
+		    strcpy(pszTemp, "FAIL - no filename provided");
+		GetStringOpt(p->pszIn, "src", pszHost);
+		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=%s", g_pszHost, pszHost, pszBfd, pszTemp);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	    else
+	    {
+		GetStringOpt(p->pszIn, "src", pszHost);
+		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		{
+		    char pszTry[10];
+		    if (!GetStringOpt(p->pszIn, "try", pszTry))
+		    {
+			GetStringOpt(p->pszIn, "host", pszHost);
+			GetIPString(pszHost, pszHost);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "deletetmpfile src=%s host=%s sock=%s try=2", g_pszHost, pszHost, pszBfd);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		    else
+		    {
+			// command went full circle, send fail result
+			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - bad hostname", g_pszHost, pszHost, pszBfd);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		}
+		else
+		{
+		    // forward command
+		    ContextWriteString(g_pRightContext, p->pszIn);
+		}
+	    }
+	}
+	else
+	{
+	    // no host provided, send fail result
+	    GetStringOpt(p->pszIn, "src", pszHost);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
+	    ContextWriteString(g_pRightContext, pszStr);
+	}
+    }
+    else if (strnicmp(p->pszIn, "mpich1readint ", 14) == 0)
+    {
+	char pszBfd[10];
+	char pszPid[10] = "0";
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	GetStringOpt(p->pszIn, "pid", pszPid);
+	if (GetStringOpt(p->pszIn, "host", pszHost))
+	{
+	    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		char pszTemp[MAX_PATH];
+		if (GetStringOpt(p->pszIn, "file", pszTemp))
+		{
+		    int nPort, nError;
+		    nError = GetPortFromFile(pszTemp, atoi(pszPid), &nPort);
+		    if (nError == 0)
+			sprintf(pszTemp, "%d", nPort);
+		    else
+		    {
+			//sprintf(pszTemp, "FAIL - error %d", nError);
+			if (nError == -1)
+			{
+			    strcpy(pszTemp, "FAIL - timed out");
+			}
+			else if (nError == -2)
+			{
+			    strcpy(pszTemp, "FAIL - missing dll");
+			}
+			else if (nError == -3)
+			{
+			    _snprintf(pszTemp, MAX_PATH, "FAIL - process exited with code %d", nPort);
+			}
+			else
+			{
+			    Translate_Error(nError, pszTemp, "FAIL - ");
+			}
+		    }
+		}
+		else
+		    strcpy(pszTemp, "FAIL - no filename provided");
+		GetStringOpt(p->pszIn, "src", pszHost);
+		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=%s", g_pszHost, pszHost, pszBfd, pszTemp);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	    else
+	    {
+		GetStringOpt(p->pszIn, "src", pszHost);
+		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		{
+		    char pszTry[10];
+		    char pszTemp[MAX_PATH];
+		    if (!GetStringOpt(p->pszIn, "try", pszTry))
+		    {
+			GetStringOpt(p->pszIn, "file", pszTemp);
+			GetStringOpt(p->pszIn, "host", pszHost);
+			GetIPString(pszHost, pszHost);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "mpich1readint src=%s host=%s sock=%s try=2 pid=%s file=%s", g_pszHost, pszHost, pszBfd, pszPid, pszTemp);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		    else
+		    {
+			// command went full circle, send fail result
+			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - bad hostname", g_pszHost, pszHost, pszBfd);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		}
+		else
+		{
+		    // forward command
+		    ContextWriteString(g_pRightContext, p->pszIn);
+		}
+	    }
+	}
+	else
+	{
+	    // no host provided, send fail result
+	    GetStringOpt(p->pszIn, "src", pszHost);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
+	    ContextWriteString(g_pRightContext, pszStr);
+	}
+    }
+    else if (strnicmp(p->pszIn, "stat ", 5) == 0)
+    {
+	char pszBfd[10];
+	char pszParam[100];
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	GetStringOpt(p->pszIn, "param", pszParam);
+	if (GetStringOpt(p->pszIn, "host", pszHost))
+	{
+	    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=", g_pszHost, pszHost, pszBfd);
+		statMPD(pszParam, &pszStr[strlen(pszStr)], MAX_CMD_LENGTH - strlen(pszStr));
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	    else
+	    {
+		GetStringOpt(p->pszIn, "src", pszHost);
+		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		{
+		    char pszTry[10];
+		    GetStringOpt(p->pszIn, "host", pszHost);
+		    if (!GetStringOpt(p->pszIn, "try", pszTry))
+		    {
+			if (GetStringOpt(p->pszIn, "param", pszParam))
+			{
+			    GetIPString(pszHost, pszHost);
+			    _snprintf(pszStr, MAX_CMD_LENGTH, "stat src=%s host=%s sock=%s try=2 param=%s", g_pszHost, pszHost, pszBfd, pszParam);
+			}
+			else
+			{
+			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - no stat param specified", g_pszHost, g_pszHost, pszBfd);
+			}
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		    else
+		    {
+			// command went full circle, send fail result
+			char pszBadHost[MAX_HOST_LENGTH];
+			GetStringOpt(p->pszIn, "host", pszBadHost);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - host '%s' not in the ring", g_pszHost, pszHost, pszBfd, pszBadHost);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		}
+		else
+		{
+		    // forward command
+		    ContextWriteString(g_pRightContext, p->pszIn);
+		}
+	    }
+	}
+	else
+	{
+	    // no host provided, send fail result
+	    GetStringOpt(p->pszIn, "src", pszHost);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
+	    ContextWriteString(g_pRightContext, pszStr);
+	}
+    }
+    else if (strnicmp(p->pszIn, "freecached ", 11) == 0)
+    {
+	char pszBfd[10];
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	if (GetStringOpt(p->pszIn, "host", pszHost))
+	{
+	    if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+	    {
+		RemoveAllCachedUsers();
+		_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=SUCCESS", g_pszHost, pszHost, pszBfd);
+		ContextWriteString(g_pRightContext, pszStr);
+	    }
+	    else
+	    {
+		GetStringOpt(p->pszIn, "src", pszHost);
+		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
+		{
+		    char pszTry[10];
+		    GetStringOpt(p->pszIn, "host", pszHost);
+		    if (!GetStringOpt(p->pszIn, "try", pszTry))
+		    {
+			if (GetIPString(pszHost, pszHost))
+			    _snprintf(pszStr, MAX_CMD_LENGTH, "freecached src=%s host=%s sock=%s try=2", g_pszHost, pszHost, pszBfd);
+			else
+			    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - invalid host '%s'", g_pszHost, g_pszHost, pszBfd, pszHost);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		    else
+		    {
+			// command went full circle, send fail result
+			char pszBadHost[MAX_HOST_LENGTH];
+			GetStringOpt(p->pszIn, "host", pszBadHost);
+			_snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - host '%s' not in the ring", g_pszHost, pszHost, pszBfd, pszBadHost);
+			ContextWriteString(g_pRightContext, pszStr);
+		    }
+		}
+		else
+		{
+		    // forward command
+		    ContextWriteString(g_pRightContext, p->pszIn);
+		}
+	    }
+	}
+	else
+	{
+	    // no host provided, send fail result
+	    GetStringOpt(p->pszIn, "src", pszHost);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "result src=%s dest=%s sock=%s result=FAIL - no host provided", g_pszHost, pszHost, pszBfd);
+	    ContextWriteString(g_pRightContext, pszStr);
+	}
+    }
+    else if (strnicmp(p->pszIn, "result ", 7) == 0)
+    {
+	char pszDest[MAX_HOST_LENGTH] = "";
+	char pszBfd[10];
+	GetStringOpt(p->pszIn, "dest", pszDest);
+	GetStringOpt(p->pszIn, "sock", pszBfd);
+	if ((stricmp(pszDest, g_pszHost) == 0) || (strcmp(pszDest, g_pszIP) == 0))
+	{
+	    char *token;
+	    token = strstr(p->pszIn, "result=");
+	    if (token != NULL)
+	    {
+		token = &token[7];
+		p = GetContext(atoi(pszBfd));
+		if (p)
+		{
+		    ContextWriteString(p, token);
+		}
+		else
+		{
+		    err_printf("GetContext failed for '%s'\n", pszBfd);
+		}
+	    }
+	    else
+	    {
+		err_printf("'result=' not found in result command\n");
+	    }
+	}
+	else
+	{
+	    ContextWriteString(g_pRightContext, p->pszIn);
+	}
+    }
+    else
+    {
+	err_printf("left socket %d read unknown command '%s'\n", p->sock, p->pszIn);
+    }
 }

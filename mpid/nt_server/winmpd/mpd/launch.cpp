@@ -5,8 +5,10 @@
 #include <windows.h>
 #include <stdio.h>
 #include "Translate_Error.h"
+#include "safe_terminate_process.h"
 
 long g_nNumProcsRunning = 0;
+HANDLE g_hProcessStructMutex = NULL;
 
 struct LaunchThreadStruct
 {
@@ -17,6 +19,7 @@ struct LaunchThreadStruct
     char pszSrcHost[MAX_HOST_LENGTH];
     char pszSrcId[10];
     char pszEnv[MAX_CMD_LENGTH];
+    char pszMap[MAX_CMD_LENGTH];
     char pszDir[MAX_PATH];
     char pszCmd[MAX_CMD_LENGTH];
     char pszAccount[40];
@@ -25,6 +28,9 @@ struct LaunchThreadStruct
     char pszStdout[MAX_HOST_LENGTH];
     char pszStderr[MAX_HOST_LENGTH];
     bool bMergeOutErr;
+    bool bUseDebugFlag;
+    int priorityClass;
+    int priority;
 
     int nPid;
     int nKRank;
@@ -42,6 +48,7 @@ LaunchThreadStruct::LaunchThreadStruct()
     pszSrcHost[0] = '\0';
     pszSrcId[0] = '\0';
     pszEnv[0] = '\0';
+    pszMap[0] = '\0';
     pszDir[0] = '\0';
     pszCmd[0] = '\0';
     pszAccount[0] = '\0';
@@ -50,6 +57,9 @@ LaunchThreadStruct::LaunchThreadStruct()
     pszStdout[0] = '\0';
     pszStderr[0] = '\0';
     bMergeOutErr = false;
+    bUseDebugFlag = false;
+    priorityClass = BELOW_NORMAL_PRIORITY_CLASS;
+    priority = THREAD_PRIORITY_NORMAL;
 
     nPid = -1;
     nKRank = 0;
@@ -63,12 +73,12 @@ LaunchThreadStruct::LaunchThreadStruct()
 
 void LaunchThreadStruct::Print()
 {
-    printf("LAUNCH:\n");
-    printf(" user: %s\n", pszAccount);
-    printf(" %s(%s) -> %s %s\n", pszSrcHost, pszSrcId, pszHost, pszCmd);
+    dbg_printf("LAUNCH:\n");
+    dbg_printf(" user: %s\n", pszAccount);
+    dbg_printf(" %s(%s) -> %s %s\n", pszSrcHost, pszSrcId, pszHost, pszCmd);
     if (pszDir[0] != '\0')
     {
-	printf(" dir: ");
+	dbg_printf(" dir: ");
 	int n = strlen(pszDir);
 	if (n > 70)
 	{
@@ -147,6 +157,8 @@ void LaunchThreadStruct::Print()
 	else
 	    printf("%s\n", pszEnv2);
     }
+    if (pszMap[0] != '\0')
+	printf(" map = %s\n", pszMap);
     printf(" stdin|out|err: %s|%s|%s\n", pszStdin, pszStdout, pszStderr);
     printf(" krank: %d\n", nKRank);
     //printf("\n");
@@ -298,7 +310,6 @@ static void ProcessToString(LaunchThreadStruct *p, char *pszStr, int length)
 
 void statProcessList(char *pszOutput, int length)
 {
-    HANDLE hProcessStructMutex;
     LaunchThreadStruct *p;
     int nBytesAvailable = length;
 
@@ -306,13 +317,11 @@ void statProcessList(char *pszOutput, int length)
     length--; // leave room for the null character
 
     // lock the process list while using it
-    hProcessStructMutex = CreateMutex(NULL, FALSE, "mpdProcessStructMutex");
-    WaitForSingleObject(hProcessStructMutex, INFINITE);
+    WaitForSingleObject(g_hProcessStructMutex, INFINITE);
 
     if (g_pProcessList == NULL)
     {
-	ReleaseMutex(hProcessStructMutex);
-	CloseHandle(hProcessStructMutex);
+	ReleaseMutex(g_hProcessStructMutex);
 	return;
     }
 
@@ -324,22 +333,19 @@ void statProcessList(char *pszOutput, int length)
 	pszOutput = &pszOutput[strlen(pszOutput)];
 	p = p->pNext;
     }
-    ReleaseMutex(hProcessStructMutex);
-    CloseHandle(hProcessStructMutex);
+    ReleaseMutex(g_hProcessStructMutex);
 }
 
 void RemoveProcessStruct(LaunchThreadStruct *p)
 {
-    HANDLE hProcessStructMutex = CreateMutex(NULL, FALSE, "mpdProcessStructMutex");
-    WaitForSingleObject(hProcessStructMutex, INFINITE);
+    WaitForSingleObject(g_hProcessStructMutex, INFINITE);
 
     LaunchThreadStruct *pTrailer = g_pProcessList;
 
     // Remove p from the list
     if (p == NULL)
     {
-	ReleaseMutex(hProcessStructMutex);
-	CloseHandle(hProcessStructMutex);
+	ReleaseMutex(g_hProcessStructMutex);
 	return;
     }
 
@@ -359,276 +365,13 @@ void RemoveProcessStruct(LaunchThreadStruct *p)
     if (p->hThread != NULL)
 	CloseHandle(p->hThread);
 
+    UnmapUserDrives(p->pszMap);
+
     //dbg_printf("removing ProcessStruct[%d]\n", p->nPid);
     // free the structure
     delete p;
 
-    ReleaseMutex(hProcessStructMutex);
-    CloseHandle(hProcessStructMutex);
-}
-
-bool ConnectAndRedirectInput(HANDLE hIn, char *pszHostPort, HANDLE hProcess, DWORD dwPid, int nRank)
-{
-    DWORD dwThreadID;
-    RedirectSocketArg *pArg;
-    int bfd;
-    char pszHost[MAX_HOST_LENGTH];
-    int nPort;
-    char *pszPort;
-    int nLength;
-    char ch = 0;
-
-    if ((pszHostPort == NULL) || (*pszHostPort == '\0'))
-    {
-	if (hIn != NULL)
-	    CloseHandle(hIn);
-	return true;
-    }
-
-    pszPort = strstr(pszHostPort, ":");
-    if (pszPort == NULL)
-    {
-	if (hIn != NULL)
-	    CloseHandle(hIn);
-	return false;
-    }
-    nLength = pszPort - pszHostPort;
-    strncpy(pszHost, pszHostPort, nLength);
-    pszHost[nLength] = '\0';
-    pszPort++;
-
-    nPort = atoi(pszPort);
-    
-    if (beasy_create(&bfd, 0, INADDR_ANY) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirectInput: beasy_create failed, error %d\n", WSAGetLastError());
-	return false;
-    }
-    if (beasy_connect(bfd, pszHost, nPort) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirectInput: beasy_connect(%s:%d) failed, error %d\n", pszHost, nPort, WSAGetLastError());
-	beasy_closesocket(bfd);
-	return false;
-    }
-
-    // Send header indicating stdin redirection
-    if (beasy_send(bfd, &ch, sizeof(char)) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirectInput: beasy_send(%d) failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-	beasy_closesocket(bfd);
-	return false;
-    }
-
-    // Start thread to transfer data
-    pArg = new RedirectSocketArg;
-    pArg->hRead = NULL;
-    pArg->bfdRead = bfd;
-    pArg->hWrite = hIn;
-    pArg->bfdWrite = BFD_INVALID_SOCKET;
-    pArg->bReadisPipe = false;
-    pArg->bWriteisPipe = true;
-    pArg->hProcess = hProcess;
-    pArg->dwPid = dwPid;
-    pArg->nRank = nRank;
-    pArg->cType = 0;
-    HANDLE hThread;
-    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectSocketThread, pArg, 0, &dwThreadID);
-    if (hThread == NULL)
-    {
-	err_printf("ConnectAndRedirectInput: CreateThread failed, error %d\n", GetLastError());
-	CloseHandle(hIn);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    else
-	CloseHandle(hThread);
-    return true;
-}
-
-bool ConnectAndRedirectOutput(HANDLE hOut, char *pszHostPort, HANDLE hProcess, DWORD dwPid, int nRank, char cType)
-{
-    DWORD dwThreadID;
-    RedirectSocketArg *pArg;
-    int bfd;
-    char pszHost[MAX_HOST_LENGTH];
-    int nPort;
-    char *pszPort;
-    int nLength;
-
-    if ((pszHostPort == NULL) || (*pszHostPort == '\0'))
-    {
-	if (hOut != NULL)
-	    CloseHandle(hOut);
-	return true;
-    }
-
-    pszPort = strstr(pszHostPort, ":");
-    if (pszPort == NULL)
-    {
-	if (hOut != NULL)
-	    CloseHandle(hOut);
-	return false;
-    }
-    nLength = pszPort - pszHostPort;
-    strncpy(pszHost, pszHostPort, nLength);
-    pszHost[nLength] = '\0';
-    pszPort++;
-
-    nPort = atoi(pszPort);
-    
-    if (beasy_create(&bfd, 0, INADDR_ANY) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirectOutput: beasy_create failed, error %d\n", WSAGetLastError());
-	return false;
-    }
-    if (beasy_connect(bfd, pszHost, nPort) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirectOutput: beasy_connect(%s:%d) failed, error %d\n", pszHost, nPort, WSAGetLastError());
-	beasy_closesocket(bfd);
-	return false;
-    }
-
-    // Send header indicating stdout/err redirection
-    if (beasy_send(bfd, &cType, sizeof(char)) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirectOutput: beasy_send(%d) failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-	beasy_closesocket(bfd);
-	return false;
-    }
-
-    // Start thread to transfer data
-    pArg = new RedirectSocketArg;
-    pArg->hWrite = NULL;
-    pArg->bfdWrite = bfd;
-    pArg->hRead = hOut;
-    pArg->bfdRead = BFD_INVALID_SOCKET;
-    pArg->bReadisPipe = true;
-    pArg->bWriteisPipe = false;
-    pArg->hProcess = hProcess;
-    pArg->dwPid = dwPid;
-    pArg->nRank = nRank;
-    pArg->cType = cType;
-    HANDLE hThread;
-    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectSocketThread, pArg, 0, &dwThreadID);
-    if (hThread == NULL)
-    {
-	err_printf("ConnectAndRedirectOutput: CreateThread failed, error %d\n", GetLastError());
-	CloseHandle(hOut);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    else
-	CloseHandle(hThread);
-    return true;
-}
-
-bool ConnectAndRedirect2Outputs(HANDLE hOut, HANDLE hErr, char *pszHostPort, HANDLE hProcess, DWORD dwPid, int nRank)
-{
-    DWORD dwThreadID;
-    RedirectSocketArg *pArg;
-    int bfd;
-    char pszHost[MAX_HOST_LENGTH];
-    int nPort;
-    char *pszPort;
-    int nLength;
-    char cType = 1;
-
-    if ((pszHostPort == NULL) || (*pszHostPort == '\0'))
-    {
-	if (hOut != NULL)
-	    CloseHandle(hOut);
-	return true;
-    }
-
-    pszPort = strstr(pszHostPort, ":");
-    if (pszPort == NULL)
-    {
-	if (hOut != NULL)
-	    CloseHandle(hOut);
-	return false;
-    }
-    nLength = pszPort - pszHostPort;
-    strncpy(pszHost, pszHostPort, nLength);
-    pszHost[nLength] = '\0';
-    pszPort++;
-
-    nPort = atoi(pszPort);
-    
-    if (beasy_create(&bfd, 0, INADDR_ANY) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirect2Outputs: beasy_create failed, error %d\n", WSAGetLastError());
-	return false;
-    }
-    if (beasy_connect(bfd, pszHost, nPort) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirect2Outputs: beasy_connect(%s:%d) failed, error %d\n", pszHost, nPort, WSAGetLastError());
-	beasy_closesocket(bfd);
-	return false;
-    }
-
-    // Send header indicating stdout/err redirection
-    if (beasy_send(bfd, &cType, sizeof(char)) == SOCKET_ERROR)
-    {
-	err_printf("ConnectAndRedirect2Outputs: beasy_send(%d) failed, error %d\n", bget_fd(bfd), WSAGetLastError());
-	beasy_closesocket(bfd);
-	return false;
-    }
-
-    HANDLE hMutex = CreateMutex(NULL, FALSE, NULL);
-    HANDLE hThread;
-
-    // Start thread to transfer data from hOut
-    pArg = new RedirectSocketArg;
-    pArg->hWrite = NULL;
-    pArg->bfdWrite = bfd;
-    pArg->hRead = hOut;
-    pArg->bfdRead = BFD_INVALID_SOCKET;
-    pArg->bReadisPipe = true;
-    pArg->bWriteisPipe = false;
-    pArg->hProcess = hProcess;
-    pArg->dwPid = dwPid;
-    pArg->hMutex = hMutex;
-    pArg->bFreeMutex = false;
-    pArg->nRank = nRank;
-    pArg->cType = 1;
-    pArg->hOtherThread = NULL;
-    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectLockedSocketThread, pArg, 0, &dwThreadID);
-    if (hThread == NULL)
-    {
-	err_printf("ConnectAndRedirect2Outputs: CreateThread failed, error %d\n", GetLastError());
-	CloseHandle(hOut);
-	beasy_closesocket(bfd);
-	CloseHandle(hErr);
-	return false;
-    }
-
-    // Start thread to transfer data from hErr
-    pArg = new RedirectSocketArg;
-    pArg->nRank = nRank;
-    pArg->hWrite = NULL;
-    pArg->bfdWrite = bfd;
-    pArg->hRead = hErr;
-    pArg->bfdRead = BFD_INVALID_SOCKET;
-    pArg->bReadisPipe = true;
-    pArg->bWriteisPipe = false;
-    pArg->hProcess = NULL;
-    pArg->dwPid = -1;
-    pArg->hMutex = hMutex;
-    pArg->bFreeMutex = true;
-    pArg->nRank = nRank;
-    pArg->cType = 2;
-    pArg->hOtherThread = hThread;
-    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectLockedSocketThread, pArg, 0, &dwThreadID);
-    if (hThread == NULL)
-    {
-	err_printf("ConnectAndRedirect2Outputs: CreateThread failed, error %d\n", GetLastError());
-	CloseHandle(hErr);
-	beasy_closesocket(bfd);
-	return false;
-    }
-    else
-	CloseHandle(hThread);
-    return true;
+    ReleaseMutex(g_hProcessStructMutex);
 }
 
 void LaunchThread(LaunchThreadStruct *pArg)
@@ -636,39 +379,84 @@ void LaunchThread(LaunchThreadStruct *pArg)
     DWORD dwExitCode;
     char pszStr[MAX_CMD_LENGTH];
     char pszError[MAX_PATH];
+    bool bProcessAborted = false;
+    SYSTEMTIME stime;
+    char timestamp[256];
 
     pArg->Print();
 
     HANDLE hIn, hOut, hErr;
     int nError;
-    pszStr[0] = '\0';
-    if (g_bSingleUser)
+    if (strlen(pArg->pszEnv))
     {
-	pArg->hProcess = LaunchProcess(pArg->pszCmd, pArg->pszEnv, pArg->pszDir, &hIn, &hOut, &hErr, &pArg->nPid, &nError, pszStr);
+	sprintf(pszStr, "|MPD_ID=%s", pArg->pszSrcId);
+	strcat(pArg->pszEnv, pszStr);
     }
     else
     {
+	sprintf(pArg->pszEnv, "MPD_ID=%s", pArg->pszSrcId);
+    }
+    pszStr[0] = '\0';
+    if (g_bSingleUser)
+    {
+	if (!MapUserDrives(pArg->pszMap, pArg->pszAccount, pArg->pszPassword, pszStr))
+	{
+	}
+	pArg->hProcess = LaunchProcess(pArg->pszCmd, pArg->pszEnv, pArg->pszDir, 
+	    //BELOW_NORMAL_PRIORITY_CLASS, THREAD_PRIORITY_NORMAL,
+	    pArg->priorityClass, pArg->priority,
+	    &hIn, &hOut, &hErr, &pArg->nPid, &nError, pszStr, pArg->bUseDebugFlag);
+    }
+    else
+    {
+	if (pArg->pszAccount[0] == '\0')
+	{
+	    if (g_bMPDUserCapable)
+	    {
+		if (g_bUseMPDUser)
+		{
+		    _snprintf(pszStr, MAX_CMD_LENGTH, "launched src=%s dest=%s id=%s error=LaunchProcess failed, invalid mpd user for anonymous launch.", g_pszHost, pArg->pszSrcHost, pArg->pszSrcId);
+		}
+		else
+		{
+		    _snprintf(pszStr, MAX_CMD_LENGTH, "launched src=%s dest=%s id=%s error=LaunchProcess failed, anonymous launch not enabled on '%s'.", g_pszHost, pArg->pszSrcHost, pArg->pszSrcId, g_pszHost);
+		}
+	    }
+	    else
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "launched src=%s dest=%s id=%s error=LaunchProcess failed, anonymous launch request attempted on node without that capability enabled.", g_pszHost, pArg->pszSrcHost, pArg->pszSrcId);
+	    }
+	    ContextWriteString(g_pRightContext, pszStr);
+	    RemoveProcessStruct(pArg);
+	    InterlockedDecrement(&g_nNumProcsRunning);
+	    return;
+	}
 	pArg->hProcess = LaunchProcessLogon(pArg->pszAccount, pArg->pszPassword, 
-					pArg->pszCmd, pArg->pszEnv, pArg->pszDir, &hIn, &hOut, &hErr, &pArg->nPid, &nError, pszStr);
+				pArg->pszCmd, pArg->pszEnv, pArg->pszMap, pArg->pszDir, 
+				//BELOW_NORMAL_PRIORITY_CLASS, THREAD_PRIORITY_NORMAL,
+				pArg->priorityClass, pArg->priority,
+				&hIn, &hOut, &hErr, &pArg->nPid, &nError, pszStr, pArg->bUseDebugFlag);
     }
     if (pArg->hProcess == INVALID_HANDLE_VALUE)
     {
 	Translate_Error(nError, pszError, pszStr);
 	_snprintf(pszStr, MAX_CMD_LENGTH, "launched src=%s dest=%s id=%s error=LaunchProcess failed, %s", g_pszHost, pArg->pszSrcHost, pArg->pszSrcId, pszError);
-	EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_LAUNCH_RESULT);
-	ResetSelect();
+	ContextWriteString(g_pRightContext, pszStr);
 	RemoveProcessStruct(pArg);
 	InterlockedDecrement(&g_nNumProcsRunning);
 	return;
     }
 
     _snprintf(pszStr, MAX_CMD_LENGTH, "launched pid=%d src=%s dest=%s id=%s", pArg->nPid, g_pszHost, pArg->pszSrcHost, pArg->pszSrcId);
-    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_LAUNCH_RESULT);
-    ResetSelect();
+    ContextWriteString(g_pRightContext, pszStr);
 
     if (!ConnectAndRedirectInput(hIn, pArg->pszStdin, pArg->hProcess, pArg->nPid, pArg->nKRank))
     {
-	TerminateProcess(pArg->hProcess, 1);
+	if (!SafeTerminateProcess(pArg->hProcess, 1000001))
+	{
+	    if (GetLastError() != ERROR_PROCESS_ABORTED)
+		TerminateProcess(pArg->hProcess, 1000006);
+	}
     }
     else 
     {
@@ -676,31 +464,70 @@ void LaunchThread(LaunchThreadStruct *pArg)
 	{
 	    if (!ConnectAndRedirect2Outputs(hOut, hErr, pArg->pszStdout, pArg->hProcess, pArg->nPid, pArg->nKRank))
 	    {
-		TerminateProcess(pArg->hProcess, 1);
+		if (!SafeTerminateProcess(pArg->hProcess, 1000002))
+		{
+		    if (GetLastError() != ERROR_PROCESS_ABORTED)
+			TerminateProcess(pArg->hProcess, 1000007);
+		}
 	    }
 	}
 	else
 	{
 	    if (!ConnectAndRedirectOutput(hOut, pArg->pszStdout, pArg->hProcess, pArg->nPid, pArg->nKRank, 1))
 	    {
-		TerminateProcess(pArg->hProcess, 1);
+		if (!SafeTerminateProcess(pArg->hProcess, 1000003))
+		{
+		    if (GetLastError() != ERROR_PROCESS_ABORTED)
+			TerminateProcess(pArg->hProcess, 1000008);
+		}
 	    }
 	    else if (!ConnectAndRedirectOutput(hErr, pArg->pszStderr, pArg->hProcess, pArg->nPid, pArg->nKRank, 2))
 	    {
-		TerminateProcess(pArg->hProcess, 1);
+		if (!SafeTerminateProcess(pArg->hProcess, 1000004))
+		{
+		    if (GetLastError() != ERROR_PROCESS_ABORTED)
+			TerminateProcess(pArg->hProcess, 1000009);
+		}
 	    }
 	}
     }
 
+    if (pArg->bUseDebugFlag)
+    {
+	DebugWaitForProcess(bProcessAborted, pszError);
+    }
+
     WaitForSingleObject(pArg->hProcess, INFINITE);
+    GetLocalTime(&stime);
+    dwExitCode = 123456789;
     GetExitCodeProcess(pArg->hProcess, &dwExitCode);
     pArg->nExitCode = dwExitCode;
     CloseHandle(pArg->hProcess);
     pArg->hProcess = NULL;
 
-    _snprintf(pszStr, MAX_CMD_LENGTH, "exitcode code=%d src=%s dest=%s id=%s", pArg->nExitCode, g_pszHost, pArg->pszSrcHost, pArg->pszSrcId);
-    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_EXITCODE);
-    ResetSelect();
+#ifdef FOO
+    if (dwExitCode == ERROR_WAIT_NO_CHILDREN)
+    {
+	sprintf(pszError, "unexpected process termination.");
+	bProcessAborted = true;
+    }
+#endif
+
+    sprintf(timestamp, "%d.%d.%d.%dh.%dm.%ds.%dms", 
+	stime.wYear, stime.wMonth, stime.wDay, 
+	stime.wHour, stime.wMinute, stime.wSecond, stime.wMilliseconds);
+    if (bProcessAborted)
+    {
+	_snprintf(pszStr, MAX_CMD_LENGTH, "exitcode code=%d src=%s dest=%s id=%s time=%s error=%s", 
+	    pArg->nExitCode, g_pszHost, pArg->pszSrcHost, pArg->pszSrcId, timestamp, pszError);
+    }
+    else
+    {
+	_snprintf(pszStr, MAX_CMD_LENGTH, "exitcode code=%d src=%s dest=%s id=%s time=%s", 
+	    pArg->nExitCode, g_pszHost, pArg->pszSrcHost, pArg->pszSrcId, timestamp);
+    }
+    dbg_printf("...process %d exited, sending <%s>\n", pArg->nKRank, pszStr);
+    ContextWriteString(g_pRightContext, pszStr);
 
     RemoveProcessStruct(pArg);
     InterlockedDecrement(&g_nNumProcsRunning);
@@ -708,14 +535,24 @@ void LaunchThread(LaunchThreadStruct *pArg)
 
 void ShutdownAllProcesses()
 {
-    DWORD dwExitCode;
-    HANDLE hProcessStructMutex = CreateMutex(NULL, FALSE, "mpdProcessStructMutex");
-    WaitForSingleObject(hProcessStructMutex, INFINITE);
+    //DWORD dwExitCode;
+    WaitForSingleObject(g_hProcessStructMutex, INFINITE);
     LaunchThreadStruct *p = g_pProcessList;
     while (p)
     {
 	if (p->hProcess)
 	{
+	    if (!SafeTerminateProcess(p->hProcess, 1000005))
+	    {
+		if (GetLastError() != ERROR_PROCESS_ABORTED)
+		{
+		    if (!TerminateProcess(p->hProcess, 1000006))
+		    {
+			InterlockedDecrement(&g_nNumProcsRunning);
+		    }
+		}
+	    }
+	    /*
 	    if (GetExitCodeProcess(p->hProcess, &dwExitCode))
 	    {
 		if (dwExitCode == STILL_ACTIVE)
@@ -729,11 +566,11 @@ void ShutdownAllProcesses()
 		    }
 		}
 	    }
+	    */
 	}
 	p = p->pNext;
     }
-    ReleaseMutex(hProcessStructMutex);
-    CloseHandle(hProcessStructMutex);
+    ReleaseMutex(g_hProcessStructMutex);
 
     // Wait for all the threads to clean up the terminated processes
     while (g_nNumProcsRunning > 0)
@@ -742,9 +579,8 @@ void ShutdownAllProcesses()
 
 void MPD_KillProcess(int nPid)
 {
-    DWORD dwExitCode;
-    HANDLE hProcessStructMutex = CreateMutex(NULL, FALSE, "mpdProcessStructMutex");
-    WaitForSingleObject(hProcessStructMutex, INFINITE);
+    //DWORD dwExitCode;
+    WaitForSingleObject(g_hProcessStructMutex, INFINITE);
     LaunchThreadStruct *p = g_pProcessList;
     while (p)
     {
@@ -753,6 +589,29 @@ void MPD_KillProcess(int nPid)
 	    //dbg_printf("MPD_KillProcess found pid %d\n", nPid);
 	    if (p->hProcess && (p->hProcess != INVALID_HANDLE_VALUE))
 	    {
+		if (!SafeTerminateProcess(p->hProcess, 987654321))
+		{
+		    if (GetLastError() != ERROR_PROCESS_ABORTED)
+		    {
+			if (p->hProcess == NULL)
+			{
+			    // If the process handle is lost for some reason,
+			    // decrement its value so this function doesn't hang
+			    InterlockedDecrement(&g_nNumProcsRunning);
+			}
+			else
+			{
+			    if (!TerminateProcess(p->hProcess, 123456789))
+			    {
+				err_printf("TerminateProcess failed for process - handle(0x%p), pid(%d), error %d\n", p->hProcess, p->nPid, GetLastError());
+				// If I can't stop a process for some reason,
+				// decrement its value so this function doesn't hang
+				InterlockedDecrement(&g_nNumProcsRunning);
+			    }
+			}
+		    }
+		}
+		/*
 		//dbg_printf("MPD_KillProcess found valid hProcess 0x%x\n", p->hProcess);
 		if (GetExitCodeProcess(p->hProcess, &dwExitCode))
 		{
@@ -774,22 +633,24 @@ void MPD_KillProcess(int nPid)
 		{
 		    err_printf("MPD_KillProcess - GetExitCodeProcess failed, error %d\n", GetLastError());
 		}
+		*/
 	    }
-	    ReleaseMutex(hProcessStructMutex);
-	    CloseHandle(hProcessStructMutex);
+	    ReleaseMutex(g_hProcessStructMutex);
 	    return;
 	}
 	p = p->pNext;
     }
-    ReleaseMutex(hProcessStructMutex);
-    CloseHandle(hProcessStructMutex);
+    ReleaseMutex(g_hProcessStructMutex);
 }
 
 void Launch(char *pszStr)
 {
     char sTemp[10];
+    HANDLE hTemp;
     LaunchThreadStruct *pArg = new LaunchThreadStruct;
 
+    if (GetStringOpt(pszStr, "g", sTemp))
+	pArg->bUseDebugFlag = (stricmp(sTemp, "yes") == 0);
     if (GetStringOpt(pszStr, "k", sTemp))
 	pArg->nKRank = atoi(sTemp);
     else
@@ -799,11 +660,27 @@ void Launch(char *pszStr)
     GetStringOpt(pszStr, "src", pArg->pszSrcHost);
     GetStringOpt(pszStr, "id", pArg->pszSrcId);
     GetStringOpt(pszStr, "e", pArg->pszEnv);
+    GetStringOpt(pszStr, "m", pArg->pszMap);
     GetStringOpt(pszStr, "d", pArg->pszDir);
     GetStringOpt(pszStr, "c", pArg->pszCmd);
-    GetStringOpt(pszStr, "a", pArg->pszAccount);
-    GetStringOpt(pszStr, "p", pArg->pszPassword);
-    DecodePassword(pArg->pszPassword);
+    if (GetStringOpt(pszStr, "a", pArg->pszAccount))
+    {
+	GetStringOpt(pszStr, "p", pArg->pszPassword);
+	DecodePassword(pArg->pszPassword);
+    }
+    else
+    {
+	if (g_bMPDUserCapable && g_bUseMPDUser)
+	{
+	    strcpy(pArg->pszAccount, g_pszMPDUserAccount);
+	    strcpy(pArg->pszPassword, g_pszMPDUserPassword);
+	}
+	else
+	{
+	    pArg->pszAccount[0] = '\0';
+	    pArg->pszPassword[0] = '\0';
+	}
+    }
     GetStringOpt(pszStr, "0", pArg->pszStdin);
     GetStringOpt(pszStr, "1", pArg->pszStdout);
     GetStringOpt(pszStr, "2", pArg->pszStderr);
@@ -820,9 +697,68 @@ void Launch(char *pszStr)
 	strncpy(pArg->pszStderr, pszStr, MAX_HOST_LENGTH);
 	pArg->bMergeOutErr = true;
     }
+    if (GetStringOpt(pszStr, "r", pszStr))
+    {
+	int c,p;
+	char *token;
+	token = strtok(pszStr, ":");
+	if (token)
+	{
+	    c = atoi(token);
+	    switch (c)
+	    {
+	    case 0:
+		pArg->priorityClass = IDLE_PRIORITY_CLASS;
+		break;
+	    case 1:
+		pArg->priorityClass = BELOW_NORMAL_PRIORITY_CLASS;
+		break;
+	    case 2:
+		pArg->priorityClass = NORMAL_PRIORITY_CLASS;
+		break;
+	    case 3:
+		pArg->priorityClass = ABOVE_NORMAL_PRIORITY_CLASS;
+		break;
+	    case 4:
+		pArg->priorityClass = HIGH_PRIORITY_CLASS;
+		break;
+	    default:
+		pArg->priorityClass = BELOW_NORMAL_PRIORITY_CLASS;
+		break;
+	    }
+	    token = strtok(NULL, " \n");
+	    if (token != NULL)
+	    {
+		p = atoi(token);
+		switch (p)
+		{
+		case 0:
+		    pArg->priority = THREAD_PRIORITY_IDLE;
+		    break;
+		case 1:
+		    pArg->priority = THREAD_PRIORITY_LOWEST;
+		    break;
+		case 2:
+		    pArg->priority = THREAD_PRIORITY_BELOW_NORMAL;
+		    break;
+		case 3:
+		    pArg->priority = THREAD_PRIORITY_NORMAL;
+		    break;
+		case 4:
+		    pArg->priority = THREAD_PRIORITY_ABOVE_NORMAL;
+		    break;
+		case 5:
+		    pArg->priority = THREAD_PRIORITY_HIGHEST;
+		    break;
+		default:
+		    pArg->priority = THREAD_PRIORITY_NORMAL;
+		    break;
+		}
+	    }
+	}
+    }
 
-    HANDLE hProcessStructMutex = CreateMutex(NULL, FALSE, "mpdProcessStructMutex");
-    WaitForSingleObject(hProcessStructMutex, INFINITE);
+    WaitForSingleObject(g_hProcessStructMutex, INFINITE);
     if (!g_pProcessList)
     {
 	g_pProcessList = pArg;
@@ -832,14 +768,13 @@ void Launch(char *pszStr)
 	pArg->pNext = g_pProcessList;
 	g_pProcessList = pArg;
     }
-    ReleaseMutex(hProcessStructMutex);
-    CloseHandle(hProcessStructMutex);
+    ReleaseMutex(g_hProcessStructMutex);
 
     InterlockedIncrement(&g_nNumProcsRunning);
 
     DWORD dwThreadID;
-    pArg->hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)LaunchThread, pArg, 0, &dwThreadID);
-    if (pArg->hThread == NULL)
+    hTemp = pArg->hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)LaunchThread, pArg, 0, &dwThreadID);
+    if (hTemp == NULL)
     {
 	err_printf("Launch: CreateThread failed, error %d\n", GetLastError());
 	InterlockedDecrement(&g_nNumProcsRunning);
@@ -851,8 +786,7 @@ void Launch(char *pszStr)
 void ConcatenateProcessesToString(char *pszStr)
 {
     char pszLine[4096];
-    HANDLE hProcessStructMutex = CreateMutex(NULL, FALSE, "mpdProcessStructMutex");
-    WaitForSingleObject(hProcessStructMutex, INFINITE);
+    WaitForSingleObject(g_hProcessStructMutex, INFINITE);
     LaunchThreadStruct *p = g_pProcessList;
     if (p)
     {
@@ -865,6 +799,5 @@ void ConcatenateProcessesToString(char *pszStr)
 	strncat(pszStr, pszLine, MAX_CMD_LENGTH - 1 - strlen(pszStr));
 	p = p->pNext;
     }
-    ReleaseMutex(hProcessStructMutex);
-    CloseHandle(hProcessStructMutex);
+    ReleaseMutex(g_hProcessStructMutex);
 }

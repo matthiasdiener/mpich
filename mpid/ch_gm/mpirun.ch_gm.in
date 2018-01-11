@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if test -n "$mpirun_version" ; then 
+  if test -n "$machineFile" ; then
+    exec perl -x -S -w ${mpirun_version}.pl -machinefile $machineFile -np $np $progname $cmdLineArgs
+  else
+    exec perl -x -S -w ${mpirun_version}.pl -np $np $progname $cmdLineArgs
+  fi
+else 
+  exec perl -x -S -w ${0}.pl "$@"
+fi

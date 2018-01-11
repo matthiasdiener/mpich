@@ -19,6 +19,7 @@ public:
 // Dialog Data
 	//{{AFX_DATA(CAdvancedOptionsDlg)
 	enum { IDD = IDD_ADV_OPTIONS_DLG };
+	CEdit	m_jobhost_edit;
 	CButton	m_map_chk;
 	CButton	m_dir_chk;
 	CEdit	m_map_edit;
@@ -49,6 +50,9 @@ public:
 	BOOL	m_bNoColor;
 	CString	m_map;
 	BOOL	m_bMap;
+	BOOL	m_bCatch;
+	CString	m_jobhost;
+	BOOL	m_bUseJobHost;
 	//}}AFX_DATA
 
 
@@ -76,6 +80,7 @@ protected:
 	afx_msg void OnRedirectBrowseBtn();
 	afx_msg void OnMapChk();
 	afx_msg void OnHelpBtn();
+	afx_msg void OnJobhostChk();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

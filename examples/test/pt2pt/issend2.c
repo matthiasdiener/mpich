@@ -1,9 +1,10 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* This program comes from Bert Still, bert@h4p.llnl.gov 
    It caused problems for the T3D implementation.
  */
-#include "test.h"
-#include <mpi.h>
 #include <stdio.h>
+#include "mpi.h"
+#include "test.h"
 
 #define MESSAGE_TAG 8
 #define MESSAGE_VALUE 6
@@ -30,9 +31,11 @@ char *msg;
   exit(1);
 }
 
+int verbose = 0;
 int main( int argc, char *argv[] )
 {
   int size, rank;
+  int err=0, toterr;
 
   if (MPI_Init(&argc, &argv)!=MPI_SUCCESS) fatal(-1, "MPI_Init failed");
 
@@ -52,10 +55,14 @@ int main( int argc, char *argv[] )
                  recv_status.MPI_SOURCE, recv_status.MPI_TAG, MPI_COMM_WORLD,
                  &recv_status)!=MPI_SUCCESS)
       fatal(rank, "MPI_Recv failed");
-    if (recv_msg[0] == MESSAGE_VALUE)
-	printf( "test completed successfully\n" );
-    else
-	printf("test failed: rank %d: got %d\n", rank, recv_msg[0]);
+    if (recv_msg[0] == MESSAGE_VALUE) {
+	if (verbose) printf( "test completed successfully\n" );
+    }
+    else {
+	printf("test failed: rank %d: got %d but expected %d\n", 
+	       rank, recv_msg[0], MESSAGE_VALUE );
+	err++;
+    }
 
     fflush(stdout);
 
@@ -77,6 +84,15 @@ int main( int argc, char *argv[] )
 	fatal(rank, "Waitsome result is wrong");
   }
 
+  MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+  if (rank == 0) {
+      if (toterr == 0) {
+	  printf( " No Errors\n" );
+      }
+      else {
+	  printf (" Found %d errors\n", toterr );
+      }
+  }
   /* printf("rank %d: about to finalize\n", rank); */
   fflush(stdout);
   MPI_Finalize();

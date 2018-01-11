@@ -250,6 +250,12 @@ EOF
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg $ext`
 	        linkobjs="$linkobjs $fname.o"
+	    elif [ "$ext" = ".s" ] ; then
+	        # Support .s for those compilers that can
+	        DoCompile=1
+	        compileargs="$compileargs $arg"
+	        fname=`basename $arg .s`
+	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
 		if [ $HasDashC = 1 ] ; then
 	            compileargs="$compileargs $arg"
@@ -287,7 +293,7 @@ if [ $DoCompile = 1 -o $show_compile = 1 ] ; then
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
-    $Show $F77 $FINC $BASE_FFLAGS $FFLAGS $compileargs
+    $Show $F77 $BASE_FFLAGS $FFLAGS $compileargs $FINC
     status=$?
     if [ $status != 0 ] ; then 
 	exit $status
@@ -325,7 +331,10 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
     fi
     # If proflib is non-empty, then add it
     if [ -n "$proflib" ] ; then
-        mpilibs="$proflib $mpilibs $proflib"
+        # We include the last "mpilibs" because the mpilibs contains the
+        # ADI routines.  There is a chance that a file in the first mpich.a
+        # invokes a pmpi routine that needs an ADIO routine.
+        mpilibs="$proflib $mpilibs $proflib $mpilibs"
     fi
     # See the comment in mpicc about UseSharedLib
     # Also, don't use if the shared libraries don't exist yet

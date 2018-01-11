@@ -16,7 +16,7 @@ C
 C
 C Activate the handler with a simple case
 C 
-      call mpi_send( buf, 1, MPI_INTEGER, 2, -1, MPI_COMM_WORLD, ierr )
+      call mpi_send( buf, 1, MPI_INTEGER, -99, 0, MPI_COMM_WORLD, ierr )
       if (IERR .eq. MPI_SUCCESS) then
          errors = errors + 1
          print *, 'MPI_Send of negative rank did not return error'
@@ -26,7 +26,7 @@ C Check for a reasonable error message
       call mpi_error_class(ierr, errorclass, err)
       if (errorclass .ne. MPI_ERR_RANK) then
          errors = errors + 1
-         print *, 'Error class was not MPI_ERR_RANK'
+         print *, 'Error class was not MPI_ERR_RANK, was ', errorclass
       endif
 C
 C Activate the handler with a simple case
@@ -42,7 +42,7 @@ C Check for a reasonable error message
       call mpi_error_class(ierr, errorclass, err)
       if (errorclass .ne. MPI_ERR_RANK) then
          errors = errors + 1
-         print *, 'Error class was not MPI_ERR_RANK'
+         print *, 'Error class was not MPI_ERR_RANK, was ', errorclass
       endif
 
       if (errors .eq. 0) then

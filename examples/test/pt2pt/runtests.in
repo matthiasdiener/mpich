@@ -10,7 +10,7 @@ top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 MPICH_VERSION=@MPICH_VERSION@
 STOPFILE=$HOME/.stopmpichtests
-mpirun="@MPIRUN@"
+mpirun=${MPIRUN:-"@MPIRUN@"}
 MAKE="@MAKE@"
 MPIRUNMVBACK="@MPIRUNMVBACK@"
 #
@@ -193,6 +193,10 @@ RunTest typeub2 1 "**** Checking the type routines: MPI_UB(2) ****"
 
 RunTest typeub3 1 "**** Checking the type routines: MPI_UB(3) ****"
 
+RunTest typelb 1 "**** Checking the type routines: MPI_LB ****"
+
+RunTest structlb 1 "**** Checking Type_struct routines: MPI_LB ****"
+
 RunTest dtypelife 2 "**** Checking the type routines: MPI_Type_free ****"
 
 RunTest dataalign 2 "**** Checking the type alignment ****"
@@ -278,6 +282,8 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     #echo "*** secondf ***" >> pt2pt.out
     #$mpirun $args -np 2 ./secondf "$@" >> pt2pt.out 2>&1
     #
+    RunTest isendf 2 "*** Testing isend from Fortran ***"
+
     RunTest allpair 2 "*** Testing pt-2-pt from Fortran ***"
 
     RunTest allpair2 2 "*** Testing pt-2-pt from Fortran (many calls) ***"

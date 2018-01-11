@@ -632,7 +632,10 @@ if test -z "$ARCH" ; then
     print_error "Error: Couldn't guess target architecture."
 else
     eval "arch_$ARCH=1"
-    echo "  configuring for \"$ARCH\" target architecture"
+    # Don't echo the architecture because it may not be accurate.
+    # in particular, even though IRIXN32 is chosen (i.e., by using 
+    # CC="cc -n32"), this may echo IRIX64.
+    #echo "  configuring for \"$ARCH\" target architecture"
 fi
 
 if test -n "$arch_sgi" ; then

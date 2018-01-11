@@ -28,7 +28,7 @@ else
 fi
 
 if [ -z "${SWING_LIBS}" -o "${SWING_LIBS}" = "/swing.jar:/motif.jar" ]; then
-    echo "SWING_LIBS is NOT set!  You may be using Java 1.2 or 1.3"
+    echo "SWING_LIBS is NOT set!  You are using Java2."
     SWING_LIBS=""
 else
     echo "SWING_LIBS is set. SWING_LIBS = "${SWING_LIBS}

@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hfs.h,v 1.3 2000/02/09 21:29:46 thakur Exp $    
+ *   $Id: ad_hfs.h,v 1.4 2002/10/24 17:00:43 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

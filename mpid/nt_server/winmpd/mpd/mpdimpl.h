@@ -1,50 +1,17 @@
 #ifndef MPDIMPL_H
 #define MPDIMPL_H
 
+#include <winsock2.h>
+#include <windows.h>
 #include "mpd.h"
 #include "mpdutil.h"
-#include "bsocket.h"
 #include <stdio.h>
 
+// Definitions
+
 #define USE_LINGER_SOCKOPT
-
-// Debug and error macros
-
-/*
-void dbg_printf(char *str, ...);
-void warning_printf(char *str, ...);
-void err_printf(char *str, ...);
-*/
-/*
-//#define dbg_printf(str) { printf str ; fflush(stdout); }
-//#define dbg_printf(str) 
-extern char g_pszDbgString[4096];
-extern char g_pszDbgCheckString[100];
-#define dbg_printf(str) { sprintf str ; \
-			    if (GetStringOpt(g_pszDbgString, "p", g_pszDbgCheckString)) \
-				printf("STRING HAS PASSWORD\n"); \
-			    else printf(g_pszDbgString); }
-#define err_printf(str) { \
-    printf("--------------------\n"); \
-    printf str ; \
-    PRINT_STACK(); \
-    printf("--------------------\n\n"); \
-    fflush(stdout); }
-*/
-//#define ferr_printf(str) { FILE *fout; fout = fopen("error.out", "a"); fprintf str ; fclose(fout); }
-
-#define FUNC_STR_LENGTH 20
-extern __declspec(thread) char g_call_stack[100][FUNC_STR_LENGTH+1];
-extern __declspec(thread) int g_call_index;
-#define PUSH_FUNC(name) { \
-    strncpy(g_call_stack[g_call_index], name, FUNC_STR_LENGTH); \
-    g_call_stack[g_call_index][FUNC_STR_LENGTH] = '\0'; \
-    g_call_index++; }
-#define POP_FUNC() g_call_index--
-//#define PRINT_STACK() { for (int i=0; i<g_call_index; i++) { printf("%s\n", g_call_stack[i]); } }
-
-// Defines
-
+#define USE_SET_ERROR_MODE
+//#undef USE_SET_ERROR_MODE
 #define INVALID_HOSTNAME    "nohost"
 #define BLOCKING_TIMEOUT    2000
 #define INSERT1		    "insert1"
@@ -55,12 +22,9 @@ extern __declspec(thread) int g_call_index;
 
 enum MPD_Type {
     MPD_SOCKET,
-    MPD_LISTENER,
-    MPD_SIGNALLER,
-    MPD_RESELECTOR,
     MPD_LEFT_SOCKET,
     MPD_RIGHT_SOCKET,
-    MPD_CONSOLE_SOCKET
+    MPD_CONSOLE_SOCKET,
 };
 
 enum MPD_State { 
@@ -124,9 +88,15 @@ struct WriteNode
 struct MPD_Context
 {
     MPD_Context();
+    ~MPD_Context();
     void Print(FILE *fout);
     MPD_Type nType;
-    int bfd;
+    SOCKET sock;
+    OVERLAPPED ovl;
+    DWORD dwNumRead;
+    HANDLE hMutex;
+    bool bReadPosted;
+    bool bDeleted;
     char pszHost[MAX_HOST_LENGTH];
     char pszIn[MAX_CMD_LENGTH];
     char pszOut[MAX_CMD_LENGTH];
@@ -148,10 +118,10 @@ struct RedirectSocketArg
 {
     bool bReadisPipe;
     HANDLE hRead;
-    int bfdRead;
+    SOCKET sockRead;
     bool bWriteisPipe;
     HANDLE hWrite;
-    int bfdWrite;
+    SOCKET sockWrite;
     HANDLE hProcess;
     DWORD dwPid;
     HANDLE hMutex;
@@ -175,26 +145,39 @@ extern char g_pszTempDir[MAX_PATH];
 extern MPD_Context *g_pList;
 extern MPD_Context *g_pRightContext;
 extern MPD_Context *g_pLeftContext;
-extern bfd_set g_ReadSet, g_WriteSet;
-extern int g_bfdSignal;
-extern int g_bfdReSelect;
-extern int g_maxfds;
 extern int g_nSignalCount;
 extern bool g_bExitAllRoot;
 extern bool g_bSingleUser;
+extern bool g_bUseMPDUser;
+extern bool g_bMPDUserCapable;
+extern char g_pszMPDUserAccount[100];
+extern char g_pszMPDUserPassword[100];
 
 extern int g_nActiveW;
 extern int g_nActiveR;
 extern bool g_bStartAlone;
 extern HANDLE g_hBombDiffuseEvent;
 extern HANDLE g_hBombThread;
+extern HANDLE g_hProcessStructMutex;
+extern HANDLE g_hForwarderMutex;
+extern HANDLE g_hLaunchMutex;
+extern HANDLE g_hBarrierStructMutex;
+extern HANDLE g_hCommPort;
+extern HANDLE g_hCommPortEvent;
+extern int g_NumCommPortThreads;
+
+extern CRITICAL_SECTION g_ContextCriticalSection;
 
 // Function prototypes
+void RemoveAllCachedUsers();
+bool AuthenticateAcceptedConnection(MPD_Context **pp);
+bool AuthenticateConnectedConnection(MPD_Context **pp, char *passphrase = MPD_DEFAULT_PASSPHRASE);
 void ConnectAndRestart(int *argc, char ***argv, char *host);
 void GetMPDVersion(char *str, int length);
 void GetMPICHVersion(char *str, int length);
 bool snprintf_update(char *&pszStr, int &length, char *pszFormat, ...);
 void statMPD(char *pszParam, char *pszStr, int length);
+void statCachedUsers(char *pszOutput, int length);
 void statLaunchList(char *pszOutput, int length);
 void statProcessList(char *pszOutput, int length);
 void statConfig(char *pszOutput, int length);
@@ -206,22 +189,18 @@ void RedirectSocketThread(RedirectSocketArg *arg);
 void RedirectLockedSocketThread(RedirectSocketArg *arg);
 HANDLE BecomeUser(char *domainaccount, char *password, int *pnError);
 void LoseTheUser(HANDLE hUser);
-bool MapDrive(char *pszDrive, char *pszShare, char *pszAccount, char *pszPassword, char *pszError);
-bool UnmapDrive(char *pszDrive, char *pszError);
+bool MapUserDrives(char *pszMap, char *pszAccount, char *pszPassword, char *pszError);
+bool UnmapUserDrives(char *pszMap);
 void FinalizeDriveMaps();
 int ConsoleGetExitCode(int nPid);
-void SetBarrier(char *pszName, int nCount, int bfd);
+void SetBarrier(char *pszName, int nCount, SOCKET sock);
+void InformBarriers(int nId, int nExitCode);
 void ConcatenateForwardersToString(char *pszStr);
 int CreateIOForwarder(char *pszFwdHost, int nFwdPort);
 void StopIOForwarder(int nPort, bool bWaitForEmpty = true);
 void AbortAllForwarders();
 void RemoveAllTmpFiles();
-void GetDirectoryContents(int bfd, char *pszInputStr);
-bool ReadString(int bfd, char *str);
-bool ReadStringMax(int bfd, char *str, int max);
-bool ReadStringTimeout(int bfd, char *str, int timeout);
-int WriteString(int bfd, char *str);
-//void UpdateMPD(char *pszHost, char *pszAccount, char *pszPassword, int nPort, char *pszPhrase, char *pszFileName);
+void GetDirectoryContents(SOCKET sock, char *pszInputStr);
 void UpdateMPD(char *pszFileName);
 void UpdateMPD(char *pszOldFileName, char *pszNewFileName, int nPid);
 void RestartMPD();
@@ -229,36 +208,38 @@ void UpdateMPICH(char *pszFileName);
 void UpdateMPICHd(char *pszFileName);
 void ConcatenateProcessesToString(char *pszStr);
 void GetNameKeyValue(char *str, char *name, char *key, char *value);
-HANDLE LaunchProcess(char *cmd, char *env, char *dir, HANDLE *hIn, HANDLE *hOut, HANDLE *hErr, int *pdwPid, int *nError, char *pszError);
-HANDLE LaunchProcessLogon(char *domainaccount, char *password, char *cmd, char *env, char *dir, HANDLE *hIn, HANDLE *hOut, HANDLE *hErr, int *pdwPid, int *nError, char *pszError);
+bool ValidateUser(char *pszAccount, char *pszPassword, int *pError);
+HANDLE LaunchProcess(char *cmd, char *env, char *dir, int priorityClass, int priority, HANDLE *hIn, HANDLE *hOut, HANDLE *hErr, int *pdwPid, int *nError, char *pszError, bool bDebug);
+HANDLE LaunchProcessLogon(char *domainaccount, char *password, char *cmd, char *env, char *map, char *dir, int priorityClass, int priority, HANDLE *hIn, HANDLE *hOut, HANDLE *hErr, int *pdwPid, int *nError, char *pszError, bool bDebug);
+void DebugWaitForProcess(bool &bAborted, char *pszError);
 void MPD_KillProcess(int nPid);
 void ShutdownAllProcesses();
 void SavePid(int nId, int nPid);
 void SaveError(int nId, char *pszError);
 void SaveExitCode(int nId, int nExitCode);
-void DoReadSet(int bfd);
-void DoWriteSet(int bfd);
+void SaveTimestamp(int nId, char *timestamp);
+bool SaveMPIFinalized(int nId);
 void SignalExit();
-MPD_Context* GetContext(int bfd);
+MPD_Context* GetContext(SOCKET sock);
 void Launch(char *pszStr);
 void HandleConsoleRead(MPD_Context *p);
-void HandleConsoleWritten(MPD_Context *p);
 void HandleLeftRead(MPD_Context *p);
-void HandleLeftWritten(MPD_Context *p);
+void HandleRightRead(MPD_Context *p);
 void StringRead(MPD_Context *p);
-void StringWritten(MPD_Context *p);
 bool ConnectToSelf();
-bool InsertIntoRing(char *pszHost);
+bool InsertIntoRing(char *pszHost, bool bPostRead = true);
 
 #define RUN_EXIT    0
 #define RUN_RESTART 1
 int Run();
 
+void CheckContext(MPD_Context *p);
+void RemoveAllContexts();
+MPD_Context *CreateContext();
+void ContextInit();
+void ContextFinalize();
 void RemoveContext(MPD_Context *p);
 bool Extract(bool bReConnect);
-void EnqueueWrite(MPD_Context *p, char *pszStr, MPD_LowLevelState nState);
-void DequeueWrite(MPD_Context *p);
-void ResetSelect();
 void CreateMPDRegistry();
 void CleanMPDRegistry();
 bool ReadMPDRegistry(char *name, char *value, bool bPrintError = true);
@@ -268,6 +249,21 @@ void MPDRegistryToString(char *pszStr, int length);
 void ParseRegistry(bool bSetDefaults);
 void DoConsole(char *host, int port, bool bAskPwd, char *altphrase);
 void PrintState(FILE *fout);
+
+bool ConnectAndRedirectInput(HANDLE hIn, char *pszHostPort, HANDLE hProcess, DWORD dwPid, int nRank);
+bool ConnectAndRedirectOutput(HANDLE hOut, char *pszHostPort, HANDLE hProcess, DWORD dwPid, int nRank, char cType);
+bool ConnectAndRedirect2Outputs(HANDLE hOut, HANDLE hErr, char *pszHostPort, HANDLE hProcess, DWORD dwPid, int nRank);
+
+int ContextWriteString(MPD_Context *p, char *str = NULL);
+int PostContextRead(MPD_Context *p);
+char *ContextTypeToString(MPD_Context *p);
+
+void InitMPDUser();
+bool mpdSetupCryptoClient();
+bool mpdSavePasswordToRegistry(TCHAR *szAccount, TCHAR *szPassword, bool persistent=true);
+bool mpdReadPasswordFromRegistry(TCHAR *szAccount, TCHAR *szPassword);
+bool mpdDeletePasswordRegistryEntry();
+char *mpdCryptGetLastErrorString();
 
 #if defined(__cplusplus)
 extern "C" {

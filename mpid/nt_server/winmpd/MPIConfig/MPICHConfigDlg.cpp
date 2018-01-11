@@ -6,7 +6,6 @@
 #include "MPICHConfigDlg.h"
 #include "FindHostsDlg.h"
 #include "qvs.h"
-#include "bsocket.h"
 #include "mpd.h"
 #include "mpdutil.h"
 
@@ -80,6 +79,26 @@ CMPICHConfigDlg::CMPICHConfigDlg(CWnd* pParent /*=NULL*/)
 	m_buse_jobhost_pwd = FALSE;
 	m_bshow_config = FALSE;
 	m_config_host_msg = _T("");
+	m_bcatch = FALSE;
+	m_catch_no = TRUE;
+	m_catch_yes = FALSE;
+	m_bhost_catch = FALSE;
+	m_host_catch_no = TRUE;
+	m_host_catch_yes = FALSE;
+	m_bcodes = FALSE;
+	m_codes_no = TRUE;
+	m_codes_yes = FALSE;
+	m_bhost_codes = FALSE;
+	m_host_codes_no = TRUE;
+	m_host_codes_yes = FALSE;
+	m_blogfile = FALSE;
+	m_logfile = _T("");
+	m_logfile_no = TRUE;
+	m_logfile_yes = FALSE;
+	m_bhost_logfile = FALSE;
+	m_host_logfile = _T("");
+	m_host_logfile_no = TRUE;
+	m_host_logfile_yes = FALSE;
 	//}}AFX_DATA_INIT
 	m_bToggle = false;
 	m_bHostToggle = false;
@@ -94,7 +113,25 @@ void CMPICHConfigDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CMPICHConfigDlg)
+	DDX_Control(pDX, IDC_REDIRECT_MPD_STATIC, m_logfile_static);
+	DDX_Control(pDX, IDC_HOST_REDIRECT_MPD_YES, m_host_logfile_yes_btn);
+	DDX_Control(pDX, IDC_HOST_REDIRECT_MPD_NO, m_host_logfile_no_btn);
+	DDX_Control(pDX, IDC_HOST_REDIRECT_MPD_EDIT, m_host_logfile_edit);
+	DDX_Control(pDX, IDC_HOST_REDIRECT_MPD_CHK, m_host_logfile_chk);
+	DDX_Control(pDX, IDC_REDIRECT_MPD_YES, m_logfile_yes_btn);
+	DDX_Control(pDX, IDC_REDIRECT_MPD_NO, m_logfile_no_btn);
+	DDX_Control(pDX, IDC_REDIRECT_MPD_EDIT, m_logfile_edit);
+	DDX_Control(pDX, IDC_HOST_CODES_YES, m_host_codes_yes_btn);
+	DDX_Control(pDX, IDC_HOST_CODES_NO, m_host_codes_no_btn);
+	DDX_Control(pDX, IDC_HOST_CODES_CHK, m_host_codes_chk);
+	DDX_Control(pDX, IDC_CODES_YES, m_codes_yes_btn);
+	DDX_Control(pDX, IDC_CODES_NO, m_codes_no_btn);
 	DDX_Control(pDX, IDC_HOST_MSG_STATIC, m_config_host_msg_static);
+	DDX_Control(pDX, IDC_HOST_CATCH_YES, m_host_catch_yes_btn);
+	DDX_Control(pDX, IDC_HOST_CATCH_NO, m_host_catch_no_btn);
+	DDX_Control(pDX, IDC_HOST_CATCH_CHK, m_host_catch_chk);
+	DDX_Control(pDX, IDC_CATCH_YES, m_catch_yes_btn);
+	DDX_Control(pDX, IDC_CATCH_NO, m_catch_no_btn);
 	DDX_Control(pDX, IDC_HOST_STATIC, m_config_host_static);
 	DDX_Control(pDX, IDC_MODIFY_STATIC, m_modify_static);
 	DDX_Control(pDX, IDC_USE_JOBHOST_PWD_CHK, m_use_jobhost_pwd_chk);
@@ -197,6 +234,26 @@ void CMPICHConfigDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SHOW_CONFIG_CHK, m_bshow_config);
 	DDX_Control(pDX, IDC_MPD_PHRASE_DEFAULT_RADIO, m_mpd_default_radio);
 	DDX_Text(pDX, IDC_HOST_MSG_STATIC, m_config_host_msg);
+	DDX_Check(pDX, IDC_CATCH_CHK, m_bcatch);
+	DDX_Check(pDX, IDC_CATCH_NO, m_catch_no);
+	DDX_Check(pDX, IDC_CATCH_YES, m_catch_yes);
+	DDX_Check(pDX, IDC_HOST_CATCH_CHK, m_bhost_catch);
+	DDX_Check(pDX, IDC_HOST_CATCH_NO, m_host_catch_no);
+	DDX_Check(pDX, IDC_HOST_CATCH_YES, m_host_catch_yes);
+	DDX_Check(pDX, IDC_CODES_CHK, m_bcodes);
+	DDX_Check(pDX, IDC_CODES_NO, m_codes_no);
+	DDX_Check(pDX, IDC_CODES_YES, m_codes_yes);
+	DDX_Check(pDX, IDC_HOST_CODES_CHK, m_bhost_codes);
+	DDX_Check(pDX, IDC_HOST_CODES_NO, m_host_codes_no);
+	DDX_Check(pDX, IDC_HOST_CODES_YES, m_host_codes_yes);
+	DDX_Check(pDX, IDC_REDIRECT_MPD_CHK, m_blogfile);
+	DDX_Text(pDX, IDC_REDIRECT_MPD_EDIT, m_logfile);
+	DDX_Check(pDX, IDC_REDIRECT_MPD_NO, m_logfile_no);
+	DDX_Check(pDX, IDC_REDIRECT_MPD_YES, m_logfile_yes);
+	DDX_Check(pDX, IDC_HOST_REDIRECT_MPD_CHK, m_bhost_logfile);
+	DDX_Text(pDX, IDC_HOST_REDIRECT_MPD_EDIT, m_host_logfile);
+	DDX_Check(pDX, IDC_HOST_REDIRECT_MPD_NO, m_host_logfile_no);
+	DDX_Check(pDX, IDC_HOST_REDIRECT_MPD_YES, m_host_logfile_yes);
 	//}}AFX_DATA_MAP
 }
 
@@ -252,6 +309,24 @@ BEGIN_MESSAGE_MAP(CMPICHConfigDlg, CDialog)
 	ON_NOTIFY(LVN_KEYDOWN, IDC_HOST_LIST, OnKeydownHostList)
 	ON_WM_CLOSE()
 	ON_NOTIFY(LVN_ITEMCHANGING, IDC_HOST_LIST, OnItemchangingHostList)
+	ON_BN_CLICKED(IDC_HOST_CATCH_CHK, OnHostCatchChk)
+	ON_BN_CLICKED(IDC_HOST_CATCH_YES, OnHostCatchYes)
+	ON_BN_CLICKED(IDC_HOST_CATCH_NO, OnHostCatchNo)
+	ON_BN_CLICKED(IDC_CATCH_CHK, OnCatchChk)
+	ON_BN_CLICKED(IDC_CATCH_YES, OnCatchYes)
+	ON_BN_CLICKED(IDC_CATCH_NO, OnCatchNo)
+	ON_BN_CLICKED(IDC_HOST_CODES_YES, OnHostCodesYes)
+	ON_BN_CLICKED(IDC_HOST_CODES_NO, OnHostCodesNo)
+	ON_BN_CLICKED(IDC_HOST_CODES_CHK, OnHostCodesChk)
+	ON_BN_CLICKED(IDC_CODES_CHK, OnCodesChk)
+	ON_BN_CLICKED(IDC_CODES_YES, OnCodesYes)
+	ON_BN_CLICKED(IDC_CODES_NO, OnCodesNo)
+	ON_BN_CLICKED(IDC_REDIRECT_MPD_CHK, OnRedirectMpdChk)
+	ON_BN_CLICKED(IDC_REDIRECT_MPD_NO, OnRedirectMpdNo)
+	ON_BN_CLICKED(IDC_REDIRECT_MPD_YES, OnRedirectMpdYes)
+	ON_BN_CLICKED(IDC_HOST_REDIRECT_MPD_CHK, OnHostRedirectMpdChk)
+	ON_BN_CLICKED(IDC_HOST_REDIRECT_MPD_NO, OnHostRedirectMpdNo)
+	ON_BN_CLICKED(IDC_HOST_REDIRECT_MPD_YES, OnHostRedirectMpdYes)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -374,6 +449,9 @@ void CMPICHConfigDlg::OnToggleBtn()
     m_bmapping = m_bToggle;
     m_bpopup_debug = m_bToggle;
     m_buse_jobhost = m_bToggle;
+    m_bcatch = m_bToggle;
+    m_bcodes = m_bToggle;
+    m_blogfile = m_bToggle;
 
     UpdateData(FALSE);
 
@@ -384,6 +462,9 @@ void CMPICHConfigDlg::OnToggleBtn()
     OnMappingChk();
     OnPopupDebugChk();
     OnUseJobhostChk();
+    OnCatchChk();
+    OnCodesChk();
+    OnRedirectMpdChk();
 }
 
 void CMPICHConfigDlg::OnHostsChk() 
@@ -545,7 +626,7 @@ void ApplyBtnThread(CMPICHConfigDlg *pDlg)
     int num_hosts;
     char pszStr[8192];
     char host[100];
-    int bfd;
+    SOCKET sock;
 
     num_hosts = pDlg->m_host_list.GetItemCount();
     if (num_hosts == 0)
@@ -576,7 +657,7 @@ void ApplyBtnThread(CMPICHConfigDlg *pDlg)
 	    continue;
 	}
 	
-	if (ConnectToMPD(host, pDlg->m_nPort, pDlg->m_pszPhrase, &bfd) != 0)
+	if (ConnectToMPD(host, pDlg->m_nPort, pDlg->m_pszPhrase, &sock) != 0)
 	{
 	    PostMessage(pDlg->m_hWnd, USER_MSG_STEPIT, 0, 0);
 	    continue;
@@ -586,61 +667,83 @@ void ApplyBtnThread(CMPICHConfigDlg *pDlg)
 	if (pDlg->m_bhosts)
 	{
 	    sprintf(pszStr, "lset hosts=%s", pDlg->m_hosts);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	// set launch timeout
 	if (pDlg->m_blaunch)
 	{
 	    sprintf(pszStr, "lset timeout=%d", pDlg->m_launch);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	// set jobhost
 	if (pDlg->m_buse_jobhost)
 	{
 	    sprintf(pszStr, "lset usejobhost=%s", (pDlg->m_jobhost_yes) ? "yes" : "no");
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	    if (pDlg->m_jobhost_yes)
 	    {
 		sprintf(pszStr, "lset jobhost=%s", pDlg->m_jobhost);
-		WriteString(bfd, pszStr);
+		WriteString(sock, pszStr);
 		if (pDlg->m_buse_jobhost_pwd)
 		{
 		    sprintf(pszStr, "lset jobhostpwd=%s", pDlg->m_jobhost_pwd);
-		    WriteString(bfd, pszStr);
+		    WriteString(sock, pszStr);
 		}
 		else
 		{
-		    WriteString(bfd, "ldelete jobhostpwd");
+		    WriteString(sock, "ldelete jobhostpwd");
 		}
 	    }
+	}
+	// set logfile
+	if (pDlg->m_blogfile)
+	{
+	    if (pDlg->m_logfile_yes)
+		sprintf(pszStr, "setdbgoutput %s", pDlg->m_logfile);
+	    else
+		sprintf(pszStr, "canceldbgoutput");
+	    WriteString(sock, pszStr);
+	    ReadString(sock, pszStr);
 	}
 	// set color
 	if (pDlg->m_bcolor)
 	{
 	    sprintf(pszStr, "lset nocolor=%s", (pDlg->m_color_yes) ? "no" : "yes");
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	// set dots
 	if (pDlg->m_bdots)
 	{
 	    sprintf(pszStr, "lset nodots=%s", (pDlg->m_dots_yes) ? "no" : "yes");
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	// set mapping
 	if (pDlg->m_bmapping)
 	{
 	    sprintf(pszStr, "lset nomapping=%s", (pDlg->m_mapping_yes) ? "no" : "yes");
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	// set popup_debug
 	if (pDlg->m_bpopup_debug)
 	{
 	    sprintf(pszStr, "lset nopopup_debug=%s", (pDlg->m_popup_debug_yes) ? "no" : "yes");
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
+	}
+	// set dbg
+	if (pDlg->m_bcatch)
+	{
+	    sprintf(pszStr, "lset dbg=%s", (pDlg->m_catch_yes) ? "yes" : "no");
+	    WriteString(sock, pszStr);
+	}
+	// set exitcodes
+	if (pDlg->m_bcodes)
+	{
+	    sprintf(pszStr, "lset exitcodes=%s", (pDlg->m_codes_yes) ? "yes" : "no");
+	    WriteString(sock, pszStr);
 	}
 	// close the session
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
 
 	PostMessage(pDlg->m_hWnd, USER_MSG_STEPIT, 0, 0);
     }
@@ -660,6 +763,11 @@ void ApplyBtnThread(CMPICHConfigDlg *pDlg)
 void CMPICHConfigDlg::OnApplyBtn() 
 {
     UpdateData();
+    if (m_blogfile && m_logfile_yes && m_logfile.GetLength() < 1)
+    {
+	MessageBox("You must specify a log file if you are setting the logfile redirection option", "Error");
+	return;
+    }
     m_hApplyBtnThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ApplyBtnThread, this, 0, NULL);
 }
 
@@ -668,10 +776,16 @@ void CMPICHConfigDlg::OnApplySingleBtn()
     int index;
     char pszStr[8192];
     char host[100];
-    int bfd;
+    SOCKET sock;
     POSITION pos;
 
     UpdateData();
+
+    if (m_blogfile && m_logfile_yes && m_logfile.GetLength() < 1)
+    {
+	MessageBox("You must specify a log file if you are setting the logfile redirection option", "Error");
+	return;
+    }
 
     pos = m_host_list.GetFirstSelectedItemPosition();
     if (pos == NULL)
@@ -695,7 +809,7 @@ void CMPICHConfigDlg::OnApplySingleBtn()
 	return;
     }
 
-    if (ConnectToMPD(host, m_nPort, m_pszPhrase, &bfd) != 0)
+    if (ConnectToMPD(host, m_nPort, m_pszPhrase, &sock) != 0)
     {
 	SetCursor(hOldCursor);
 	sprintf(pszStr, "Failed to connect to the mpd on host %s", host);
@@ -707,61 +821,83 @@ void CMPICHConfigDlg::OnApplySingleBtn()
     if (m_bhosts)
     {
 	sprintf(pszStr, "lset hosts=%s", m_hosts);
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set launch timeout
     if (m_blaunch)
     {
 	sprintf(pszStr, "lset timeout=%d", m_launch);
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set jobhost
     if (m_buse_jobhost)
     {
 	sprintf(pszStr, "lset usejobhost=%s", (m_jobhost_yes) ? "yes" : "no");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
 	if (m_jobhost_yes)
 	{
 	    sprintf(pszStr, "lset jobhost=%s", m_jobhost);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	    if (m_buse_jobhost_pwd)
 	    {
 		sprintf(pszStr, "lset jobhostpwd=%s", m_jobhost_pwd);
-		WriteString(bfd, pszStr);
+		WriteString(sock, pszStr);
 	    }
 	    else
 	    {
-		WriteString(bfd, "ldelete jobhostpwd");
+		WriteString(sock, "ldelete jobhostpwd");
 	    }
 	}
+    }
+    // set logfile
+    if (m_blogfile)
+    {
+	if (m_logfile_yes)
+	    sprintf(pszStr, "setdbgoutput %s", m_logfile);
+	else
+	    sprintf(pszStr, "canceldbgoutput");
+	WriteString(sock, pszStr);
+	ReadString(sock, pszStr);
     }
     // set color
     if (m_bcolor)
     {
 	sprintf(pszStr, "lset nocolor=%s", (m_color_yes) ? "no" : "yes");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set dots
     if (m_bdots)
     {
 	sprintf(pszStr, "lset nodots=%s", (m_dots_yes) ? "no" : "yes");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set mapping
     if (m_bmapping)
     {
 	sprintf(pszStr, "lset nomapping=%s", (m_mapping_yes) ? "no" : "yes");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set popup_debug
     if (m_bpopup_debug)
     {
 	sprintf(pszStr, "lset nopopup_debug=%s", (m_popup_debug_yes) ? "no" : "yes");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
+    }
+    // set dbg
+    if (m_bcatch)
+    {
+	sprintf(pszStr, "lset dbg=%s", (m_catch_yes) ? "yes" : "no");
+	WriteString(sock, pszStr);
+    }
+    // set exitcodes
+    if (m_bcodes)
+    {
+	sprintf(pszStr, "lset exitcodes=%s", (m_codes_yes) ? "yes" : "no");
+	WriteString(sock, pszStr);
     }
     // close the session
-    WriteString(bfd, "done");
-    beasy_closesocket(bfd);
+    WriteString(sock, "done");
+    easy_closesocket(sock);
 
     SetCursor(hOldCursor);
 
@@ -781,6 +917,9 @@ void CMPICHConfigDlg::OnShowConfigChk()
     m_host_dots_chk.EnableWindow(m_bshow_config);
     m_host_mapping_chk.EnableWindow(m_bshow_config);
     m_host_popup_debug_chk.EnableWindow(m_bshow_config);
+    m_host_catch_chk.EnableWindow(m_bshow_config);
+    m_host_codes_chk.EnableWindow(m_bshow_config);
+    m_host_logfile_chk.EnableWindow(m_bshow_config);
 
     if (m_bshow_config)
     {
@@ -793,6 +932,9 @@ void CMPICHConfigDlg::OnShowConfigChk()
 	OnHostDotsChk();
 	OnHostMappingChk();
 	OnHostPopupDebugChk();
+	OnHostCatchChk();
+	OnHostCodesChk();
+	OnHostRedirectMpdChk();
 
 	//GetHostConfig();
 
@@ -818,6 +960,13 @@ void CMPICHConfigDlg::OnShowConfigChk()
 	m_host_mapping_no_btn.EnableWindow(FALSE);
 	m_host_popup_debug_yes_btn.EnableWindow(FALSE);
 	m_host_popup_debug_no_btn.EnableWindow(FALSE);
+	m_host_catch_yes_btn.EnableWindow(FALSE);
+	m_host_catch_no_btn.EnableWindow(FALSE);
+	m_host_codes_yes_btn.EnableWindow(FALSE);
+	m_host_codes_no_btn.EnableWindow(FALSE);
+	m_host_logfile_yes_btn.EnableWindow(FALSE);
+	m_host_logfile_no_btn.EnableWindow(FALSE);
+	m_host_logfile_edit.EnableWindow(FALSE);
 
 	//m_config_host_static.EnableWindow(FALSE);
 	//m_config_host_msg_static.EnableWindow(FALSE);
@@ -841,6 +990,9 @@ void CMPICHConfigDlg::OnHostToggleBtn()
     m_bhost_mapping = m_bHostToggle;
     m_bhost_popup_debug = m_bHostToggle;
     m_bhost_use_jobhost = m_bHostToggle;
+    m_bhost_catch = m_bHostToggle;
+    m_bhost_codes = m_bHostToggle;
+    m_bhost_logfile = m_bHostToggle;
 
     UpdateData(FALSE);
 
@@ -851,6 +1003,9 @@ void CMPICHConfigDlg::OnHostToggleBtn()
     OnHostMappingChk();
     OnHostPopupDebugChk();
     OnHostUseJobhostChk();
+    OnHostCatchChk();
+    OnHostCodesChk();
+    OnHostRedirectMpdChk();
 }
 
 void CMPICHConfigDlg::OnHostHostsChk() 
@@ -1025,7 +1180,7 @@ void CMPICHConfigDlg::OnHostPopupDebugNo()
 void CMPICHConfigDlg::OnModifyBtn() 
 {
     char pszStr[8192];
-    int bfd;
+    SOCKET sock;
 
     UpdateData();
 
@@ -1042,7 +1197,7 @@ void CMPICHConfigDlg::OnModifyBtn()
 
     HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
 
-    if (ConnectToMPD(m_config_host, m_nPort, m_pszPhrase, &bfd) != 0)
+    if (ConnectToMPD(m_config_host, m_nPort, m_pszPhrase, &sock) != 0)
     {
 	SetCursor(hOldCursor);
 	sprintf(pszStr, "Failed to connect to the mpd on host %s", m_config_host);
@@ -1054,61 +1209,83 @@ void CMPICHConfigDlg::OnModifyBtn()
     if (m_bhost_hosts)
     {
 	sprintf(pszStr, "lset hosts=%s", m_host_hosts);
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set launch timeout
     if (m_bhost_launch)
     {
 	sprintf(pszStr, "lset timeout=%d", m_host_launch);
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set jobhost
     if (m_bhost_use_jobhost)
     {
 	sprintf(pszStr, "lset usejobhost=%s", (m_host_jobhost_yes) ? "yes" : "no");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
 	if (m_host_jobhost_yes)
 	{
 	    sprintf(pszStr, "lset jobhost=%s", m_host_jobhost);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	    if (m_bhost_use_jobhost_pwd)
 	    {
 		sprintf(pszStr, "lset jobhostpwd=%s", m_host_jobhost_pwd);
-		WriteString(bfd, pszStr);
+		WriteString(sock, pszStr);
 	    }
 	    else
 	    {
-		WriteString(bfd, "ldelete jobhostpwd");
+		WriteString(sock, "ldelete jobhostpwd");
 	    }
 	}
+    }
+    // set logfile
+    if (m_bhost_logfile)
+    {
+	if (m_host_logfile_yes)
+	    sprintf(pszStr, "setdbgoutput %s", m_host_logfile);
+	else
+	    sprintf(pszStr, "canceldbgoutput");
+	WriteString(sock, pszStr);
+	ReadString(sock, pszStr);
     }
     // set color
     if (m_bhost_color)
     {
 	sprintf(pszStr, "lset nocolor=%s", (m_host_color_yes) ? "no" : "yes");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set dots
     if (m_bhost_dots)
     {
 	sprintf(pszStr, "lset nodots=%s", (m_host_dots_yes) ? "no" : "yes");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set mapping
     if (m_bhost_mapping)
     {
 	sprintf(pszStr, "lset nomapping=%s", (m_host_mapping_yes) ? "no" : "yes");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
     // set popup_debug
     if (m_bhost_popup_debug)
     {
 	sprintf(pszStr, "lset nopopup_debug=%s", (m_host_popup_debug_yes) ? "no" : "yes");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
+    }
+    // set dbg
+    if (m_bhost_catch)
+    {
+	sprintf(pszStr, "lset dbg=%s", (m_host_catch_yes) ? "yes" : "no");
+	WriteString(sock, pszStr);
+    }
+    // set exitcodes
+    if (m_bhost_codes)
+    {
+	sprintf(pszStr, "lset exitcodes=%s", (m_host_codes_yes) ? "yes" : "no");
+	WriteString(sock, pszStr);
     }
     // close the session
-    WriteString(bfd, "done");
-    beasy_closesocket(bfd);
+    WriteString(sock, "done");
+    easy_closesocket(sock);
 
     SetCursor(hOldCursor);
 
@@ -1120,7 +1297,7 @@ BOOL CMPICHConfigDlg::OnInitDialog()
 {
     CDialog::OnInitDialog();
     
-    bsocket_init();
+    easy_socket_init();
     ParseRegistry();
 
     // set the host configuration stuff
@@ -1134,6 +1311,9 @@ BOOL CMPICHConfigDlg::OnInitDialog()
     OnDotsChk();
     OnMappingChk();
     OnPopupDebugChk();
+    OnCatchChk();
+    OnCodesChk();
+    OnRedirectMpdChk();
     
     char host[100] = "";
     gethostname(host, 100);
@@ -1151,7 +1331,7 @@ void CMPICHConfigDlg::UpdateModifyButtonState()
 {
     UpdateData();
 
-    if (m_bhost_hosts || m_bhost_launch || m_bhost_use_jobhost || m_bhost_color || m_bhost_dots || m_bhost_mapping || m_bhost_popup_debug)
+    if (m_bhost_hosts || m_bhost_launch || m_bhost_use_jobhost || m_bhost_color || m_bhost_dots || m_bhost_mapping || m_bhost_popup_debug || m_bhost_catch || m_bhost_codes || m_bhost_logfile)
     {
 	m_modify_btn.EnableWindow(m_bshow_config);
 	m_modify_static.EnableWindow(m_bshow_config);
@@ -1167,7 +1347,7 @@ void CMPICHConfigDlg::UpdateApplyButtonStates()
 {
     UpdateData();
 
-    if (m_bhosts || m_blaunch || m_buse_jobhost || m_bcolor || m_bdots || m_bmapping || m_bpopup_debug)
+    if (m_bhosts || m_blaunch || m_buse_jobhost || m_bcolor || m_bdots || m_bmapping || m_bpopup_debug || m_bcatch || m_bcodes || m_blogfile)
     {
 	m_apply_btn.EnableWindow(TRUE);
 	m_apply_single_btn.EnableWindow(TRUE);
@@ -1199,6 +1379,7 @@ void CMPICHConfigDlg::OnKeydownHostList(NMHDR* pNMHDR, LRESULT* pResult)
 		    index--;
 		if (n > 0)
 		    m_host_list.SetItemState(index, LVIS_SELECTED, LVIS_SELECTED);
+		GetHostsString();
 	    }
 	}
     }
@@ -1214,7 +1395,7 @@ void CMPICHConfigDlg::OnClose()
 	CloseHandle(m_hApplyBtnThread);
 	m_hApplyBtnThread = NULL;
     }
-    bsocket_finalize();
+    easy_socket_finalize();
     CDialog::OnClose();
 }
 
@@ -1226,6 +1407,7 @@ void CMPICHConfigDlg::OnItemchangingHostList(NMHDR* pNMHDR, LRESULT* pResult)
     {
 	m_host_list.GetItemText(pNMListView->iItem, pNMListView->iSubItem, m_config_host.GetBuffer(100), 100);
 	m_config_host.ReleaseBuffer();
+	m_config_host_msg = "";
 	UpdateData(FALSE);
 	if (m_bshow_config)
 	{
@@ -1238,7 +1420,7 @@ void CMPICHConfigDlg::OnItemchangingHostList(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CMPICHConfigDlg::GetHostConfig()
 {
-    int bfd;
+    SOCKET sock;
     char pszStr[MAX_CMD_LENGTH] = "mpd not installed";
 
     UpdateData();
@@ -1265,19 +1447,25 @@ void CMPICHConfigDlg::GetHostConfig()
     
     HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
     
-    if (ConnectToMPDquick(m_config_host, m_nPort, m_pszPhrase, &bfd) != 0)
+    if (ConnectToMPDquickReport(m_config_host, m_nPort, m_pszPhrase, &sock, pszStr) != 0)
     {
-	m_config_host_msg = "mpd not installed";
+	//m_config_host_msg = "connect to " + m_config_host + " failed";
+	if (strstr(pszStr, "10061"))
+	    m_config_host_msg = "mpd not installed";
+	else if (strstr(pszStr, "11001"))
+	    m_config_host_msg = "unknown host";
+	else
+	    m_config_host_msg = pszStr;
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
 	return;
     }
 
     // get mpd version
-    WriteString(bfd, "version");
-    if (!ReadStringTimeout(bfd, pszStr, 10))
+    WriteString(sock, "version");
+    if (!ReadStringTimeout(sock, pszStr, MPD_SHORT_TIMEOUT))
     {
-	WriteString(bfd, "done");
+	WriteString(sock, "done");
 	m_config_host_msg = "unable to reach mpd";
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
@@ -1286,10 +1474,10 @@ void CMPICHConfigDlg::GetHostConfig()
     // where do I put the mpd version?
 
     // get hosts
-    WriteString(bfd, "lget hosts");
-    if (!ReadStringTimeout(bfd, pszStr, 10))
+    WriteString(sock, "lget hosts");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
     {
-	WriteString(bfd, "done");
+	WriteString(sock, "done");
 	m_config_host_msg = "unable to reach mpd";
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
@@ -1298,10 +1486,10 @@ void CMPICHConfigDlg::GetHostConfig()
     m_host_hosts = pszStr;
 
     // get launch timeout
-    WriteString(bfd, "lget timeout");
-    if (!ReadStringTimeout(bfd, pszStr, 10))
+    WriteString(sock, "lget timeout");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
     {
-	WriteString(bfd, "done");
+	WriteString(sock, "done");
 	m_config_host_msg = "unable to reach mpd";
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
@@ -1312,10 +1500,10 @@ void CMPICHConfigDlg::GetHostConfig()
 	m_host_launch = 10;
 
     // get nocolor
-    WriteString(bfd, "lget nocolor");
-    if (!ReadStringTimeout(bfd, pszStr, 10))
+    WriteString(sock, "lget nocolor");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
     {
-	WriteString(bfd, "done");
+	WriteString(sock, "done");
 	m_config_host_msg = "unable to reach mpd";
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
@@ -1324,10 +1512,10 @@ void CMPICHConfigDlg::GetHostConfig()
     if (strlen(pszStr) == 0)
     {
 	// if nocolor is not set, get color
-	WriteString(bfd, "lget color");
-	if (!ReadStringTimeout(bfd, pszStr, 10))
+	WriteString(sock, "lget color");
+	if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
 	{
-	    WriteString(bfd, "done");
+	    WriteString(sock, "done");
 	    m_config_host_msg = "unable to reach mpd";
 	    UpdateData(FALSE);
 	    SetCursor(hOldCursor);
@@ -1345,10 +1533,10 @@ void CMPICHConfigDlg::GetHostConfig()
     m_host_color_yes = !m_host_color_no;
 
     // get nodots
-    WriteString(bfd, "lget nodots");
-    if (!ReadStringTimeout(bfd, pszStr, 10))
+    WriteString(sock, "lget nodots");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
     {
-	WriteString(bfd, "done");
+	WriteString(sock, "done");
 	m_config_host_msg = "unable to reach mpd";
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
@@ -1358,10 +1546,10 @@ void CMPICHConfigDlg::GetHostConfig()
     m_host_dots_yes = !m_host_dots_no;
 
     // get nomapping
-    WriteString(bfd, "lget nomapping");
-    if (!ReadStringTimeout(bfd, pszStr, 10))
+    WriteString(sock, "lget nomapping");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
     {
-	WriteString(bfd, "done");
+	WriteString(sock, "done");
 	m_config_host_msg = "unable to reach mpd";
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
@@ -1371,10 +1559,10 @@ void CMPICHConfigDlg::GetHostConfig()
     m_host_mapping_yes = !m_host_mapping_no;
 
     // get nopopup_debug
-    WriteString(bfd, "lget nopopup_debug");
-    if (!ReadStringTimeout(bfd, pszStr, 10))
+    WriteString(sock, "lget nopopup_debug");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
     {
-	WriteString(bfd, "done");
+	WriteString(sock, "done");
 	m_config_host_msg = "unable to reach mpd";
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
@@ -1383,11 +1571,37 @@ void CMPICHConfigDlg::GetHostConfig()
     m_host_popup_debug_no = (stricmp(pszStr, "yes") == 0);
     m_host_popup_debug_yes = !m_host_popup_debug_no;
 
-    // get usejobhost
-    WriteString(bfd, "lget usejobhost");
-    if (!ReadStringTimeout(bfd, pszStr, 10))
+    // get dbg
+    WriteString(sock, "lget dbg");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
     {
-	WriteString(bfd, "done");
+	WriteString(sock, "done");
+	m_config_host_msg = "unable to reach mpd";
+	UpdateData(FALSE);
+	SetCursor(hOldCursor);
+	return;
+    }
+    m_host_catch_yes = (stricmp(pszStr, "yes") == 0);
+    m_host_catch_no = !m_host_catch_yes;
+
+    // get exitcodes
+    WriteString(sock, "lget exitcodes");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
+    {
+	WriteString(sock, "done");
+	m_config_host_msg = "unable to reach mpd";
+	UpdateData(FALSE);
+	SetCursor(hOldCursor);
+	return;
+    }
+    m_host_codes_yes = (stricmp(pszStr, "yes") == 0);
+    m_host_codes_no = !m_host_codes_yes;
+
+    // get usejobhost
+    WriteString(sock, "lget usejobhost");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
+    {
+	WriteString(sock, "done");
 	m_config_host_msg = "unable to reach mpd";
 	UpdateData(FALSE);
 	SetCursor(hOldCursor);
@@ -1400,10 +1614,10 @@ void CMPICHConfigDlg::GetHostConfig()
 	if (m_host_jobhost_yes)
 	{
 	    // get jobhost
-	    WriteString(bfd, "lget jobhost");
-	    if (!ReadStringTimeout(bfd, pszStr, 10))
+	    WriteString(sock, "lget jobhost");
+	    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
 	    {
-		WriteString(bfd, "done");
+		WriteString(sock, "done");
 		m_config_host_msg = "unable to reach mpd";
 		UpdateData(FALSE);
 		SetCursor(hOldCursor);
@@ -1413,10 +1627,10 @@ void CMPICHConfigDlg::GetHostConfig()
 	    m_host_jobhost_edit.EnableWindow();
 
 	    // get jobhostpwd
-	    WriteString(bfd, "lget jobhostpwd");
-	    if (!ReadStringTimeout(bfd, pszStr, 10))
+	    WriteString(sock, "lget jobhostpwd");
+	    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
 	    {
-		WriteString(bfd, "done");
+		WriteString(sock, "done");
 		m_config_host_msg = "unable to reach mpd";
 		UpdateData(FALSE);
 		SetCursor(hOldCursor);
@@ -1446,9 +1660,46 @@ void CMPICHConfigDlg::GetHostConfig()
 	m_host_jobhost_pwd_edit.EnableWindow(FALSE);
     }
 
+    // get logfile
+    WriteString(sock, "lget RedirectToLogfile");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
+    {
+	WriteString(sock, "done");
+	m_config_host_msg = "unable to reach mpd";
+	UpdateData(FALSE);
+	SetCursor(hOldCursor);
+	return;
+    }
+    if (strlen(pszStr))
+    {
+	m_host_logfile_yes = (stricmp(pszStr, "yes") == 0);
+	m_host_logfile_no = !m_host_logfile_yes;
+    }
+    else
+    {
+	m_host_logfile_yes = false;
+	m_host_logfile_no = true;
+	m_host_logfile = "";
+	m_host_logfile_edit.EnableWindow(FALSE);
+    }
+
+    // get logfile
+    WriteString(sock, "lget LogFile");
+    if (!ReadStringTimeout(sock, pszStr, MPD_DEFAULT_TIMEOUT))
+    {
+	WriteString(sock, "done");
+	m_config_host_msg = "unable to reach mpd";
+	UpdateData(FALSE);
+	SetCursor(hOldCursor);
+	return;
+    }
+    m_host_logfile = pszStr;
+    if (m_host_logfile_yes)
+	m_host_logfile_edit.EnableWindow();
+
     // get mpich version
-    WriteString(bfd, "mpich version");
-    if (ReadStringTimeout(bfd, pszStr, 10))
+    WriteString(sock, "mpich version");
+    if (ReadStringTimeout(sock, pszStr, MPD_SHORT_TIMEOUT))
     {
 	m_config_host_msg = "mpich ";
 	m_config_host_msg += pszStr;
@@ -1459,8 +1710,8 @@ void CMPICHConfigDlg::GetHostConfig()
     }
 
     // close the session
-    WriteString(bfd, "done");
-    beasy_closesocket(bfd);
+    WriteString(sock, "done");
+    easy_closesocket(sock);
 
     SetCursor(hOldCursor);
     UpdateData(FALSE);
@@ -1529,4 +1780,162 @@ LRESULT CMPICHConfigDlg::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 	break;
     }
     return CDialog::WindowProc(message, wParam, lParam);
+}
+
+void CMPICHConfigDlg::OnHostCatchChk() 
+{
+    UpdateData();
+    //m_host_catch_yes_btn.EnableWindow(m_bhost_catch);
+    //m_host_catch_no_btn.EnableWindow(m_bhost_catch);
+    m_host_catch_yes_btn.EnableWindow();
+    m_host_catch_no_btn.EnableWindow();
+    UpdateModifyButtonState();
+}
+
+void CMPICHConfigDlg::OnHostCatchYes() 
+{
+    UpdateData();
+    m_host_catch_yes = TRUE;
+    m_host_catch_no = FALSE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostCatchNo() 
+{
+    UpdateData();
+    m_host_catch_yes = FALSE;
+    m_host_catch_no = TRUE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnCatchChk() 
+{
+    UpdateData();
+    m_catch_yes_btn.EnableWindow(m_bcatch);
+    m_catch_no_btn.EnableWindow(m_bcatch);
+    UpdateApplyButtonStates();
+}
+
+void CMPICHConfigDlg::OnCatchYes() 
+{
+    UpdateData();
+    m_catch_yes = TRUE;
+    m_catch_no = FALSE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnCatchNo() 
+{
+    UpdateData();
+    m_catch_yes = FALSE;
+    m_catch_no = TRUE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostCodesYes() 
+{
+    UpdateData();
+    m_host_codes_yes = TRUE;
+    m_host_codes_no = FALSE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostCodesNo() 
+{
+    UpdateData();
+    m_host_codes_yes = FALSE;
+    m_host_codes_no = TRUE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostCodesChk() 
+{
+    UpdateData();
+    //m_host_codes_yes_btn.EnableWindow(m_bhost_codes);
+    //m_host_codes_no_btn.EnableWindow(m_bhost_codes);
+    m_host_codes_yes_btn.EnableWindow();
+    m_host_codes_no_btn.EnableWindow();
+    UpdateModifyButtonState();
+}
+
+void CMPICHConfigDlg::OnCodesChk() 
+{
+    UpdateData();
+    m_codes_yes_btn.EnableWindow(m_bcodes);
+    m_codes_no_btn.EnableWindow(m_bcodes);
+    UpdateApplyButtonStates();
+}
+
+void CMPICHConfigDlg::OnCodesYes() 
+{
+    UpdateData();
+    m_codes_yes = TRUE;
+    m_codes_no = FALSE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnCodesNo() 
+{
+    UpdateData();
+    m_codes_yes = FALSE;
+    m_codes_no = TRUE;
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnRedirectMpdChk() 
+{
+    UpdateData();
+    m_logfile_yes_btn.EnableWindow(m_blogfile);
+    m_logfile_no_btn.EnableWindow(m_blogfile);
+
+    m_logfile_static.EnableWindow(m_blogfile && m_logfile_yes);
+    m_logfile_edit.EnableWindow(m_blogfile && m_logfile_yes);
+    UpdateApplyButtonStates();
+}
+
+void CMPICHConfigDlg::OnRedirectMpdNo() 
+{
+    UpdateData();
+    m_logfile_yes = FALSE;
+    m_logfile_no = TRUE;
+    m_logfile_static.EnableWindow(FALSE);
+    m_logfile_edit.EnableWindow(FALSE);
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnRedirectMpdYes() 
+{
+    UpdateData();
+    m_logfile_yes = TRUE;
+    m_logfile_no = FALSE;
+    m_logfile_static.EnableWindow();
+    m_logfile_edit.EnableWindow();
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostRedirectMpdChk() 
+{
+    UpdateData();
+    m_host_logfile_yes_btn.EnableWindow();
+    m_host_logfile_no_btn.EnableWindow();
+    m_host_logfile_edit.EnableWindow(m_host_logfile_yes);
+    UpdateModifyButtonState();
+}
+
+void CMPICHConfigDlg::OnHostRedirectMpdNo() 
+{
+    UpdateData();
+    m_host_logfile_yes = FALSE;
+    m_host_logfile_no = TRUE;
+    m_host_logfile_edit.EnableWindow(FALSE);
+    UpdateData(FALSE);
+}
+
+void CMPICHConfigDlg::OnHostRedirectMpdYes() 
+{
+    UpdateData();
+    m_host_logfile_yes = TRUE;
+    m_host_logfile_no = FALSE;
+    m_host_logfile_edit.EnableWindow();
+    UpdateData(FALSE);
 }

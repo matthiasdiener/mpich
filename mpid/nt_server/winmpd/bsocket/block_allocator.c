@@ -1,3 +1,8 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
 #include "blockallocator.h"
 #include "bsocket.h"
 #include <stdlib.h>
@@ -11,8 +16,12 @@ struct BlockAllocator_struct
     struct BlockAllocator_struct *pNextAllocation;
     unsigned int nBlockSize;
     int nCount, nIncrementSize;
+#ifdef WITH_ALLOCATOR_LOCKING
     MPIDU_Lock_t lock;
+#endif
 };
+
+int g_nLockSpinCount = 100;
 
 BlockAllocator BlockAllocInit(unsigned int blocksize, int count, int incrementsize, void *(* alloc_fn)(unsigned int size), void (* free_fn)(void *p))
 {
@@ -29,7 +38,9 @@ BlockAllocator BlockAllocInit(unsigned int blocksize, int count, int incrementsi
     p->nCount = count;
     p->nBlockSize = blocksize;
     p->pNextFree = (void**)(p + 1);
+#ifdef WITH_ALLOCATOR_LOCKING
     MPIDU_Init_lock(&p->lock);
+#endif
 
     ppVoid = (void**)(p + 1);
     for (i=0; i<count-1; i++)
@@ -57,7 +68,9 @@ void * BlockAlloc(BlockAllocator p)
 {
     void *pVoid;
     
+#ifdef WITH_ALLOCATOR_LOCKING
     MPIDU_Lock(&p->lock);
+#endif
 
     pVoid = p->pNextFree + 1;
     
@@ -72,20 +85,26 @@ void * BlockAlloc(BlockAllocator p)
     else
 	p->pNextFree = *(p->pNextFree);
 
+#ifdef WITH_ALLOCATOR_LOCKING
     MPIDU_Unlock(&p->lock);
+#endif
 
     return pVoid;
 }
 
 int BlockFree(BlockAllocator p, void *pBlock)
 {
+#ifdef WITH_ALLOCATOR_LOCKING
     MPIDU_Lock(&p->lock);
+#endif
 
     ((void**)pBlock)--;
     *((void**)pBlock) = p->pNextFree;
     p->pNextFree = pBlock;
 
+#ifdef WITH_ALLOCATOR_LOCKING
     MPIDU_Unlock(&p->lock);
+#endif
 
     return 0;
 }

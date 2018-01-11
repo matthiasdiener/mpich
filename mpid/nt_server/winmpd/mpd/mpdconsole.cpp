@@ -1,6 +1,5 @@
 #include "mpdimpl.h"
 #include "mpdutil.h"
-#include "bsocket.h"
 #include <string.h>
 #include <winsock2.h>
 #include <windows.h>
@@ -8,6 +7,8 @@
 #include "database.h"
 #include "GetStringOpt.h"
 #include "Translate_Error.h"
+
+#define TIMESTAMP_LENGTH 256
 
 enum LaunchStatus
 {
@@ -21,6 +22,7 @@ enum LaunchStatus
 struct LaunchStateStruct
 {
     LaunchStateStruct();
+    ~LaunchStateStruct();
     int nId;
     int nBfd;
     int nPid;
@@ -30,13 +32,17 @@ struct LaunchStateStruct
     bool bPidRequested;
     bool bExitStateRequested;
     char pszHost[MAX_HOST_LENGTH];
+    char timestamp[TIMESTAMP_LENGTH];
+    bool bMPIFinalized;
+    HANDLE hMutex;
     LaunchStateStruct *pNext;
 };
 
 LaunchStateStruct::LaunchStateStruct()
 {
+    hMutex = CreateMutex(NULL, FALSE, NULL);
     nId = 0;
-    nBfd = BFD_INVALID_SOCKET;
+    nBfd = INVALID_SOCKET;
     nPid = -1;
     nStatus = LAUNCH_INVALID;
     pszError[0] = '\0';
@@ -44,7 +50,14 @@ LaunchStateStruct::LaunchStateStruct()
     bPidRequested = false;
     bExitStateRequested = false;
     pszHost[0] = '\0';
+    timestamp[0] = '\0';
+    bMPIFinalized = false;
     pNext = NULL;
+}
+
+LaunchStateStruct::~LaunchStateStruct()
+{
+    CloseHandle(hMutex);
 }
 
 int g_nCurrentLaunchId = 0;
@@ -55,7 +68,7 @@ static void LaunchToString(LaunchStateStruct *p, char *pszStr, int length)
     if (!snprintf_update(pszStr, length, "LAUNCH STRUCT:\n"))
 	return;
 
-    if (!snprintf_update(pszStr, length, " id: %d\n pid: %d\n host: %s\n bfd: %d\n exitcode: %d\n status: ", 
+    if (!snprintf_update(pszStr, length, " id: %d\n pid: %d\n host: %s\n sock: %d\n exitcode: %d\n status: ", 
 	p->nId, p->nPid, p->pszHost, p->nBfd, p->nExitCode))
 	return;
     switch (p->nStatus)
@@ -100,6 +113,11 @@ static void LaunchToString(LaunchStateStruct *p, char *pszStr, int length)
 	if (!snprintf_update(pszStr, length, " error: %s\n", p->pszError))
 	    return;
     }
+    if (strlen(p->timestamp))
+    {
+	if (!snprintf_update(pszStr, length, " timestamp: %s\n", p->timestamp))
+	    return;
+    }
 }
 
 void statLaunchList(char *pszOutput, int length)
@@ -124,18 +142,13 @@ void statLaunchList(char *pszOutput, int length)
 
 LaunchStateStruct* GetLaunchStruct(int nId)
 {
-    PUSH_FUNC("GetLaunchStruct");
     LaunchStateStruct *p = g_pLaunchList;
     while (p)
     {
 	if (p->nId == nId)
-	{
-	    POP_FUNC();
 	    return p;
-	}
 	p = p->pNext;
     }
-    POP_FUNC();
     return NULL;
 }
 
@@ -153,102 +166,142 @@ int ConsoleGetExitCode(int nPid)
     return -2;
 }
 
-void RemoveStateStruct(LaunchStateStruct *p)
+bool RemoveStateStruct(LaunchStateStruct *p)
 {
+    bool bReturn;
     LaunchStateStruct *pTrailer = g_pLaunchList;
 
     // Remove p from the list
     if (p == NULL)
-	return;
+	return true;
 
     if (p == g_pLaunchList)
+    {
 	g_pLaunchList = g_pLaunchList->pNext;
+	bReturn = true;
+    }
     else
     {
 	while (pTrailer && pTrailer->pNext != p)
 	    pTrailer = pTrailer->pNext;
 	if (pTrailer)
+	{
 	    pTrailer->pNext = p->pNext;
+	    bReturn = true;
+	}
+	else
+	{
+	    bReturn = false;
+	}
     }
 
     //dbg_printf("removing LaunchStateStruct[%d]\n", p->nId);
     // free the structure
     delete p;
+    return bReturn;
 }
 
 void SavePid(int nId, int nPid)
 {
     LaunchStateStruct *p;
     
-    PUSH_FUNC("SavePid");
-
     p = GetLaunchStruct(nId);
 
     if (p != NULL)
     {
+	WaitForSingleObject(p->hMutex, INFINITE);
 	p->nStatus = LAUNCH_SUCCESS;
 	p->nPid = nPid;
 	strcpy(p->pszError, "ERROR_SUCCESS");
+	ReleaseMutex(p->hMutex);
 	if (p->bPidRequested)
 	{
 	    char pszStr[20];
 	    _snprintf(pszStr, 20, "%d", p->nPid);
-	    beasy_send(p->nBfd, pszStr, strlen(pszStr)+1);
+	    easy_send(p->nBfd, pszStr, strlen(pszStr)+1);
 	    p->bPidRequested = false;
 	}
     }
-    POP_FUNC();
 }
 
 void SaveError(int nId, char *pszError)
 {
     LaunchStateStruct *p;
     
-    PUSH_FUNC("SaveError");
-
     p = GetLaunchStruct(nId);
     if (p != NULL)
     {
+	WaitForSingleObject(p->hMutex, INFINITE);
 	p->nStatus = LAUNCH_FAIL;
 	strncpy(p->pszError, pszError, 256);
+	ReleaseMutex(p->hMutex);
 	if (p->bPidRequested)
 	{
-	    beasy_send(p->nBfd, "-1", strlen("-1")+1);
+	    easy_send(p->nBfd, "-1", strlen("-1")+1);
 	    p->bPidRequested = false;
 	}
 	if (p->bExitStateRequested)
 	{
-	    beasy_send(p->nBfd, "FAIL", strlen("FAIL")+1);
+	    InformBarriers(nId, p->nExitCode);
+	    easy_send(p->nBfd, "FAIL", strlen("FAIL")+1);
 	    p->bExitStateRequested = false;
 	}
     }
-    POP_FUNC();
+}
+
+void SaveTimestamp(int nId, char *timestamp)
+{
+    LaunchStateStruct *p;
+    
+    p = GetLaunchStruct(nId);
+    if (p != NULL)
+    {
+	WaitForSingleObject(p->hMutex, INFINITE);
+	strncpy(p->timestamp, timestamp, TIMESTAMP_LENGTH);
+	p->timestamp[TIMESTAMP_LENGTH-1] = '\0';
+	ReleaseMutex(p->hMutex);
+    }
+}
+
+bool SaveMPIFinalized(int nId)
+{
+    LaunchStateStruct *p;
+
+    p = GetLaunchStruct(nId);
+    if (p != NULL)
+    {
+	dbg_printf("setting mpifinalized for launchid %d\n", nId);
+	p->bMPIFinalized = true;
+	return true;
+    }
+    return false;
 }
 
 void SaveExitCode(int nId, int nExitCode)
 {
+    char pszStr[30];
     LaunchStateStruct *p;
     
-    PUSH_FUNC("SaveExitCode");
     p = GetLaunchStruct(nId);
     if (p != NULL)
     {
+	WaitForSingleObject(p->hMutex, INFINITE);
 	p->nStatus = LAUNCH_EXITED;
 	p->nExitCode = nExitCode;
+	ReleaseMutex(p->hMutex);
+	InformBarriers(nId, nExitCode);
 	if (p->bExitStateRequested)
 	{
-	    char pszStr[30];
 	    _snprintf(pszStr, 30, "%d:%d", nExitCode, p->nPid);
-	    beasy_send(p->nBfd, pszStr, strlen(pszStr)+1);
+	    easy_send(p->nBfd, pszStr, strlen(pszStr)+1);
 	    p->bExitStateRequested = false;
-	    dbg_printf("sending exit code %d:%d\n", nId, nExitCode);
+	    dbg_printf("SaveExitCode:Sending exit code %d:%d:%s\n", nId, nExitCode, p->timestamp);
 	}
     }
     else
     {
 	err_printf("ERROR: Saving exit code for launchid %d failed\n", nId);
     }
-    POP_FUNC();
 }
 
 void GetNameKeyValue(char *str, char *name, char *key, char *value)
@@ -256,8 +309,6 @@ void GetNameKeyValue(char *str, char *name, char *key, char *value)
     bool bName = false;
     bool bKey = false;
     bool bValue = false;
-
-    PUSH_FUNC("GetNameKeyValue");
 
     //dbg_printf("GetNameKeyValue(");
 
@@ -361,7 +412,6 @@ void GetNameKeyValue(char *str, char *name, char *key, char *value)
     //dbg_printf(")\n");
 
     //dbg_printf("GetNameKeyValue('%s' '%s' '%s')\n", name ? name : "NULL", key ? key : "NULL", value ? value : "NULL");
-    POP_FUNC();
 }
 
 static void ParseAccountDomain(char *DomainAccount, char *tAccount, char *tDomain)
@@ -399,8 +449,7 @@ HANDLE BecomeUser(char *domainaccount, char *password, int *pnError)
     else
 	pszDomain = domain;
 
-    HANDLE hLogonMutex = CreateMutex(NULL, FALSE, "mpdLaunchMutex");
-    WaitForSingleObject(hLogonMutex, 10000);
+    WaitForSingleObject(g_hLaunchMutex, 10000);
 
     if (!LogonUser(
 	account,
@@ -412,8 +461,7 @@ HANDLE BecomeUser(char *domainaccount, char *password, int *pnError)
 	&hUser))
     {
 	*pnError = GetLastError();
-	ReleaseMutex(hLogonMutex);
-	CloseHandle(hLogonMutex);
+	ReleaseMutex(g_hLaunchMutex);
 	return (HANDLE)-1;
     }
 
@@ -421,15 +469,13 @@ HANDLE BecomeUser(char *domainaccount, char *password, int *pnError)
     {
 	*pnError = GetLastError();
 	CloseHandle(hUser);
-	ReleaseMutex(hLogonMutex);
-	CloseHandle(hLogonMutex);
+	ReleaseMutex(g_hLaunchMutex);
 	if (!g_bSingleUser)
 	    RevertToSelf();
 	return (HANDLE)-1;
     }
 
-    ReleaseMutex(hLogonMutex);
-    CloseHandle(hLogonMutex);
+    ReleaseMutex(g_hLaunchMutex);
 
     return hUser;
 }
@@ -483,11 +529,6 @@ FILE* CreateCheckFile(char *pszFullFileName, bool bReplace, bool bCreateDir, cha
     return fout;
 }
 
-static int WriteString(int bfd, char *str)
-{
-    return beasy_send(bfd, str, strlen(str)+1);
-}
-
 HANDLE ParseBecomeUser(MPD_Context *p, char *pszInputStr, bool bMinusOneOnError)
 {
     int nError;
@@ -498,8 +539,8 @@ HANDLE ParseBecomeUser(MPD_Context *p, char *pszInputStr, bool bMinusOneOnError)
 	if (!p->bFileInitCalled)
 	{
 	    if (bMinusOneOnError)
-		WriteString(p->bfd, "-1");
-	    WriteString(p->bfd, "ERROR - no account and password provided");
+		WriteString(p->sock, "-1");
+	    WriteString(p->sock, "ERROR - no account and password provided");
 	    return (HANDLE)-1;
 	}
 	hUser = BecomeUser(p->pszFileAccount, p->pszFilePassword, &nError);
@@ -508,8 +549,8 @@ HANDLE ParseBecomeUser(MPD_Context *p, char *pszInputStr, bool bMinusOneOnError)
 	    char pszStr[256];
 	    Translate_Error(nError, pszStr, "ERROR - ");
 	    if (bMinusOneOnError)
-		WriteString(p->bfd, "-1");
-	    WriteString(p->bfd, pszStr);
+		WriteString(p->sock, "-1");
+	    WriteString(p->sock, pszStr);
 	    return (HANDLE)-1;
 	}
     }
@@ -526,7 +567,7 @@ void LoseTheUser(HANDLE hUser)
     }
 }
 
-static void ConsolePutFile(int bfd, char *pszInputStr)
+static void ConsolePutFile(SOCKET sock, char *pszInputStr)
 {
     char pszFileName[MAX_PATH];
     int nLength;
@@ -539,8 +580,8 @@ static void ConsolePutFile(int bfd, char *pszInputStr)
     // Get the file name
     if (!GetStringOpt(pszInputStr, "name", pszFileName))
     {
-	WriteString(bfd, "-1");
-	WriteString(bfd, "ERROR - no file name provided");
+	WriteString(sock, "-1");
+	WriteString(sock, "ERROR - no file name provided");
 	return;
     }
 
@@ -550,8 +591,8 @@ static void ConsolePutFile(int bfd, char *pszInputStr)
     {
 	nError = GetLastError();
 	Translate_Error(nError, pszStr, "ERROR - fopen failed, ");
-	WriteString(bfd, "-1");
-	WriteString(bfd, pszStr);
+	WriteString(sock, "-1");
+	WriteString(sock, pszStr);
 	return;
     }
 
@@ -562,12 +603,12 @@ static void ConsolePutFile(int bfd, char *pszInputStr)
     {
 	nError = GetLastError();
 	Translate_Error(nError, pszStr, "ERROR - Unable to determine the size of the file, ");
-	WriteString(bfd, "-1");
-	WriteString(bfd, pszStr);
+	WriteString(sock, "-1");
+	WriteString(sock, pszStr);
 	return;
     }
     sprintf(pszStr, "%d", nLength);
-    WriteString(bfd, pszStr);
+    WriteString(sock, pszStr);
 
     // Rewind back to the beginning
     fseek(fin, 0, SEEK_SET);
@@ -583,19 +624,19 @@ static void ConsolePutFile(int bfd, char *pszInputStr)
 	    fclose(fin);
 	    return;
 	}
-	if (beasy_send(bfd, pBuffer, nNumRead) == SOCKET_ERROR)
+	if (easy_send(sock, pBuffer, nNumRead) == SOCKET_ERROR)
 	{
 	    err_printf("sending file data failed, file=%s, error=%d", pszFileName, WSAGetLastError());
 	    fclose(fin);
 	    return;
 	}
-	//printf("%d bytes sent\n", nNumRead);fflush(stdout);
+	//dbg_printf("%d bytes sent\n", nNumRead);fflush(stdout);
 	nLength -= nNumRead;
     }
     fclose(fin);
 }
 
-static void ConsoleGetFile(int bfd, char *pszInputStr)
+static void ConsoleGetFile(SOCKET sock, char *pszInputStr)
 {
     bool bReplace = true, bCreateDir = false;
     char pszFileName[MAX_PATH];
@@ -621,18 +662,18 @@ static void ConsoleGetFile(int bfd, char *pszInputStr)
     }
     else
     {
-	WriteString(bfd, "ERROR - length not provided");
+	WriteString(sock, "ERROR - length not provided");
 	return;
     }
     if (nLength < 1)
     {
-	WriteString(bfd, "ERROR - invalid length");
+	WriteString(sock, "ERROR - invalid length");
 	return;
     }
 
     if (!GetStringOpt(pszInputStr, "name", pszFileName))
     {
-	WriteString(bfd, "ERROR - no file name provided");
+	WriteString(sock, "ERROR - no file name provided");
 	return;
     }
 
@@ -641,19 +682,19 @@ static void ConsoleGetFile(int bfd, char *pszInputStr)
 
     if (fout == NULL)
     {
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
 	return;
     }
 
     //dbg_printf("SEND\n");
-    WriteString(bfd, "SEND");
+    WriteString(sock, "SEND");
 
     while (nLength)
     {
 	nNumRead = min(nLength, TRANSFER_BUFFER_SIZE);
-	if (beasy_receive(bfd, pBuffer, nNumRead) == SOCKET_ERROR)
+	if (easy_receive(sock, pBuffer, nNumRead) == SOCKET_ERROR)
 	{
-	    err_printf("ERROR: beasy_receive failed, error %d\n", WSAGetLastError());
+	    err_printf("ERROR: easy_receive failed, error %d\n", WSAGetLastError());
 	    fclose(fout);
 	    DeleteFile(pszFileName);
 	    return;
@@ -669,10 +710,10 @@ static void ConsoleGetFile(int bfd, char *pszInputStr)
 
     fclose(fout);
 
-    WriteString(bfd, "SUCCESS");
+    WriteString(sock, "SUCCESS");
 }
 
-static void GetDirectoryFiles(int bfd, char *pszInputStr)
+static void GetDirectoryFiles(SOCKET sock, char *pszInputStr)
 {
     char pszPath[MAX_PATH];
     char pszStr[MAX_CMD_LENGTH];
@@ -682,12 +723,12 @@ static void GetDirectoryFiles(int bfd, char *pszInputStr)
 
     if (!GetStringOpt(pszInputStr, "path", pszPath))
     {
-	WriteString(bfd, "ERROR: no path specified");
+	WriteString(sock, "ERROR: no path specified");
 	return;
     }
     if (strlen(pszPath) < 1)
     {
-	WriteString(bfd, "ERROR: empty path specified");
+	WriteString(sock, "ERROR: empty path specified");
 	return;
     }
 
@@ -704,7 +745,7 @@ static void GetDirectoryFiles(int bfd, char *pszInputStr)
     if (hFind == INVALID_HANDLE_VALUE)
     {
 	Translate_Error(GetLastError(), pszStr, "ERROR: ");
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
 	return;
     }
 
@@ -731,7 +772,7 @@ static void GetDirectoryFiles(int bfd, char *pszInputStr)
 
     // Send the folders
     sprintf(pszStr, "%d", nFolders);
-    WriteString(bfd, pszStr);
+    WriteString(sock, pszStr);
 
     hFind = FindFirstFile(pszPath, &data);
 
@@ -741,7 +782,7 @@ static void GetDirectoryFiles(int bfd, char *pszInputStr)
     if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
 	if (strcmp(data.cFileName, ".") && strcmp(data.cFileName, ".."))
-	    WriteString(bfd, data.cFileName);
+	    WriteString(sock, data.cFileName);
     }
 
     while (FindNextFile(hFind, &data))
@@ -749,7 +790,7 @@ static void GetDirectoryFiles(int bfd, char *pszInputStr)
 	if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 	{
 	    if (strcmp(data.cFileName, ".") && strcmp(data.cFileName, ".."))
-		WriteString(bfd, data.cFileName);
+		WriteString(sock, data.cFileName);
 	}
     }
 
@@ -757,7 +798,7 @@ static void GetDirectoryFiles(int bfd, char *pszInputStr)
 
     // Send the files
     sprintf(pszStr, "%d", nFiles);
-    WriteString(bfd, pszStr);
+    WriteString(sock, pszStr);
 
     hFind = FindFirstFile(pszPath, &data);
 
@@ -766,24 +807,24 @@ static void GetDirectoryFiles(int bfd, char *pszInputStr)
 
     if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
     {
-	WriteString(bfd, data.cFileName);
+	WriteString(sock, data.cFileName);
 	if (data.nFileSizeHigh > 0)
 	    sprintf(pszStr, "%d:%d", data.nFileSizeLow, data.nFileSizeHigh);
 	else
 	    sprintf(pszStr, "%d", data.nFileSizeLow);
-	WriteString(bfd, pszStr);
+	WriteString(sock, pszStr);
     }
 
     while (FindNextFile(hFind, &data))
     {
 	if (!(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 	{
-	    WriteString(bfd, data.cFileName);
+	    WriteString(sock, data.cFileName);
 	    if (data.nFileSizeHigh > 0)
 		sprintf(pszStr, "%d:%d", data.nFileSizeLow, data.nFileSizeHigh);
 	    else
 		sprintf(pszStr, "%d", data.nFileSizeLow);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
     }
 
@@ -797,31 +838,23 @@ static void HandleDBCommandRead(MPD_Context *p)
     char value[MAX_DBS_VALUE_LEN+1] = "";
     char pszStr[MAX_CMD_LENGTH] = "";
 
-    PUSH_FUNC("HandleDBCommandRead");
-
     if (strnicmp(p->pszIn, "dbput ", 6) == 0)
     {
 	GetNameKeyValue(&p->pszIn[6], name, key, value);
 	if (dbs_put(name, key, value) == DBS_SUCCESS)
-	{
-	    EnqueueWrite(p, DBS_SUCCESS_STR, MPD_WRITING_RESULT);
-	}
+	    ContextWriteString(p, DBS_SUCCESS_STR);
 	else
-	{
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
-	}
+	    ContextWriteString(p, DBS_FAIL_STR);
     }
     else if (strnicmp(p->pszIn, "dbget ", 6) == 0)
     {
 	GetNameKeyValue(&p->pszIn[6], name, key, NULL);
 	if (dbs_get(name, key, value) == DBS_SUCCESS)
-	{
-	    EnqueueWrite(p, value, MPD_WRITING_RESULT);
-	}
+	    ContextWriteString(p, value);
 	else
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbget src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[6]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbget src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[6]);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
     }
     else if (stricmp(p->pszIn, "dbcreate") == 0)
@@ -830,14 +863,14 @@ static void HandleDBCommandRead(MPD_Context *p)
 	if (dbs_create(name) == DBS_SUCCESS)
 	{
 	    // Write the name back to the user
-	    EnqueueWrite(p, name, MPD_WRITING_RESULT);
+	    ContextWriteString(p, name);
 	    // Create the database on all the other nodes
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbcreate src=%s bfd=%d name=%s", g_pszHost, p->bfd, name);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbcreate src=%s sock=%d name=%s", g_pszHost, p->sock, name);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else
 	{
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_FAIL_STR);
 	}
     }
     else if (strnicmp(p->pszIn, "dbcreate ", 9) == 0)
@@ -845,28 +878,28 @@ static void HandleDBCommandRead(MPD_Context *p)
 	GetNameKeyValue(&p->pszIn[9], name, NULL, NULL);
 	if (dbs_create_name_in(name) == DBS_SUCCESS)
 	{
-	    EnqueueWrite(p, DBS_SUCCESS_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_SUCCESS_STR);
 	    // Create the database on all the other nodes
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbcreate src=%s bfd=%d name=%s", g_pszHost, p->bfd, name);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbcreate src=%s sock=%d name=%s", g_pszHost, p->sock, name);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else
 	{
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_FAIL_STR);
 	}
     }
     else if (strnicmp(p->pszIn, "dbdestroy ", 10) == 0)
     {
 	// forward the destroy command
-	_snprintf(pszStr, MAX_CMD_LENGTH, "dbdestroy src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[10]);
-	EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	_snprintf(pszStr, MAX_CMD_LENGTH, "dbdestroy src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[10]);
+	ContextWriteString(g_pRightContext, pszStr);
 
 	// destroy the database locally
 	GetNameKeyValue(&p->pszIn[10], name, NULL, NULL);
 	if (dbs_destroy(name) == DBS_SUCCESS)
-	    EnqueueWrite(p, DBS_SUCCESS_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_SUCCESS_STR);
 	else
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_FAIL_STR);
     }
     else if (strnicmp(p->pszIn, "dbfirst ", 8) == 0)
     {
@@ -874,24 +907,24 @@ static void HandleDBCommandRead(MPD_Context *p)
 	if (dbs_first(name, key, value) == DBS_SUCCESS)
 	{
 	    // forward the first command
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbfirst src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[8]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbfirst src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[8]);
+	    ContextWriteString(g_pRightContext, pszStr);
 
 	    if (*key == '\0')
 	    {
 		// If the local database is empty, forward a dbnext command
-		_snprintf(pszStr, MAX_CMD_LENGTH, "dbnext src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[8]);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		_snprintf(pszStr, MAX_CMD_LENGTH, "dbnext src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[8]);
+		ContextWriteString(g_pRightContext, pszStr);
 	    }
 	    else
 	    {
 		_snprintf(p->pszOut, MAX_CMD_LENGTH, "key=%s value=%s", key, value);
-		EnqueueWrite(p, p->pszOut, MPD_WRITING_RESULT);
+		ContextWriteString(p, p->pszOut);
 	    }
 	}
 	else
 	{
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_FAIL_STR);
 	}
     }
     else if (strnicmp(p->pszIn, "dbnext ", 7) == 0)
@@ -901,18 +934,18 @@ static void HandleDBCommandRead(MPD_Context *p)
 	{
 	    if (*key == '\0')
 	    {
-		_snprintf(pszStr, MAX_CMD_LENGTH, "dbnext src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[7]);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		_snprintf(pszStr, MAX_CMD_LENGTH, "dbnext src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[7]);
+		ContextWriteString(g_pRightContext, pszStr);
 	    }
 	    else
 	    {
 		_snprintf(p->pszOut, MAX_CMD_LENGTH, "key=%s value=%s", key, value);
-		EnqueueWrite(p, p->pszOut, MPD_WRITING_RESULT);
+		ContextWriteString(p, p->pszOut);
 	    }
 	}
 	else
 	{
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_FAIL_STR);
 	}
     }
     else if (stricmp(p->pszIn, "dbfirstdb") == 0)
@@ -923,11 +956,11 @@ static void HandleDBCommandRead(MPD_Context *p)
 		strcpy(p->pszOut, DBS_END_STR);
 	    else
 		_snprintf(p->pszOut, MAX_CMD_LENGTH, "name=%s", name);
-	    EnqueueWrite(p, p->pszOut, MPD_WRITING_RESULT);
+	    ContextWriteString(p, p->pszOut);
 	}
 	else
 	{
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_FAIL_STR);
 	}
     }
     else if (stricmp(p->pszIn, "dbnextdb") == 0)
@@ -938,11 +971,11 @@ static void HandleDBCommandRead(MPD_Context *p)
 		strcpy(p->pszOut, DBS_END_STR);
 	    else
 		_snprintf(p->pszOut, MAX_CMD_LENGTH, "name=%s", name);
-	    EnqueueWrite(p, p->pszOut, MPD_WRITING_RESULT);
+	    ContextWriteString(p, p->pszOut);
 	}
 	else
 	{
-	    EnqueueWrite(p, DBS_FAIL_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_FAIL_STR);
 	}
     }
     else if (strnicmp(p->pszIn, "dbdelete ", 9) == 0)
@@ -951,20 +984,19 @@ static void HandleDBCommandRead(MPD_Context *p)
 	GetNameKeyValue(&p->pszIn[9], name, key, NULL);
 	if (dbs_delete(name, key) == DBS_SUCCESS)
 	{
-	    EnqueueWrite(p, DBS_SUCCESS_STR, MPD_WRITING_RESULT);
+	    ContextWriteString(p, DBS_SUCCESS_STR);
 	}
 	else
 	{
 	    // forward the delete command
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbdelete src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[9]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "dbdelete src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[9]);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
     }
     else
     {
 	err_printf("unknown command '%s'", p->pszIn);
     }
-    POP_FUNC();
 }
 
 void statConfig(char *pszOutput, int length)
@@ -977,9 +1009,7 @@ void HandleConsoleRead(MPD_Context *p)
 {
     char pszStr[MAX_CMD_LENGTH];
 
-    PUSH_FUNC("HandleConsoleRead");
-
-    dbg_printf("ConsoleRead[%d]: '%s'\n", p->bfd, p->pszIn);
+    dbg_printf("ConsoleRead[%d]: '%s'\n", p->sock, p->pszIn);
     switch(p->nLLState)
     {
     case MPD_READING_CMD:
@@ -995,7 +1025,7 @@ void HandleConsoleRead(MPD_Context *p)
 	    pLS->nStatus = LAUNCH_PENDING;
 	    strcpy(pLS->pszError, "LAUNCH_PENDING");
 	    pLS->nId = g_nCurrentLaunchId;
-	    pLS->nBfd = p->bfd;
+	    pLS->nBfd = p->sock;
 	    pLS->pNext = g_pLaunchList;
 	    if (!GetStringOpt(&p->pszIn[7], "h", pLS->pszHost))
 	    {
@@ -1009,21 +1039,23 @@ void HandleConsoleRead(MPD_Context *p)
 		if ((stricmp(pszHost, g_pszHost) == 0) || (strcmp(pszHost, g_pszIP) == 0))
 		    Launch(pszStr);
 		else
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_LAUNCH_CMD);
+		    ContextWriteString(g_pRightContext, pszStr);
 	    }
 	    else
 		Launch(pszStr); // No host provided so launch locally
 	    sprintf(pszStr, "%d", pLS->nId);
-	    EnqueueWrite(p, pszStr, MPD_WRITING_LAUNCH_RESULT);
+	    ContextWriteString(p, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "getpid ", 7) == 0)
 	{
 	    LaunchStateStruct *pLS = GetLaunchStruct(atoi(&p->pszIn[7]));
 	    if (pLS != NULL)
 	    {
+		WaitForSingleObject(pLS->hMutex, INFINITE);
 		if (pLS->nStatus == LAUNCH_PENDING)
 		{
 		    pLS->bPidRequested = true;
+		    ReleaseMutex(pLS->hMutex);
 		}
 		else
 		{
@@ -1031,12 +1063,13 @@ void HandleConsoleRead(MPD_Context *p)
 			sprintf(pszStr, "%d", pLS->nPid);
 		    else
 			strcpy(pszStr, "-1");
-		    EnqueueWrite(p, pszStr, MPD_WRITING_LAUNCH_RESULT);
+		    ReleaseMutex(pLS->hMutex);
+		    ContextWriteString(p, pszStr);
 		}
 	    }
 	    else
 	    {
-		EnqueueWrite(p, "-1", MPD_WRITING_LAUNCH_RESULT);
+		ContextWriteString(p, "-1");
 	    }
 	}
 	else if (strnicmp(p->pszIn, "getexitcode ", 12) == 0)
@@ -1044,9 +1077,10 @@ void HandleConsoleRead(MPD_Context *p)
 	    LaunchStateStruct *pLS = GetLaunchStruct(atoi(&p->pszIn[12]));
 	    if (pLS != NULL)
 	    {
+		WaitForSingleObject(pLS->hMutex, INFINITE);
 		if (pLS->nStatus == LAUNCH_EXITED)
 		{
-		    dbg_printf("sending exit code %d:%d\n", atoi(&p->pszIn[12]), pLS->nExitCode);
+		    dbg_printf("HandleConsoleRead:Sending exit code %d for launchid %d\n", pLS->nExitCode, atoi(&p->pszIn[12]));
 		    sprintf(pszStr, "%d", pLS->nExitCode);
 		}
 		else
@@ -1056,11 +1090,12 @@ void HandleConsoleRead(MPD_Context *p)
 		    else
 			strcpy(pszStr, "FAIL");
 		}
-		EnqueueWrite(p, pszStr, MPD_WRITING_LAUNCH_RESULT);
+		ReleaseMutex(pLS->hMutex);
+		ContextWriteString(p, pszStr);
 	    }
 	    else
 	    {
-		EnqueueWrite(p, "FAIL", MPD_WRITING_LAUNCH_RESULT);
+		ContextWriteString(p, "FAIL");
 	    }
 	}
 	else if (strnicmp(p->pszIn, "getexitcodewait ", 16) == 0)
@@ -1068,9 +1103,11 @@ void HandleConsoleRead(MPD_Context *p)
 	    LaunchStateStruct *pLS = GetLaunchStruct(atoi(&p->pszIn[16]));
 	    if (pLS != NULL)
 	    {
+		WaitForSingleObject(pLS->hMutex, INFINITE);
 		if (pLS->nStatus == LAUNCH_SUCCESS)
 		{
 		    pLS->bExitStateRequested = true;
+		    ReleaseMutex(pLS->hMutex);
 		}
 		else
 		{
@@ -1081,29 +1118,120 @@ void HandleConsoleRead(MPD_Context *p)
 		    }
 		    else
 			strcpy(pszStr, "FAIL");
-		    EnqueueWrite(p, pszStr, MPD_WRITING_LAUNCH_RESULT);
+		    ReleaseMutex(pLS->hMutex);
+		    ContextWriteString(p, pszStr);
 		}
 	    }
 	    else
 	    {
-		EnqueueWrite(p, "FAIL", MPD_WRITING_LAUNCH_RESULT);
+		ContextWriteString(p, "FAIL");
 	    }
+	}
+	else if (strnicmp(p->pszIn, "getexittime ", 12) == 0)
+	{
+	    LaunchStateStruct *pLS = GetLaunchStruct(atoi(&p->pszIn[12]));
+	    if (pLS != NULL)
+	    {
+		if (strlen(pLS->timestamp))
+		{
+		    dbg_printf("sending exit time %d:%s\n", atoi(&p->pszIn[12]), pLS->timestamp);
+		    strcpy(pszStr, pLS->timestamp);
+		}
+		else
+		{
+		    if (pLS->nStatus == LAUNCH_SUCCESS)
+		    {
+			strcpy(pszStr, "ACTIVE");
+		    }
+		    else
+		    {
+			if (pLS->timestamp[0] == '\0')
+			{
+			    strcpy(pszStr, "unknown");
+			}
+			else
+			{
+			    dbg_printf("sending exit time %d:%s\n", atoi(&p->pszIn[12]), pLS->timestamp);
+			    strcpy(pszStr, pLS->timestamp);
+			}
+		    }
+		}
+		ContextWriteString(p, pszStr);
+	    }
+	    else
+	    {
+		ContextWriteString(p, "FAIL");
+	    }
+	}
+	else if (strnicmp(p->pszIn, "getmpifinalized ", 16) == 0)
+	{
+	    LaunchStateStruct *pLS = GetLaunchStruct(atoi(&p->pszIn[16]));
+	    if (pLS != NULL)
+	    {
+		if (pLS->bMPIFinalized)
+		{
+		    dbg_printf("sending mpifinalized launchid(%d)\n", atoi(&p->pszIn[16]));
+		    strcpy(pszStr, "yes");
+		}
+		else
+		{
+		    dbg_printf("sending not mpifinalized launchid(%d)\n", atoi(&p->pszIn[16]));
+		    strcpy(pszStr, "no");
+		}
+		ContextWriteString(p, pszStr);
+	    }
+	    else
+	    {
+		ContextWriteString(p, "FAIL");
+	    }
+	}
+	else if (strnicmp(p->pszIn, "setMPIFinalized ", 16) == 0)
+	{
+	    if (SaveMPIFinalized(atoi(&p->pszIn[16])))
+		ContextWriteString(p, "SUCCESS");
+	    else
+		ContextWriteString(p, "FAIL");
+	}
+	else if (strnicmp(p->pszIn, "setdbgoutput ", 13) == 0)
+	{
+	    if (SetDbgRedirection(&p->pszIn[13]))
+	    {
+		SYSTEMTIME s;
+		GetSystemTime(&s);
+		dbg_printf("[%d.%d.%d %dh:%dm:%ds] starting redirection to log file.\n", s.wYear, s.wMonth, s.wDay, s.wHour, s.wMinute, s.wSecond);
+		WriteMPDRegistry("RedirectToLogfile", "yes");
+		WriteMPDRegistry("LogFile", &p->pszIn[13]);
+		ContextWriteString(p, "SUCCESS");
+	    }
+	    else
+	    {
+		WriteMPDRegistry("RedirectToLogfile", "no");
+		ContextWriteString(p, "FAIL");
+	    }
+	}
+	else if (strnicmp(p->pszIn, "canceldbgoutput", 15) == 0)
+	{
+	    SYSTEMTIME s;
+	    GetSystemTime(&s);
+	    dbg_printf("[%d.%d.%d %dh:%dm:%ds] stopping redirection to log file.\n", s.wYear, s.wMonth, s.wDay, s.wHour, s.wMinute, s.wSecond);
+	    CancelDbgRedirection();
+	    WriteMPDRegistry("RedirectToLogfile", "no");
+	    ContextWriteString(p, "SUCCESS");
 	}
 	else if (strnicmp(p->pszIn, "geterror ", 9) == 0)
 	{
 	    LaunchStateStruct *pLS = GetLaunchStruct(atoi(&p->pszIn[9]));
 	    if (pLS != NULL)
-	    {
-		EnqueueWrite(p, pLS->pszError, MPD_WRITING_RESULT);
-	    }
+		ContextWriteString(p, pLS->pszError);
 	    else
-	    {
-		EnqueueWrite(p, "invalid launch id", MPD_WRITING_RESULT);
-	    }
+		ContextWriteString(p, "invalid launch id");
 	}
 	else if (strnicmp(p->pszIn, "freeprocess ", 12) == 0)
 	{
-	    RemoveStateStruct(GetLaunchStruct(atoi(&p->pszIn[12])));
+	    if (RemoveStateStruct(GetLaunchStruct(atoi(&p->pszIn[12]))))
+		ContextWriteString(p, "SUCCESS");
+	    else
+		ContextWriteString(p, "FAIL");
 	}
 	else if (strnicmp(p->pszIn, "kill ", 5) == 0)
 	{
@@ -1112,7 +1240,7 @@ void HandleConsoleRead(MPD_Context *p)
 	    {
 		strncat(p->pszIn, " src=", MAX_CMD_LENGTH - 1 - strlen(p->pszIn));
 		strncat(p->pszIn, g_pszHost, MAX_CMD_LENGTH - 1 - strlen(p->pszIn));
-		EnqueueWrite(g_pRightContext, p->pszIn, MPD_WRITING_CMD);
+		ContextWriteString(g_pRightContext, p->pszIn);
 	    }
 	    else
 	    {
@@ -1120,13 +1248,116 @@ void HandleConsoleRead(MPD_Context *p)
 		if (pLS != NULL)
 		{
 		    _snprintf(pszStr, MAX_CMD_LENGTH, "kill src=%s host=%s pid=%d", g_pszHost, pLS->pszHost, pLS->nPid);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		    ContextWriteString(g_pRightContext, pszStr);
 		}
 		else
 		{
 		    // kill does not return a value, so it cannot return an error either
 		    //EnqueueWrite(p, "invalid launch id", MPD_WRITING_RESULT);
 		}
+	    }
+	}
+	else if (strnicmp(p->pszIn, "setmpduser ", 11) == 0)
+	{
+	    if (g_bMPDUserCapable)
+	    {
+		char pszAccount[100];
+		char pszPassword[300];
+		if (GetStringOpt(&p->pszIn[11], "a", pszAccount))
+		{
+		    if (GetStringOpt(&p->pszIn[11], "p", pszPassword))
+		    {
+			DecodePassword(pszPassword);
+			if (mpdSetupCryptoClient())
+			{
+			    if (mpdSavePasswordToRegistry(pszAccount, pszPassword, true))
+			    {
+				//WriteMPDRegistry("UseMPDUser", "yes");
+				strcpy(g_pszMPDUserAccount, pszAccount);
+				strcpy(g_pszMPDUserPassword, pszPassword);
+				strcpy(pszStr, "SUCCESS");
+			    }
+			    else
+			    {
+				_snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - %s", mpdCryptGetLastErrorString());
+			    }
+			}
+			else
+			{
+			    _snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - %s", mpdCryptGetLastErrorString());
+			}
+		    }
+		    else
+		    {
+			_snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - password not specified");
+		    }
+		}
+		else
+		{
+		    _snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - account not specified");
+		}
+	    }
+	    else
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - command not enabled");
+	    }
+	    ContextWriteString(p, pszStr);
+	}
+	else if (stricmp(p->pszIn, "clrmpduser") == 0)
+	{
+	    if (g_bMPDUserCapable)
+	    {
+		if (mpdDeletePasswordRegistryEntry())
+		{
+		    g_bUseMPDUser = false;
+		    WriteMPDRegistry("UseMPDUser", "no");
+		    strcpy(pszStr, "SUCCESS");
+		}
+		else
+		{
+		    _snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - %s", mpdCryptGetLastErrorString());
+		}
+	    }
+	    else
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - command not enabled");
+	    }
+	    ContextWriteString(p, pszStr);
+	}
+	else if (stricmp(p->pszIn, "enablempduser") == 0)
+	{
+	    if (g_bMPDUserCapable)
+	    {
+		//char pszAccount[100], pszPassword[100];
+		//if (ReadMPDRegistry("mpdAccount", pszAccount, false))
+		if (mpdReadPasswordFromRegistry(g_pszMPDUserAccount, g_pszMPDUserPassword))
+		{
+		    g_bUseMPDUser = true;
+		    WriteMPDRegistry("UseMPDUser", "yes");
+		    strcpy(pszStr, "SUCCESS");
+		}
+		else
+		{
+		    strcpy(pszStr, "FAIL - mpdsetuser must be called to set an account before enablempduser can be called.\n");
+		}
+	    }
+	    else
+	    {
+		_snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - command not enabled");
+	    }
+	    ContextWriteString(p, pszStr);
+	}
+	else if (stricmp(p->pszIn, "disablempduser") == 0)
+	{
+	    if (g_bMPDUserCapable)
+	    {
+		g_bUseMPDUser = false;
+		WriteMPDRegistry("UseMPDUser", "no");
+		ContextWriteString(p, "SUCCESS");
+	    }
+	    else
+	    {
+		ContextWriteString(p, "FAIL - command not enabled");
 	    }
 	}
 	else if (strnicmp(p->pszIn, "stat ", 5) == 0)
@@ -1137,40 +1368,48 @@ void HandleConsoleRead(MPD_Context *p)
 		strncat(p->pszIn, " host=", MAX_CMD_LENGTH - 1 - strlen(p->pszIn));
 		strncat(p->pszIn, g_pszHost, MAX_CMD_LENGTH - 1 - strlen(p->pszIn));
 	    }
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "stat src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[5]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "stat src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[5]);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
-	else if (strnicmp(p->pszIn, "map ", 4) == 0)
+	else if (strnicmp(p->pszIn, "validate ", 9) == 0)
 	{
-    	    char pszHost[MAX_HOST_LENGTH];
-	    if (!GetStringOpt(p->pszIn, "host", pszHost))
+	    char pszAccount[100], pszPassword[300];
+	    int error;
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "FAIL - invalid arguments");
+	    if (GetStringOpt(&p->pszIn[9], "a", pszAccount))
 	    {
-		strncat(p->pszIn, " host=", MAX_CMD_LENGTH - 1 - strlen(p->pszIn));
-		strncat(p->pszIn, g_pszHost, MAX_CMD_LENGTH - 1 - strlen(p->pszIn));
+		if (GetStringOpt(&p->pszIn[9], "p", pszPassword))
+		{
+		    DecodePassword(pszPassword);
+		    if (ValidateUser(pszAccount, pszPassword, &error))
+		    {
+			_snprintf(pszStr, MAX_CMD_LENGTH, "SUCCESS");
+		    }
+		    else
+		    {
+			Translate_Error(error, pszStr, "FAIL - ");
+		    }
+		}
 	    }
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "map src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[4]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    ContextWriteString(p, pszStr);
 	}
-	else if (strnicmp(p->pszIn, "unmap ", 6) == 0)
+	else if (strnicmp(p->pszIn, "freecached", 10) == 0)
 	{
-    	    char pszHost[MAX_HOST_LENGTH];
+	    char pszHost[MAX_HOST_LENGTH];
 	    if (!GetStringOpt(p->pszIn, "host", pszHost))
-	    {
-		strncat(p->pszIn, " host=", MAX_CMD_LENGTH - 1 - strlen(p->pszIn));
-		strncat(p->pszIn, g_pszHost, MAX_CMD_LENGTH - 1 - strlen(p->pszIn));
-	    }
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "unmap src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[6]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		strcpy(pszHost, g_pszHost);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "freecached src=%s sock=%d host=%s", g_pszHost, p->sock, pszHost);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (stricmp(p->pszIn, "killall") == 0)
 	{
 	    _snprintf(pszStr, MAX_CMD_LENGTH, "killall src=%s", g_pszHost);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (stricmp(p->pszIn, "hosts") == 0)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "hosts src=%s bfd=%d result=%s", g_pszHost, p->bfd, g_pszHost);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_HOSTS_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "hosts src=%s sock=%d result=%s", g_pszHost, p->sock, g_pszHost);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "next ", 5) == 0)
 	{
@@ -1178,16 +1417,16 @@ void HandleConsoleRead(MPD_Context *p)
 	    if ((n > 0) || (n < 16384))
 	    {
 		n--;
-		WriteString(p->bfd, g_pszHost);
+		ContextWriteString(p, g_pszHost);
 		if (n > 0)
 		{
-		    _snprintf(pszStr, MAX_CMD_LENGTH, "next src=%s bfd=%d n=%d", g_pszHost, p->bfd, n);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		    _snprintf(pszStr, MAX_CMD_LENGTH, "next src=%s sock=%d n=%d", g_pszHost, p->sock, n);
+		    ContextWriteString(g_pRightContext, pszStr);
 		}
 	    }
 	    else
 	    {
-		WriteString(p->bfd, "Error: invalid number of hosts requested");
+		ContextWriteString(p, "Error: invalid number of hosts requested");
 	    }
 	}
 	else if (strnicmp(p->pszIn, "barrier ", 8) == 0)
@@ -1197,21 +1436,21 @@ void HandleConsoleRead(MPD_Context *p)
 	    {
 		if (GetStringOpt(p->pszIn, "count", pszCount))
 		{
-		    SetBarrier(pszName, atoi(pszCount), p->bfd);
+		    SetBarrier(pszName, atoi(pszCount), p->sock);
 		    _snprintf(pszStr, MAX_CMD_LENGTH, "barrier src=%s name=%s count=%s", g_pszHost, pszName, pszCount);
-		    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		    ContextWriteString(g_pRightContext, pszStr);
 		}
 		else
-		    WriteString(p->bfd, "Error: invalid barrier command, no count specified");
+		    ContextWriteString(p, "Error: invalid barrier command, no count specified");
 	    }
 	    else
-		WriteString(p->bfd, "Error: invalid barrier command, no name specified");
+		ContextWriteString(p, "Error: invalid barrier command, no name specified");
 	}
 	else if (stricmp(p->pszIn, "ps") == 0)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "ps src=%s bfd=%d result=", g_pszHost, p->bfd);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "ps src=%s sock=%d result=", g_pszHost, p->sock);
 	    ConcatenateProcessesToString(pszStr);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (stricmp(p->pszIn, "extract") == 0)
 	{
@@ -1229,7 +1468,7 @@ void HandleConsoleRead(MPD_Context *p)
 	else if (stricmp(p->pszIn, "set nodes") == 0)
 	{
 	    _snprintf(pszStr, MAX_CMD_LENGTH, "lefthost src=%s host=%s", g_pszHost, g_pszHost);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "set ", 4) == 0)
 	{
@@ -1243,7 +1482,7 @@ void HandleConsoleRead(MPD_Context *p)
 		pszKey[nLength] = '\0';
 		pszValue++;
 		_snprintf(pszStr, MAX_CMD_LENGTH, "set src=%s key=%s value=%s", g_pszHost, pszKey, pszValue);
-		EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+		ContextWriteString(g_pRightContext, pszStr);
 	    }
 	}
 	else if (strnicmp(p->pszIn, "lset ", 5) == 0)
@@ -1264,7 +1503,7 @@ void HandleConsoleRead(MPD_Context *p)
 	{
 	    pszStr[0] = '\0';
 	    ReadMPDRegistry(&p->pszIn[5], pszStr);
-	    EnqueueWrite(p, pszStr, MPD_WRITING_RESULT);
+	    ContextWriteString(p, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "ldelete ", 8) == 0)
 	{
@@ -1275,7 +1514,7 @@ void HandleConsoleRead(MPD_Context *p)
 	    if (!InsertIntoRing(&p->pszIn[7]))
 	    {
 		_snprintf(pszStr, MAX_CMD_LENGTH, "%s failed\n", p->pszIn);
-		EnqueueWrite(p, pszStr, MPD_WRITING_RESULT);
+		ContextWriteString(p, pszStr);
 	    }
 	    else
 	    {
@@ -1289,23 +1528,23 @@ void HandleConsoleRead(MPD_Context *p)
 	else if (stricmp(p->pszIn, "exitall") == 0)
 	{
 	    g_bExitAllRoot = true;
-	    EnqueueWrite(g_pRightContext, "exitall", MPD_WRITING_FIRST_EXITALL_CMD);
+	    ContextWriteString(g_pRightContext, "exitall");
 	}
 	else if (stricmp(p->pszIn, "version") == 0)
 	{
 	    GetMPDVersion(pszStr, MAX_CMD_LENGTH);
-	    EnqueueWrite(p, pszStr, MPD_WRITING_RESULT);
+	    ContextWriteString(p, pszStr);
 	}
 	else if (stricmp(p->pszIn, "mpich version") == 0)
 	{
 	    GetMPICHVersion(pszStr, MAX_CMD_LENGTH);
-	    EnqueueWrite(p, pszStr, MPD_WRITING_RESULT);
+	    ContextWriteString(p, pszStr);
 	}
 	else if (stricmp(p->pszIn, "config") == 0)
 	{
 	    pszStr[0] = '\0';
 	    MPDRegistryToString(pszStr, MAX_CMD_LENGTH);
-	    EnqueueWrite(p, pszStr, MPD_WRITING_RESULT);
+	    ContextWriteString(p, pszStr);
 	}
 	else if (stricmp(p->pszIn, "print") == 0)
 	{
@@ -1321,26 +1560,28 @@ void HandleConsoleRead(MPD_Context *p)
 	    fseek( fout, 0L, SEEK_SET );
 	    buf = new char[size+1];
 	    pBuf = buf;
+	    WaitForSingleObject(p->hMutex, INFINITE);
 	    while (size)
 	    {
 		nSent = fread(pBuf, 1, size, fout);
 		if (nSent == size)
 		{
 		    pBuf[size] = '\0';
-		    beasy_send(p->bfd, pBuf, size+1);
+		    easy_send(p->sock, pBuf, size+1);
 		}
 		else
-		    beasy_send(p->bfd, pBuf, nSent);
+		    easy_send(p->sock, pBuf, nSent);
 		size = size - nSent;
 		pBuf = pBuf + nSent;
 	    }
+	    ReleaseMutex(p->hMutex);
 	    delete buf;
 	    fclose(fout);
 	}
 	else if (strnicmp(p->pszIn, "createforwarder ", 16) == 0)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "createforwarder src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[16]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "createforwarder src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[16]);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "stopforwarder ", 14) == 0)
 	{
@@ -1398,34 +1639,34 @@ void HandleConsoleRead(MPD_Context *p)
 		    }
 		}
 	    }
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "stopforwarder src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[14]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "stopforwarder src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[14]);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (stricmp(p->pszIn, "forwarders") == 0)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "forwarders src=%s bfd=%d result=", g_pszHost, p->bfd);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "forwarders src=%s sock=%d result=", g_pszHost, p->sock);
 	    ConcatenateForwardersToString(pszStr);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (stricmp(p->pszIn, "killforwarders") == 0)
 	{
 	    _snprintf(pszStr, MAX_CMD_LENGTH, "killforwarders src=%s", g_pszHost);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "createtmpfile ", 14) == 0)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "createtmpfile src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[14]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "createtmpfile src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[14]);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "deletetmpfile ", 14) == 0)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "deletetmpfile src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[14]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "deletetmpfile src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[14]);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "mpich1readint ", 14) == 0)
 	{
-	    _snprintf(pszStr, MAX_CMD_LENGTH, "mpich1readint src=%s bfd=%d %s", g_pszHost, p->bfd, &p->pszIn[14]);
-	    EnqueueWrite(g_pRightContext, pszStr, MPD_WRITING_CMD);
+	    _snprintf(pszStr, MAX_CMD_LENGTH, "mpich1readint src=%s sock=%d %s", g_pszHost, p->sock, &p->pszIn[14]);
+	    ContextWriteString(g_pRightContext, pszStr);
 	}
 	else if (strnicmp(p->pszIn, "putfile ", 8) == 0)
 	{
@@ -1433,7 +1674,7 @@ void HandleConsoleRead(MPD_Context *p)
 	    hUser = ParseBecomeUser(p, &p->pszIn[8], false);
 	    if (hUser != (HANDLE)-1)
 	    {
-		ConsoleGetFile(p->bfd, &p->pszIn[8]);
+		ConsoleGetFile(p->sock, &p->pszIn[8]);
 		LoseTheUser(hUser);
 	    }
 	}
@@ -1443,7 +1684,7 @@ void HandleConsoleRead(MPD_Context *p)
 	    hUser = ParseBecomeUser(p, &p->pszIn[8], true);
 	    if (hUser != (HANDLE)-1)
 	    {
-		ConsolePutFile(p->bfd, &p->pszIn[8]);
+		ConsolePutFile(p->sock, &p->pszIn[8]);
 		LoseTheUser(hUser);
 	    }
 	}
@@ -1453,7 +1694,7 @@ void HandleConsoleRead(MPD_Context *p)
 	    hUser = ParseBecomeUser(p, &p->pszIn[7], false);
 	    if (hUser != (HANDLE)-1)
 	    {
-		GetDirectoryFiles(p->bfd, &p->pszIn[7]);
+		GetDirectoryFiles(p->sock, &p->pszIn[7]);
 		LoseTheUser(hUser);
 	    }
 	}
@@ -1473,16 +1714,16 @@ void HandleConsoleRead(MPD_Context *p)
 	else if (strnicmp(p->pszIn, "updatempich ", 12) == 0)
 	{
 	    UpdateMPICH(&p->pszIn[12]);
-	    EnqueueWrite(p, "SUCCESS", MPD_WRITING_RESULT);
+	    ContextWriteString(p, "SUCCESS");
 	}
 	else if (strnicmp(p->pszIn, "updatempichd ", 13) == 0)
 	{
 	    UpdateMPICHd(&p->pszIn[13]);
-	    EnqueueWrite(p, "SUCCESS", MPD_WRITING_RESULT);
+	    ContextWriteString(p, "SUCCESS");
 	}
 	else if (stricmp(p->pszIn, "restart") == 0)
 	{
-	    WriteString(p->bfd, "Restarting mpd...");
+	    ContextWriteString(p, "Restarting mpd...");
 	    RestartMPD();
 	}
 	else
@@ -1496,24 +1737,4 @@ void HandleConsoleRead(MPD_Context *p)
 	p->nLLState = MPD_READING_CMD;
 	break;
     }
-    POP_FUNC();
-}
-
-void HandleConsoleWritten(MPD_Context *p)
-{
-    PUSH_FUNC("HandleConsoleWritten");
-
-    dbg_printf("ConsoleWritten[%d]: %s\n", p->bfd, p->pszOut);
-    switch (p->nLLState)
-    {
-    case MPD_WRITING_RESULT:
-    case MPD_WRITING_HOSTS_RESULT:
-	p->nLLState = MPD_READING_CMD;
-	break;
-    default:
-	break;
-    }
-    DequeueWrite(p);
-
-    POP_FUNC();
 }

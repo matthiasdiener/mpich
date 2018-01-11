@@ -46,7 +46,7 @@ RSC=rc.exe
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt /winapp
 # ADD F90 /compile_only /include:"Release/" /nologo /warn:nofileopt /winapp
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\bsocket" /I "..\mpd" /I "..\crypt" /I "..\resizer" /I "..\mpdutil" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\bsocket" /I "..\mpd" /I "..\crypt" /I "..\resizer" /I "..\mpdutil" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /D "NO_BSOCKETS" /Yu"stdafx.h" /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -56,7 +56,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /machine:I386
-# ADD LINK32 crypt.lib ws2_32.lib bsocket2.lib resizer.lib mpdutil.lib /nologo /subsystem:windows /machine:I386 /libpath:"..\bsocket2\release" /libpath:"..\crypt\release" /libpath:"..\resizer\release" /libpath:"..\mpdutil\release"
+# ADD LINK32 crypt.lib ws2_32.lib bsocket.lib resizer.lib mpdutil.lib /nologo /subsystem:windows /machine:I386 /libpath:"..\bsocket\release" /libpath:"..\crypt\release" /libpath:"..\resizer\release" /libpath:"..\mpdutil\release"
 
 !ELSEIF  "$(CFG)" == "MPDFileTransfer - Win32 Debug"
 
@@ -74,7 +74,7 @@ LINK32=link.exe
 # ADD BASE F90 /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt /winapp
 # ADD F90 /browser /check:bounds /compile_only /debug:full /include:"Debug/" /nologo /traceback /warn:argument_checking /warn:nofileopt /winapp
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\bsocket" /I "..\mpd" /I "..\crypt" /I "..\resizer" /I "..\mpdutil" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /FR /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I "..\bsocket" /I "..\mpd" /I "..\crypt" /I "..\resizer" /I "..\mpdutil" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "HAVE_WINBCONF_H" /D FD_SETSIZE=256 /D "NO_BSOCKETS" /FR /Yu"stdafx.h" /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -84,7 +84,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 crypt.lib ws2_32.lib bsocket2.lib resizer.lib mpdutil.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\bsocket2\debug" /libpath:"..\crypt\debug" /libpath:"..\resizer\debug" /libpath:"..\mpdutil\debug"
+# ADD LINK32 crypt.lib ws2_32.lib bsocket.lib resizer.lib mpdutil.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept /libpath:"..\bsocket\debug" /libpath:"..\crypt\debug" /libpath:"..\resizer\debug" /libpath:"..\mpdutil\debug"
 
 !ENDIF 
 

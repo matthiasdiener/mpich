@@ -266,7 +266,8 @@ extern void *memset(void *, int, size_t);
 
 /* 
  * These macros define an interface between the device and the rest of the 
- * MPI code for attributes.
+ * MPI code for attributes.  If the device needs to use these, it *must*
+ * define all 3.
  *
  * MPID_ATTR_SET(struct MPIR_COMMUNICATOR *comm, int keyval, void *attr_value)
  * is called when the user sets an attribute value for any keyval.
@@ -281,9 +282,11 @@ extern void *memset(void *, int, size_t);
  * it wishes to be available for users.  Otherwise, the keyvals will have
  * value MPI_KEYVAL_INVALID.
  */
+#ifndef MPID_ATTR_SET
 #define MPID_ATTR_SET(a,b,c)
 #define MPID_ATTR_GET(a,b,c)
 #define MPID_KEYVAL_INIT()
+#endif
 
 /* Definitions for the device only are now in mpiddev.h (link to 
    mpiddevbase.h for channel code) */

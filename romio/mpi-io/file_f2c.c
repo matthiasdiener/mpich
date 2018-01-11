@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: file_f2c.c,v 1.8 2000/02/10 21:54:56 thakur Exp $    
+ *   $Id: file_f2c.c,v 1.9 2002/10/24 15:54:39 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

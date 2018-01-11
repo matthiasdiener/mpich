@@ -168,16 +168,17 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     ac_cv_env_CPPFLAGS_value=$CPPFLAGS
     ac_cv_env_LDFLAGS_set=set
     ac_cv_env_LDFLAGS_value=$LDFLAGS
-    export CC
-    export CFLAGS
-    export LDFLAGS
-    export CPPFLAGS
-    export CPP
     dnl other parameters are
     dnl build_alias, host_alias, target_alias
     AC_CACHE_SAVE
     ac_configure_args="$ac_configure_args -enable-cache"
 fi
+dnl Unconditionally export these values.  Subdir configures break otherwise
+export CC
+export CFLAGS
+export LDFLAGS
+export CPPFLAGS
+export CPP
 ])
 AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
 if test "$cache_file" != "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
@@ -556,6 +557,7 @@ else
     cat conftest.c >&AC_FD_CC
 fi
 rm -f conftest*
+])dnl
 if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
   AC_MSG_RESULT(yes)
   ifelse([$2], , :, [$2])
@@ -564,7 +566,6 @@ else
 ifelse([$3], , , [$3
 ])dnl
 fi
-])
 ])
 
 
@@ -589,14 +590,16 @@ dnl   not yet check for some special options needed in particular for
 dnl   parallel computers, such as -Tcray-t3e, or special options to get
 dnl   full ANSI/ISO C, such as -Aa for HP.
 dnl
-dnlD*/
+dnl D*/
+dnl 2.52 doesn't have AC_PROG_CC_GNU
+ifdef([AC_PROG_CC_GNU],,[AC_DEFUN([AC_PROG_CC_GNU],)])
 AC_DEFUN(PAC_PROG_CC,[
 AC_PROVIDE([AC_PROG_CC])
 AC_CHECK_PROGS(CC, cc xlC xlc pgcc icc gcc )
 test -z "$CC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
 PAC_PROG_CC_WORKS
 AC_PROG_CC_GNU
-if test $ac_cv_prog_gcc = yes; then
+if test "$ac_cv_prog_gcc" = yes; then
   GCC=yes
 else
   GCC=
@@ -1278,6 +1281,7 @@ dnl.ve
 dnl 
 dnlD*/
 AC_DEFUN(PAC_PROG_C_WEAK_SYMBOLS,[
+pragma_extra_message=""
 AC_CACHE_CHECK([for type of weak symbol support],
 pac_cv_prog_c_weak_symbols,[
 # Test for weak symbol support...
@@ -1286,7 +1290,35 @@ pac_cv_prog_c_weak_symbols,[
 AC_TRY_LINK([
 #pragma weak PFoo = Foo
 int Foo(a) { return a; }
-],[return PFoo(1);],pac_cv_prog_c_weak_symbols="pragma weak")
+],[return PFoo(1);],has_pragma_weak=yes)
+#
+# Some systems (Linux ia64 and ecc, for example), support weak symbols
+# only within a single object file!  This tests that case.
+if test "$has_pragma_weak" = yes ; then
+    rm -f conftest*
+    cat >>conftest1.c <<EOF
+#pragma weak PFoo = Foo
+int Foo(int);
+int Foo(a) { return a; }
+EOF
+    cat >>conftest2.c <<EOF
+int main() {
+return PFoo(0);}
+EOF
+    ac_link2='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest1.c conftest2.c $LIBS >conftest.out 2>&1'
+    if eval $ac_link2 ; then
+        pac_cv_prog_c_weak_symbols="pragma weak"
+    else
+      echo "$ac_link2" >>config.log
+      echo "Failed program was" >>config.log
+      cat conftest1.c >>config.log
+      cat conftest2.c >>config.log
+      if test -s conftest.out ; then cat conftest.out >> config.log ; fi
+      has_pragma_weak=0
+      pragma_extra_message="pragma weak does not work outside of a file"
+    fi
+    rm -f conftest*
+fi
 dnl
 if test -z "$pac_cv_prog_c_weak_symbols" ; then 
     AC_TRY_LINK([
@@ -1306,6 +1338,12 @@ if test -z "$pac_cv_prog_c_weak_symbols" ; then
     pac_cv_prog_c_weak_symbols="no"
 fi
 ])
+dnl
+dnl If there is an extra explanatory message, echo it now so that it
+dnl doesn't interfere with the cache result value
+if test -n "$pragma_extra_message" ; then
+    echo $pragma_extra_message
+fi
 dnl
 if test "$pac_cv_prog_c_weak_symbols" = "no" ; then
     ifelse([$2],,:,[$2])
@@ -1327,6 +1365,8 @@ fi
 # compiler, but they should not HAVE to
 #
 dnl --- insert 2.52 compatibility here ---
+dnl 2.52 does not have AC_PROG_CC_WORKS
+ifdef([AC_PROG_CC_WORKS],,[AC_DEFUN([AC_PROG_CC_WORKS],)])
 dnl
 AC_DEFUN(PAC_PROG_CC_WORKS,
 [AC_PROG_CC_WORKS
@@ -1557,6 +1597,15 @@ AC_MSG_RESULT($ac_cv_prog_cc_globals_work)
 dnl
 dnl
 dnl Return the structure alignment in pac_cv_c_struct_align
+dnl Possible values include
+dnl	packed
+dnl	largest
+dnl	two
+dnl	four
+dnl	eight
+dnl
+dnl In addition, a "Could not determine alignment" and a 
+dnl "Multiple cases:" return is possible.  
 AC_DEFUN(PAC_C_STRUCT_ALIGNMENT,[
 AC_CACHE_CHECK([for C struct alignment],pac_cv_c_struct_align,[
 AC_TRY_RUN([
@@ -1713,6 +1762,36 @@ changequote([, ])dnl
     AC_DEFINE_UNQUOTED($ac_tr_func,,[Define if $2 needs a declaration])
 fi
 ])dnl
+dnl
+dnl /*D
+dnl PAC_CHECK_SIZEOF_DERIVED - Get the size of a user-defined type,
+dnl such as a struct
+dnl
+dnl PAC_CHECK_SIZEOF_DERIVED(shortname,definition,defaultsize)
+dnl Like AC_CHECK_SIZEOF, but handles arbitrary types.
+dnl Unlike AC_CHECK_SIZEOF, does not define SIZEOF_xxx (because
+dnl autoheader can't handle this case)
+dnl D*/
+AC_DEFUN(PAC_CHECK_SIZEOF_DERIVED,[
+changequote(<<,>>)dnl
+define(<<AC_TYPE_NAME>>,translit(sizeof_$1,[a-z *], [A-Z_P]))dnl
+define(<<AC_CV_NAME>>,translit(pac_cv_sizeof_$1,[ *], [_p]))dnl
+changequote([,])dnl
+AC_MSG_CHECKING(size of $1)
+AC_CACHE_VAL(AC_CV_NAME,
+[AC_TRY_RUN([#include <stdio.h>
+main()
+{
+  $2 a;
+  FILE *f=fopen("conftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", sizeof(a));
+  exit(0);
+}],AC_CV_NAME=`cat conftestval`,AC_CV_NAME=0,ifelse([$3],,,AC_CV_NAME=$3))])
+AC_MSG_RESULT($AC_CV_NAME)
+dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
+undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])
+])
 
 AC_DEFUN(AM_IGNORE,[])
 
@@ -2431,7 +2510,7 @@ dnl any effect.
 dnl
 dnl See also:
 dnl PAC_LANG_POP_COMPILERS
-dnlD*/
+dnl D*/
 dnl
 dnl These two name allow you to use TESTCC for CC, etc, in all of the 
 dnl autoconf compilation tests.  This is useful, for example, when the
@@ -2442,6 +2521,39 @@ dnl compilers.  Because autoconf insists on calling cpp for the header
 dnl checks, we use TESTCPP for the CPP test as well.  And if no TESTCPP 
 dnl is defined, we create one using TESTCC.
 dnl
+dnl 2.52 does not have try_compiler, which is like try_compile, but 
+dnl it doesn't force a main program 
+dnl Not quite correct, but adequate for here
+ifdef([AC_TRY_COMPILER],,[AC_DEFUN([AC_TRY_COMPILER],
+[cat > conftest.$ac_ext <<EOF
+ifelse(_AC_LANG, [Fortran 77], ,
+[
+[#]line __oline__ "configure"
+#include "confdefs.h"
+])
+[$1]
+EOF
+if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeext}; then
+  [$2]=yes
+  # If we can't run a trivial program, we are probably using a cross compiler.
+  if (./conftest; exit) 2>/dev/null; then
+    [$3]=no
+  else
+    [$3]=yes
+  fi
+else
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat conftest.$ac_ext >&AC_FD_CC
+  [$2]=no
+fi
+rm -fr conftest*])
+])
+dnl
+dnl pac_cross_compiling overrides all tests if set to yes.  This allows
+dnl us to test the cross-compilation branches of the code, and to use
+dnl compilers that can both cross-compile and build code for the current
+dnl platform
+dnl 
 AC_DEFUN(PAC_LANG_PUSH_COMPILERS,[
 if test "X$pac_save_level" = "X" ; then
     pac_save_CC="$CC"
@@ -2469,16 +2581,26 @@ if test "X$pac_save_level" = "X" ; then
     # This is just:
     AC_LANG_SAVE
     AC_LANG_C
-    AC_TRY_COMPILER([main(){return(0);}], ac_cv_prog_cc_works, ac_cv_prog_cc_cross)
+    if test "$pac_cross_compiling" = "yes" ; then
+        ac_cv_prog_cc_cross=yes
+	ac_cv_prog_cc_works=yes
+    else
+        AC_TRY_COMPILER([main(){return(0);}], ac_cv_prog_cc_works, ac_cv_prog_cc_cross)
+    fi
     AC_LANG_RESTORE
     # Ignore Fortran if we aren't using it.
     if test -n "$F77" ; then
         AC_LANG_SAVE
         AC_LANG_FORTRAN77
-        AC_TRY_COMPILER(dnl
+	if test "$pac_cross_compiling" = "yes" ; then
+	    ac_cv_prog_f77_cross=yes
+	    ac_cv_prog_f77_works=yes
+	else
+            AC_TRY_COMPILER(dnl
 [      program conftest
       end
 ], ac_cv_prog_f77_works, ac_cv_prog_f77_cross)
+	fi
         AC_LANG_RESTORE
     fi
     # Ignore C++ if we aren't using it.
@@ -2494,23 +2616,28 @@ if test "X$pac_save_level" = "X" ; then
         PAC_LANG_FORTRAN90
 	dnl We can't use AC_TRY_COMPILER because it doesn't know about 
         dnl Fortran 90
-        cat > conftest.$ac_ext << EOF
+	if test "$pac_cross_compiling" = "yes" ; then
+	    ac_cv_prog_f90_cross=yes
+	    ac_cv_prog_f90_works=yes
+	else
+            cat > conftest.$ac_ext << EOF
       program conftest
       end
 EOF
-        if { (eval echo configure:2324: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
-          ac_cv_prog_f90_works=yes
-          # If we can't run a trivial program, we are probably using a cross compiler.
-          if (./conftest; exit) 2>/dev/null; then
-              ac_cv_prog_f90_cross=no
-          else
-              ac_cv_prog_f90_cross=yes
-          fi
-        else
-          echo "configure: failed program was:" >&5
-          cat conftest.$ac_ext >&5
-          ac_cv_prog_f90_works=no
-        fi
+            if { (eval echo configure:2324: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+              ac_cv_prog_f90_works=yes
+              # If we can't run a trivial program, we are probably using a cross compiler.
+              if (./conftest; exit) 2>/dev/null; then
+                  ac_cv_prog_f90_cross=no
+              else
+                  ac_cv_prog_f90_cross=yes
+              fi
+            else
+              echo "configure: failed program was:" >&5
+              cat conftest.$ac_ext >&5
+              ac_cv_prog_f90_works=no
+            fi
+	fi
 	pac_cv_prog_f90_cross="$ac_cv_prog_f90_cross"
 	pac_cv_prog_f90_works="$ac_cv_prog_f90_works"
         rm -fr conftest*
@@ -2683,14 +2810,27 @@ pac_namecheck=`echo X$pac_cv_prog_f77_name_mangle | sed 's/ /-/g'`
 ifelse([$1],,[
 case $pac_namecheck in
     X) AC_MSG_WARN([Cannot determine Fortran naming scheme]) ;;
-    Xlower) AC_DEFINE(F77_NAME_LOWER) ;;
-    Xlower-underscore) AC_DEFINE(F77_NAME_LOWER_USCORE) ;;
-    Xlower-doubleunderscore) AC_DEFINE(F77_NAME_LOWER_2USCORE) ;;
-    Xupper) AC_DEFINE(F77_NAME_UPPER) ;;
-    Xmixed) AC_DEFINE(F77_NAME_MIXED) ;;
-    Xmixed-underscore) AC_DEFINE(F77_NAME_MIXED_USCORE) ;;
+    Xlower) AC_DEFINE(F77_NAME_LOWER,,[Define if Fortran names are lowercase]) 
+	F77_NAME_MANGLE="F77_NAME_LOWER"
+	;;
+    Xlower-underscore) AC_DEFINE(F77_NAME_LOWER_USCORE,,[Define if Fortran names are lowercase with a trailing underscore])
+	F77_NAME_MANGLE="F77_NAME_LOWER_USCORE"
+	 ;;
+    Xlower-doubleunderscore) AC_DEFINE(F77_NAME_LOWER_2USCORE,,[Define if Fortran names containing an underscore have two trailing underscores])
+	F77_NAME_MANGLE="F77_NAME_LOWER_2USCORE"
+	 ;;
+    Xupper) AC_DEFINE(F77_NAME_UPPER,,[Define if Fortran names are uppercase]) 
+	F77_NAME_MANGLE="F77_NAME_UPPER"
+	;;
+    Xmixed) AC_DEFINE(F77_NAME_MIXED,,[Define if Fortran names preserve the original case]) 
+	F77_NAME_MANGLE="F77_NAME_MIXED"
+	;;
+    Xmixed-underscore) AC_DEFINE(F77_NAME_MIXED_USCORE,,[Define if Fortran names preserve the original case and add a trailing underscore]) 
+	F77_NAME_MANGLE="F77_NAME_MIXED_USCORE"
+	;;
     *) AC_MSG_WARN([Unknown Fortran naming scheme]) ;;
 esac
+AC_SUBST(F77_NAME_MANGLE)
 ],[$1])
 ])
 dnl
@@ -2775,7 +2915,7 @@ else
     ifelse([$2],,eval PAC_CV_NAME=0,eval PAC_CV_NAME=$2)
 fi
 ])
-AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME)
+AC_DEFINE_UNQUOTED(PAC_TYPE_NAME,$PAC_CV_NAME,[Define size of PAC_TYPE_NAME])
 undefine([PAC_TYPE_NAME])
 undefine([PAC_CV_NAME])
 ])
@@ -2990,7 +3130,8 @@ EOF
     fi
     AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with GETARG and IARGC])
     if AC_TRY_EVAL(ac_fcompilelink) && test -x conftest ; then
-	if test "$ac_cv_prog_f77_cross" = "no" ; then
+	# Check that cross != yes so that this works with autoconf 2.52
+	if test "$ac_cv_prog_f77_cross" != "yes" ; then
 	    if ./conftest >/dev/null 2>&1 ; then
 		found_answer="yes"
 	        FXX_MODULE="$fxx_module"
@@ -3084,7 +3225,7 @@ $libs"
 +U77"
     fi
     # Discard options that are not available:
-    save_IFS="$IFS"
+    # (IFS already saved above)
     IFS=" 
 "
     save_trial_FLAGS="$trial_FLAGS"
@@ -3229,7 +3370,7 @@ EOF
 	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC"
 		found_answer="no"
                 if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
-		    if test "$ac_cv_prog_f77_cross" = "no" ; then
+		    if test "$ac_cv_prog_f77_cross" != "yes" ; then
 			if ./conftest >/dev/null 2>&1 ; then
 			    found_answer="yes"
 			fi
@@ -3429,12 +3570,12 @@ else
    ifelse([$2],,:,[$2])
 fi
 ])
-dnl/*D 
+dnl /*D 
 dnl PAC_PROG_F77_HAS_POINTER - Determine if Fortran allows pointer type
 dnl
 dnl Synopsis:
 dnl   PAC_PROG_F77_HAS_POINTER(action-if-true,action-if-false)
-dnlD*/
+dnl D*/
 AC_DEFUN(PAC_PROG_F77_HAS_POINTER,[
 AC_CACHE_CHECK([whether Fortran has pointer declaration],
 pac_cv_prog_f77_has_pointer,[
@@ -3635,7 +3776,7 @@ dnl
 dnl
 dnl
 AC_DEFUN(PAC_PROG_F77_CHECK_FLIBS,
-[AC_MSG_CHECKING([Whether C can link with $FLIBS])
+[AC_MSG_CHECKING([whether C can link with $FLIBS])
 # Try to link a C program with all of these libraries
 save_LIBS="$LIBS"
 LIBS="$LIBS $FLIBS"
@@ -3672,7 +3813,7 @@ pac_cv_prog_f77_new_char_decl,[
 AC_LANG_SAVE
 AC_LANG_FORTRAN77
 AC_TRY_COMPILE(,[
-character (len=10) s
+       character (len=10) s
 ],pac_cv_prog_f77_new_char_decl="yes",
 pac_cv_prog_f77_new_char_decl="no")
 AC_LANG_RESTORE

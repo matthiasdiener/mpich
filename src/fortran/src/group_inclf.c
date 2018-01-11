@@ -85,10 +85,17 @@ FORTRAN_API void FORT_CALL mpi_group_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_F
 {
     MPI_Group l_group_out;
 
+#ifdef FINT_IS_INT
+    *__ierr = MPI_Group_incl( MPI_Group_f2c(*group), *n,
+			      (int *)ranks, &l_group_out );
+#else
+#ifdef FINT_TYPE_UNKNOWN
     if (sizeof(MPI_Fint) == sizeof(int))
         *__ierr = MPI_Group_incl( MPI_Group_f2c(*group), *n,
-                                  ranks, &l_group_out );
-    else {
+                                  (int *)ranks, &l_group_out );
+    else 
+#endif
+      {
 	int *l_ranks;
 	int i;
 
@@ -103,6 +110,7 @@ FORTRAN_API void FORT_CALL mpi_group_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_F
 	
 	FREE( l_ranks );
     }
+#endif
     if (*__ierr == MPI_SUCCESS) 		     
         *group_out = MPI_Group_c2f(l_group_out);
 }

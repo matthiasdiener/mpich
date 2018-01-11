@@ -2,12 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 
 DatabaseNode *g_pDatabase = NULL, *g_Iter = NULL;
 int g_nNextAvailableID = 0;
+HANDLE g_hMutex = NULL;
 
 int dbs_init()
 {
+    g_hMutex = CreateMutex(NULL, FALSE, NULL);
     return DBS_SUCCESS;
 }
 
@@ -15,6 +18,8 @@ int dbs_finalize()
 {
     DatabaseNode *pNode, *pNext;
     DatabaseElement *pElement;
+
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     pNode = g_pDatabase;
     while (pNode)
@@ -35,6 +40,9 @@ int dbs_finalize()
     g_pDatabase = NULL;
     g_Iter = NULL;
 
+    ReleaseMutex(g_hMutex);
+    CloseHandle(g_hMutex);
+
     return DBS_SUCCESS;
 }
 
@@ -43,6 +51,7 @@ int dbs_create(char *name)
     DatabaseNode *pNode, *pNodeTest;
 
     /* Lock */
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     pNode = g_pDatabase;
     if (pNode)
@@ -71,6 +80,7 @@ int dbs_create(char *name)
     strcpy(name, pNode->pszName);
 
     /* Unlock */
+    ReleaseMutex(g_hMutex);
 
     return DBS_SUCCESS;
 }
@@ -83,6 +93,7 @@ int dbs_create_name_in(char *name)
 	return DBS_FAIL;
 
     /* Lock */
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     /* Check if the name already exists */
     pNode = g_pDatabase;
@@ -91,6 +102,7 @@ int dbs_create_name_in(char *name)
 	if (strcmp(pNode->pszName, name) == 0)
 	{
 	    /* Unlock */
+	    ReleaseMutex(g_hMutex);
 	    /*return DBS_FAIL;*/
 	    /* Empty database? */
 	    return DBS_SUCCESS;
@@ -117,6 +129,7 @@ int dbs_create_name_in(char *name)
     strcpy(pNode->pszName, name);
     
     /* Unlock */
+    ReleaseMutex(g_hMutex);
 
     return DBS_SUCCESS;
 }
@@ -125,6 +138,8 @@ int dbs_get(char *name, char *key, char *value)
 {
     DatabaseNode *pNode;
     DatabaseElement *pElement;
+
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     pNode = g_pDatabase;
     while (pNode)
@@ -137,6 +152,7 @@ int dbs_get(char *name, char *key, char *value)
 		if (strcmp(pElement->pszKey, key) == 0)
 		{
 		    strcpy(value, pElement->pszValue);
+		    ReleaseMutex(g_hMutex);
 		    return DBS_SUCCESS;
 		}
 		pElement = pElement->pNext;
@@ -145,6 +161,8 @@ int dbs_get(char *name, char *key, char *value)
 	pNode = pNode->pNext;
     }
 
+    ReleaseMutex(g_hMutex);
+
     return DBS_FAIL;
 }
 
@@ -152,6 +170,8 @@ int dbs_put(char *name, char *key, char *value)
 {
     DatabaseNode *pNode;
     DatabaseElement *pElement;
+
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     pNode = g_pDatabase;
     while (pNode)
@@ -164,6 +184,7 @@ int dbs_put(char *name, char *key, char *value)
 		if (strcmp(pElement->pszKey, key) == 0)
 		{
 		    strcpy(pElement->pszValue, value);
+		    ReleaseMutex(g_hMutex);
 		    return DBS_SUCCESS;
 		}
 		pElement = pElement->pNext;
@@ -173,10 +194,13 @@ int dbs_put(char *name, char *key, char *value)
 	    strcpy(pElement->pszKey, key);
 	    strcpy(pElement->pszValue, value);
 	    pNode->pData = pElement;
+	    ReleaseMutex(g_hMutex);
 	    return DBS_SUCCESS;
 	}
 	pNode = pNode->pNext;
     }
+
+    ReleaseMutex(g_hMutex);
 
     return DBS_FAIL;
 }
@@ -185,6 +209,8 @@ int dbs_delete(char *name, char *key)
 {
     DatabaseNode *pNode;
     DatabaseElement *pElement, *pElementTrailer;
+
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     pNode = g_pDatabase;
     while (pNode)
@@ -201,15 +227,19 @@ int dbs_delete(char *name, char *key)
 		    else
 			pNode->pData = pElement->pNext;
 		    free(pElement);
+		    ReleaseMutex(g_hMutex);
 		    return DBS_SUCCESS;
 		}
 		pElementTrailer = pElement;
 		pElement = pElement->pNext;
 	    }
+	    ReleaseMutex(g_hMutex);
 	    return DBS_FAIL;
 	}
 	pNode = pNode->pNext;
     }
+
+    ReleaseMutex(g_hMutex);
 
     return DBS_FAIL;
 }
@@ -218,6 +248,8 @@ int dbs_destroy(char *name)
 {
     DatabaseNode *pNode, *pNodeTrailer;
     DatabaseElement *pElement;
+
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     pNodeTrailer = pNode = g_pDatabase;
     while (pNode)
@@ -235,11 +267,14 @@ int dbs_destroy(char *name)
 	    else
 		pNodeTrailer->pNext = pNode->pNext;
 	    free(pNode);
+	    ReleaseMutex(g_hMutex);
 	    return DBS_SUCCESS;
 	}
 	pNodeTrailer = pNode;
 	pNode = pNode->pNext;
     }
+
+    ReleaseMutex(g_hMutex);
 
     return DBS_FAIL;
 }
@@ -247,6 +282,8 @@ int dbs_destroy(char *name)
 int dbs_first(char *name, char *key, char *value)
 {
     DatabaseNode *pNode;
+
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     if (key != NULL)
 	key[0] = '\0';
@@ -270,10 +307,13 @@ int dbs_first(char *name, char *key, char *value)
 	    {
 		pNode->pIter = pNode->pData;
 	    }
+	    ReleaseMutex(g_hMutex);
 	    return DBS_SUCCESS;
 	}
 	pNode = pNode->pNext;
     }
+
+    ReleaseMutex(g_hMutex);
 
     return DBS_FAIL;
 }
@@ -281,6 +321,8 @@ int dbs_first(char *name, char *key, char *value)
 int dbs_next(char *name, char *key, char *value)
 {
     DatabaseNode *pNode;
+
+    WaitForSingleObject(g_hMutex, INFINITE);
 
     key[0] = '\0';
     pNode = g_pDatabase;
@@ -296,16 +338,21 @@ int dbs_next(char *name, char *key, char *value)
 	    }
 	    else
 		key[0] = '\0';
+	    ReleaseMutex(g_hMutex);
 	    return DBS_SUCCESS;
 	}
 	pNode = pNode->pNext;
     }
+
+    ReleaseMutex(g_hMutex);
 
     return DBS_FAIL;
 }
 
 int dbs_firstdb(char *name)
 {
+    WaitForSingleObject(g_hMutex, INFINITE);
+
     g_Iter = g_pDatabase;
     if (name != NULL)
     {
@@ -314,11 +361,16 @@ int dbs_firstdb(char *name)
 	else
 	    name[0] = '\0';
     }
+
+    ReleaseMutex(g_hMutex);
+
     return DBS_SUCCESS;
 }
 
 int dbs_nextdb(char *name)
 {
+    WaitForSingleObject(g_hMutex, INFINITE);
+
     if (g_Iter == NULL)
 	name[0] = '\0';
     else
@@ -329,5 +381,8 @@ int dbs_nextdb(char *name)
 	else
 	    name[0] = '\0';
     }
+
+    ReleaseMutex(g_hMutex);
+
     return DBS_SUCCESS;
 }

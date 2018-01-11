@@ -18,13 +18,16 @@ typedef enum _Algorithms {
   alg_block,
   alg_separate_rect,
   alg_solid_rect
-} Alogrithms;
+} Algorithms;
+
+extern MPE_XGraph tracking_win;
 
 typedef struct _Winspecs {
   int height, width;		/* size of the window */
   int bw;			/* whether to draw in black&white */
   int xpos, ypos;		/* position of the window */
   int numColors;		/* number of colors to use */
+  int my_tracking_color;        /* Color used in tracking window, if used. */
   MPE_Color *colorArray;	/* colors */
 } Winspecs;
 
@@ -49,6 +52,10 @@ typedef struct _Flags {
 				   wait and draw a complete rectangle */
   int fractal;			/* fractal type-MBROT, JULIA, or NEWTON */
   int maxiter;			/* bailout point  */
+  int with_tracking_win;        /* boolean: add a second window for
+                                   indicating who computed what. */
+  int no_remote_X;              /* boolean: master handles all X displaying. */
+
   double boundary_sq;		/* boundary for JULIA & MBROT */
   double epsilon;		/* epsilon for NEWTON */
   NUM rmin, rmax, imin, imax;	/* region to be computed */
@@ -76,7 +83,7 @@ typedef struct _Flags {
 #define DEF_bw        0
 #define DEF_xpos      -1
 #define DEF_ypos      -1
-#define DEF_numColors 16
+#define DEF_numColors 256
 
 #define DEF_logfile   0
 #define DEF_inf       0
@@ -106,6 +113,9 @@ typedef struct _Flags {
 #define DEF_julia_r   .331
 #define DEF_julia_i   -.4
 
+#define DEF_with_tracking_win 0
+#define DEF_no_remote_X 1
+
 typedef struct {
   int l, r, t, b, length;
   /* length =  (r.r-r.l+1) * (r.b-r.t+1) */
@@ -125,6 +135,21 @@ typedef struct {
 /*    slave to master: */
 #define ASSIGNMENT       46
 #define ALL_DONE         47
+
+
+/* Some new message tags for use in sending the point data to the master. */
+#define POINT_COUNT  201
+#define POINT_DATA   202
+#define RECT_SPEC    203
+#define RECT_COLOR   204
+#define BLOCK_TYPE   205
+#define TRACKING_COLOR 206
+/* One of the following two integers are sent to the master to tell it
+   whether to expect a block of points or a specification for a rectangle.
+   (much of this is only needed because I am avoiding the use of MPI_Probe)
+*/
+#define POINTS POINT_COUNT
+#define RECTANGLE RECT_SPEC
 
 #if LOG 
 #define MPE_LOG_SEND( to, tag, size ) \

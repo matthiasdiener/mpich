@@ -1,9 +1,15 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_ntfs_iwrite.c,v 1.1 2001/11/13 23:24:50 ashton Exp $    
+ *   $Id: ad_ntfs_iwrite.c,v 1.4 2002/11/15 16:26:22 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
+
+/* Set the style to c++ since this code will only be compiled with the
+   Windows C/C++ compiler that accepts C++ style comments and other 
+   constructions */
+/* style:c++ header */
 
 #include "ad_ntfs.h"
 

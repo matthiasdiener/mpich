@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iscontig.c,v 1.4 2000/02/10 21:54:55 thakur Exp $    
+ *   $Id: iscontig.c,v 1.6 2002/11/16 20:27:46 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,7 +11,8 @@
 #include "mpisgi2.h"
 #endif
 
-#ifdef MPICH
+#if defined(MPICH)
+/* MPICH2 also provides this routine */
 void MPIR_Datatype_iscontig(MPI_Datatype datatype, int *flag);
 
 void ADIOI_Datatype_iscontig(MPI_Datatype datatype, int *flag)

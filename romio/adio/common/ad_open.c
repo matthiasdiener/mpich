@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_open.c,v 1.10 2002/02/26 23:06:02 ashton Exp $    
+ *   $Id: ad_open.c,v 1.11 2002/10/24 17:01:12 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

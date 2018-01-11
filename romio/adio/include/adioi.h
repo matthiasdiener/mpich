@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adioi.h,v 1.15 2002/04/30 16:05:45 robl Exp $    
+ *   $Id: adioi.h,v 1.19 2002/10/24 17:01:16 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -275,10 +276,10 @@ void ADIOI_Complete_async(int *error_code);
 void ADIOI_Del_req_from_list(ADIO_Request *request);
 struct ADIOI_RequestD *ADIOI_Malloc_request(void);
 void ADIOI_Free_request(ADIOI_Req_node *node);
-void *ADIOI_Malloc(size_t size, int lineno, char *fname);
-void *ADIOI_Calloc(size_t nelem, size_t elsize, int lineno, char *fname);
-void *ADIOI_Realloc(void *ptr, size_t size, int lineno, char *fname);
-void ADIOI_Free(void *ptr, int lineno, char *fname);
+void *ADIOI_Malloc_fn(size_t size, int lineno, char *fname);
+void *ADIOI_Calloc_fn(size_t nelem, size_t elsize, int lineno, char *fname);
+void *ADIOI_Realloc_fn(void *ptr, size_t size, int lineno, char *fname);
+void ADIOI_Free_fn(void *ptr, int lineno, char *fname);
 void ADIOI_Datatype_iscontig(MPI_Datatype datatype, int *flag);
 void ADIOI_Get_position(ADIO_File fd, ADIO_Offset *offset);
 void ADIOI_Get_eof_offset(ADIO_File fd, ADIO_Offset *eof_offset);
@@ -318,6 +319,13 @@ void ADIOI_Calc_file_domains(ADIO_Offset *st_offsets, ADIO_Offset
 			     ADIO_Offset *min_st_offset_ptr,
 			     ADIO_Offset **fd_start_ptr, ADIO_Offset 
 			     **fd_end_ptr, ADIO_Offset *fd_size_ptr);
+int ADIOI_Calc_aggregator(ADIO_File fd,
+                                 ADIO_Offset off,
+                                 ADIO_Offset min_off,
+                                 ADIO_Offset *len,
+                                 ADIO_Offset fd_size,
+                                 ADIO_Offset *fd_start,
+                                 ADIO_Offset *fd_end);
 void ADIOI_Calc_my_req(ADIO_File fd, ADIO_Offset *offset_list, 
 			    int *len_list, int
 			    contig_access_count, ADIO_Offset 
@@ -342,6 +350,8 @@ int ADIOI_Error(ADIO_File fd, int error_code, char *string);
 int MPIR_Err_setmsg( int, int, const char *, const char *, const char *, ... );
 int ADIOI_End_call(MPI_Comm comm, int keyval, void *attribute_val, void *extra_state);
 int MPIR_Status_set_bytes(MPI_Status *status, MPI_Datatype datatype, int nbytes);
+int ADIOI_Uses_generic_read(ADIO_File fd);
+int ADIOI_Uses_generic_write(ADIO_File fd);
 
 
 /* Unix-style file locking */
@@ -389,10 +399,10 @@ int MPIR_Status_set_bytes(MPI_Status *status, MPI_Datatype datatype, int nbytes)
 int ADIOI_Set_lock(FDTYPE fd_sys, int cmd, int type, ADIO_Offset offset, int whence, ADIO_Offset len);
 int ADIOI_Set_lock64(FDTYPE fd_sys, int cmd, int type, ADIO_Offset offset, int whence, ADIO_Offset len);
 
-#define ADIOI_Malloc(a) ADIOI_Malloc(a,__LINE__,__FILE__)
-#define ADIOI_Calloc(a,b) ADIOI_Calloc(a,b,__LINE__,__FILE__)
-#define ADIOI_Realloc(a,b) ADIOI_Realloc(a,b,__LINE__,__FILE__)
-#define ADIOI_Free(a) ADIOI_Free(a,__LINE__,__FILE__)
+#define ADIOI_Malloc(a) ADIOI_Malloc_fn(a,__LINE__,__FILE__)
+#define ADIOI_Calloc(a,b) ADIOI_Calloc_fn(a,b,__LINE__,__FILE__)
+#define ADIOI_Realloc(a,b) ADIOI_Realloc_fn(a,b,__LINE__,__FILE__)
+#define ADIOI_Free(a) ADIOI_Free_fn(a,__LINE__,__FILE__)
 
 #define FPRINTF fprintf
 

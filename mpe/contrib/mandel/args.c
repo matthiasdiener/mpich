@@ -78,10 +78,7 @@ int *argc;
 char **argv, *switchName, **val;
 {
   int i, nremove, j;		/* nremove - number of arguments to remove */
-  xpand_list_String *listStr;
   char *readPtr;
-
-  listStr = String_CreateList( 10 );
 
   for (i=1; i<*argc; i++) {		  /* loop through all args */
     if (!strcmp( switchName, argv[i] )) { /* if this is the switch we want, */

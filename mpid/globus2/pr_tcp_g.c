@@ -7,8 +7,10 @@
 /********************/
 /* Global Variables */
 /********************/
+#ifdef GLOBUS_CALLBACK_GLOBAL_SPACE
+extern globus_callback_space_t MpichG2Space;
+#endif
 extern globus_io_handle_t Handle; 
-extern globus_mutex_t     MessageQueuesLock;
 extern volatile int       TcpOutstandingRecvReqs;
 extern globus_size_t      Headerlen;
 int			  MpichGlobus2TcpBufsz = 0;
@@ -163,7 +165,6 @@ void read_callback(void *callback_arg,
 			    (cp->selected_proto)->info;
 		    globus_size_t nbytes_sent;
 
-		    globus_mutex_lock(&(tp->connection_lock));
 		    if (dest_grank == MPID_MyWorldRank)
 		    {
 			/* TCP connection to myself */
@@ -194,7 +195,6 @@ void read_callback(void *callback_arg,
 			tp->whandle = &(rwhp->handle);
 		    } /* endif */
 		    rwhp->remote_format = remote_format;
-		    globus_mutex_unlock(&(tp->connection_lock));
 
 		    /* sending my format back */
 
@@ -241,7 +241,7 @@ void read_callback(void *callback_arg,
 		     * myself and was forced to instruct the other side
 		     * to call his prime_the_line and wait.
 		     */
-		    globus_cond_signal(&(tp->connection_cond));
+		    G2_SIGNAL
 
 		} /* endif */
 	    }
@@ -349,7 +349,7 @@ void read_callback(void *callback_arg,
 	     * remote format reply has arrived 
 	     */
 	    rwhp->recvd_format = GLOBUS_TRUE;
-	    globus_cond_signal(&(rwhp->format_cond));
+	    G2_SIGNAL
 
 	    /* transition to await_header */
             rwhp->state = await_header;
@@ -508,7 +508,6 @@ void read_callback(void *callback_arg,
 			    "extracted NULL sreq");
 		    } /* endif */
 
-		    globus_mutex_lock(&(sreq->lock));
 		    sreq->ack_arrived = GLOBUS_TRUE;
 		    if (sreq->cancel_issued)
 			sreq->is_complete = sreq->cancel_complete;
@@ -519,11 +518,8 @@ void read_callback(void *callback_arg,
 		    {
 			MPID_SendFree(sreq);
 		    } /* endif */
-		    globus_mutex_unlock(&(sreq->lock));
 
-		    globus_mutex_lock(&MessageQueuesLock);
 		    TcpOutstandingRecvReqs --;
-		    globus_mutex_unlock(&MessageQueuesLock);
 /* globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_header: ack: just decremented TcpOutstandingRecvReqs to %d\n", MPID_MyWorldRank, TcpOutstandingRecvReqs); */
 
 		    /* transition back to same state, 'await_header' */
@@ -569,7 +565,6 @@ void read_callback(void *callback_arg,
 		    /* search 'unexpected' queue for message */
 		    /* if found, then found=TRUE and removed */
 		    /* from 'unexpected' queue, else found=FALSE */
-		    globus_mutex_lock(&MessageQueuesLock);
 		    {
 			MPID_QUEUE *queue   = &MPID_recvs.unexpected;
 			MPID_QEL   **pp     = &(queue->first);
@@ -611,7 +606,6 @@ void read_callback(void *callback_arg,
 			else
 			    result = 0;
 		    }
-		    globus_mutex_unlock(&MessageQueuesLock);
 
 		    if (result 
 			&& ((MPI_Request) rhandle)->chandle.ref_count <= 0)
@@ -698,7 +692,6 @@ void read_callback(void *callback_arg,
 			    "type=cancel_result: extracted NULL sreq");
 		    } /* endif */
 
-		    RC_mutex_lock(&(sreq->lock));
 		    if (msgid_src_grank == MPID_MyWorldRank
 			&& msgid_sec    == sreq->msg_id_sec
 			&& msgid_usec   == sreq->msg_id_usec
@@ -713,14 +706,12 @@ void read_callback(void *callback_arg,
 			 * the cancel request result.
 			 */
 			sreq->cancel_complete = sreq->is_complete = GLOBUS_TRUE;
-			if (sreq->is_cancelled = cancel_success_flag)
-			    sreq->s.MPI_TAG = MPIR_MSG_CANCELLED;
+			if ((sreq->is_cancelled = cancel_success_flag) 
+			    == GLOBUS_TRUE)
+				sreq->s.MPI_TAG = MPIR_MSG_CANCELLED;
 		    } /* endif */
-		    RC_mutex_unlock(&(sreq->lock));
 
-		    globus_mutex_lock(&MessageQueuesLock);
 		    TcpOutstandingRecvReqs --;
-		    globus_mutex_unlock(&MessageQueuesLock);
 /* globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_header: cancel_result: just decremented TcpOutstandingRecvReqs to %d\n", MPID_MyWorldRank, TcpOutstandingRecvReqs); */
 
 		    /* transition back to same state, 'await_header' */
@@ -795,7 +786,6 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
     /* if found in posted queue, then remove into var rhandle */
     /* if not found in posted queue, then alloc a req into   */
     /* var rhandle and place onto unexpected queue            */
-    globus_mutex_lock(&MessageQueuesLock);
     MPID_Msg_arrived(rwhp->src,
 		    rwhp->tag,
 		    rwhp->context_id,
@@ -805,19 +795,17 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
     if (!found) 
     {
 	rhandle->buf      = rwhp->incoming_raw_data;
-	if (sizeof(unsigned long) < rwhp->libasize)
+	if (sizeof(rhandle->liba) < rwhp->libasize)
 	{
 	    char err[1024];
 	    globus_libc_sprintf(err,
 		"ERROR: read_callback(): await_data: detected sizeof("
-		"unsigned long) %ld < size of incoming liba %d\n", 
-		sizeof(unsigned long), 
+		"rhandle->liba) %d < size of incoming liba %d\n", 
+		sizeof(rhandle->liba),
 		rwhp->libasize);
 	    MPID_Abort(NULL, 0, "MPICH-G2", err);
 	} /* endif */
-	memcpy((void*) (&(rhandle->liba)), 
-	    rwhp->liba, 
-	    rwhp->libasize);
+	memcpy((void*) (rhandle->liba), rwhp->liba, rwhp->libasize);
 	rhandle->libasize = rwhp->libasize;
 
 	/* copying msg id stuff */
@@ -880,8 +868,6 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
 				rwhp->liba,
 				rwhp->libasize);
 
-	globus_mutex_lock(&(rhandle->lock));
-	
 	{
 	    unsigned char *		buf;
 	    int				len;
@@ -940,11 +926,9 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
 	{
 	    MPID_RecvFree(rhandle);
 	} /* endif */
-	globus_mutex_unlock(&(rhandle->lock));
 
 	g_free(rwhp->incoming_raw_data);
     } /* endif */
-    globus_mutex_unlock(&MessageQueuesLock);
 
 } /* end data_arrived() */
 
@@ -1085,7 +1069,6 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
     }
     else
     {
-	globus_mutex_lock(&(tp->connection_lock));
 	if (!(tp->handlep))
 	{
 	    /* connection has not been established yet */
@@ -1105,6 +1088,26 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 
 	    globus_io_tcpattr_init(&(tp->attr));
 	    
+#           if defined(GLOBUS_CALLBACK_GLOBAL_SPACE)
+            { 
+                globus_result_t result;
+                result = globus_io_attr_set_callback_space(&(tp->attr), 
+                                                            MpichG2Space);
+                if (result != GLOBUS_SUCCESS)
+                {
+                    globus_object_t* err = globus_error_get(result);
+                    char *errstring = globus_object_printable_to_string(err);
+                    char msg[1024];
+                    globus_libc_sprintf(msg,
+                        "ERROR: prime_the_line: failed "
+                        "globus_io_attr_set_callback_space: %s",
+                        errstring);
+                    print_channels();
+                    MPID_Abort((struct MPIR_COMMUNICATOR *)0, 1, 
+                                "MPICH-G2", msg);
+                } /* endif */
+            } 
+#endif
 	    /*
 	     * We need to set the tcp send and receive buffer sizes to
 	     * something large to deal with the large bandwidth - delay product
@@ -1157,8 +1160,6 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 	    else
 		rwp = &temp_rw;
 
-	    globus_cond_init(&(rwp->format_cond), 
-			    (globus_condattr_t *) GLOBUS_NULL);
 	    if (globus_io_tcp_connect(tp->hostname, 
 				    tp->port, 
 				    &(tp->attr), 
@@ -1277,8 +1278,7 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 
 		while (!(rwp->recvd_format))
 		{
-		    globus_cond_wait(&(rwp->format_cond),
-					    &(tp->connection_lock));
+		    G2_WAIT
 		} /* endwhile */
 	    }
 	    else
@@ -1294,13 +1294,11 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 		/* waiting for other side to call prime_the_line() */
 		while (!(tp->handlep))
 		{
-		    globus_cond_wait(&(tp->connection_cond),
-					&(tp->connection_lock));
+		    G2_WAIT
 		} /* endwhile */
 	    } /* endif */
 
 	} /* endif */
-	globus_mutex_unlock(&(tp->connection_lock));
     } /* endif */
 
 } /* end prime_the_line() */
@@ -1321,7 +1319,6 @@ static void send_cancel_result_over_tcp(char *msgid_src_commworld_id,
 					unsigned long msgid_ctr)
 {
     int grank;
-    globus_size_t nbytes_sent;
     struct channel_t *chp;
 
 /* globus_libc_fprintf(stderr, "NICK: %d: enter send_cancel_result_over_tcp: result %d cwid %s cwdispl %d msgid_sec %ld msgid_usec %ld msgid_ctr %ld\n", MPID_MyWorldRank, result, msgid_src_commworld_id, msgid_src_commworld_displ, msgid_sec, msgid_usec, msgid_ctr);  */
@@ -1361,8 +1358,6 @@ static void send_cancel_result_over_tcp(char *msgid_src_commworld_id,
     {
             struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
                 (chp->selected_proto)->info;
-            globus_byte_t *cp     = tp->header;
-            enum header_type type = cancel_result;
 	    struct tcpsendreq * sr;
 
             if (!(tp->handlep))

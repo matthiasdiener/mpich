@@ -377,6 +377,12 @@ MPE_State   *state;
   request_list *rq, *last;
   int flag, size;
 
+#ifdef HAVE_MPI_STATUS_IGNORE
+  MPI_Status    tmp_status;
+  if (status == MPI_STATUS_IGNORE)
+      status = &tmp_status;
+#endif
+
   /* look for request */
   rq = requests_head_0;
   last = 0;
@@ -2644,6 +2650,12 @@ MPI_Status * status;
   int  returnVal;
   MPE_LOG_STATE_DECL;
 
+#ifdef HAVE_MPI_STATUS_IGNORE
+  MPI_Status    tmp_status;
+  if (status == MPI_STATUS_IGNORE)
+      status = &tmp_status;
+#endif
+
 /*
     MPI_Iprobe - prototyping replacement for MPI_Iprobe
     Log the beginning and ending of the time spent in MPI_Iprobe calls.
@@ -2850,6 +2862,12 @@ MPI_Status * status;
   int  returnVal;
   MPE_LOG_STATE_DECL;
 
+#ifdef HAVE_MPI_STATUS_IGNORE
+  MPI_Status    tmp_status;
+  if (status == MPI_STATUS_IGNORE)
+      status = &tmp_status;
+#endif
+
 /*
     MPI_Probe - prototyping replacement for MPI_Probe
     Log the beginning and ending of the time spent in MPI_Probe calls.
@@ -2885,6 +2903,12 @@ MPI_Status * status;
 {
   int  returnVal, acount;
   MPE_LOG_STATE_DECL;
+
+#ifdef HAVE_MPI_STATUS_IGNORE
+  MPI_Status    tmp_status;
+  if (status == MPI_STATUS_IGNORE)
+      status = &tmp_status;
+#endif
 
 /*
     MPI_Recv - prototyping replacement for MPI_Recv
@@ -3022,6 +3046,12 @@ MPI_Status * status;
   int  acount, sendsize;
   MPE_LOG_STATE_DECL;
 
+#ifdef HAVE_MPI_STATUS_IGNORE
+  MPI_Status    tmp_status;
+  if (status == MPI_STATUS_IGNORE)
+      status = &tmp_status;
+#endif
+
 /*
     MPI_Sendrecv - prototyping replacement for MPI_Sendrecv
     Log the beginning and ending of the time spent in MPI_Sendrecv calls.
@@ -3068,6 +3098,13 @@ MPI_Status * status;
   int  returnVal;
   int  acount, sendsize;
   MPE_LOG_STATE_DECL;
+
+#ifdef HAVE_MPI_STATUS_IGNORE
+  MPI_Status    tmp_status;
+  if (status == MPI_STATUS_IGNORE)
+      status = &tmp_status;
+#endif
+
 /*
     MPI_Sendrecv_replace - prototyping replacement for MPI_Sendrecv_replace
     Log the beginning and ending of the time spent in MPI_Sendrecv_replace calls.
@@ -3210,6 +3247,7 @@ MPI_Status * status;
   int   returnVal;
   MPI_Request lreq = *request;
   MPE_LOG_STATE_DECL;
+
 /*
     MPI_Test - prototyping replacement for MPI_Test
     Log the beginning and ending of the time spent in MPI_Test calls.

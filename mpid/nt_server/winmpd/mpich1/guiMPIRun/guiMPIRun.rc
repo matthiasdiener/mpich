@@ -184,48 +184,53 @@ BEGIN
     LTEXT           "Password:",IDC_STATIC,27,61,34,8
 END
 
-IDD_ADV_OPTIONS_DLG DIALOG DISCARDABLE  0, 0, 186, 261
+IDD_ADV_OPTIONS_DLG DIALOG DISCARDABLE  0, 0, 186, 297
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION
 CAPTION "Advanced Options"
 FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "&No mpi - just execute multiple processes",
-                    IDC_NOMPI_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,
+                    IDC_NOMPI_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,30,
                     141,10
     CONTROL         "Don't clear &output on Run",IDC_NOCLEAR_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,31,97,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,42,97,10
     CONTROL         "Always prompt for &password",IDC_PASSWORD_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,44,103,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,55,103,10
     CONTROL         "&Redirect output to file",IDC_REDIRECT_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,57,83,10
-    EDITTEXT        IDC_OUTPUT_FILENAME,18,68,146,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_REDIRECT_BROWSE_BTN,168,68,11,14
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,68,83,10
+    EDITTEXT        IDC_OUTPUT_FILENAME,18,79,146,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_REDIRECT_BROWSE_BTN,168,79,11,14
     CONTROL         "Use configuration &file",IDC_CONFIG_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,86,82,10
-    EDITTEXT        IDC_CONFIG,18,97,146,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_CONFIG_BROWSE_BTN,168,97,11,14
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,97,82,10
+    EDITTEXT        IDC_CONFIG,18,108,146,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_CONFIG_BROWSE_BTN,168,108,11,14
     CONTROL         "&Slave process",IDC_SLAVE_CHK,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,7,114,61,10
-    EDITTEXT        IDC_SLAVE,18,126,146,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_SLAVE_BROWSE_BTN,168,126,11,14
+                    WS_TABSTOP,7,125,61,10
+    EDITTEXT        IDC_SLAVE,18,137,146,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_SLAVE_BROWSE_BTN,168,137,11,14
     CONTROL         "&Environment - var1=val1|var2=val2|var3=val3...",
-                    IDC_ENV_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,143,
+                    IDC_ENV_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,154,
                     164,10
-    EDITTEXT        IDC_ENVIRONMENT,19,155,160,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ENVIRONMENT,19,166,160,14,ES_AUTOHSCROLL
     CONTROL         "Working &directory - drive:\\my\\working\\directory",
-                    IDC_DIR_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,174,
+                    IDC_DIR_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,185,
                     175,10
-    EDITTEXT        IDC_DIRECTORY,18,185,146,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_DIR_BROWSE_BTN,168,185,11,14
+    EDITTEXT        IDC_DIRECTORY,18,196,146,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_DIR_BROWSE_BTN,168,196,11,14
     CONTROL         "Drive &mappings - drive:\\\\host\\share;drive:\\\\...",
-                    IDC_MAP_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,201,
+                    IDC_MAP_CHK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,212,
                     177,10
-    EDITTEXT        IDC_DRIVEMAPPINGS,19,214,160,14,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,7,240,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,61,240,50,14
-    PUSHBUTTON      "Help",IDC_HELP_BTN,129,240,50,14
+    EDITTEXT        IDC_DRIVEMAPPINGS,19,225,160,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,7,276,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,61,276,50,14
+    PUSHBUTTON      "Help",IDC_HELP_BTN,129,276,50,14
     CONTROL         "No &color output",IDC_NOCOLOR_CHK,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,7,65,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,18,65,10
+    CONTROL         "Catch &unhandled exceptions",IDC_CATCH_CHK,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,7,106,10
+    CONTROL         "Use &Jobhost",IDC_JOBHOST_CHK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,7,243,55,10
+    EDITTEXT        IDC_JOBHOST,19,256,160,14,ES_AUTOHSCROLL
 END
 
 IDD_HELP_DLG DIALOG DISCARDABLE  0, 0, 350, 234
@@ -321,7 +326,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 179
         TOPMARGIN, 7
-        BOTTOMMARGIN, 254
+        BOTTOMMARGIN, 290
     END
 
     IDD_HELP_DLG, DIALOG

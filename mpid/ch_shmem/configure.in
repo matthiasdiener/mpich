@@ -23,6 +23,10 @@ The choices include
               with the environment variable MPICH_YIELD],
 ,enable_yield=yes)
 
+AC_ARG_ENABLE(processgroup,
+[--enable-processgroup - Use a separate process group for the MPICH processes],
+,enable_processgroup=default)
+
 # Solaris has -lthread containing mutex_init
 AC_CHECK_LIB(thread,mutex_init)
 
@@ -248,6 +252,13 @@ fi
 if test "$SEMGET" = "1" ; then
     AC_DEFINE(HAVE_SEMGET)
 fi
+
+AC_CHECK_FUNCS(setsid isatty)
+if test "$enable_processgroup" = "default" -o \
+        "$enable_processgroup" = "yes" ; then
+    AC_DEFINE(SET_NEW_PGRP,,[Define to force a new process group])
+fi
+
 
 # XOPEN mandates that union semun NOT be defined(!)
 AC_MSG_CHECKING(for union semun)

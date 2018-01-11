@@ -56,6 +56,7 @@ void PrintSortedList(DisplayJobNode *list, FILE *fout)
 	    printf("%s = %s\n", node->key, node->value);
 	delete node;
     }
+    fflush(stdout);
 }
 
 void PrintSortedListToFile(DisplayJobNode *list, char *filename)
@@ -100,6 +101,7 @@ void PrintSortedListToFile(DisplayJobNode *list, char *filename)
 	printf("%s = %s\n", node->key, node->value);
 	delete node;
     }
+    fflush(stdout);
 }
 
 struct CmdAndHostNode
@@ -224,6 +226,7 @@ void CmdAndHostNode::Print()
 	n = n->next;
     }
     printf("\n");
+    fflush(stdout);
 }
 
 void PrintFormattedList(DisplayJobNode *list)
@@ -288,6 +291,7 @@ void PrintFormattedList(DisplayJobNode *list)
 		if (!found)
 		{
 		    printf("Unmatched host: %s\n", node->value);
+		    fflush(stdout);
 		}
 	    }
 	}
@@ -307,11 +311,12 @@ void PrintFormattedList(DisplayJobNode *list)
 	iter->Print();
 	delete iter;
     }
+    fflush(stdout);
 }
 
 void DisplayJob(char *job, char *host, int port, char *altphrase, bool bFullOutput, bool bToFile, char *filename)
 {
-    int bfd;
+    SOCKET sock;
     char str[CONSOLE_STR_LENGTH+1];
     int error;
     char key[100];
@@ -328,9 +333,10 @@ void DisplayJob(char *job, char *host, int port, char *altphrase, bool bFullOutp
 	host = localhost;
     }
 
-    if (ConnectToMPD(host, port, (altphrase == NULL) ? MPD_DEFAULT_PASSPHRASE : altphrase, &bfd) != 0)
+    if (ConnectToMPD(host, port, (altphrase == NULL) ? MPD_DEFAULT_PASSPHRASE : altphrase, &sock) != 0)
     {
 	printf("Unable to connect to the mpd on %s\n", host);
+	fflush(stdout);
 	return;
     }
 
@@ -340,8 +346,9 @@ void DisplayJob(char *job, char *host, int port, char *altphrase, bool bFullOutp
 	if (fout == NULL)
 	{
 	    printf("Error: unable to open '%s'\n", filename);
-	    WriteString(bfd, "done");
-	    beasy_closesocket(bfd);
+	    fflush(stdout);
+	    WriteString(sock, "done");
+	    easy_closesocket(sock);
 	    return;
 	}
 	fprintf(fout, "Job %s on %s:\n", job, host);
@@ -350,32 +357,36 @@ void DisplayJob(char *job, char *host, int port, char *altphrase, bool bFullOutp
     else
     {
 	printf("Job %s on %s:\n", job, host);
+	fflush(stdout);
     }
 
     sprintf(str, "dbfirst %s", job);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	printf("writing '%s' failed, %d\n", str, error);
 	Translate_Error(error, str);
 	printf("%s\n", str);
-	beasy_closesocket(bfd);
+	fflush(stdout);
+	easy_closesocket(sock);
 	return;
     }
-    if (ReadStringTimeout(bfd, str, 10))
+    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
     {
 	if (strcmp(str, "DBS_FAIL") == 0)
 	{
 	    printf("job %s does not exist on %s\n", job, host);
-	    WriteString(bfd, "done");
-	    beasy_closesocket(bfd);
+	    fflush(stdout);
+	    WriteString(sock, "done");
+	    easy_closesocket(sock);
 	    return;
 	}
 	if (strcmp(str, "DBS_END") == 0)
 	{
 	    printf("job %s does not exist on %s\n", job, host);
-	    WriteString(bfd, "done");
-	    beasy_closesocket(bfd);
+	    fflush(stdout);
+	    WriteString(sock, "done");
+	    easy_closesocket(sock);
 	    return;
 	}
 	GetKeyAndValue(str, key, value);
@@ -387,30 +398,33 @@ void DisplayJob(char *job, char *host, int port, char *altphrase, bool bFullOutp
     else
     {
 	printf("Unable to read the job on %s.\n", host);
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	fflush(stdout);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
 	return;
     }
 
     while (true)
     {
 	sprintf(str, "dbnext %s", job);
-	if (WriteString(bfd, str) == SOCKET_ERROR)
+	if (WriteString(sock, str) == SOCKET_ERROR)
 	{
 	    error = WSAGetLastError();
 	    printf("writing '%s' failed, %d\n", str, error);
 	    Translate_Error(error, str);
 	    printf("%s\n", str);
-	    beasy_closesocket(bfd);
+	    fflush(stdout);
+	    easy_closesocket(sock);
 	    return;
 	}
-	if (ReadStringTimeout(bfd, str, 10))
+	if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
 	{
 	    if (strcmp(str, "DBS_FAIL") == 0)
 	    {
 		printf("unexpected error reading the next key/value pair\n");
-		WriteString(bfd, "done");
-		beasy_closesocket(bfd);
+		fflush(stdout);
+		WriteString(sock, "done");
+		easy_closesocket(sock);
 		return;
 	    }
 	    if (strcmp(str, "DBS_END") == 0)
@@ -426,20 +440,21 @@ void DisplayJob(char *job, char *host, int port, char *altphrase, bool bFullOutp
 	else
 	{
 	    printf("Unable to read the next job key/value pair on %s.\n", host);
-	    WriteString(bfd, "done");
-	    beasy_closesocket(bfd);
+	    fflush(stdout);
+	    WriteString(sock, "done");
+	    easy_closesocket(sock);
 	    return;
 	}
     }
 
-    if (WriteString(bfd, "done") == SOCKET_ERROR)
+    if (WriteString(sock, "done") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
 	printf("WriteString failed: %d\n%s\n", error, str);
 	fflush(stdout);
     }
-    beasy_closesocket(bfd);
+    easy_closesocket(sock);
 
     if (bFullOutput)
     {
@@ -449,6 +464,7 @@ void DisplayJob(char *job, char *host, int port, char *altphrase, bool bFullOutp
 	    if (fout == NULL)
 	    {
 		printf("Error: DisplayJob, unable to open file '%s'\n", filename);
+		fflush(stdout);
 		return;
 	    }
 	    PrintSortedList(list, fout);

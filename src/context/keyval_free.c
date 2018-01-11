@@ -1,5 +1,5 @@
 /*
- *  $Id: keyval_free.c,v 1.8 2001/11/14 19:54:27 ashton Exp $
+ *  $Id: keyval_free.c,v 1.9 2002/06/12 22:24:30 ashton Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -68,6 +68,8 @@ int MPI_Keyval_free ( int *keyval )
 
 #ifndef MPIR_NO_ERROR_CHECKING
   MPIR_TEST_MPI_KEYVAL(*keyval,attr_key,MPIR_COMM_WORLD,myname);
+  if (mpi_errno) 
+      return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
   if ( (attr_key->permanent == 1) && (MPIR_Has_been_initialized == 1) ){
       mpi_errno = MPIR_ERRCLASS_TO_CODE(MPI_ERR_ARG,MPIR_ERR_PERM_KEY);
   }

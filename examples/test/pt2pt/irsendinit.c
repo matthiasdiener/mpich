@@ -8,6 +8,7 @@
 #include "protofix.h"
 #endif
 
+int verbose = 0;
 /* Nonblocking ready persistent sends 
    
    This is similar to a test in allpair.f, but with an expanded range of
@@ -25,7 +26,7 @@ int main( int argc, char **argv )
     int          *counts, *bytesize, ntype;
     MPI_Comm     comms[20];
     int          ncomm = 20, rank, np, partner, tag;
-    int          i, j, k, err, world_rank, errloc;
+    int          i, j, k, err, toterr, world_rank, errloc;
     MPI_Status   status;
     int          flag, index;
     char         *obuf;
@@ -50,7 +51,7 @@ int main( int argc, char **argv )
 	if (np < 2) continue;
 	tag = i;
 	for (j=0; j<ntype; j++) {
-	    if (world_rank == 0) 
+	    if (world_rank == 0 && verbose) 
 		fprintf( stdout, "Testing type %s\n", names[j] );
 	    /* This test does an irsend between both partners, with 
 	       a sendrecv after the irecv used to guarentee that the
@@ -148,6 +149,15 @@ int main( int argc, char **argv )
 
     if (err > 0) {
 	fprintf( stderr, "%d errors on %d\n", err, rank );
+    }
+    MPI_Allreduce( &err, &toterr, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+    if (world_rank == 0) {
+	if (toterr == 0) {
+	    printf( " No Errors\n" );
+	}
+	else {
+	    printf (" Found %d errors\n", toterr );
+	}
     }
     FreeDatatypes( types, inbufs, outbufs, counts, bytesize, names, ntype );
     FreeComms( comms, ncomm );

@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pfs_hints.c,v 1.3 2000/01/21 20:55:26 thakur Exp $    
+ *   $Id: ad_pfs_hints.c,v 1.4 2002/10/24 17:00:51 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

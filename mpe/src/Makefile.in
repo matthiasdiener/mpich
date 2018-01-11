@@ -100,6 +100,7 @@ profile_all:
 default: clean rmprog rmlib 
 	 $(MAKE) mpe_debug_objs 
 	 $(MAKE) libslog.a 
+	 sleep 1
 	 $(MAKE) ${libbuild_dir}/lib$(PROF_LIBNAME).a 
 	 $(MAKE) ${libbuild_dir}/lib$(TRACE_LIBNAME).a 
 	 $(MAKE) ${libbuild_dir}/lib$(LOG_LIBNAME).a 

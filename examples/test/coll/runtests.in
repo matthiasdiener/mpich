@@ -7,7 +7,7 @@ top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 MPICH_VERSION=@MPICH_VERSION@
 STOPFILE=$HOME/.stopmpichtests
-mpirun="@MPIRUN@"
+mpirun=${MPIRUN:-"@MPIRUN@"}
 MAKE="@MAKE@"
 MPIRUNMVBACK='@MPIRUNMVBACK@'
 #
@@ -133,6 +133,8 @@ rm -f longuser1
 RunTest grouptest 4
 
 RunTest allred 4 "*** Allred ***"
+
+RunTest allred2 4 "*** Allred2 ***"
 
 RunTest scatterv 4 "*** Scatterv ***"
 

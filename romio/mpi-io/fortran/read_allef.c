@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: read_allef.c,v 1.10 2001/12/12 23:38:12 ashton Exp $    
+ *   $Id: read_allef.c,v 1.12 2002/10/24 17:01:23 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,21 +11,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_read_all_end_ PMPI_FILE_READ_ALL_END
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_read_all_end_ pmpi_file_read_all_end__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_read_all_end pmpi_file_read_all_end_
-#endif
-#define mpi_file_read_all_end_ pmpi_file_read_all_end
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_read_all_end_ pmpi_file_read_all_end
-#endif
-#define mpi_file_read_all_end_ pmpi_file_read_all_end_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -64,6 +50,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpi_file_read_all_end_ PMPI_FILE_READ_ALL_END
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_read_all_end_ pmpi_file_read_all_end__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_read_all_end pmpi_file_read_all_end_
+#endif
+#define mpi_file_read_all_end_ pmpi_file_read_all_end
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_read_all_end_ pmpi_file_read_all_end
+#endif
+#define mpi_file_read_all_end_ pmpi_file_read_all_end_
 #endif
 
 #else

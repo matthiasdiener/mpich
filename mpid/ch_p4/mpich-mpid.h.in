@@ -21,5 +21,15 @@
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
 
+/* Define if you have the isatty function.  */
+#undef HAVE_ISATTY
+
 /* Define if you have the mmap function.  */
 #undef HAVE_MMAP
+
+/* Define if you have the setsid function.  */
+#undef HAVE_SETSID
+
+/* Define to force a new process group */
+#undef SET_NEW_PGRP
+

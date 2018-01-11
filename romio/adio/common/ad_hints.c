@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hints.c,v 1.9 2002/01/04 22:47:18 rross Exp $    
+ *   $Id: ad_hints.c,v 1.12 2002/11/20 13:58:29 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +20,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
     char *value;
     int flag, intval, tmp_val, nprocs;
 
-    if (!(fd->info)) MPI_Info_create(&(fd->info));
+    if (fd->info == MPI_INFO_NULL) MPI_Info_create(&(fd->info));
     info = fd->info;
 
     /* Note that fd->hints is allocated at file open time; thus it is
@@ -268,7 +269,7 @@ void ADIOI_GEN_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code)
      */
     if (fd->hints->cb_config_list == NULL) {
 	MPI_Info_set(info, "cb_config_list", ADIOI_CB_CONFIG_LIST_DFLT);
-	fd->hints->cb_config_list = ADIOI_Malloc(strlen((ADIOI_CB_CONFIG_LIST_DFLT)+1) * sizeof(char));
+	fd->hints->cb_config_list = ADIOI_Malloc((strlen(ADIOI_CB_CONFIG_LIST_DFLT)+1) * sizeof(char));
 	if (fd->hints->cb_config_list == NULL) {
 	    /* NEED TO HANDLE ENOMEM */
 	}

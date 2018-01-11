@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pfs.c,v 1.1 2001/06/05 22:27:23 rross Exp $
+ *   $Id: ad_pfs.c,v 1.3 2002/10/24 17:00:50 gropp Exp $
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -14,13 +15,13 @@ struct ADIOI_Fns_struct ADIO_PFS_operations = {
     ADIOI_PFS_Open, /* Open */
     ADIOI_PFS_ReadContig, /* ReadContig */
     ADIOI_PFS_WriteContig, /* WriteContig */
-    ADIOI_PFS_ReadStridedColl, /* ReadStridedColl */
-    ADIOI_PFS_WriteStridedColl, /* WriteStridedColl */
+    ADIOI_GEN_ReadStridedColl, /* ReadStridedColl */
+    ADIOI_GEN_WriteStridedColl, /* WriteStridedColl */
     ADIOI_PFS_SeekIndividual, /* SeekIndividual */
     ADIOI_PFS_Fcntl, /* Fcntl */
     ADIOI_PFS_SetInfo, /* SetInfo */
-    ADIOI_PFS_ReadStrided, /* ReadStrided */
-    ADIOI_PFS_WriteStrided, /* WriteStrided */
+    ADIOI_GEN_ReadStrided, /* ReadStrided */
+    ADIOI_GEN_WriteStrided, /* WriteStrided */
     ADIOI_PFS_Close, /* Close */
     ADIOI_PFS_IreadContig, /* IreadContig */
     ADIOI_PFS_IwriteContig, /* IwriteContig */

@@ -4,7 +4,7 @@
 
 void ConnectAndRestart(int *argc, char ***argv, char *host)
 {
-    int bfd;
+    SOCKET sock;
     char str[CONSOLE_STR_LENGTH+1];
     char *result;
     int error;
@@ -12,9 +12,7 @@ void ConnectAndRestart(int *argc, char ***argv, char *host)
     int port = -1;
     bool bAskPwd;
 
-    PUSH_FUNC("ConnectAndRestart");
-
-    bsocket_init();
+    easy_socket_init();
     GetOpt(*argc, *argv, "-port", &port);
     bAskPwd = GetOpt(*argc, *argv, "-getphrase");
     GetOpt(*argc, *argv, "-phrase", phrase);
@@ -24,13 +22,11 @@ void ConnectAndRestart(int *argc, char ***argv, char *host)
 	host = g_pszHost;
     if (port == -1)
 	port = g_nPort;
-    if (beasy_create(&bfd, 0, INADDR_ANY) == SOCKET_ERROR)
+    if (easy_create(&sock, 0, INADDR_ANY) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
-	printf("beasy_create failed: %d\n%s\n", error, str);
-	fflush(stdout);
-	POP_FUNC();
+	err_printf("easy_create failed: %d\n%s\n", error, str);
 	return;
     }
     if (bAskPwd || !ReadMPDRegistry("phrase", phrase, false))
@@ -45,94 +41,83 @@ void ConnectAndRestart(int *argc, char ***argv, char *host)
 	SetConsoleMode(hStdin, dwMode);
 	printf("\n");fflush(stdout);
     }
-    printf("connecting to %s:%d\n", host, port);fflush(stdout);
-    if (beasy_connect(bfd, host, port) == SOCKET_ERROR)
+    dbg_printf("connecting to %s:%d\n", host, port);
+    if (easy_connect(sock, host, port) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
-	printf("beasy_connect failed: %d\n%s\n", error, str);fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	err_printf("easy_connect failed: %d\n%s\n", error, str);
+	easy_closesocket(sock);
 	return;
     }
-    if (!ReadString(bfd, str))
+    if (!ReadString(sock, str))
     {
-	printf("reading challenge string failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	err_printf("reading challenge string failed.\n");
+	easy_closesocket(sock);
 	return;
     }
     if (strlen(phrase) + strlen(str) > MPD_PASSPHRASE_MAX_LENGTH)
     {
-	printf("unable to process passphrase.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	err_printf("unable to process passphrase.\n");
+	easy_closesocket(sock);
 	return;
     }
     strcat(phrase, str);
     result = crypt(phrase, MPD_SALT_VALUE);
     memset(phrase, 0, strlen(phrase)); // zero out the passphrase
     strcpy(str, result);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
-	printf("WriteString of the encrypted response string failed: %d\n%s\n", error, str);fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	err_printf("WriteString of the encrypted response string failed: %d\n%s\n", error, str);
+	easy_closesocket(sock);
 	return;
     }
-    if (!ReadString(bfd, str))
+    if (!ReadString(sock, str))
     {
-	printf("reading authentication result failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	err_printf("reading authentication result failed.\n");
+	easy_closesocket(sock);
 	return;
     }
     if (strcmp(str, "SUCCESS"))
     {
-	printf("host authentication failed.\n");fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	err_printf("host authentication failed.\n");
+	easy_closesocket(sock);
 	return;
     }
-    if (WriteString(bfd, "console") == SOCKET_ERROR)
+    if (WriteString(sock, "console") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
-	printf("WriteString('console') failed: %d\n%s\n", error, str);fflush(stdout);
-	beasy_closesocket(bfd);
-	POP_FUNC();
+	err_printf("WriteString('console') failed: %d\n%s\n", error, str);
+	easy_closesocket(sock);
 	return;
     }
-    printf("connected\n");fflush(stdout);
+    dbg_printf("connected\n");
 
     // send restart request
-    if (WriteString(bfd, "restart") == SOCKET_ERROR)
+    if (WriteString(sock, "restart") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	printf("writing '%s' failed, %d\n", str, error);
+	err_printf("writing '%s' failed, %d\n", str, error);
 	Translate_Error(error, str);
-	printf("%s\n", str);
-	fflush(stdout);
-	POP_FUNC();
+	err_printf("%s\n", str);
 	return;
     }
-    //printf("waiting for result\n");fflush(stdout);
-    if (ReadStringTimeout(bfd, str, 10))
+    //dbg_printf("waiting for result\n");
+    if (ReadStringTimeout(sock, str, MPD_DEFAULT_TIMEOUT))
     {
-	printf("%s\n", str);fflush(stdout);
+	dbg_printf("%s\n", str);
     }
 
-    if (WriteString(bfd, "done") == SOCKET_ERROR)
+    if (WriteString(sock, "done") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
 	Translate_Error(error, str);
-	printf("WriteString failed: %d\n%s\n", error, str);
-	fflush(stdout);
+	err_printf("WriteString failed: %d\n%s\n", error, str);
     }
-    beasy_closesocket(bfd);
+    easy_closesocket(sock);
 
-    bsocket_finalize();
-    POP_FUNC();
+    easy_socket_finalize();
 }

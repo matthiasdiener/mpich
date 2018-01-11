@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs.c,v 1.1 2001/07/07 18:12:11 rross Exp $
+ *   $Id: ad_pvfs.c,v 1.3 2002/10/24 17:00:57 gropp Exp $
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -19,7 +20,7 @@ struct ADIOI_Fns_struct ADIO_PVFS_operations = {
     ADIOI_PVFS_SeekIndividual, /* SeekIndividual */
     ADIOI_PVFS_Fcntl, /* Fcntl */
     ADIOI_PVFS_SetInfo, /* SetInfo */
-    ADIOI_PVFS_ReadStrided, /* ReadStrided */
+    ADIOI_GEN_ReadStrided, /* ReadStrided */
     ADIOI_PVFS_WriteStrided, /* WriteStrided */
     ADIOI_PVFS_Close, /* Close */
     ADIOI_PVFS_IreadContig, /* IreadContig */

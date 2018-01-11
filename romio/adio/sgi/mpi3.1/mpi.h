@@ -1,3 +1,4 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* USMID @(#)mpi/include/mpi.h	31.4	10/07/97 18:14:32 */
 
 /*

@@ -1,6 +1,14 @@
 #include <globus_dc.h>
 #include "globdev.h"
 
+/********************/
+/* Global Variables */
+/********************/
+
+#ifdef GLOBUS_CALLBACK_GLOBAL_SPACE
+extern globus_callback_space_t MpichG2Space;
+#endif
+
 /*******************/
 /* Local Functions */
 /*******************/
@@ -11,11 +19,6 @@ static int get_elements_from_partial(int req_nelem,
 				int *nbytes_remaining,
 				int *elements,
 				globus_bool_t *done);
-
-/********************/
-/* Global Variables */
-/********************/
-extern globus_mutex_t     MessageQueuesLock;
 
 /*
  * MPID_Probe 
@@ -145,23 +148,21 @@ void MPID_Iprobe(struct MPIR_COMMUNICATOR *comm,
     /* try TCP */
 
     /*
-	 * need globus_poll() here so that if MPID_Iprobe called 
-	 * by MPID_probe() progress is guaranteed, that is, if
-	 * MPID_Probe is called before TCP data arrives the waiting 
-	 * proc (i.e, the one that called MPI_Probe) must be assured
-	 * that once the TCP data is sent that it (a) will be received
-	 * and (b) it will be detected (i.e., progress).
-	 */
-    globus_poll();
+     * need G2_POLL here so that if MPID_Iprobe called 
+     * by MPID_probe() progress is guaranteed, that is, if
+     * MPID_Probe is called before TCP data arrives the waiting 
+     * proc (i.e, the one that called MPI_Probe) must be assured
+     * that once the TCP data is sent that it (a) will be received
+     * and (b) it will be detected (i.e., progress).
+     */
+    G2_POLL
 
     /* search 'unexpected' queue ... does NOT remove from queue */
-    globus_mutex_lock(&MessageQueuesLock);
     MPID_Search_unexpected_queue(src_lrank,
 				 tag,
 				 context_id,
 				 GLOBUS_FALSE, /* do not remove from queue */
 				 &unexpected);
-    globus_mutex_unlock(&MessageQueuesLock);
 
     if (unexpected)
     {
@@ -550,7 +551,8 @@ static int get_elements_from_partial(int req_nelem,
 		} /* endif */
 
 		inbuf_nelem = (*nbytes_remaining) / unit_size;
-		if (nelem = (req_nelem<inbuf_nelem ? req_nelem : inbuf_nelem))
+		if ((nelem = (req_nelem<inbuf_nelem ? req_nelem : inbuf_nelem))
+		    != 0)
 		{
 		    (*nbytes_remaining) -= (nelem * unit_size);
 		    (*elements)         += nelem;

@@ -5,7 +5,6 @@
 #include "MPIConfig.h"
 #include "MPIConfigDlg.h"
 #include "mpd.h"
-#include "bsocket.h"
 #include "crypt.h"
 #include <tchar.h>
 #include "RegistrySettingsDialog.h"
@@ -153,7 +152,7 @@ BOOL CMPIConfigDlg::OnInitDialog()
     SetIcon(m_hIcon, TRUE);			// Set big icon
     SetIcon(m_hIcon, FALSE);		// Set small icon
     
-    bsocket_init();
+    easy_socket_init();
     ParseRegistry();
 
     RECT r;
@@ -225,7 +224,7 @@ void SetBtnThread(CMPIConfigDlg *pDlg)
     char pszStr[4096];
     char hoststring[4096] = "";
     char host[100];
-    int bfd;
+    SOCKET sock;
 
     num_hosts = pDlg->m_host_list.GetCount();
     if (num_hosts == 0)
@@ -283,26 +282,26 @@ void SetBtnThread(CMPIConfigDlg *pDlg)
 	if (pDlg->m_host_list.GetText(i, host) == LB_ERR)
 	    continue;
 	
-	if (!ConnectToHost(host, pDlg->m_nPort, pDlg->m_pszPhrase, &bfd))
+	if (!ConnectToHost(host, pDlg->m_nPort, pDlg->m_pszPhrase, &sock))
 	    continue;
 	
 	if (pDlg->m_bHostsChk)
 	{
 	    sprintf(pszStr, "lset hosts=%s", hoststring);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	if (pDlg->m_bTempChk)
 	{
 	    sprintf(pszStr, "lset temp=%s", pDlg->m_pszTempDir);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	if (pDlg->m_bLaunchTimeoutChk)
 	{
 	    sprintf(pszStr, "lset timeout=%d", pDlg->m_nLaunchTimeout);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
     }
 
     pDlg->SetGreenLight();
@@ -327,7 +326,7 @@ void CMPIConfigDlg::OnSetBtn()
     char pszStr[4096];
     char hoststring[4096] = "";
     char host[100];
-    int bfd;
+    SOCKET sock;
 
     UpdateData();
 
@@ -375,26 +374,26 @@ void CMPIConfigDlg::OnSetBtn()
 	if (m_host_list.GetText(i, host) == LB_ERR)
 	    continue;
 	
-	if (!ConnectToHost(host, m_nPort, m_pszPhrase, &bfd))
+	if (!ConnectToHost(host, m_nPort, m_pszPhrase, &sock))
 	    continue;
 	
 	if (m_bHostsChk)
 	{
 	    sprintf(pszStr, "lset hosts=%s", hoststring);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	if (m_bTempChk)
 	{
 	    sprintf(pszStr, "lset temp=%s", m_pszTempDir);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	if (m_bLaunchTimeoutChk)
 	{
 	    sprintf(pszStr, "lset timeout=%d", m_nLaunchTimeout);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
     }
 
     SetGreenLight();
@@ -420,7 +419,7 @@ void CMPIConfigDlg::OnSetOneBtn()
     char pszStr[4096];
     char hoststring[4096] = "";
     char host[100];
-    int bfd;
+    SOCKET sock;
     CString sHost;
     int num_hosts;
 
@@ -465,25 +464,25 @@ void CMPIConfigDlg::OnSetOneBtn()
     }
     qvs.output_encoded_string(hoststring, 4096);
     
-    if (ConnectToHost(sHost, m_nPort, m_pszPhrase, &bfd))
+    if (ConnectToHost(sHost, m_nPort, m_pszPhrase, &sock))
     {
 	if (m_bHostsChk)
 	{
 	    sprintf(pszStr, "lset hosts=%s", hoststring);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	if (m_bTempChk)
 	{
 	    sprintf(pszStr, "lset temp=%s", m_pszTempDir);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
 	if (m_bLaunchTimeoutChk)
 	{
 	    sprintf(pszStr, "lset timeout=%d", m_nLaunchTimeout);
-	    WriteString(bfd, pszStr);
+	    WriteString(sock, pszStr);
 	}
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
     }
     else
     {
@@ -578,7 +577,7 @@ void CMPIConfigDlg::OnClose()
 	TerminateThread(m_hSetBtnThread, -1);
 	m_hSetBtnThread = NULL;
     }
-    bsocket_finalize();
+    easy_socket_finalize();
 	CDialog::OnClose();
 }
 
@@ -693,7 +692,7 @@ void CMPIConfigDlg::OnSelchangeHostList()
 void CMPIConfigDlg::GetHostConfig(const char *host)
 {
     CString sHost;
-    int bfd;
+    SOCKET sock;
     char pszStr[MAX_CMD_LENGTH] = "mpd not installed";
 
     UpdateData();
@@ -718,12 +717,12 @@ void CMPIConfigDlg::GetHostConfig(const char *host)
     
     HCURSOR hOldCursor = SetCursor( LoadCursor(NULL, IDC_WAIT) );
     
-    if (ConnectToHost(sHost, m_nPort, m_pszPhrase, &bfd))
+    if (ConnectToHost(sHost, m_nPort, m_pszPhrase, &sock))
     {
-	WriteString(bfd, "config");
-	ReadString(bfd, pszStr);
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	WriteString(sock, "config");
+	ReadString(sock, pszStr);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
 	
 	m_host_config = sHost + ":\n";
 	m_host_config += pszStr;

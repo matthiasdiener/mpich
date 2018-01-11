@@ -104,7 +104,7 @@ BEGIN
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Job:",IDC_STATIC,7,103,14,8
     EDITTEXT        IDC_JOB_EDIT,7,115,306,127,ES_MULTILINE | ES_AUTOVSCROLL | 
-                    ES_AUTOHSCROLL
+                    ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL
     CONTROL         "&Full details",IDC_FULL_CHK,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,29,102,49,10
 END

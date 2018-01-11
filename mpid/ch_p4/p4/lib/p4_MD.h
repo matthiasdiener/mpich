@@ -70,6 +70,17 @@
 
 #if defined(LINUX)
 #define P4_MACHINE_TYPE "LINUX"
+/* Linux distributions that use inetutils have versions of rsh that
+   process ALL arguments, even those after the command!  This should be
+   safe for Linux versions that do not do this, and fix the ones
+   that do.  (The fix is to escape the arguments with \\ in front of the
+   arg.)
+ */
+#define HAVE_BROKEN_RSH
+#endif
+
+#if defined(LINUX_PPC)
+#define P4_MACHINE_TYPE "LINUX_PPC"
 #endif
 
 #if defined(NETBSD)
@@ -448,10 +459,10 @@ typedef int MD_lock_t;
 #        include <sys/sem.h>
 
          static struct sembuf sem_lock[1] = {
-             0, -1, 0
+	     {  0, -1, 0 }
          };
          static struct sembuf sem_unlock[1] = {
-             0, 1, 0
+             { 0, 1, 0 }
          };
 #    endif
 

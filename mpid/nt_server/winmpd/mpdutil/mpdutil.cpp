@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include "mpdutil.h"
-#include "bsocket.h"
 #include "mpd.h"
 #include "crypt.h"
 #include "Translate_Error.h"
 
 #define MAX_FILENAME MAX_PATH * 2
+
+static CRITICAL_SECTION g_hCryptCriticalSection;
+static bool g_bCryptFirst = true;
 
 bool TryCreateDir(char *pszFileName, char *pszError)
 {
@@ -57,9 +59,9 @@ bool TryCreateDir(char *pszFileName, char *pszError)
 
 #define MPD_CONNECT_READ_TIMEOUT 10
 
-int ConnectToMPD(const char *host, int port, const char *inphrase, int *pbfd)
+int ConnectToMPD(const char *host, int port, const char *inphrase, SOCKET *psock)
 {
-    int bfd;
+    SOCKET sock;
     char str[512];
     char err_msg[1024];
     char *result;
@@ -70,13 +72,13 @@ int ConnectToMPD(const char *host, int port, const char *inphrase, int *pbfd)
     BOOL b;
     char phrase[MPD_PASSPHRASE_MAX_LENGTH+20];
 
-    if (host == NULL || host[0] == '\0' || port < 1 || inphrase == NULL || pbfd == NULL)
+    if (host == NULL || host[0] == '\0' || port < 1 || inphrase == NULL || psock == NULL)
 	return -1;
 
-    if (beasy_create(&bfd, 0, INADDR_ANY) == SOCKET_ERROR)
+    if (easy_create(&sock, 0, INADDR_ANY) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: beasy_create failed: %d, ", error);
+	sprintf(str, "Error: ConnectToMPD(%s:%d): easy_create failed: %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
 	fflush(stdout);
@@ -85,84 +87,97 @@ int ConnectToMPD(const char *host, int port, const char *inphrase, int *pbfd)
 #ifdef USE_LINGER_SOCKOPT
     linger.l_onoff = 1;
     linger.l_linger = 60;
-    if (bsetsockopt(bfd, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger)) == SOCKET_ERROR)
+    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger)) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: bsetsockopt failed: %d, ", error);
+	sprintf(str, "Error: ConnectToMPD(%s:%d): setsockopt failed: %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return error;
     }
 #endif
     b = TRUE;
-    bsetsockopt(bfd, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
     //printf("connecting to %s:%d\n", host, port);fflush(stdout);
-    if (beasy_connect(bfd, (char*)host, port) == SOCKET_ERROR)
+    if (easy_connect(sock, (char*)host, port) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: beasy_connect failed: error %d, ", error);
+	sprintf(str, "Error: ConnectToMPD(%s:%d): easy_connect failed: error %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
+	if (error == WSAEINVAL)
+	{
+	    printf("The hostname is probably invalid.\n");
+	}
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return error;
     }
-    if (!ReadStringTimeout(bfd, str, MPD_CONNECT_READ_TIMEOUT))
+    if (!ReadStringTimeout(sock, str, MPD_CONNECT_READ_TIMEOUT))
     {
-	printf("Error: ConnectToMPD: reading prepend string failed.\n");
+	printf("Error: ConnectToMPD(%s:%d): reading prepend string failed.\n", host, port);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return -1;
     }
     //strcat(phrase, str);
     _snprintf(phrase, MPD_PASSPHRASE_MAX_LENGTH+20, "%s%s", inphrase, str);
+
+    if (g_bCryptFirst) // this is not safe code because two threads can enter this Initialize... block at the same time
+    {
+	InitializeCriticalSection(&g_hCryptCriticalSection);
+	g_bCryptFirst = false;
+    }
+    EnterCriticalSection(&g_hCryptCriticalSection);
     result = crypt(phrase, MPD_SALT_VALUE);
-    memset(phrase, 0, MPD_PASSPHRASE_MAX_LENGTH); // zero out local copy of the passphrase
     strcpy(str, result);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    LeaveCriticalSection(&g_hCryptCriticalSection);
+
+    memset(phrase, 0, MPD_PASSPHRASE_MAX_LENGTH); // zero out local copy of the passphrase
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: WriteString of the crypt string failed: error %d, ", error);
+	sprintf(str, "Error: ConnectToMPD(%s:%d): WriteString of the crypt string failed: error %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return error;
     }
-    if (!ReadStringTimeout(bfd, str, MPD_CONNECT_READ_TIMEOUT))
+    if (!ReadStringTimeout(sock, str, MPD_CONNECT_READ_TIMEOUT))
     {
-	printf("Error: ConnectToMPD: reading authentication result failed.\n");
+	printf("Error: ConnectToMPD(%s:%d): reading authentication result failed.\n", host, port);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return -1;
     }
     if (strcmp(str, "SUCCESS"))
     {
-	printf("Error: ConnectToMPD: authentication request failed.\n");
+	printf("Error: ConnectToMPD(%s:%d): authentication request failed.\n", host, port);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return -1;
     }
-    if (WriteString(bfd, "console") == SOCKET_ERROR)
+    if (WriteString(sock, "console") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: WriteString failed after attempting passphrase authentication: error %d, ", error);
+	sprintf(str, "Error: ConnectToMPD(%s:%d): WriteString failed after attempting passphrase authentication: error %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return error;
     }
     //printf("connected to %s\n", host);fflush(stdout);
-    *pbfd = bfd;
+    *psock = sock;
     return 0;
 }
 
-int ConnectToMPDquick(const char *host, int port, const char *inphrase, int *pbfd)
+int ConnectToMPDquick(const char *host, int port, const char *inphrase, SOCKET *psock)
 {
-    int bfd;
+    SOCKET sock;
     char str[512];
     char err_msg[1024];
     char *result;
@@ -173,13 +188,13 @@ int ConnectToMPDquick(const char *host, int port, const char *inphrase, int *pbf
     BOOL b;
     char phrase[MPD_PASSPHRASE_MAX_LENGTH+20];
 
-    if (host == NULL || host[0] == '\0' || port < 1 || inphrase == NULL || pbfd == NULL)
+    if (host == NULL || host[0] == '\0' || port < 1 || inphrase == NULL || psock == NULL)
 	return -1;
 
-    if (beasy_create(&bfd, 0, INADDR_ANY) == SOCKET_ERROR)
+    if (easy_create(&sock, 0, INADDR_ANY) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: beasy_create failed: %d, ", error);
+	sprintf(str, "Error: ConnectToMPDquick(%s:%d): easy_create failed: %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
 	fflush(stdout);
@@ -188,119 +203,341 @@ int ConnectToMPDquick(const char *host, int port, const char *inphrase, int *pbf
 #ifdef USE_LINGER_SOCKOPT
     linger.l_onoff = 1;
     linger.l_linger = 60;
-    if (bsetsockopt(bfd, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger)) == SOCKET_ERROR)
+    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger)) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: bsetsockopt failed: %d, ", error);
+	sprintf(str, "Error: ConnectToMPDquick(%s:%d): setsockopt failed: %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return error;
     }
 #endif
     b = TRUE;
-    bsetsockopt(bfd, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
     //printf("connecting to %s:%d\n", host, port);fflush(stdout);
-    if (beasy_connect_quick(bfd, (char*)host, port) == SOCKET_ERROR)
+    if (easy_connect_quick(sock, (char*)host, port) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: beasy_connect failed: error %d, ", error);
+	sprintf(str, "Error: ConnectToMPDquick(%s:%d): easy_connect_quick failed: error %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
+	if (error == WSAEINVAL)
+	{
+	    printf("The hostname is probably invalid.\n");
+	}
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return error;
     }
-    if (!ReadStringTimeout(bfd, str, MPD_CONNECT_READ_TIMEOUT))
+    if (!ReadStringTimeout(sock, str, MPD_CONNECT_READ_TIMEOUT))
     {
-	printf("Error: ConnectToMPD: reading prepend string failed.\n");
+	printf("Error: ConnectToMPDquick(%s:%d): reading prepend string failed.\n", host, port);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return -1;
     }
     //strcat(phrase, str);
     _snprintf(phrase, MPD_PASSPHRASE_MAX_LENGTH+20, "%s%s", inphrase, str);
+
+    if (g_bCryptFirst)
+    {
+	InitializeCriticalSection(&g_hCryptCriticalSection);
+	g_bCryptFirst = false;
+    }
+    EnterCriticalSection(&g_hCryptCriticalSection);
     result = crypt(phrase, MPD_SALT_VALUE);
-    memset(phrase, 0, MPD_PASSPHRASE_MAX_LENGTH); // zero out local copy of the passphrase
     strcpy(str, result);
-    if (WriteString(bfd, str) == SOCKET_ERROR)
+    LeaveCriticalSection(&g_hCryptCriticalSection);
+
+    memset(phrase, 0, MPD_PASSPHRASE_MAX_LENGTH); // zero out local copy of the passphrase
+    if (WriteString(sock, str) == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: WriteString of the crypt string failed: error %d, ", error);
+	sprintf(str, "Error: ConnectToMPDquick(%s:%d): WriteString of the crypt string failed: error %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return error;
     }
-    if (!ReadStringTimeout(bfd, str, MPD_CONNECT_READ_TIMEOUT))
+    if (!ReadStringTimeout(sock, str, MPD_CONNECT_READ_TIMEOUT))
     {
-	printf("Error: ConnectToMPD: reading authentication result failed.\n");
+	printf("Error: ConnectToMPDquick(%s:%d): reading authentication result failed.\n", host, port);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return -1;
     }
     if (strcmp(str, "SUCCESS"))
     {
-	printf("Error: ConnectToMPD: authentication request failed.\n");
+	printf("Error: ConnectToMPDquick(%s:%d): authentication request failed.\n", host, port);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return -1;
     }
-    if (WriteString(bfd, "console") == SOCKET_ERROR)
+    if (WriteString(sock, "console") == SOCKET_ERROR)
     {
 	error = WSAGetLastError();
-	sprintf(str, "Error: ConnectToMPD: WriteString failed after attempting passphrase authentication: error %d, ", error);
+	sprintf(str, "Error: ConnectToMPDquick(%s:%d): WriteString failed after attempting passphrase authentication: error %d, ", host, port, error);
 	Translate_Error(error, err_msg, str);
 	printf("%s\n", err_msg);
 	fflush(stdout);
-	beasy_closesocket(bfd);
+	easy_closesocket(sock);
 	return error;
     }
     //printf("connected to %s\n", host);fflush(stdout);
-    *pbfd = bfd;
+    *psock = sock;
     return 0;
 }
 
-void MakeLoop(int *pbfdRead, int *pbfdWrite)
+int ConnectToMPDReport(const char *host, int port, const char *inphrase, SOCKET *psock, char *err_msg)
 {
-    int bfd;
+    SOCKET sock;
+    char str[512];
+    char *result;
+    int error;
+#ifdef USE_LINGER_SOCKOPT
+    struct linger linger;
+#endif
+    BOOL b;
+    char phrase[MPD_PASSPHRASE_MAX_LENGTH+20];
+
+    if (host == NULL || host[0] == '\0' || port < 1 || inphrase == NULL || psock == NULL)
+    {
+	strcpy(err_msg, "Error: ConnectToMPDReport: Invalid argument");
+	return -1;
+    }
+
+    if (easy_create(&sock, 0, INADDR_ANY) == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error: ConnectToMPDReport(%s:%d): easy_create failed: %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	return error;
+    }
+#ifdef USE_LINGER_SOCKOPT
+    linger.l_onoff = 1;
+    linger.l_linger = 60;
+    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger)) == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error: ConnectToMPDReport(%s:%d): setsockopt failed: %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	easy_closesocket(sock);
+	return error;
+    }
+#endif
+    b = TRUE;
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
+    //printf("connecting to %s:%d\n", host, port);fflush(stdout);
+    if (easy_connect(sock, (char*)host, port) == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error: ConnectToMPDReport(%s:%d): easy_connect failed: error %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	if (error == WSAEINVAL)
+	{
+	    strcat(err_msg, ".  The hostname is probably invalid.");
+	}
+	easy_closesocket(sock);
+	return error;
+    }
+    if (!ReadStringTimeout(sock, str, MPD_CONNECT_READ_TIMEOUT))
+    {
+	sprintf(err_msg, "Error: ConnectToMPDReport(%s:%d): reading prepend string failed.", host, port);
+	easy_closesocket(sock);
+	return -1;
+    }
+    //strcat(phrase, str);
+    _snprintf(phrase, MPD_PASSPHRASE_MAX_LENGTH+20, "%s%s", inphrase, str);
+
+    if (g_bCryptFirst)
+    {
+	InitializeCriticalSection(&g_hCryptCriticalSection);
+	g_bCryptFirst = false;
+    }
+    EnterCriticalSection(&g_hCryptCriticalSection);
+    result = crypt(phrase, MPD_SALT_VALUE);
+    strcpy(str, result);
+    LeaveCriticalSection(&g_hCryptCriticalSection);
+
+    memset(phrase, 0, MPD_PASSPHRASE_MAX_LENGTH); // zero out local copy of the passphrase
+    if (WriteString(sock, str) == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error: ConnectToMPDReport(%s:%d): WriteString of the crypt string failed: error %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	easy_closesocket(sock);
+	return error;
+    }
+    if (!ReadStringTimeout(sock, str, MPD_CONNECT_READ_TIMEOUT))
+    {
+	sprintf(err_msg, "Error: ConnectToMPDReport(%s:%d): reading authentication result failed.", host, port);
+	easy_closesocket(sock);
+	return -1;
+    }
+    if (strcmp(str, "SUCCESS"))
+    {
+	sprintf(err_msg, "Error: ConnectToMPDReport(%s:%d): authentication request failed.", host, port);
+	easy_closesocket(sock);
+	return -1;
+    }
+    if (WriteString(sock, "console") == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error: ConnectToMPDReport(%s:%d): WriteString failed after attempting passphrase authentication: error %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	easy_closesocket(sock);
+	return error;
+    }
+    strcpy(err_msg, "ERROR_SUCCESS");
+    //printf("connected to %s\n", host);fflush(stdout);
+    *psock = sock;
+    return 0;
+}
+
+int ConnectToMPDquickReport(const char *host, int port, const char *inphrase, SOCKET *psock, char *err_msg)
+{
+    SOCKET sock;
+    char str[512];
+    char *result;
+    int error;
+#ifdef USE_LINGER_SOCKOPT
+    struct linger linger;
+#endif
+    BOOL b;
+    char phrase[MPD_PASSPHRASE_MAX_LENGTH+20];
+
+    if (host == NULL || host[0] == '\0' || port < 1 || inphrase == NULL || psock == NULL)
+    {
+	strcpy(err_msg, "Error: ConnectToMPDquickReport: Invalid argument");
+	return -1;
+    }
+
+    if (easy_create(&sock, 0, INADDR_ANY) == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error:ConnectToMPDquickReport(%s:%d): easy_create failed: %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	return error;
+    }
+#ifdef USE_LINGER_SOCKOPT
+    linger.l_onoff = 1;
+    linger.l_linger = 60;
+    if (setsockopt(sock, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger)) == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error:ConnectToMPDquickReport(%s:%d): setsockopt failed: %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	easy_closesocket(sock);
+	return error;
+    }
+#endif
+    b = TRUE;
+    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (char*)&b, sizeof(BOOL));
+    //printf("connecting to %s:%d\n", host, port);fflush(stdout);
+    if (easy_connect_quick(sock, (char*)host, port) == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error:ConnectToMPDquickReport(%s:%d): easy_connect failed: error %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	if (error == WSAEINVAL)
+	{
+	    strcat(err_msg, ".  The hostname is probably invalid.");
+	}
+	easy_closesocket(sock);
+	return error;
+    }
+    if (!ReadStringTimeout(sock, str, MPD_CONNECT_READ_TIMEOUT))
+    {
+	sprintf(err_msg, "Error:ConnectToMPDquickReport(%s:%d): reading challenge prepend string failed.", host, port);
+	easy_closesocket(sock);
+	return -1;
+    }
+    //strcat(phrase, str);
+    _snprintf(phrase, MPD_PASSPHRASE_MAX_LENGTH+20, "%s%s", inphrase, str);
+
+    if (g_bCryptFirst)
+    {
+	InitializeCriticalSection(&g_hCryptCriticalSection);
+	g_bCryptFirst = false;
+    }
+    EnterCriticalSection(&g_hCryptCriticalSection);
+    result = crypt(phrase, MPD_SALT_VALUE);
+    strcpy(str, result);
+    LeaveCriticalSection(&g_hCryptCriticalSection);
+
+    memset(phrase, 0, MPD_PASSPHRASE_MAX_LENGTH); // zero out local copy of the passphrase
+    if (WriteString(sock, str) == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error:ConnectToMPDquickReport(%s:%d): WriteString of the crypt string failed: error %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	easy_closesocket(sock);
+	return error;
+    }
+    if (!ReadStringTimeout(sock, str, MPD_CONNECT_READ_TIMEOUT))
+    {
+	sprintf(err_msg, "Error:ConnectToMPDquickReport(%s:%d): reading mpd authentication result failed.", host, port);
+	easy_closesocket(sock);
+	return -1;
+    }
+    if (strcmp(str, "SUCCESS"))
+    {
+	sprintf(err_msg, "Error:ConnectToMPDquickReport(%s:%d): mpd authentication request failed.", host, port);
+	easy_closesocket(sock);
+	return -1;
+    }
+    if (WriteString(sock, "console") == SOCKET_ERROR)
+    {
+	error = WSAGetLastError();
+	sprintf(str, "Error:ConnectToMPDquickReport(%s:%d): WriteString failed after attempting passphrase authentication: error %d, ", host, port, error);
+	Translate_Error(error, err_msg, str);
+	easy_closesocket(sock);
+	return error;
+    }
+    strcpy(err_msg, "ERROR_SUCCESS");
+    //printf("connected to %s\n", host);fflush(stdout);
+    *psock = sock;
+    return 0;
+}
+
+void MakeLoop(SOCKET *psockRead, SOCKET *psockWrite)
+{
+    SOCKET sock;
     char host[100];
     int port;
-    sockaddr addr;
-    int len;
 
     // Create a listener
-    if (beasy_create(&bfd, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
+    if (easy_create(&sock, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
     {
-	*pbfdRead = BFD_INVALID_SOCKET;
-	*pbfdWrite = BFD_INVALID_SOCKET;
+	*psockRead = INVALID_SOCKET;
+	*psockWrite = INVALID_SOCKET;
 	return;
     }
-    blisten(bfd, 5);
-    beasy_get_sock_info(bfd, host, &port);
+    listen(sock, 5);
+    easy_get_sock_info(sock, host, &port);
     
     // Connect to myself
-    if (beasy_create(pbfdWrite, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
+    if (easy_create(psockWrite, ADDR_ANY, INADDR_ANY) == SOCKET_ERROR)
     {
-	beasy_closesocket(bfd);
-	*pbfdRead = BFD_INVALID_SOCKET;
-	*pbfdWrite = BFD_INVALID_SOCKET;
+	easy_closesocket(sock);
+	*psockRead = INVALID_SOCKET;
+	*psockWrite = INVALID_SOCKET;
 	return;
     }
-    if (beasy_connect(*pbfdWrite, host, port) == SOCKET_ERROR)
+    if (easy_connect(*psockWrite, host, port) == SOCKET_ERROR)
     {
-	beasy_closesocket(*pbfdWrite);
-	beasy_closesocket(bfd);
-	*pbfdRead = BFD_INVALID_SOCKET;
-	*pbfdWrite = BFD_INVALID_SOCKET;
+	easy_closesocket(*psockWrite);
+	easy_closesocket(sock);
+	*psockRead = INVALID_SOCKET;
+	*psockWrite = INVALID_SOCKET;
 	return;
     }
 
     // Accept the connection from myself
-    len = sizeof(addr);
-    *pbfdRead = baccept(bfd, &addr, &len);
+    *psockRead = easy_accept(sock);
 
-    beasy_closesocket(bfd);
+    easy_closesocket(sock);
 }

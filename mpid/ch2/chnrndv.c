@@ -352,6 +352,10 @@ MPIR_RHANDLE *rhandle;
     /* This is a blocking transfer */
     DEBUG_PRINT_MSG("Ending a receive transfer");
     DEBUG_PRINT_MSG("Entering while !MPID_TestNBRecvTransfer");    
+    /* The following would be better if there was a way to say "block
+       until something happens".  See chbrndv, where a new MPID_WaitForMsg
+       call is available.  This is difficult here because the underlying
+       devices often don't support the services that are needed here */
     while (!MPID_TestNBRecvTransfer(rhandle)) {
         MPID_DeviceCheck( MPID_NOTBLOCKING );
     }

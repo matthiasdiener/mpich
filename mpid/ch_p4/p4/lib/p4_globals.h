@@ -17,6 +17,7 @@ PUBLIC char whoami_p4[100];
 PUBLIC int  p4_debug_level, p4_remote_debug_level;
 PUBLIC char p4_wd[256];
 PUBLIC char p4_myname_in_procgroup[MAXHOSTNAMELEN];
+PUBLIC int  p4_rm_rank;
 PUBLIC int  logging_flag;
 PUBLIC int  execer_mynodenum;
 PUBLIC char execer_id[132];

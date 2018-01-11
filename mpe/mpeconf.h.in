@@ -81,6 +81,9 @@
 /* Define if MPI_Status_f2c and c2f rotines defined */
 #undef HAVE_MPI_STATUS_F2C
 
+/* Define if MPI_STATUS_IGNORE exists */
+#undef HAVE_MPI_STATUS_IGNORE
+
 /* Define in MPI_RECV etc. does not set status on MPI_PROC_NULL */
 #undef HAVE_BROKEN_STATUS_ON_PROC_NULL
 
@@ -89,6 +92,9 @@
 
 /* Define if we want to include the MPI IO routines */
 #undef HAVE_MPI_IO
+
+/* Define if ROMIO is used in the MPI implementation */
+#undef HAVE_NO_MPIO_REQUEST
 
 /* Define if you have the mkstemp function.  */
 #undef HAVE_MKSTEMP

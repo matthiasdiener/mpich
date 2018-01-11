@@ -1,5 +1,5 @@
 /* 
- *   $Id: darray.c,v 1.12 2001/11/14 20:08:03 ashton Exp $    
+ *   $Id: darray.c,v 1.13 2002/07/12 19:57:46 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -404,6 +404,19 @@ int MPIOI_Type_cyclic(int *array_of_gsizes, int dim, int ndims, int nprocs,
 	MPI_Type_free(type_new);
 	*type_new = type_tmp;
     }
+
+    /* need to set the UB for block-cyclic to work */
+    types[0] = *type_new;
+    types[1] = MPI_UB;
+    disps[0] = 0;
+    disps[1] = orig_extent;
+    if (order == MPI_ORDER_FORTRAN)
+	for (i=0; i<=dim; i++) disps[1] *= array_of_gsizes[i];
+    else for (i=ndims-1; i>=dim; i--) disps[1] *= array_of_gsizes[i];
+    blklens[0] = blklens[1] = 1;
+    MPI_Type_struct(2, blklens, disps, types, &type_tmp);
+    MPI_Type_free(type_new);
+    *type_new = type_tmp;
 
     *st_offset = rank * blksize; 
      /* in terms of no. of elements of type oldtype in this dimension */

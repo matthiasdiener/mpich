@@ -1,11 +1,12 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: deletef.c,v 1.11 2001/12/12 23:38:04 ashton Exp $    
+ *   $Id: deletef.c,v 1.14 2002/10/24 17:01:19 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#if _UNICOS
+#ifdef _UNICOS
 #include <fortran.h>
 #endif
 #include "adio.h"
@@ -13,21 +14,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_delete_ PMPI_FILE_DELETE
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_delete_ pmpi_file_delete__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_delete pmpi_file_delete_
-#endif
-#define mpi_file_delete_ pmpi_file_delete
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_delete_ pmpi_file_delete
-#endif
-#define mpi_file_delete_ pmpi_file_delete_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -69,6 +55,22 @@
 #include "mpioprof.h"
 #endif
 
+#ifdef FORTRANCAPS
+#define mpi_file_delete_ PMPI_FILE_DELETE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_delete_ pmpi_file_delete__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_delete pmpi_file_delete_
+#endif
+#define mpi_file_delete_ pmpi_file_delete
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_delete_ pmpi_file_delete
+#endif
+#define mpi_file_delete_ pmpi_file_delete_
+#endif
+
 #else
 
 #ifdef FORTRANCAPS
@@ -91,7 +93,7 @@
 /*
 FORTRAN_API void FORT_CALL mpi_file_delete_(char *filename, MPI_Fint *info, int *ierr, int str_len);
 
-#if _UNICOS
+#ifdef _UNICOS
 void mpi_file_delete_(_fcd filename_fcd, MPI_Fint *info, int *ierr)
 {
     char *filename = _fcdtocp(filename_fcd);
@@ -102,7 +104,7 @@ FORTRAN_API void FORT_CALL mpi_file_delete_(char *filename, MPI_Fint *info, int 
 /* Prototype to keep compiler happy */
 FORTRAN_API void FORT_CALL mpi_file_delete_(char *filename FORT_MIXED_LEN_DECL, MPI_Fint *info, int *ierr FORT_END_LEN_DECL);
 
-#if _UNICOS
+#ifdef _UNICOS
 void mpi_file_delete_(_fcd filename_fcd, MPI_Fint *info, int *ierr)
 {
     char *filename = _fcdtocp(filename_fcd);

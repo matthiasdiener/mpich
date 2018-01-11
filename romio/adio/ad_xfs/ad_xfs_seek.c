@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_xfs_seek.c,v 1.5 2000/08/23 17:47:28 gropp Exp $    
+ *   $Id: ad_xfs_seek.c,v 1.6 2002/10/24 17:01:10 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

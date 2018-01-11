@@ -1,5 +1,9 @@
 #! /usr/local/bin/perl5
 #
+# Scan a make logfile for errors.  Eliminate informational messages and
+# innocuous warnings.
+# Reduce multiple (identical or related) warnings to a single instance, 
+# with a count.
 $no_tar     = 0;
 $no_varwarn = 0;
 $is_loose   = 0;
@@ -75,14 +79,18 @@ if ( $MPICH_WARNING_SEP ne "" ) {
                  '^\s*external function [A-Za-z0-9_]*\s*$',
 		 '^\s*external subroutine [A-Za-z0-9_]*\s*$',
                   '^\s*C\+\+ prelinker: executing:'
-		  );
+		  ); 
 @LinkerMsgs = ( '^Linking:\s*$' );
 # ^adding: is from Java
+# Emacs perl mode breaks on this expression by not handling the \s*$' in
+# the last expression correctly
 @CompilerWarns = ( 'Compilation successful', '^adding: ',
-                   'PGC/x86.*:\scompilation completed with warnings',
+                   'PGC\/x86.*:\scompilation completed with warnings',
                    'FORTRAN 77 Compiler.*Absoft Corp\.',
                    '^added manifest', # java message
-		   '^[-/A-Za-z0-9\._]*:\s*$', # icc echos file name!
+		   'Note: Some input files use', # java message
+		   'Note: Recompile with -deprecation', # java message
+		   '^[-\/A-Za-z0-9\._]*:\s*$', # icc echos file name!
  );
 # pgCC echos file name!
 # Intel ifc echos module name
@@ -93,6 +101,8 @@ if ( $MPICH_WARNING_SEP ne "" ) {
                   '^\s*[0-9]* Lines Compiled\s*$',
 		  '^\s*module\s*[A-Za-z0-9_]*\s*$'
 	       );
+@CompilerWarnCombine = ( 'use of \`tmpnam\' is dangerous',
+               );
 
 # These are only for SGI (?)
 @LinkerWarns = ( 'WARNING\s85\s*: definition of', 
@@ -101,8 +111,24 @@ if ( $MPICH_WARNING_SEP ne "" ) {
 @LinkerWarns = ( @LinkerWarns, 'libsun\.a is not used for ',
 		 'libpmpich\.a is not used for resolving', 
 		 'libmpich\.a is not used for resolving' );
+@LinkerWarnCombine = ( 'Multiply defined:\(nxbuff_',
+                       'Multiply defined:\(globus_',
+                       'Multiply defined:\(utils_fprintf\)',
+                       'Multiply defined:\(utils_strlen\)', 
+                       'Multiply defined:\(utils_sprintf\)',
+                       'Multiply defined:\(utils_streq\)',
+                       'Multiply defined:\(utils_debug\)',
+                       'Multiply defined:\(utils_strdup\)',
+                       'Multiply defined:\(utils_streq_ci\)',
+                       'Multiply defined:\(s_add_subrequest',
+                       'Duplicate symbol: .piofsioctl',
+                       'Duplicate symbol: piofsioctl',
+                     );
+@LinkerNoise = ('Use the -bloadmap');
+
 @ArMsgs = ('^\s*ar: creating', '\s*ar: writing', '^a - ',
-           '^\s*ar: [Ww]arning: creating');
+           '^\s*ar: [Ww]arning: creating',
+           '^1501-51[-0]\s*ar cr' );
 
 @X11Warns = ( '/X11/Xlib.h:.*function declaration.*a prototype' ,
 	       '/X11/Xlib.h:.*type defaults to',
@@ -122,24 +148,29 @@ if ( $MPICH_WARNING_SEP ne "" ) {
 @ProgramMsgs = ( '^\s*rm ', '^\s*cp ', '^\s*ar ', '^\s*mv ', 
 		 '^\s*ranlib ', '^\s*chmod ', '^\s*cat ', '^\s*mkdir ',
 		 '^\s*true ', '^\s*make\s', '^\s*gnumake\s',
-                 '^\s*:\s\s*[-A-za-z0-9/\._]*\.a');
+                 '^\s*:\s+[-A-za-z0-9/\._]*\.a',
+                 '^\s*\./bin/mpiinstall\s+;',
+                );
 @ConfigureNoise = ( '^[Cc]hecking ',
 		    '^[Cc]reating ', 
 		    '^[Cc]leaning ', 
                     '^\s*Fortran interface will not',
                     '^\s*Don\'t build the tests',
 		    '^updating cache ',
+                    'Errors while trying to run true',
                     '=== End of Compilation . ===',
 		    '^[-A-Za-z0-9_/\+\.]* is unchanged'
                    );
 @MakeNoise = ( 'Target .* is up to date',
 	       'Nothing to be done for', '^\s*make ', '^\s*Making ',
+               'sleep 1',
 	       'Clock skew detected\.',
                'modification time in the future' );
 
 if ($is_loose) { 
     @ConfigureNoise = ( @ConfigureNoise,
-                     'Put JAVA', 'Cannot locate JAVA' );
+                     'Put JAVA', 'Cannot locate JAVA',
+                     '^no$' );
     @ProgramMsgs = ( @ProgramMsgs, '^\s*/bin/rm ', '^\+\s*/bin/rm ',
 		     '^\+\s*rm\s',
 		     '^running /bin/sh ', '^\+\s*rmdir ',
@@ -223,11 +254,14 @@ if ($is_loose) {
 open( INFD, "<$filename" ) || die "Could not open $filename\n";
 
 $cur_line = 0;
+$nextlinepat = "";
 LINE: while (<INFD>) {
     $cur_line++;
     $last_line = $cur_line;
     $cur_line = $_;
     if (/^\s*$/) { next LINE; }
+    if ($nextlinepat ne "" && /$nextlinepat/) { $nextlinepat = ""; next LINE; }
+    $nextlinepat = "";
     # Special case for non-communative arithmetic
     if ($is_loose) {
         if (/^\*#    \*\*\*/) {
@@ -256,16 +290,54 @@ LINE: while (<INFD>) {
 	}
     }
     # Fortran compiler messages:
-    if (/^[-A-Za-z0-9\/_]*\.f:$/) {
+    if (/^[-A-Za-z0-9\/_\.]*\.f:$/) {
         #print "In fortran with $_";
 	while (<INFD>) {
 	    $cur_line++;
 	    if (/^\s*[A-Za-z0-9_]*:$/) { next; }
-	    if (/^\s*MAIN\s*[A-Za-z0-9_]*:$/) { next; }
+	    if (/^\s*MAIN\s*[A-Za-z0-9_]*:\s*$/) { next; }
 	    last;
 	}
         #print "Exiting fortran at $_";
     }
+    # Multiline C compiler messages
+    if (/cc-1171\s*cc: WARNING/) {
+        $save_line = $_;
+        $_ = <INFD>;
+        $cur_line++;
+        if (/The indicated expression has no effect/) {
+           while (<INFD>) {
+               $cur_line++;
+               if (/\s*\^/) { next LINE; }
+           }
+        }
+        else { $_ = $save_line . $_ ; }
+    }
+    if (/\"[a-zA-Z0-9_]*\.c\".* use of \"=\" where \"==\" may/) {
+        # Intel compiler doesn't recognize the (a = b) idiom for 
+	# assignments within an if.
+        $_ = <INFD>;
+        $cur_line++;
+	while (<INFD>) {
+	    $cur_line++;
+	    if (/\s*\^/) { next LINE; }
+	}
+    }
+    if (/^([^:]*):.*\s([^\s]*)\snot found in import\./) {
+        # Summarize java errors
+	$file = $1;
+	$missing_package = $2;
+	$_ = <INFD>;
+	$cur_line++;
+	$java_missing{$file} .= $missing_package;
+	while (<INFD>) {
+	    $cur_line++;
+	    if (/\s*\^/) { next LINE; }
+	}
+    }
+    # ---
+
+
     # Skip the various classes
     foreach $pat (@CompilerMsgs) {
 	if (/$pat/) { next LINE; }
@@ -276,10 +348,33 @@ LINE: while (<INFD>) {
     foreach $pat (@CompilerNoise) {
 	if (/$pat/) { next LINE; }
     }
+    foreach $pat (@CompilerWarnCombine) {
+        if (/$pat/) { 
+            if ($compilerwarns{$pat} eq "") {
+                $compilerwarnsline{$pat} = $_;
+                $compilerwarns{$pat} = 0;
+            }
+            $compilerwarns{$pat} += 1;
+            next LINE;
+        }
+    }
     foreach $pat (@LinkerMsgs) {
 	if (/$pat/) { next LINE; }
     }
     foreach $pat (@LinkerWarns) {
+	if (/$pat/) { next LINE; }
+    }
+    foreach $pat (@LinkerWarnCombine) {
+        if (/$pat/) { 
+            if ($linkerwarns{$pat} eq "") {
+                $linkerwarnsline{$pat} = $_;
+                $linkerwarns{$pat} = 0;
+            }
+            $linkerwarns{$pat} += 1;
+            next LINE;
+        }
+    }
+    foreach $pat (@LinkerNoise) {
 	if (/$pat/) { next LINE; }
     }
     foreach $pat (@X11Warns) {
@@ -306,9 +401,15 @@ LINE: while (<INFD>) {
 	    next LINE; }
     }
     foreach $pat (@MakeNoise) {
+	if (/modification time in the future/) {
+	    $nextlinepat = "Failed to remake makefile";
+	}
 	if (/$pat/) { next LINE; }
     }
     foreach $pat (@ConfigureNoise) {
+	if (/Errors while trying to run true/) {
+	    $nextlinepat = 'poll: protocol failure|connection failed|Connection refused'; 
+	}
 	if (/$pat/) { next LINE; }
     }
     foreach $pat (@SymWarns) {
@@ -347,6 +448,38 @@ LINE: while (<INFD>) {
     print $_;
     # Keep the previous unprinted (good) line as the current line
     $cur_line = $last_line;
+}
+
+# For lines that are combined, print the summary:
+
+$found_multiple = 0;
+foreach $pat (@LinkerWarnCombine) {
+    if ($linkerwarns{$pat} > 0) { 
+        if (!$found_multiple) {
+             $found_multiple = 1;
+             print "\nFound multiple warning messages; summarizing:\n";
+        }
+        print "Found $pat $linkerwarns{$pat} times\n";
+        print "Typical line: $linkerwarnsline{$pat}";
+        print "\n";   # Add a blank line to make the messages clearer
+    }
+}
+foreach $pat (@CompilerWarnCombine) {
+    if ($compilerwarns{$pat} > 0) { 
+        if (!$found_multiple) {
+             $found_multiple = 1;
+             print "\nFound multiple warning messages; summarizing:\n";
+        }
+        print "Found $pat $compilerwarns{$pat} times\n";
+        print "Typical line: $compilerwarnsline{$pat}";
+        print "\n";   # Add a blank line to make the messages clearer
+    }
+}
+
+$header = 0;
+foreach $file (keys(java_missing)) {
+    if (!$header) { print "Missing Java imports:\n"; $header = 1; }
+    print "$file $java_missing{$file}\n";
 }
 
 exit 0;

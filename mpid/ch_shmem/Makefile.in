@@ -1,6 +1,6 @@
 
 #
-#  $Id: Makefile.in,v 1.24 2000/07/28 17:38:18 swider Exp $
+#  $Id: Makefile.in,v 1.25 2002/05/13 18:06:52 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -46,7 +46,7 @@ SOURCE   = adi2recv.c adi2send.c adi2init.c adi2probe.c adi2ssend.c \
 	   adi2req.c adi2cancel.c \
 	   shmemdebug.c shmemchkdev.c \
            shmemshort.c shmemneager.c shmemnrndv.c shmempriv.c p2p.c \
-	   shmeminit.c chnodename.c chtick.c queue.c cmnargs.c \
+	   shmeminit.c chnodename.c chtick.c queue.c cmnargs.c session.c \
 	   chflow.c chpackflow.c chcancel.c ch_ldebug.c \
 	   mprerr.c tr2.c sbcnst2.c objtrace.c calltrace.c @DEVCFILES@
 SOURCEC  = $(SOURCE)
@@ -57,7 +57,7 @@ MPI_OBJECTS = adi2recv.o adi2send.o adi2init.o adi2probe.o adi2ssend.o \
 	      adi2req.o adi2cancel.o \
 	      shmemdebug.o shmemchkdev.o \
 	      shmemshort.o shmemneager.o shmemnrndv.o shmempriv.o p2p.o \
-	      shmeminit.o chnodename.o chtick.o queue.o cmnargs.o \
+	      shmeminit.o chnodename.o chtick.o queue.o cmnargs.o session.o \
 	      chflow.o chpackflow.o chcancel.o tr2.o sbcnst2.o ch_ldebug.o \
 	      objtrace.o calltrace.o $(ASMFILES_O) @DEVOFILES@
 

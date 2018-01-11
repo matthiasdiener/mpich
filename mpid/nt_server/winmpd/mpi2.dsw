@@ -12,9 +12,6 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name bsocket2
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name crypt
     End Project Dependency
     Begin Project Dependency
@@ -35,9 +32,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name bsocket2
-    End Project Dependency
     Begin Project Dependency
     Project_Dep_Name mpdutil
     End Project Dependency
@@ -60,7 +54,7 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name bsocket2
+    Project_Dep_Name mpdutil
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name crypt
@@ -68,30 +62,6 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name resizable
     End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "bsocket"=.\bsocket\bsocket.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "bsocket2"=.\bsocket2\bsocket2.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
 }}}
 
 ###############################################################################
@@ -128,9 +98,6 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name bsocket2
-    End Project Dependency
     Begin Project Dependency
     Project_Dep_Name dbs
     End Project Dependency

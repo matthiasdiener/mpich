@@ -36,9 +36,15 @@ struct MapDriveNode
     MapDriveNode *pNext;
 };
 
-bool UnmapDrives(int bfd, MapDriveNode *pList);
+//bool UnmapDrives(SOCKET sock, MapDriveNode *pList);
 
 // Global variables
+
+extern bool g_bUseJobHost;
+extern char g_pszJobHost[MAX_HOST_LENGTH];
+extern bool g_bUseJobMPDPwd;
+extern char g_pszJobHostMPDPwd[100];
+extern int g_nLaunchTimeout;
 
 #define NUM_GLOBAL_COLORS 8
 extern COLORREF aGlobalColor[NUM_GLOBAL_COLORS];

@@ -61,6 +61,24 @@
       MPID_SendControl(pkt,size,channel)
 #endif
 
+/* MPID_WaitForMsg is optional channel.  This is a *blocking* call
+   that waits until either a control message or a data transfer
+   message is available).  It does not process the data; the semantics
+   are very similar to a Unix select or poll operation.  Define
+   HAVE_MPID_WAIT_FOR_MSG if this is available.  This is used in
+   chbrndv.c to wait until an expected rendezvous transfer message is
+   available.  It may also return some other (unspecified) message
+   activity has occurred.  Thus, even if this routine returns, a
+   subsequent *blocking* recv may not return immediately (or at all).
+   This is basically a good way to say "block until something interesting
+   happens".
+
+   Syntax is like
+   void MPID_WaitForMsg( void )
+
+   This is similar to an PIbprobe( ANY )
+*/
+
 /* Because a common operation is to send a control block, and decide whether
    to use SendControl or SendControlBlock based on whether the send is 
    non-blocking, we include a definition for it here: 

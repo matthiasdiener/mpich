@@ -1,7 +1,7 @@
-#include <mpi.h>
 #include <stdio.h>
+#include "mpi.h"
 
-main( int argc, char **argv )
+int main( int argc, char **argv )
 {
   int i_size;
   MPI_Aint i_extent;
@@ -32,4 +32,5 @@ main( int argc, char **argv )
 
   Test_Waitforall( );
   MPI_Finalize();
+  return 0;
 }

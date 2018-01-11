@@ -30,6 +30,8 @@ static int do_test1 = 1;
 static int do_test2 = 1;
 static int do_test3 = 1;
 
+static int verbose = 0;
+
 #define MAX_TYPES 13
 static int ntypes = 0;
 static int nolongdouble = 0;
@@ -453,7 +455,7 @@ SenderTest3()
 }
 
 void
-ReceiverTest3()
+ReceiverTest3( void )
 {
     int buffer[20];
     MPI_Datatype bogus_type = MPI_DATATYPE_NULL;
@@ -462,11 +464,14 @@ ReceiverTest3()
     int *tag_ubp;
     int large_tag, flag, small_tag;
 
-    MPI_Errhandler_set(MPI_COMM_WORLD, TEST_ERRORS_WARN);
+    if (verbose) 
+	MPI_Errhandler_set(MPI_COMM_WORLD, TEST_ERRORS_WARN);
+    else 
+	MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN );
 
     MPI_Comm_rank( MPI_COMM_WORLD, &myrank );
 
-    if (myrank == 0) {
+    if (myrank == 0 && verbose) {
 	fprintf( stderr, 
 "There should be eight error messages about invalid communicator\n\
 count argument, datatype argument, tag, rank, buffer send and buffer recv\n" );
@@ -512,7 +517,7 @@ count argument, datatype argument, tag, rank, buffer send and buffer recv\n" );
 	    }
 	else
 	    Test_Passed("Invalid Tag Test");
-	}
+    }
 
     if (MPI_Send(buffer, 20, MPI_INT, 300,
 		 1, MPI_COMM_WORLD) == MPI_SUCCESS) {

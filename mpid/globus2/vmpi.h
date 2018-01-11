@@ -88,7 +88,7 @@ extern int *				VMPI_GRank_to_VGRank;
 #define VMPI_ERR_INFO_NOKEY  31      /* */
 #define VMPI_ERR_IO          32      /* */
 #define VMPI_ERR_NAME        33      /* */
-#define VMPI_ERR_NOMEM       34      /* */
+#define VMPI_ERR_EXHAUSTED   34      /* */
 #define VMPI_ERR_NOT_SAME    35      /* */
 #define VMPI_ERR_NO_SPACE    36      /* */
 #define VMPI_ERR_NO_SUCH_FILE 37     /* */

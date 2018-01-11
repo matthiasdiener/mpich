@@ -86,7 +86,10 @@ CCLINKER="${MPICH_CCLINKER-$CCLINKERBASE}"
 if [ -n "$MPICH_CCC" ] ; then
     CCC="$MPICH_CCC"
     CCCname=`echo $CCC | sed 's/ /-/g'`
-    if [ -s $sysconfdir/mpiCC-$CCCname.conf ] ; then
+    if [ -s $sysconfdir/mpicxx-$CCCname.conf ] ; then
+        # Do this one first for OS's that don't respect filename case
+        . $sysconfdir/mpicxx-$CCCname.conf
+    elif [ -s $sysconfdir/mpiCC-$CCCname.conf ] ; then
         . $sysconfdir/mpiCC-$CCCname.conf
     fi
 else
@@ -274,6 +277,12 @@ for arg in "$@" ; do
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg $ext`
 	        linkobjs="$linkobjs $fname.o"
+	    elif [ "$ext" = ".s" ] ; then
+	        # Support .s for those compilers that can
+	        DoCompile=1
+	        compileargs="$compileargs $arg"
+	        fname=`basename $arg .s`
+	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
 		if [ $HasDashC = 1 ] ; then
 	            compileargs="$compileargs $arg"
@@ -300,7 +309,7 @@ if [ $DoCompile = 1 -o $show_compile = 1 ] ; then
     fi
     # note the use of HAVE_MPI_CPP to cause the mpi++.h file to be 
     # included from mpi.h
-    $Show $CCC $CCFLAGS @ROMIO_TCPPFLAGS@ -I$includedir -DHAVE_MPI_CPP $CXXFLAGS $compileargs
+    $Show $CCC $CCFLAGS @ROMIO_TCPPFLAGS@ -DHAVE_MPI_CPP $CXXFLAGS $compileargs -I$includedir
 
     status=$?
     if [ $status != 0 ] ; then 
@@ -347,7 +356,10 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
     fi
     # If proflib is non-empty, then add it
     if [ -n "$proflib" ] ; then
-        mpilibs="$proflib $mpilibs $proflib"
+        # We include the last "mpilibs" because the mpilibs contains the
+        # ADI routines.  There is a chance that a file in the first mpich.a
+        # invokes a pmpi routine that needs an ADIO routine.
+        mpilibs="$proflib $mpilibs $proflib $mpilibs"
     fi
     # If the C++ library doesn't exist, skip it
     # This may be needed because the C++ build wants to build executables

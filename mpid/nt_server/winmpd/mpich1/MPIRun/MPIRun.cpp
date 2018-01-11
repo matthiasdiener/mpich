@@ -11,14 +11,40 @@
 #include "WaitThread.h"
 #include "mpd.h"
 #include "mpdutil.h"
-#include "bsocket.h"
 #include "RedirectIO.h"
 #include <ctype.h>
 #include <stdlib.h>
+#include "mpirun.h"
+#include "parsecliques.h"
 
 // Prototypes
-void WaitForExitCommands();
 void ExeToUnc(char *pszExe);
+
+void PrintError(int error, char *msg, ...)
+{
+    int n;
+    va_list list;
+    HLOCAL str;
+    int num_bytes;
+
+    va_start(list, msg);
+    n = vprintf(msg, list);
+    va_end(list);
+    
+    num_bytes = FormatMessage(
+	FORMAT_MESSAGE_FROM_SYSTEM |
+	FORMAT_MESSAGE_ALLOCATE_BUFFER,
+	0,
+	error,
+	MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
+	(LPTSTR) &str,
+	0,0);
+    
+    printf("Error: %s", str);
+    fflush(stdout);
+    
+    LocalFree(str);
+}
 
 // Function name	: PrintOptions
 // Description	    : 
@@ -29,14 +55,13 @@ void PrintOptions()
     printf("Usage:\n");
     printf("   MPIRun -np #processes [options] executable [args ...]\n");
     printf("   MPIRun [options] configfile [args ...]\n");
-    //printf("   MPIRun -localonly #processes [-mpirun options] exe [args ...]\n");
     printf("\n");
     printf("mpirun options:\n");
     printf("   -localonly\n");
     printf("   -env \"var1=val1|var2=val2|var3=val3...\"\n");
     printf("   -dir drive:\\my\\working\\directory\n");
-    printf("   -logon\n");
     printf("   -map drive:\\\\host\\share\n");
+    printf("   -logon\n");
     printf("\n");
     printf("Config file format:\n");
     printf("   >exe c:\\temp\\mpiprogram.exe\n");
@@ -69,6 +94,10 @@ void PrintExtraOptions()
     printf("  launch x processes on the local machine\n");
     printf("-machinefile filename\n");
     printf("  use a file to list the names of machines to launch on\n");
+    printf("-hosts n host1 host2 ... hostn\n");
+    printf("-hosts n host1 m1 host2 m2 ... hostn mn\n");
+    printf("  launch on the specified hosts\n");
+    printf("  the number of processes = m1 + m2 + ... + mn\n");
     printf("-map drive:\\\\host\\share\n");
     printf("  map a drive on all the nodes\n");
     printf("  this mapping will be removed when the processes exit\n");
@@ -80,7 +109,7 @@ void PrintExtraOptions()
     printf("  prompt for user account and password\n");
     printf("-pwdfile filename\n");
     printf("  read the account and password from the file specified\n");
-    printf("  put the account on the first line and the password the second\n");
+    printf("  put the account on the first line and the password on the second\n");
     printf("-tcp\n");
     printf("  use tcp instead of shared memory on the local machine\n");
     printf("-getphrase\n");
@@ -95,10 +124,23 @@ void PrintExtraOptions()
     printf("  don't try to map the current directory on the remote nodes\n");
     printf("-nopopup_debug\n");
     printf("  disable the system popup dialog if the process crashes\n");
-    printf("-hosts n host1 host2 ... hostn\n");
-    printf("-hosts n host1 m1 host2 m2 ... hostn mn\n");
-    printf("  launch on the specified hosts\n");
-    printf("  the number of processes = m1 + m2 + ... + mn\n");
+    printf("-dbg\n");
+    printf("  catch unhandled exceptions\n");
+    printf("-jobhost hostname\n");
+    printf("  send job information to the specified host\n");
+    printf("-jobhostmpdpwd passphrase\n");
+    printf("  specify the jobhost passphrase\n");
+    printf("-exitcodes\n");
+    printf("  print the process exit codes when each process exits.\n");
+    printf("-noprompt\n");
+    printf("  prevent mpirun from prompting for user credentials.\n");
+    printf("-priority class[:level]\n");
+    printf("  set the process startup priority class and optionally level.\n");
+    printf("  class = 0,1,2,3,4   = idle, below, normal, above, high\n");
+    printf("  level = 0,1,2,3,4,5 = idle, lowest, below, normal, above, highest\n");
+    printf("  the default is -priority 1:3\n");
+    printf("-mpduser\n");
+    printf("  use the installed mpd single user ignoring the current user credentials.\n");
 }
 
 // Function name	: ConnectReadMPDRegistry
@@ -113,26 +155,26 @@ void PrintExtraOptions()
 bool ConnectReadMPDRegistry(char *pszHost, int nPort, char *pszPassPhrase, char *name, char *value, DWORD *length = NULL)
 {
     int error;
-    int bfd;
+    SOCKET sock;
     char pszStr[1024];
 
-    if ((error = ConnectToMPD(pszHost, nPort, pszPassPhrase, &bfd)) == 0)
+    if ((error = ConnectToMPD(pszHost, nPort, pszPassPhrase, &sock)) == 0)
     {
 	sprintf(pszStr, "lget %s", name);
-	WriteString(bfd, pszStr);
-	ReadString(bfd, pszStr);
+	WriteString(sock, pszStr);
+	ReadStringTimeout(sock, pszStr, g_nMPIRUN_SHORT_TIMEOUT);
 	if (strlen(pszStr))
 	{
-	    WriteString(bfd, "done");
-	    beasy_closesocket(bfd);
+	    WriteString(sock, "done");
+	    easy_closesocket(sock);
 	    strcpy(value, pszStr);
 	    if (length)
 		*length = strlen(pszStr);
 	    //printf("ConnectReadMPDRegistry successfully used to read the host entry:\n%s\n", pszStr);fflush(stdout);
 	    return true;
 	}
-	WriteString(bfd, "done");
-	beasy_closesocket(bfd);
+	WriteString(sock, "done");
+	easy_closesocket(sock);
     }
     else
     {
@@ -180,6 +222,121 @@ bool ReadMPDRegistry(char *name, char *value, DWORD *length /*= NULL*/)
     return true;
 }
 
+// Function name	: ReadCachedPassword
+// Description	    : 
+// Return type		: bool 
+bool ReadCachedPassword()
+{
+    int nError;
+    char szAccount[100];
+    char szPassword[300];
+    
+    TCHAR szKey[256];
+    HKEY hRegKey = NULL;
+    _tcscpy(szKey, MPICHKEY"\\cache");
+    
+    if (RegOpenKeyEx(HKEY_CURRENT_USER, szKey, 0, KEY_QUERY_VALUE, &hRegKey) == ERROR_SUCCESS) 
+    {
+	DWORD dwLength = 100;
+	*szAccount = TEXT('\0');
+	if ((nError = RegQueryValueEx(
+	    hRegKey, 
+	    _T("Account"), NULL, 
+	    NULL, 
+	    (BYTE*)szAccount, 
+	    &dwLength))!=ERROR_SUCCESS)
+	{
+	    //PrintError(nError, "ReadPasswordFromRegistry:RegQueryValueEx(...) failed, error: %d\n", nError);
+	    ::RegCloseKey(hRegKey);
+	    return false;
+	}
+	if (_tcslen(szAccount) < 1)
+	    return false;
+
+	*szPassword = '\0';
+	dwLength = 300;
+	if ((nError = RegQueryValueEx(
+	    hRegKey, 
+	    _T("Password"), NULL, 
+	    NULL, 
+	    (BYTE*)szPassword, 
+	    &dwLength))!=ERROR_SUCCESS)
+	{
+	    //PrintError(nError, "ReadPasswordFromRegistry:RegQueryValueEx(...) failed, error: %d\n", nError);
+	    ::RegCloseKey(hRegKey);
+	    return false;
+	}
+
+	::RegCloseKey(hRegKey);
+
+	strcpy(g_pszAccount, szAccount);
+	DecodePassword(szPassword);
+	strcpy(g_pszPassword, szPassword);
+	return true;
+    }
+
+    return false;
+}
+
+// Function name	: CachePassword
+// Description	    : 
+// Return type		: void
+void CachePassword()
+{
+    int nError;
+    char *szEncodedPassword;
+    
+    TCHAR szKey[256];
+    HKEY hRegKey = NULL;
+    _tcscpy(szKey, MPICHKEY"\\cache");
+
+    RegDeleteKey(HKEY_CURRENT_USER, szKey);
+    if (RegCreateKeyEx(HKEY_CURRENT_USER, szKey,
+	0, 
+	NULL, 
+	REG_OPTION_VOLATILE,
+	KEY_ALL_ACCESS, 
+	NULL,
+	&hRegKey, 
+	NULL) != ERROR_SUCCESS) 
+    {
+	nError = GetLastError();
+	//PrintError(nError, "CachePassword:RegDeleteKey(...) failed, error: %d\n", nError);
+	return;
+    }
+    
+    // Store the account name
+    if ((nError = ::RegSetValueEx(
+	hRegKey, _T("Account"), 0, REG_SZ, 
+	(BYTE*)g_pszAccount, 
+	sizeof(TCHAR)*(_tcslen(g_pszAccount)+1)
+	))!=ERROR_SUCCESS)
+    {
+	//PrintError(nError, "CachePassword:RegSetValueEx(%s) failed, error: %d\n", g_pszAccount, nError);
+	::RegCloseKey(hRegKey);
+	return;
+    }
+
+    // encode the password
+    szEncodedPassword = EncodePassword(g_pszPassword);
+
+    // Store the encoded password
+    if ((nError = ::RegSetValueEx(
+	hRegKey, _T("Password"), 0, REG_SZ, 
+	(BYTE*)szEncodedPassword, 
+	sizeof(TCHAR)*(_tcslen(szEncodedPassword)+1)
+	))!=ERROR_SUCCESS)
+    {
+	//PrintError(nError, "CachePassword:RegSetValueEx(...) failed, error: %d\n", nError);
+	::RegCloseKey(hRegKey);
+	free(szEncodedPassword);
+	return;
+    }
+
+    free(szEncodedPassword);
+    ::RegCloseKey(hRegKey);
+}
+
 // Function name	: GetHostsFromRegistry
 // Description	    : 
 // Return type		: bool 
@@ -196,52 +353,7 @@ bool GetHostsFromRegistry(HostNode **list)
 	if (!ConnectReadMPDRegistry(localhost, MPD_DEFAULT_PORT, MPD_DEFAULT_PASSPHRASE, "hosts", pszHosts, &nLength))
 	    return false;
     }
-    /*
-    // If this code is used, the program fails at the delete 
-    // statement at the end of the function.  I don't know why.
-    char *pszHosts = NULL;
-    DWORD num_bytes = 0;//1024*sizeof(char);
-    if (!ReadMPDRegistry("hosts", NULL, &num_bytes))
-	return false;
-    pszHosts = new char[num_bytes+1];
-    if (!ReadMPDRegistry("hosts", pszHosts, &num_bytes))
-    {
-	delete pszHosts;
-	return false;
-    }
-    */
-/*    
-    char *token = NULL;
-    token = strtok(pszHosts, "|");
-    if (token != NULL)
-    {
-	HostNode *n, *l = new HostNode;
-	
-	// Make a list of the available nodes
-	l->next = NULL;
-	strncpy(l->host, token, MAX_HOST_LENGTH);
-	l->host[MAX_HOST_LENGTH-1] = '\0';
-	l->nSMPProcs = 1;
-	n = l;
-	while ((token = strtok(NULL, "|")) != NULL)
-	{
-	    n->next = new HostNode;
-	    n = n->next;
-	    n->next = NULL;
-	    strncpy(n->host, token, MAX_HOST_LENGTH);
-	    n->host[MAX_HOST_LENGTH-1] = '\0';
-	    n->nSMPProcs = 1;
-	}
-	
-	*list = l;
-	
-	//delete pszHosts;
-	return true;
-    }
-    
-    //delete pszHosts;
-    return false;
-*/
+
     QVS_Container *phosts;
     phosts = new QVS_Container(pszHosts);
     if (phosts->first(pszHosts, MAX_CMD_LENGTH))
@@ -799,114 +911,6 @@ void GetMPDPassPhrase(char *phrase)
     fprintf(stderr, "\n");
 }
 
-// Function name	: WaitToBreak
-// Description	    : 
-// Return type		: void 
-void WaitToBreak()
-{
-    WaitForSingleObject(g_hBreakReadyEvent, INFINITE);
-    if (beasy_send(g_bfdBreak, "x", 1) == SOCKET_ERROR)
-	beasy_send(g_bfdStopIOSignalSocket, "x", 1);
-}
-
-// Function name	: CtrlHandlerRoutine
-// Description	    : 
-// Return type		: BOOL WINAPI 
-// Argument         : DWORD dwCtrlType
-static bool g_bFirst = true;
-static HANDLE g_hLaunchThreadsRunning = CreateEvent(NULL, TRUE, TRUE, NULL);
-BOOL WINAPI CtrlHandlerRoutine(DWORD dwCtrlType)
-{
-    bool bOK;
-
-    // Don't abort while the launch threads are running because it can leave
-    // processes running.
-    if (WaitForSingleObject(g_hLaunchThreadsRunning, 0) == WAIT_OBJECT_0)
-    {
-	SetEvent(g_hAbortEvent);
-	return TRUE;
-    }
-
-    if (g_bUseJobHost)
-	UpdateJobState("ABORTING");
-
-    // Hit Ctrl-C once and I'll try to kill the remote processes
-    if (g_bFirst)
-    {
-	fprintf(stderr, "BREAK - attempting to kill processes\n(hit break again to do a hard abort)\n");
-	
-	// Signal all the threads to stop
-	SetEvent(g_hAbortEvent);
-	
-	bOK = true;
-	if (g_bfdBreak != BFD_INVALID_SOCKET)
-	{
-	    // Send a break command to WaitForExitCommands
-	    if (beasy_send(g_bfdBreak, "x", 1) == SOCKET_ERROR)
-	    {
-		printf("beasy_send(break) failed, error %d\n", WSAGetLastError());
-		bOK = false;
-	    }
-	}
-	else
-	{
-	    // Start a thread to wait until a break can be issued.  This happens
-	    // if you hit Ctrl-C before all the process threads have been created.
-	    DWORD dwThreadId;
-	    HANDLE hThread;
-	    hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)WaitToBreak, NULL, 0, &dwThreadId);
-	    if (hThread == NULL)
-		bOK = false;
-	    else
-		CloseHandle(hThread);
-	}
-	if (!bOK)
-	{
-	    bOK = true;
-	    // If you cannot issue a break signal, send a stop signal to the io threads
-	    if (g_bfdStopIOSignalSocket != BFD_INVALID_SOCKET)
-	    {
-		if (beasy_send(g_bfdStopIOSignalSocket, "x", 1) == SOCKET_ERROR)
-		{
-		    printf("beasy_send(stop) failed, error %d\n", WSAGetLastError());
-		    bOK =false;
-		}
-	    }
-	    else
-		bOK = false;
-	    if (!bOK)
-	    {
-		if (g_bDoMultiColorOutput)
-		{
-		    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), g_ConsoleAttribute);
-		}
-		ExitProcess(1); // If you cannot issue either a break or stop signal, exit
-	    }
-	}
-
-	g_bFirst = false;
-	return TRUE;
-    }
-    
-    fprintf(stderr, "aborting\n");
-
-    // Hit Ctrl-C twice and I'll exit
-    if (g_bDoMultiColorOutput)
-    {
-	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), g_ConsoleAttribute);
-    }
-
-    // Issue a stop signal
-    if (g_bfdStopIOSignalSocket != BFD_INVALID_SOCKET)
-    {
-	if (beasy_send(g_bfdStopIOSignalSocket, "x", 1) == SOCKET_ERROR)
-	    printf("beasy_send(stop) failed, error %d\n", WSAGetLastError());
-    }
-    Sleep(2000); // Give a little time for the kill commands to get sent out?
-    ExitProcess(1);
-    return TRUE;
-}
-
 // Function name	: CreateJobIDFromTemp
 // Description	    : 
 // Return type		: void 
@@ -1000,46 +1004,6 @@ void PrintDots(HANDLE hEvent)
     CloseHandle(hEvent);
 }
 
-/*
-// Function name	: CheckMapping
-// Description	    : 
-// Return type		: bool 
-// Argument         : char *pszExe
-bool CheckMapping(char *pszExe)
-{
-    DWORD dwResult;
-    DWORD dwLength;
-    char pBuffer[4096];
-    REMOTE_NAME_INFO *info = (REMOTE_NAME_INFO*)pBuffer;
-    char pszTemp[MAX_CMD_LENGTH];
-
-    if (*pszExe == '"')
-    {
-	strncpy(pszTemp, &pszExe[1], MAX_CMD_LENGTH);
-	pszTemp[MAX_CMD_LENGTH-1] = '\0';
-	if (pszTemp[strlen(pszTemp)-1] == '"')
-	    pszTemp[strlen(pszTemp)-1] = '\0';
-	pszExe = pszTemp;
-    }
-    dwLength = 4096;
-    info->lpConnectionName = NULL;
-    info->lpRemainingPath = NULL;
-    info->lpUniversalName = NULL;
-    dwResult = WNetGetUniversalName(pszExe, REMOTE_NAME_INFO_LEVEL, info, &dwLength);
-    if (dwResult == NO_ERROR)
-    {
-	printf("WNetGetUniversalName: '%s'\n unc: '%s'\n share: '%s'\n path: '%s'\n", 
-	    pszExe, 
-	    info->lpUniversalName, 
-	    info->lpConnectionName, 
-	    info->lpRemainingPath);
-    }
-    else
-	printf("WNetGetUniversalName: '%s'\n error %d\n", pszExe, dwResult);
-    return true;
-}
-*/
-
 // Function name	: NeedToMap
 // Description	    : 
 // Return type		: bool 
@@ -1070,16 +1034,8 @@ bool NeedToMap(char *pszFullPath, char *pDrive, char *pszShare)//, char *pszDir)
     dwResult = WNetGetUniversalName(pszFullPath, REMOTE_NAME_INFO_LEVEL, info, &dwLength);
     if (dwResult == NO_ERROR)
     {
-	/*
-	printf("WNetGetUniversalName: '%s'\n unc: '%s'\n share: '%s'\n path: '%s'\n", 
-	    pszFullPath, 
-	    info->lpUniversalName, 
-	    info->lpConnectionName, 
-	    info->lpRemainingPath);
-	*/
 	*pDrive = *pszFullPath;
 	strcpy(pszShare, info->lpConnectionName);
-	//strcpy(pszDir, info->lpRemainingPath);
 	return true;
     }
 
@@ -1119,13 +1075,6 @@ void ExeToUnc(char *pszExe)
     dwResult = WNetGetUniversalName(pszExe, REMOTE_NAME_INFO_LEVEL, info, &dwLength);
     if (dwResult == NO_ERROR)
     {
-	/*
-	printf("WNetGetUniversalName: '%s'\n unc: '%s'\n share: '%s'\n path: '%s'\n", 
-	    pszExe, 
-	    info->lpUniversalName, 
-	    info->lpConnectionName, 
-	    info->lpRemainingPath);
-	*/
 	if (bQuoted)
 	    sprintf(pszOriginal, "\"%s\"", info->lpUniversalName);
 	else
@@ -1173,12 +1122,160 @@ bool ReadMPDDefault(char *str)
     return false;
 }
 
+bool CreateShmCliqueString(HostNode *pHosts, char *str)
+{
+    int i, iProc, iterProc, nProc = 0;
+    HostNode *n, *iter;
+    bool *pDone;
+    char *strOrig = str;
+
+    str[0] = '\0';
+
+    if (pHosts == NULL)
+    {
+	char temp[20];
+	nProc = g_nHosts;
+	for (i=0; i<nProc; i++)
+	{
+	    sprintf(temp, "(%d)", i);
+	    strcat(str, temp);
+	}
+	return true;
+    }
+
+    n = pHosts;
+    while (n)
+    {
+	nProc += n->nSMPProcs;
+	n = n->next;
+    }
+
+    if (nProc < 1)
+	return false;
+
+    pDone = new bool[nProc];
+    for (i=0; i<nProc; i++)
+	pDone[i] = false;
+
+    n = pHosts;
+    iProc = 0;
+    while (n)
+    {
+	if (!pDone[iProc])
+	{
+	    pDone[iProc] = true;
+	    str += sprintf(str, "(%d", iProc);
+	    iProc++;
+	    for (i=1; i<n->nSMPProcs; i++)
+	    {
+		pDone[iProc] = true;
+		str += sprintf(str, ",%d", iProc);
+		iProc++;
+	    }
+	    iter = n->next;
+	    iterProc = iProc;
+	    while (iter)
+	    {
+		if (stricmp(iter->host, n->host) == 0)
+		{
+		    pDone[iterProc] = true;
+		    str += sprintf(str, ",%d", iterProc);
+		    iterProc++;
+		    for (i=1; i<iter->nSMPProcs; i++)
+		    {
+			pDone[iterProc] = true;
+			str += sprintf(str, ",%d", iterProc);
+			iterProc++;
+		    }
+		}
+		else
+		{
+		    for (i=0; i<iter->nSMPProcs; i++)
+			iterProc++;
+		}
+		iter = iter->next;
+	    }
+	    str += sprintf(str, ")");
+	}
+	else
+	{
+	    for (i=0; i<n->nSMPProcs; i++)
+		iProc++;
+	}
+	n = n->next;
+    }
+
+    return true;
+}
+
+void CreateSingleShmCliqueString(int nCliqueCount, int *pMembers, char *pszSingleShmCliqueString)
+{
+    int i;
+    char *str = pszSingleShmCliqueString;
+
+    if (nCliqueCount < 1)
+	return;
+
+    str += sprintf(str, "(");
+    str += sprintf(str, "%d", pMembers[0]);
+    for (i=1; i<nCliqueCount; i++)
+    {
+	str += sprintf(str, ",%d", pMembers[i]);
+    }
+    sprintf(str, ")");
+    //printf("CreateSingleShmCliqueString produced: %s\n", pszSingleShmCliqueString);
+    //exit(0);
+}
+
+void SetupTimeouts()
+{
+    char pszTimeout[20];
+    DWORD length;
+    char *pszEnvVariable;
+
+    length = 20;
+    if (ReadMPDRegistry("timeout", pszTimeout, &length))
+    {
+	g_nLaunchTimeout = atoi(pszTimeout);
+	if (g_nLaunchTimeout < 1)
+	    g_nLaunchTimeout = MPIRUN_DEFAULT_TIMEOUT;
+    }
+    length = 20;
+    if (ReadMPDRegistry("short_timeout", pszTimeout, &length))
+    {
+	g_nMPIRUN_SHORT_TIMEOUT = atoi(pszTimeout);
+	if (g_nMPIRUN_SHORT_TIMEOUT < 1)
+	    g_nMPIRUN_SHORT_TIMEOUT = MPIRUN_SHORT_TIMEOUT;
+    }
+    length = 20;
+    if (ReadMPDRegistry("startup_timeout", pszTimeout, &length))
+    {
+	g_nMPIRUN_CREATE_PROCESS_TIMEOUT = atoi(pszTimeout);
+	if (g_nMPIRUN_CREATE_PROCESS_TIMEOUT < 1)
+	    g_nMPIRUN_CREATE_PROCESS_TIMEOUT = MPIRUN_CREATE_PROCESS_TIMEOUT;
+    }
+    pszEnvVariable = getenv("MPIRUN_SHORT_TIMEOUT");
+    if (pszEnvVariable)
+    {
+	g_nMPIRUN_SHORT_TIMEOUT = atoi(pszEnvVariable);
+	if (g_nMPIRUN_SHORT_TIMEOUT < 1)
+	    g_nMPIRUN_SHORT_TIMEOUT = MPIRUN_SHORT_TIMEOUT;
+    }
+    pszEnvVariable = getenv("MPIRUN_STARTUP_TIMEOUT");
+    if (pszEnvVariable)
+    {
+	g_nMPIRUN_CREATE_PROCESS_TIMEOUT = atoi(pszEnvVariable);
+	if (g_nMPIRUN_CREATE_PROCESS_TIMEOUT < 1)
+	    g_nMPIRUN_CREATE_PROCESS_TIMEOUT = MPIRUN_CREATE_PROCESS_TIMEOUT;
+    }
+}
+
 // Function name	: main
 // Description	    : 
 // Return type		: void 
 // Argument         : int argc
 // Argument         : char *argv[]
-int  main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int i;
     int iproc = 0;
@@ -1202,6 +1299,18 @@ int  main(int argc, char *argv[])
     DWORD dwType;
     bool bUsePwdFile = false;
     char pszPwdFileName[MAX_PATH];
+    bool bUseDebugFlag = false;
+    DWORD length;
+    WSADATA wsaData;
+    int err;
+    bool bNoDriveMapping = false;
+    bool bCredentialsPrompt = true;
+    bool bUsePriorities = false;
+    int nPriorityClass = 1;
+    int nPriority = 3;
+    char pszShmCliqueString[MAX_CMD_LENGTH];
+    char pszSingleShmCliqueString[MAX_CMD_LENGTH];
+    int nCliqueCount, *pMembers;
 
     if (argc < 2)
     {
@@ -1210,6 +1319,34 @@ int  main(int argc, char *argv[])
     }
 
     SetConsoleCtrlHandler(CtrlHandlerRoutine, TRUE);
+
+    if ((err = WSAStartup( MAKEWORD( 2, 0 ), &wsaData )) != 0)
+    {
+	printf("Winsock2 dll not initialized, error %d", err);
+	switch (err)
+	{
+	case WSASYSNOTREADY:
+	    printf("Indicates that the underlying network subsystem is not ready for network communication.\n");
+	    break;
+	case WSAVERNOTSUPPORTED:
+	    printf("The version of Windows Sockets support requested is not provided by this particular Windows Sockets implementation.\n");
+	    break;
+	case WSAEINPROGRESS:
+	    printf("A blocking Windows Sockets 1.1 operation is in progress.\n");
+	    break;
+	case WSAEPROCLIM:
+	    printf("Limit on the number of tasks supported by the Windows Sockets implementation has been reached.\n");
+	    break;
+	case WSAEFAULT:
+	    printf("The lpWSAData is not a valid pointer.\n");
+	    break;
+	default:
+	    Translate_Error(err, pBuffer);
+	    printf("%s\n", pBuffer);
+	    break;
+	}
+	return 0;
+    }
 
     // Set defaults
     g_bDoMultiColorOutput = !ReadMPDDefault("nocolor");
@@ -1224,14 +1361,15 @@ int  main(int argc, char *argv[])
     bPhraseNeeded = true;
     g_nHosts = 0;
     g_pHosts = NULL;
-    g_bNoDriveMapping = !ReadMPDDefault("nomapping");
+    bNoDriveMapping = ReadMPDDefault("nomapping");
+    g_bOutputExitCodes = ReadMPDDefault("exitcodes");
     if (ReadMPDDefault("nopopup_debug"))
     {
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     }
     if (ReadMPDDefault("usejobhost"))
     {
-	DWORD length = MAX_HOST_LENGTH;
+	length = MAX_HOST_LENGTH;
 	if (ReadMPDRegistry("jobhost", g_pszJobHost, &length))
 	{
 	    g_bUseJobHost = true;
@@ -1242,6 +1380,9 @@ int  main(int argc, char *argv[])
 	    }
 	}
     }
+    bUseDebugFlag = ReadMPDDefault("dbg");
+    SetupTimeouts();
+
 
     // Parse mpirun options
     while (argv[1] && (argv[1][0] == '-' || argv[1][0] == '/'))
@@ -1336,6 +1477,14 @@ int  main(int argc, char *argv[])
 	{
 	    bLogon = true;
 	}
+	else if (stricmp(&argv[1][1], "noprompt") == 0)
+	{
+	    bCredentialsPrompt = false;
+	}
+	else if (stricmp(&argv[1][1], "dbg") == 0)
+	{
+	    bUseDebugFlag = true;
+	}
 	else if (stricmp(&argv[1][1], "pwdfile") == 0)
 	{
 	    bUsePwdFile = true;
@@ -1347,6 +1496,10 @@ int  main(int argc, char *argv[])
 	    strncpy(pszPwdFileName, argv[2], MAX_PATH);
 	    pszPwdFileName[MAX_PATH-1] = '\0';
 	    nArgsToStrip = 2;
+	}
+	else if (stricmp(&argv[1][1], "mpduser") == 0)
+	{
+	    g_bUseMPDUser = true;
 	}
 	else if (stricmp(&argv[1][1], "hosts") == 0)
 	{
@@ -1438,7 +1591,7 @@ int  main(int argc, char *argv[])
 	}
 	else if (stricmp(&argv[1][1], "nomapping") == 0)
 	{
-	    g_bNoDriveMapping = true;
+	    bNoDriveMapping = true;
 	}
 	else if (stricmp(&argv[1][1], "nopopup_debug") == 0)
 	{
@@ -1476,6 +1629,24 @@ int  main(int argc, char *argv[])
 	    }
 	    strncpy(g_pszJobHostMPDPwd, argv[2], 100);
 	    g_pszJobHostMPDPwd[99] = '\0';
+	    nArgsToStrip = 2;
+	}
+	else if (stricmp(&argv[1][1], "exitcodes") == 0)
+	{
+	    g_bOutputExitCodes = true;
+	}
+	else if (stricmp(&argv[1][1], "priority") == 0)
+	{
+	    char *str;
+	    nPriorityClass = atoi(argv[2]);
+	    str = strchr(argv[2], ':');
+	    if (str)
+	    {
+		str++;
+		nPriority = atoi(str);
+	    }
+	    //printf("priorities = %d:%d\n", nPriorityClass, nPriority);fflush(stdout);
+	    bUsePriorities = true;
 	    nArgsToStrip = 2;
 	}
 	else
@@ -1529,7 +1700,7 @@ int  main(int argc, char *argv[])
     // Quote the executable in case there are spaces in the path
     sprintf(g_pszExe, "\"%s\"", pszTempExe);
 
-    bsocket_init();
+    easy_socket_init();
 
     if (!bRunLocal && g_pHosts == NULL)
     {
@@ -1580,7 +1751,7 @@ int  main(int argc, char *argv[])
     }
     
     // Check if the directory needs to be mapped on the remote machines
-    if (NeedToMap(g_pszDir, &cMapDrive, pszMapShare))
+    if (!bNoDriveMapping && NeedToMap(g_pszDir, &cMapDrive, pszMapShare))
     {
 	MapDriveNode *pNode = new MapDriveNode;
 	pNode->cDrive = cMapDrive;
@@ -1602,49 +1773,74 @@ int  main(int argc, char *argv[])
     if (bRunLocal)
     {
 	RunLocal(bDoSMP);
-	bsocket_finalize();
+	easy_socket_finalize();
 	return 0;
     }
 
     //dbg_printf("retrieving account information\n");
-    if (bUsePwdFile)
+    if (g_bUseMPDUser)
     {
-	bLogon = true;
-	GetAccountAndPasswordFromFile(pszPwdFileName);
+	bLogon = false;
+	g_pszAccount[0] = '\0';
+	g_pszPassword[0] = '\0';
     }
     else
     {
-	if (bLogon)
-	    GetAccountAndPassword();
+	if (bUsePwdFile)
+	{
+	    bLogon = true;
+	    GetAccountAndPasswordFromFile(pszPwdFileName);
+	}
 	else
 	{
-	    char pszTemp[10] = "no";
-	    ReadMPDRegistry("SingleUser", pszTemp, NULL);
-	    if (stricmp(pszTemp, "yes"))
+	    if (bLogon)
+		GetAccountAndPassword();
+	    else
 	    {
-		if (bLogonDots)
+		char pszTemp[10] = "no";
+		ReadMPDRegistry("SingleUser", pszTemp, NULL);
+		if (stricmp(pszTemp, "yes"))
 		{
-		    DWORD dwThreadId;
-		    HANDLE hEvent, hDotThread;
-		    hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-		    hDotThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PrintDots, hEvent, 0, &dwThreadId);
-		    if (!ReadPasswordFromRegistry(g_pszAccount, g_pszPassword))
+		    if (!ReadCachedPassword())
 		    {
-			SetEvent(hEvent);
-			GetAccountAndPassword();
+			if (bLogonDots)
+			{
+			    DWORD dwThreadId;
+			    HANDLE hEvent, hDotThread;
+			    hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+			    hDotThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PrintDots, hEvent, 0, &dwThreadId);
+			    if (!ReadPasswordFromRegistry(g_pszAccount, g_pszPassword))
+			    {
+				SetEvent(hEvent);
+				if (bCredentialsPrompt)
+				    GetAccountAndPassword();
+				else
+				{
+				    printf("Error: unable to acquire the necessary user credentials to launch a job.\n");
+				    ExitProcess(-1);
+				}
+			    }
+			    else
+				SetEvent(hEvent);
+			    CloseHandle(hDotThread);
+			}
+			else
+			{
+			    if (!ReadPasswordFromRegistry(g_pszAccount, g_pszPassword))
+			    {
+				if (bCredentialsPrompt)
+				    GetAccountAndPassword();
+				else
+				{
+				    printf("Error: unable to acquire the necessary user credentials to launch a job.\n");
+				    ExitProcess(-1);
+				}
+			    }
+			}
+			CachePassword();
 		    }
-		    else
-			SetEvent(hEvent);
-		    CloseHandle(hDotThread);
+		    bLogon = true;
 		}
-		else
-		{
-		    if (!ReadPasswordFromRegistry(g_pszAccount, g_pszPassword))
-		    {
-			GetAccountAndPassword();
-		    }
-		}
-		bLogon = true;
 	    }
 	}
     }
@@ -1674,9 +1870,9 @@ int  main(int argc, char *argv[])
     
     // Allocate an array to hold handles to the LaunchProcess threads, sockets, ids, ranks, and forward host structures
     pThread = new HANDLE[nProc];
-    g_pProcessSocket = new int[nProc];
+    g_pProcessSocket = new SOCKET[nProc];
     for (i=0; i<nProc; i++)
-	g_pProcessSocket[i] = BFD_INVALID_SOCKET;
+	g_pProcessSocket[i] = INVALID_SOCKET;
     g_pProcessLaunchId = new int[nProc];
     g_pLaunchIdToRank = new int [nProc];
     g_nNumProcessSockets = 0;
@@ -1689,7 +1885,7 @@ int  main(int argc, char *argv[])
     g_hRedirectIOListenThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RedirectIOThread, hEvent, 0, &dwThreadID);
     if (g_hRedirectIOListenThread)
     {
-	if (WaitForSingleObject(hEvent, 10000) != WAIT_OBJECT_0)
+	if (WaitForSingleObject(hEvent, 60000) != WAIT_OBJECT_0)
 	{
 	    printf("RedirectIOThread failed to initialize\n");
 	    return 0;
@@ -1707,6 +1903,12 @@ int  main(int argc, char *argv[])
     g_pForwardHost[0].nPort = g_nIOPort;
     //printf("io redirection: %s:%d\n", g_pForwardHost[0].pszHost, g_pForwardHost[0].nPort);fflush(stdout);
 
+#ifdef SERIALIZE_ROOT_PROCESS
+    HANDLE hRootMutex = CreateMutex(NULL, FALSE, "MPIRunRootMutex");
+#endif
+
+    CreateShmCliqueString(g_pHosts, pszShmCliqueString);
+
     // Launch the threads to launch the processes
     iproc = 0;
     while (g_pHosts)
@@ -1716,6 +1918,10 @@ int  main(int argc, char *argv[])
 	for (int i = 0; i<g_pHosts->nSMPProcs; i++)
 	{
 	    MPIRunLaunchProcessArg *arg = new MPIRunLaunchProcessArg;
+	    arg->bUsePriorities = bUsePriorities;
+	    arg->nPriorityClass = nPriorityClass;
+	    arg->nPriority = nPriority;
+	    arg->bUseDebugFlag = bUseDebugFlag;
 	    arg->n = g_nNproc;
 	    sprintf(arg->pszIOHostPort, "%s:%d", g_pszIOHost, g_nIOPort);
 	    strcpy(arg->pszPassPhrase, phrase);
@@ -1770,10 +1976,42 @@ int  main(int argc, char *argv[])
 	    }
 	    else
 	    {
+		if (ParseCliques(pszShmCliqueString, iproc, g_nNproc, &nCliqueCount, &pMembers) == 0)
+		{
+		    if (nCliqueCount > 1)
+		    {
+			CreateSingleShmCliqueString(nCliqueCount, pMembers, pszSingleShmCliqueString);
+			if (iproc == 0)
+			    sprintf(pBuffer, "MPICH_ROOTPORT=-1|MPICH_IPROC=%d|MPICH_SHM_CLIQUES=%s", iproc, pszSingleShmCliqueString);
+			else
+			    sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_CLIQUES=%s", g_nRootPort, iproc, pszSingleShmCliqueString);
+		    }
+		    else
+		    {
+			if (iproc == 0)
+			    sprintf(pBuffer, "MPICH_ROOTPORT=-1|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", iproc, nShmLow, nShmHigh);
+			else
+			    sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", g_nRootPort, iproc, nShmLow, nShmHigh);
+		    }
+		    if (pMembers)
+		    {
+			delete pMembers;
+			pMembers = NULL;
+		    }
+		}
+		else
+		{
+		    if (iproc == 0)
+			sprintf(pBuffer, "MPICH_ROOTPORT=-1|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", iproc, nShmLow, nShmHigh);
+		    else
+			sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", g_nRootPort, iproc, nShmLow, nShmHigh);
+		}
+		/*
 		if (iproc == 0)
 		    sprintf(pBuffer, "MPICH_ROOTPORT=-1|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", iproc, nShmLow, nShmHigh);
 		else
 		    sprintf(pBuffer, "MPICH_ROOTPORT=%d|MPICH_IPROC=%d|MPICH_SHM_LOW=%d|MPICH_SHM_HIGH=%d", g_nRootPort, iproc, nShmLow, nShmHigh);
+		*/
 		if (strlen(arg->pszEnv) > 0)
 		    strncat(arg->pszEnv, "|", MAX_CMD_LENGTH - 1 - strlen(arg->pszEnv));
 		if (strlen(pBuffer) + strlen(arg->pszEnv) >= MAX_CMD_LENGTH)
@@ -1794,6 +2032,10 @@ int  main(int argc, char *argv[])
 		}
 	    }
 	    //printf("creating MPIRunLaunchProcess thread\n");fflush(stdout);
+#ifdef SERIALIZE_ROOT_PROCESS
+	    if (iproc == 0 && !g_bNoMPI)
+		WaitForSingleObject(hRootMutex, INFINITE);
+#endif
 	    pThread[iproc] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MPIRunLaunchProcess, arg, 0, &dwThreadID);
 	    if (pThread[iproc] == NULL)
 	    {
@@ -1808,6 +2050,13 @@ int  main(int argc, char *argv[])
 		{
 		    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), g_ConsoleAttribute);
 		}
+#ifdef SERIALIZE_ROOT_PROCESS
+		if (iproc == 0 && !g_bNoMPI)
+		{
+		    ReleaseMutex(hRootMutex);
+		    CloseHandle(hRootMutex);
+		}
+#endif
 		ExitProcess(1);
 	    }
 	    if (iproc == 0 && !g_bNoMPI)
@@ -1815,6 +2064,10 @@ int  main(int argc, char *argv[])
 		// Wait for the root port to be valid
 		while (g_nRootPort == 0 && (WaitForSingleObject(g_hAbortEvent, 0) != WAIT_OBJECT_0))
 		    Sleep(200);
+#ifdef SERIALIZE_ROOT_PROCESS
+		ReleaseMutex(hRootMutex);
+		CloseHandle(hRootMutex);
+#endif
 		if (g_nRootPort == 0)
 		{
 		    // free stuff
@@ -1851,31 +2104,30 @@ int  main(int argc, char *argv[])
     if (WaitForSingleObject(g_hAbortEvent, 0) == WAIT_OBJECT_0)
     {
 	char pszStr[100];
+	printf("aborting...\n");fflush(stdout);
 	for (i=0; i<nProc; i++)
 	{
-	    if (g_pProcessSocket[i] != BFD_INVALID_SOCKET)
+	    if (g_pProcessSocket[i] != INVALID_SOCKET)
 	    {
 		sprintf(pszStr, "kill %d", g_pProcessLaunchId[i]);
 		WriteString(g_pProcessSocket[i], pszStr);
-		if (!UnmapDrives(g_pProcessSocket[i]))
-		{
-		    printf("Drive unmappings failed\n");
-		}
 		sprintf(pszStr, "freeprocess %d", g_pProcessLaunchId[i]);
 		WriteString(g_pProcessSocket[i], pszStr);
+		ReadStringTimeout(g_pProcessSocket[i], pszStr, g_nMPIRUN_SHORT_TIMEOUT);
 		WriteString(g_pProcessSocket[i], "done");
-		beasy_closesocket(g_pProcessSocket[i]);
+		easy_closesocket(g_pProcessSocket[i]);
 	    }
 	}
-	if (g_bUseJobHost)
+	if (g_bUseJobHost && !g_bNoMPI)
 	    UpdateJobState("ABORTED");
 	ExitProcess(0);
     }
     // Note: If the user hits Ctrl-C between the above if statement and the following ResetEvent statement
     // nothing will happen and the user will have to hit Ctrl-C again.
     ResetEvent(g_hLaunchThreadsRunning);
+    //printf("____g_hLaunchThreadsRunning event is reset, Ctrl-C should work now____\n");fflush(stdout);
 
-    if (g_bUseJobHost)
+    if (g_bUseJobHost && !g_bNoMPI)
 	UpdateJobState("RUNNING");
 
     //printf("Waiting for exit codes\n");fflush(stdout);
@@ -1887,7 +2139,7 @@ int  main(int argc, char *argv[])
 
     // Signal the IO redirection thread to stop
     char ch = 0;
-    beasy_send(g_bfdStopIOSignalSocket, &ch, 1);
+    easy_send(g_sockStopIOSignalSocket, &ch, 1);
 
     //printf("Waiting for redirection thread to exit\n");fflush(stdout);
     // Wait for the redirection thread to complete.  Kill it if it takes too long.
@@ -1897,17 +2149,17 @@ int  main(int argc, char *argv[])
 	TerminateThread(g_hRedirectIOListenThread, 0);
     }
     CloseHandle(g_hRedirectIOListenThread);
-    beasy_closesocket(g_bfdStopIOSignalSocket);
+    easy_closesocket(g_sockStopIOSignalSocket);
     CloseHandle(g_hAbortEvent);
 
-    if (g_bUseJobHost)
+    if (g_bUseJobHost && !g_bNoMPI)
 	UpdateJobState("FINISHED");
 
     if (g_bDoMultiColorOutput)
     {
 	SetConsoleTextAttribute(hStdout, g_ConsoleAttribute);
     }
-    bsocket_finalize();
+    easy_socket_finalize();
 
     delete g_pProcessSocket;
     delete g_pProcessLaunchId;
@@ -1923,403 +2175,3 @@ int  main(int argc, char *argv[])
     return 0;
 }
 
-struct ProcessWaitAbortThreadArg
-{
-    int bfdAbort;
-    int bfdStop;
-    int n;
-    int *pSocket;
-};
-
-// Function name	: ProcessWaitAbort
-// Description	    : 
-// Return type		: void 
-// Argument         : ProcessWaitAbortThreadArg *pArg
-void ProcessWaitAbort(ProcessWaitAbortThreadArg *pArg)
-{
-    int n, i;
-    bfd_set readset;
-
-    BFD_ZERO(&readset);
-    BFD_SET(pArg->bfdAbort, &readset);
-    BFD_SET(pArg->bfdStop, &readset);
-
-    n = bselect(0, &readset, NULL, NULL, NULL);
-
-    if (n == SOCKET_ERROR)
-    {
-	printf("bselect failed, error %d\n", WSAGetLastError());fflush(stdout);
-	for (i=0; i<pArg->n; i++)
-	{
-	    beasy_closesocket(pArg->pSocket[i]);
-	}
-	beasy_closesocket(pArg->bfdAbort);
-	beasy_closesocket(pArg->bfdStop);
-	return;
-    }
-    if (n == 0)
-    {
-	printf("ProcessWaitAbort: bselect returned zero sockets available\n");fflush(stdout);
-	for (i=0; i<pArg->n; i++)
-	{
-	    beasy_closesocket(pArg->pSocket[i]);
-	}
-	beasy_closesocket(pArg->bfdAbort);
-	beasy_closesocket(pArg->bfdStop);
-	return;
-    }
-    if (BFD_ISSET(pArg->bfdAbort, &readset))
-    {
-	for (i=0; i<pArg->n; i++)
-	{
-	    beasy_send(pArg->pSocket[i], "x", 1);
-	}
-    }
-    for (i=0; i<pArg->n; i++)
-    {
-	beasy_closesocket(pArg->pSocket[i]);
-    }
-    beasy_closesocket(pArg->bfdAbort);
-    beasy_closesocket(pArg->bfdStop);
-}
-
-// Function name	: UnmapDrives
-// Description	    : 
-// Return type		: bool 
-// Argument         : int bfd
-bool UnmapDrives(int bfd)
-{
-    char pszStr[256];
-    if (g_pDriveMapList && !g_bNoDriveMapping)
-    {
-	MapDriveNode *pNode = g_pDriveMapList;
-	while (pNode)
-	{
-	    sprintf(pszStr, "unmap drive=%c", pNode->cDrive);
-	    if (WriteString(bfd, pszStr) == SOCKET_ERROR)
-	    {
-		printf("ERROR: Unable to send unmap command, Error %d", WSAGetLastError());
-		beasy_closesocket(bfd);
-		SetEvent(g_hAbortEvent);
-		return false;
-	    }
-	    if (!ReadString(bfd, pszStr))
-	    {
-		printf("ERROR: Unable to read the result of unmap command, Error %d", WSAGetLastError());
-		beasy_closesocket(bfd);
-		SetEvent(g_hAbortEvent);
-		return false;
-	    }
-	    if (stricmp(pszStr, "SUCCESS"))
-	    {
-		printf("ERROR: Unable to unmap %c: %s\r\n%s", pNode->cDrive, pNode->pszShare, pszStr);
-		beasy_closesocket(bfd);
-		SetEvent(g_hAbortEvent);
-		return false;
-	    }
-	    pNode = pNode->pNext;
-	}
-    }
-    return true;
-}
-
-struct ProcessWaitThreadArg
-{
-    int n;
-    int *pSocket;
-    int *pId;
-    int *pRank;
-    int bfdAbort;
-};
-
-// Function name	: ProcessWait
-// Description	    : 
-// Return type		: void 
-// Argument         : ProcessWaitThreadArg *pArg
-void ProcessWait(ProcessWaitThreadArg *pArg)
-{
-    int i, j, n;
-    bfd_set totalset, readset;
-    char str[256];
-    
-    BFD_ZERO(&totalset);
-    
-    BFD_SET(pArg->bfdAbort, &totalset);
-    for (i=0; i<pArg->n; i++)
-    {
-	BFD_SET(pArg->pSocket[i], &totalset);
-    }
-    
-    while (pArg->n)
-    {
-	readset = totalset;
-	n = bselect(0, &readset, NULL, NULL, NULL);
-	if (n == SOCKET_ERROR)
-	{
-	    printf("bselect failed, error %d\n", WSAGetLastError());fflush(stdout);
-	    for (i=0, j=0; i<pArg->n; i++, j++)
-	    {
-		while (pArg->pSocket[j] == BFD_INVALID_SOCKET)
-		    j++;
-		beasy_closesocket(pArg->pSocket[j]);
-	    }
-	    return;
-	}
-	if (n == 0)
-	{
-	    printf("WaitForExitCommands: bselect returned zero sockets available");fflush(stdout);
-	    for (i=0, j=0; i<pArg->n; i++, j++)
-	    {
-		while (pArg->pSocket[j] == BFD_INVALID_SOCKET)
-		    j++;
-		beasy_closesocket(pArg->pSocket[j]);
-	    }
-	    return;
-	}
-
-	if (BFD_ISSET(pArg->bfdAbort, &readset))
-	{
-	    for (i=0; pArg->n > 0; i++)
-	    {
-		while (pArg->pSocket[i] == BFD_INVALID_SOCKET)
-		    i++;
-		sprintf(str, "kill %d", pArg->pId[i]);
-		WriteString(pArg->pSocket[i], str);
-
-		int nRank = pArg->pRank[i];
-		if (g_nNproc > FORWARD_NPROC_THRESHOLD)
-		{
-		    if (nRank > 0 && (g_nNproc/2) > nRank)
-		    {
-			//printf("rank %d(%d) stopping forwarder\n", nRank, g_pProcessLaunchId[i]);fflush(stdout);
-			sprintf(str, "stopforwarder port=%d abort=yes", g_pForwardHost[nRank].nPort);
-			WriteString(pArg->pSocket[i], str);
-		    }
-		}
-
-		sprintf(str, "freeprocess %d", pArg->pId[i]);
-		WriteString(pArg->pSocket[i], str);
-		WriteString(pArg->pSocket[i], "done");
-		beasy_closesocket(pArg->pSocket[i]);
-		pArg->pSocket[i] = BFD_INVALID_SOCKET;
-		pArg->n--;
-	    }
-	    return;
-	}
-	for (i=0; n>0; i++)
-	{
-	    while (pArg->pSocket[i] == BFD_INVALID_SOCKET)
-		i++;
-	    if (BFD_ISSET(pArg->pSocket[i], &readset))
-	    {
-		if (!ReadString(pArg->pSocket[i], str))
-		{
-		    printf("Unable to read the result of the getexitcodewait command for process %d, error %d", i, WSAGetLastError());fflush(stdout);
-		    return;
-		}
-		
-		int nRank = pArg->pRank[i];
-		if (g_nNproc > FORWARD_NPROC_THRESHOLD)
-		{
-		    if (nRank > 0 && (g_nNproc/2) > nRank)
-		    {
-			sprintf(str, "stopforwarder port=%d abort=no", g_pForwardHost[nRank].nPort);
-			WriteString(pArg->pSocket[i], str);
-		    }
-		}
-		
-		UnmapDrives(pArg->pSocket[i]);
-
-		sprintf(str, "freeprocess %d", pArg->pId[i]);
-		WriteString(pArg->pSocket[i], str);
-		
-		WriteString(pArg->pSocket[i], "done");
-		beasy_closesocket(pArg->pSocket[i]);
-		BFD_CLR(pArg->pSocket[i], &totalset);
-		pArg->pSocket[i] = BFD_INVALID_SOCKET;
-		n--;
-		pArg->n--;
-	    }
-	}
-    }
-}
-
-// Function name	: WaitForExitCommands
-// Description	    : 
-// Return type		: void 
-void WaitForExitCommands()
-{
-    if (g_nNumProcessSockets < FD_SETSIZE)
-    {
-	int i, n;
-	bfd_set totalset, readset;
-	char str[256];
-	int break_bfd;
-	
-	MakeLoop(&break_bfd, &g_bfdBreak);
-	SetEvent(g_hBreakReadyEvent);
-
-	BFD_ZERO(&totalset);
-	
-	BFD_SET(break_bfd, &totalset);
-	for (i=0; i<g_nNumProcessSockets; i++)
-	{
-	    BFD_SET(g_pProcessSocket[i], &totalset);
-	}
-	
-	while (g_nNumProcessSockets)
-	{
-	    readset = totalset;
-	    n = bselect(0, &readset, NULL, NULL, NULL);
-	    if (n == SOCKET_ERROR)
-	    {
-		printf("WaitForExitCommands: bselect failed, error %d\n", WSAGetLastError());fflush(stdout);
-		for (i=0; g_nNumProcessSockets > 0; i++)
-		{
-		    while (g_pProcessSocket[i] == BFD_INVALID_SOCKET)
-			i++;
-		    beasy_closesocket(g_pProcessSocket[i]);
-		    g_nNumProcessSockets--;
-		}
-		return;
-	    }
-	    if (n == 0)
-	    {
-		printf("WaitForExitCommands: bselect returned zero sockets available\n");fflush(stdout);
-		for (i=0; g_nNumProcessSockets > 0; i++)
-		{
-		    while (g_pProcessSocket[i] == BFD_INVALID_SOCKET)
-			i++;
-		    beasy_closesocket(g_pProcessSocket[i]);
-		    g_nNumProcessSockets--;
-		}
-		return;
-	    }
-	    else
-	    {
-		if (BFD_ISSET(break_bfd, &readset))
-		{
-		    int num_read = beasy_receive(break_bfd, str, 1);
-		    if (num_read == 0 || num_read == SOCKET_ERROR)
-		    {
-			BFD_CLR(break_bfd, &totalset);
-		    }
-		    else
-		    {
-			printf("Sending kill commands to launched processes\n");fflush(stdout);
-			for (int j=0, i=0; i<g_nNumProcessSockets; i++, j++)
-			{
-			    while (g_pProcessSocket[j] == BFD_INVALID_SOCKET)
-				j++;
-			    sprintf(str, "kill %d", g_pProcessLaunchId[j]);
-			    //printf("%s\n", str);fflush(stdout);
-			    WriteString(g_pProcessSocket[j], str);
-			}
-		    }
-		    n--;
-		}
-		for (i=0; n>0; i++)
-		{
-		    while (g_pProcessSocket[i] == BFD_INVALID_SOCKET)
-			i++;
-		    if (BFD_ISSET(g_pProcessSocket[i], &readset))
-		    {
-			if (!ReadString(g_pProcessSocket[i], str))
-			{
-			    printf("Unable to read the result of the getexitcodewait command for process %d, error %d", i, WSAGetLastError());fflush(stdout);
-			    return;
-			}
-			
-			int nRank = g_pLaunchIdToRank[i];
-			if (g_nNproc > FORWARD_NPROC_THRESHOLD)
-			{
-			    if (nRank > 0 && (g_nNproc/2) > nRank)
-			    {
-				//printf("rank %d(%d) stopping forwarder\n", nRank, g_pProcessLaunchId[i]);fflush(stdout);
-				sprintf(str, "stopforwarder port=%d abort=no", g_pForwardHost[nRank].nPort);
-				WriteString(g_pProcessSocket[i], str);
-			    }
-			}
-			
-			UnmapDrives(g_pProcessSocket[i]);
-
-			sprintf(str, "freeprocess %d", g_pProcessLaunchId[i]);
-			WriteString(g_pProcessSocket[i], str);
-
-			WriteString(g_pProcessSocket[i], "done");
-			beasy_closesocket(g_pProcessSocket[i]);
-			BFD_CLR(g_pProcessSocket[i], &totalset);
-			g_pProcessSocket[i] = BFD_INVALID_SOCKET;
-			n--;
-			g_nNumProcessSockets--;
-			//printf("(E:%d)", g_pProcessLaunchId[i]);fflush(stdout);
-		    }
-		}
-	    }
-	}
-	
-	beasy_closesocket(g_bfdBreak);
-	g_bfdBreak = BFD_INVALID_SOCKET;
-	delete g_pProcessSocket;
-	delete g_pProcessLaunchId;
-	delete g_pLaunchIdToRank;
-	g_pProcessSocket = NULL;
-	g_pProcessLaunchId = NULL;
-	g_pLaunchIdToRank = NULL;
-    }
-    else
-    {
-	DWORD dwThreadID;
-	int num = (g_nNumProcessSockets / (FD_SETSIZE-1)) + 1;
-	HANDLE *hThread = new HANDLE[num];
-	int *pAbortBFD = new int[num];
-	int bfdStop;
-	ProcessWaitThreadArg *arg = new ProcessWaitThreadArg[num];
-	ProcessWaitAbortThreadArg *arg2 = new ProcessWaitAbortThreadArg;
-        int i;
-	for (i=0; i<num; i++)
-	{
-	    if (i == num-1)
-		arg[i].n = g_nNumProcessSockets % (FD_SETSIZE-1);
-	    else
-		arg[i].n = (FD_SETSIZE-1);
-	    arg[i].pSocket = &g_pProcessSocket[i*(FD_SETSIZE-1)];
-	    arg[i].pId = &g_pProcessLaunchId[i*(FD_SETSIZE-1)];
-	    arg[i].pRank = &g_pLaunchIdToRank[i*(FD_SETSIZE-1)];
-	    MakeLoop(&arg[i].bfdAbort, &pAbortBFD[i]);
-	}
-	for (i=0; i<num; i++)
-	{
-	    hThread[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWait, &arg[i], 0, &dwThreadID);
-	}
-	MakeLoop(&arg2->bfdAbort, &g_bfdBreak);
-	MakeLoop(&arg2->bfdStop, &bfdStop);
-
-	HANDLE hWaitAbortThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ProcessWaitAbort, arg2, 0, &dwThreadID);
-
-	SetEvent(g_hBreakReadyEvent);
-
-	WaitForMultipleObjects(num, hThread, TRUE, INFINITE);
-	for (i=0; i<num; i++)
-	    CloseHandle(hThread[i]);
-	delete hThread;
-	delete arg;
-
-	beasy_send(bfdStop, "x", 1);
-	beasy_closesocket(bfdStop);
-	WaitForSingleObject(hWaitAbortThread, 10000);
-	delete pAbortBFD;
-	delete arg2;
-	CloseHandle(hWaitAbortThread);
-
-	beasy_closesocket(g_bfdBreak);
-	g_bfdBreak = BFD_INVALID_SOCKET;
-	delete g_pProcessSocket;
-	delete g_pProcessLaunchId;
-	delete g_pLaunchIdToRank;
-	g_pProcessSocket = NULL;
-	g_pProcessLaunchId = NULL;
-	g_pLaunchIdToRank = NULL;
-    }
-    //printf("WaitForExitCommands returning\n");fflush(stdout);
-}

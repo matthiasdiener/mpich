@@ -1,11 +1,12 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: set_viewf.c,v 1.12 2001/12/12 23:38:15 ashton Exp $    
+ *   $Id: set_viewf.c,v 1.15 2002/10/24 17:01:25 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
-#if _UNICOS
+#ifdef _UNICOS
 #include <fortran.h>
 #endif
 #include "adio.h"
@@ -13,21 +14,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_set_view_ PMPI_FILE_SET_VIEW
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_set_view_ pmpi_file_set_view__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_set_view pmpi_file_set_view_
-#endif
-#define mpi_file_set_view_ pmpi_file_set_view
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_set_view_ pmpi_file_set_view
-#endif
-#define mpi_file_set_view_ pmpi_file_set_view_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -67,6 +53,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpi_file_set_view_ PMPI_FILE_SET_VIEW
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_set_view_ pmpi_file_set_view__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_set_view pmpi_file_set_view_
+#endif
+#define mpi_file_set_view_ pmpi_file_set_view
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_set_view_ pmpi_file_set_view
+#endif
+#define mpi_file_set_view_ pmpi_file_set_view_
 #endif
 
 #else
@@ -132,7 +134,7 @@ void mpi_file_set_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Fint *etype,
 
 #else
 
-#if _UNICOS
+#ifdef _UNICOS
 void mpi_file_set_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
    MPI_Datatype *filetype,_fcd datarep_fcd,MPI_Fint *info, int *ierr)
 {

@@ -9,6 +9,7 @@ NOPROFILE   = @NOPROFILE@
 MPI         = @MPI@
 PREFIX      = @PREFIX@
 FROM_MPICH  = @FROM_MPICH@
+FROM_MPICH2  = @FROM_MPICH2@
 BUILD_MPI_INFO = @BUILD_MPI_INFO@
 BUILD_MPI_ARRAY = @BUILD_MPI_ARRAY@
 DIRS        = mpi-io adio/common
@@ -20,6 +21,11 @@ SHELL       = /bin/sh
 
 all: mpio
 
+# The sleep 1 at the end of the build is used to ensure that make
+# builds the libraries for any steps that *follow* this one and
+# use the same library.  This is a work around for a bug in make that 
+# is related to the use of file time stamps in make, but is in fact
+# a bug in the logic of several make implementations, including gnumake
 mpio:
 	$(MAKE) clean
 	$(MAKE) mpiolib
@@ -29,7 +35,7 @@ mpio:
         fi;\
 	$(MAKE) clean
 	$(RANLIB) $(LIBNAME)
-	@if test "$(FROM_MPICH)" = 0 ; then \
+	@if test "$(FROM_MPICH)" = 0 -a "$(FROM_MPICH2)" = 0 ; then \
            echo " "; \
            echo "Completed build of ROMIO. Check the output for errors."; \
            echo " " ;\
@@ -40,6 +46,7 @@ mpio:
            echo "'-fname filename'." ; \
            echo " " ;\
         fi
+	@sleep 1
 
 clean:
 	@-rm -f work.pc work.pcl
@@ -75,7 +82,7 @@ clean:
          echo " ";
 
 mpiolib:
-	@if test "$(FROM_MPICH)" = 0 ; then \
+	@if test "$(FROM_MPICH)" = 0 -a "$(FROM_MPICH2)" = 0 ; then \
             echo " " ;\
             echo "deleting previously built library if it exists" ;\
             rm -f $(LIBNAME) ;\
@@ -104,6 +111,7 @@ mpiolib:
          do \
             echo " " ;\
             echo compiling ROMIO in directory $$dir ;\
+	    sleep 1;\
             (cd $$dir && $(MAKE) ;) ;\
             if [ $$? != 0 ] ; then \
                 echo "Make failed in directory $$dir" ; exit 1 ;\
@@ -132,6 +140,7 @@ profile:
             do \
                echo " " ;\
                echo building profiling interface in directory $$dir ;\
+               sleep 1;\
                (cd $$dir; \
                 $(MAKE) profile MPIOPROFILE="-DMPIO_BUILD_PROFILING";) ;\
                 if [ $$? != 0 ] ; then \

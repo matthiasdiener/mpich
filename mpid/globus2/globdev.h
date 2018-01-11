@@ -205,4 +205,51 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank);
 #    define RC_mutex_unlock(M)
 #endif
 
+/* 
+ * As of MPICH v1.2.5 we have removed all reference/use of Globus condition
+ * variables and mutexes.  MPICH has never been thread-safe so it was
+ * never OK for an app to create multiple threads and have different
+ * threads within a single process make MPI calls.  Accordingly, prior
+ * to MPICH v1.2.5, we never allowed MPICH-G2 to be configured with
+ * a threaded flavor of Globus.  This placed us in the odd situation
+ * that although we had cond variables and mutexes strewn throughout
+ * the globus2 device code, the fact that we insisted on non-threaded
+ * flavors of Globus rendered all condvar/mutex calls no-ops (that 
+ * is how they are defined in non-threaded flavors of Globus).
+ *
+ * All of this raises the natural question, "Then why have condvars/mutexes
+ * in the globus2 device at all?".   We put them in there with the 
+ * understanding that MPICH would someday be made thread-safe and these
+ * would become "real" operations then.  After two years+ of waiting for
+ * MPICH to become thread-safe, we have stopped waiting.
+ *
+ * However, there are other forces (e.g., the GRADS project) that require
+ * an MPI application to be linked not only with MPICH-G2 but also with
+ * a threaded flavor of Globus.  This is what inspired and resulted in
+ * the notion of "callback spaces", first introduced in Globus v2.2.
+ *
+ * So, as of MPICH v1.2.5 we have integrated the new "callback spaces"
+ * into the globus2 device, we have removed all refs/use of condvars/mutxes,
+ * and therefore added the ability to link against threaded flavors of
+ * Globus that are v2.2 or later (note that you must still use non-threaded
+ * flavors of Globus for versions of Globus prior to v2.2).  
+ *
+ * Here are the macros we use to wait, signal, and poll.
+ * We use the defined presence of GLOBUS_CALLBACK_GLOBAL_SPACE 
+ * as a trigger to tell us that MPICH-G2 is being configured
+ * with Globus v2.2 or later.
+ *
+ */
+
+#if defined(GLOBUS_CALLBACK_GLOBAL_SPACE) 
+#    define G2_WAIT   globus_callback_space_poll(&globus_i_abstime_infinity, \
+						MpichG2Space);
+#    define G2_SIGNAL globus_callback_signal_poll(); 
+#    define G2_POLL   globus_callback_space_poll(NULL, MpichG2Space); 
+#else
+#    define G2_WAIT   globus_poll_blocking();
+#    define G2_SIGNAL 
+#    define G2_POLL   globus_poll(); 
+#endif 
+
 #endif /* __globdev__ */

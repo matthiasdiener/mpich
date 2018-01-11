@@ -1,12 +1,11 @@
 #include "mpdutil.h"
 #include "mpd.h"
-#include "bsocket.h"
 #include "GetStringOpt.h"
 #include "Translate_Error.h"
 
 #define MAX_FILENAME MAX_PATH * 2
 
-bool PutFile(int bfd, char *pszInputStr)
+bool PutFile(int sock, char *pszInputStr)
 {
     char pszFileName[MAX_FILENAME];
     char pszRemoteFileName[MAX_FILENAME];
@@ -58,10 +57,10 @@ bool PutFile(int bfd, char *pszInputStr)
 
     // Send the putfile command
     _snprintf(pszStr, MAX_CMD_LENGTH, "putfile name=%s length=%d replace=%s createdir=%s", pszRemoteFileName, nLength, pszReplace, pszCreateDir);
-    WriteString(bfd, pszStr);
+    WriteString(sock, pszStr);
 
     // Get the response
-    ReadString(bfd, pszStr);
+    ReadString(sock, pszStr);
     if (strcmp(pszStr, "SEND") == 0)
     {
 	// Send the data
@@ -74,15 +73,15 @@ bool PutFile(int bfd, char *pszInputStr)
 	    if (nNumRead < 1)
 	    {
 		printf("fread failed, %d\n", ferror(fin));
-		beasy_closesocket(bfd);
+		easy_closesocket(sock);
 		ExitProcess(0);
 	    }
-	    beasy_send(bfd, pBuffer, nNumRead);
+	    easy_send(sock, pBuffer, nNumRead);
 	    //printf("%d bytes sent\n", nNumRead);fflush(stdout);
 	    nLength -= nNumRead;
 	}
 
-	ReadString(bfd, pszStr);
+	ReadString(sock, pszStr);
 	//printf("%s\n", pszStr);
 	if (strcmp(pszStr, "SUCCESS") == 0)
 	{

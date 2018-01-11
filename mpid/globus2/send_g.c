@@ -46,11 +46,10 @@ static void get_unique_msg_id(long *sec, long *usec, unsigned long *ctr);
 /* Global Variables */
 /********************/
 
-/* 
- * access to MpiPostedQueue, TcpOutstandingRecvReqs, and TcpOutstandingSendReqs
- * must all be controlled by MessageQueuesLock
- */
-extern globus_mutex_t            MessageQueuesLock;
+#ifdef GLOBUS_CALLBACK_GLOBAL_SPACE
+extern globus_callback_space_t MpichG2Space;
+#endif
+
 extern volatile int	         TcpOutstandingRecvReqs;
 extern globus_size_t             Headerlen;
 #if defined(VMPI)
@@ -102,12 +101,8 @@ void MPID_SendDatatype(struct MPIR_COMMUNICATOR *comm,
 	MPID_Type_validate_vmpi(datatype);
 	dest = comm->vgrank_to_vlrank[VMPI_GRank_to_VGRank[dest_grank]];
 
-	RC_mutex_lock(&MessageQueuesLock);
-	{
-	    tcp_outstanding_recv_reqs = 
-		(TcpOutstandingRecvReqs > 0) ? GLOBUS_TRUE : GLOBUS_FALSE;
-	}
-	RC_mutex_unlock(&MessageQueuesLock);
+	tcp_outstanding_recv_reqs = 
+	    (TcpOutstandingRecvReqs > 0) ? GLOBUS_TRUE : GLOBUS_FALSE;
 
 	if (MpiPostedQueue.head == NULL && !tcp_outstanding_recv_reqs)
 	{
@@ -191,7 +186,7 @@ void MPID_SendDatatype(struct MPIR_COMMUNICATOR *comm,
         *error_code = MPI_ERR_INTERN;
     } /* endif */
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_FN_EXIT(DEBUG_MODULE_SEND);
 } /* end MPID_SendDatatype() */
 
@@ -396,12 +391,8 @@ void MPID_SsendDatatype(struct MPIR_COMMUNICATOR *comm,
 	MPID_Type_validate_vmpi(datatype);
 	dest = comm->vgrank_to_vlrank[VMPI_GRank_to_VGRank[dest_grank]];
 
-	RC_mutex_lock(&MessageQueuesLock);
-	{
-	    tcp_outstanding_recv_reqs = 
-		(TcpOutstandingRecvReqs > 0) ? GLOBUS_TRUE : GLOBUS_FALSE;
-	}
-	RC_mutex_unlock(&MessageQueuesLock);
+	tcp_outstanding_recv_reqs = 
+	    (TcpOutstandingRecvReqs > 0) ? GLOBUS_TRUE : GLOBUS_FALSE;
 
 	if (MpiPostedQueue.head == NULL && !tcp_outstanding_recv_reqs)
 	{
@@ -485,7 +476,7 @@ void MPID_SsendDatatype(struct MPIR_COMMUNICATOR *comm,
         *error_code = MPI_ERR_INTERN;
     } /* endif */
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_FN_EXIT(DEBUG_MODULE_SEND);
 } /* end MPID_SsendDatatype() */
 
@@ -674,11 +665,7 @@ int MPID_SendIcomplete(MPI_Request request, int *error_code)
 
     DEBUG_FN_ENTRY(DEBUG_MODULE_SEND);
 
-    RC_mutex_lock(&(sreq->lock));
-    {
-	rc = sreq->is_complete;
-    }
-    RC_mutex_unlock(&(sreq->lock));
+    rc = sreq->is_complete;
 
     if (rc)
     {
@@ -706,12 +693,8 @@ int MPID_SendIcomplete(MPI_Request request, int *error_code)
 
 	    if (rc)
 	    {
-		globus_mutex_lock(&(sreq->lock));
-		{
-		    /* if the send has completed then let MPICH know */
-		    sreq->is_complete = GLOBUS_TRUE;
-		}
-		globus_mutex_unlock(&(sreq->lock));
+		/* if the send has completed then let MPICH know */
+		sreq->is_complete = GLOBUS_TRUE;
 
 		goto fn_exit;
 	    } /* endif */
@@ -725,11 +708,7 @@ int MPID_SendIcomplete(MPI_Request request, int *error_code)
     MPID_DeviceCheck(MPID_NOTBLOCKING);
 
     /* all protos tried ... tabulate results */
-    RC_mutex_lock(&(sreq->lock));
-    {
-	rc = sreq->is_complete;
-    }
-    RC_mutex_unlock(&(sreq->lock));
+    rc = sreq->is_complete;
 
     *error_code = 0;
 
@@ -753,64 +732,60 @@ void MPID_SendCancel(MPI_Request request, int *error_code )
     
     if (sreq->req_src_proto == tcp)
     {
-	globus_mutex_lock(&MessageQueuesLock);
+	struct tcpsendreq *sr = sreq->my_sp;
+
+	if (!sr || sr->write_started)
 	{
-	    struct tcpsendreq *sr = sreq->my_sp;
+	    /* data already sent or currently being sent */
+	    /* need to enqueue 'cancel' node */
 
-	    if (!sr || sr->write_started)
+	    sreq->cancel_complete = sreq->is_cancelled = GLOBUS_FALSE;
+	    if (enqueue_cancel_tcp_data(sreq))
+		*error_code = MPI_ERR_INTERN;
+	    else
+		*error_code = 0;
+	}
+	else
+	{
+	    /* data not sent yet, must remove from queue */
+	    struct channel_t *cp;
+
+	    if ((cp = get_channel(sreq->dest_grank)) != NULL)
 	    {
-		/* data already sent or currently being sent */
-		/* need to enqueue 'cancel' node */
+		struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
+		    (cp->selected_proto)->info;
 
-		sreq->cancel_complete = sreq->is_cancelled = GLOBUS_FALSE;
-		if (enqueue_cancel_tcp_data(sreq))
-		    *error_code = MPI_ERR_INTERN;
+		(sr->prev)->next = sr->next;
+		if (sr->next)
+		    (sr->next)->prev = sr->prev;
 		else
-		    *error_code = 0;
+		    tp->send_tail = sr->prev;
+		TcpOutstandingSendReqs --;
+
+		if (sr->src != sr->buff)
+		    g_free((void *) (sr->src));
+		MPIR_Type_free(&(sr->datatype));
+		g_free((void *) sr);
+		sreq->my_sp = (struct tcpsendreq *) NULL;
+
+		sreq->is_complete = 
+		    sreq->cancel_complete = 
+		    sreq->is_cancelled    = GLOBUS_TRUE;
+		sreq->s.MPI_TAG = MPIR_MSG_CANCELLED;
+
+		*error_code = 0;
 	    }
 	    else
 	    {
-		/* data not sent yet, must remove from queue */
-		struct channel_t *cp;
-
-		if (cp = get_channel(sreq->dest_grank))
-		{
-		    struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-			(cp->selected_proto)->info;
-
-		    (sr->prev)->next = sr->next;
-		    if (sr->next)
-			(sr->next)->prev = sr->prev;
-		    else
-			tp->send_tail = sr->prev;
-		    TcpOutstandingSendReqs --;
-
-		    if (sr->src != sr->buff)
-			g_free((void *) (sr->src));
-		    MPIR_Type_free(&(sr->datatype));
-		    g_free((void *) sr);
-		    sreq->my_sp = (struct tcpsendreq *) NULL;
-
-		    sreq->is_complete = 
-			sreq->cancel_complete = 
-			sreq->is_cancelled    = GLOBUS_TRUE;
-		    sreq->s.MPI_TAG = MPIR_MSG_CANCELLED;
-
-		    *error_code = 0;
-		}
-		else
-		{
-		    globus_libc_fprintf(stderr, 
-			"ERROR: MPID_SendCancel(): failed get_channel() "
-			"for grank %d\n",  
-			sreq->dest_grank);
-		    print_channels();
-		    *error_code = MPI_ERR_INTERN;
-		} /* endif */
-
+		globus_libc_fprintf(stderr, 
+		    "ERROR: MPID_SendCancel(): failed get_channel() "
+		    "for grank %d\n",  
+		    sreq->dest_grank);
+		print_channels();
+		*error_code = MPI_ERR_INTERN;
 	    } /* endif */
-	}
-	globus_mutex_unlock(&MessageQueuesLock);
+
+	} /* endif */
     }
 #   if defined(VMPI)
     else if (sreq->req_src_proto == mpi)
@@ -916,7 +891,7 @@ int MPID_SendRequestCancelled(MPI_Request request)
 	rc = 0;
     } /* endif */
 
-  fn_exit:
+  /* fn_exit: */
     DEBUG_FN_EXIT(DEBUG_MODULE_SEND);
 
     return rc;
@@ -968,7 +943,7 @@ static int enqueue_cancel_tcp_data(MPIR_SHANDLE *sreq)
     int rc;
     struct channel_t *cp;
 
-    if (cp = get_channel(sreq->dest_grank))
+    if ((cp = get_channel(sreq->dest_grank)) != NULL)
     {
 	struct tcpsendreq *sr;
 	struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
@@ -978,7 +953,6 @@ static int enqueue_cancel_tcp_data(MPIR_SHANDLE *sreq)
 	sr->next = (struct tcpsendreq *) NULL;
 	sr->sreq = sreq;
 
-	globus_mutex_lock(&MessageQueuesLock);
 	if (tp->cancel_tail)
 	{
 	    /* there are other cancels before me */
@@ -986,6 +960,7 @@ static int enqueue_cancel_tcp_data(MPIR_SHANDLE *sreq)
 	    sr->prev = tp->cancel_tail;
 	    tp->cancel_tail = sr;
 	    TcpOutstandingSendReqs ++;
+	    rc = 0;
 	}
 	else
 	{
@@ -1001,8 +976,6 @@ static int enqueue_cancel_tcp_data(MPIR_SHANDLE *sreq)
 		/* there are no data sends in progress, start cancel now */
 		rc = write_all_tcp_cancels(tp);
 	} /* endif */
-	globus_mutex_unlock(&MessageQueuesLock);
-
     }
     else
     {
@@ -1019,9 +992,6 @@ static int enqueue_cancel_tcp_data(MPIR_SHANDLE *sreq)
 } /* end enqueue_cancel_tcp_data() */
 
 /*
- * it is assumed that prior to entering this function that 
- * the MessageQueuesLock has been acquired.
- *
  * it has been determined that the tcp_miproto_t pointed at by 'tp'
  * has outstanding cancel requests AND that it is now time to 
  * send them all out in succession.
@@ -1094,7 +1064,7 @@ static int write_all_tcp_cancels(struct tcp_miproto_t *tp)
 /* globus_libc_fprintf(stderr, "NICK: %d: write_all_tcp_cancels: after write header cwid %s cwdisp %d msgid_sec %ld msgid_usec %ld msgid_ctr %ld\n", MPID_MyWorldRank, sreq->msg_id_commworld_id, sreq->msg_id_commworld_displ, sreq->msg_id_sec, sreq->msg_id_usec, sreq->msg_id_ctr);  */
 
 	/* removing and continuing */
-	if (tp->cancel_head = sr->next)
+	if ((tp->cancel_head = sr->next) != NULL)
 	    (tp->cancel_head)->prev = (struct tcpsendreq *) NULL;
 	else
 	    tp->cancel_tail = (struct tcpsendreq *) NULL;
@@ -1117,7 +1087,7 @@ int enqueue_tcp_send(struct tcpsendreq *sr)
     int rc;
 
 /* globus_libc_fprintf(stderr, "NICK: %d: enter enqueue_tcp_send: dest_grank %d\n", MPID_MyWorldRank, sr->dest_grank); */
-    if (cp = get_channel(sr->dest_grank))
+    if ((cp = get_channel(sr->dest_grank)) != NULL)
     {
 	struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
 	    (cp->selected_proto)->info;
@@ -1127,7 +1097,6 @@ int enqueue_tcp_send(struct tcpsendreq *sr)
 	sr->src           = (globus_byte_t *) NULL;
 /* globus_libc_fprintf(stderr, "NICK: %d: enter enqueue_tcp_send: tp->send_tail %x tp->cancel_head %x\n", MPID_MyWorldRank, tp->send_tail, tp->cancel_head); */
 	
-	globus_mutex_lock(&MessageQueuesLock);
 	if (tp->send_tail)
 	{
 	    /* 
@@ -1153,7 +1122,6 @@ int enqueue_tcp_send(struct tcpsendreq *sr)
 		rc = 0;
 	} /* endif */
 	TcpOutstandingSendReqs ++;
-	globus_mutex_unlock(&MessageQueuesLock);
     }
     else
     {
@@ -1170,7 +1138,6 @@ int enqueue_tcp_send(struct tcpsendreq *sr)
 
 /*
  * it is assumed that upon entrance to this function:
- *    - MessageQueuesLock has already been acquired
  *    - 'sr' is sitting at the head of it's 'my_tp' send queue
  *
  * NOTE: there is one more datatype found in datatype.h ... MPIR_FORT_INT
@@ -1443,11 +1410,11 @@ static int start_tcp_send(struct tcpsendreq *sr)
 					     write_callback,
 					     (void *) sr) != GLOBUS_SUCCESS)
 		{
-		    globus_libc_fprintf(
-			stderr, 
+		    globus_libc_fprintf(stderr, 
 			"ERROR: start_tcp_send: "
-		       "register write payload %d failed (nbytes_sent = %ld)\n",
-		       bufflen, nbytes_sent); 
+			"register write payload %d failed (nbytes_sent=%ld)\n",
+			bufflen, 
+			nbytes_sent); 
 		    remove_and_continue(sr);
 		    free_and_mark_sreq(sr, GLOBUS_FALSE);
 		    rc = -1;
@@ -1466,6 +1433,9 @@ static int start_tcp_send(struct tcpsendreq *sr)
 	    } /* endif */
 	} /* esac user_data */
       break;
+
+      case cancel_send: break; /* here only to get rid of 
+                                  annoying compiler warning */
       
     } /* end switch */
 
@@ -1478,7 +1448,7 @@ static int start_tcp_send(struct tcpsendreq *sr)
  * NICK THREAD: check thread-safety of globus_error_get, 
  * globus_object_printable_to_string, globus_libc_printf
  */
-/* called by globus_poll() when previously registered write has completed */
+/* called by G2_POLL when previously registered write has completed */
 static void write_callback(void *arg, 
 			    globus_io_handle_t *handle, 
 			    globus_result_t result, 
@@ -1505,9 +1475,7 @@ static void write_callback(void *arg,
 		   "write_callback()");
     } /* endif */
     
-    globus_mutex_lock(&MessageQueuesLock);
     remove_and_continue(sr);
-    globus_mutex_unlock(&MessageQueuesLock);
 
     /*
      * NICK THREAD: free_and_mark_sreq is not necessarily thread-safe
@@ -1525,7 +1493,6 @@ static void write_callback(void *arg,
 
 /*
  * it is assumed that upon entrance to this function:
- *    - MessageQueuesLock has already been acquired
  *    - 'sr' is sitting at the head of it's 'my_tp' send queue
  *
  * called when tcp send has completed.  removes it from the head of 
@@ -1565,7 +1532,7 @@ static void remove_and_continue(struct tcpsendreq *sr)
     }
 
     TcpOutstandingSendReqs --;
-    if (tp->send_head = sr->next)
+    if ((tp->send_head = sr->next) != NULL)
     {
 	(tp->send_head)->prev = (struct tcpsendreq *) NULL;
     }
@@ -1593,25 +1560,21 @@ static void free_and_mark_sreq(struct tcpsendreq *sr, globus_bool_t data_sent)
     MPIR_Type_free(&(sr->datatype));
     g_free((void *) sr);
 
-    globus_mutex_lock(&(sreq->lock));
+    sreq->data_sent = data_sent;
+    if (sreq->cancel_issued)
     {
-	sreq->data_sent = data_sent;
-	if (sreq->cancel_issued)
-	{
-	    sreq->is_complete = sreq->cancel_complete;
-	}
-	
-	else if (sreq->data_sent)
-	{
-	    sreq->is_complete = !(sreq->needs_ack) | sreq->ack_arrived;
-	}
-
-	if (sreq->is_complete && ((MPI_Request) sreq)->chandle.ref_count <= 0)
-	{
-	    free_sreq = GLOBUS_TRUE;
-	}
+	sreq->is_complete = sreq->cancel_complete;
     }
-    globus_mutex_unlock(&(sreq->lock));
+    
+    else if (sreq->data_sent)
+    {
+	sreq->is_complete = !(sreq->needs_ack) | sreq->ack_arrived;
+    }
+
+    if (sreq->is_complete && ((MPI_Request) sreq)->chandle.ref_count <= 0)
+    {
+	free_sreq = GLOBUS_TRUE;
+    }
 
     if (free_sreq)
     {

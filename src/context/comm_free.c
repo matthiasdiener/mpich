@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_free.c,v 1.8 2001/11/14 19:54:19 ashton Exp $
+ *  $Id: comm_free.c,v 1.9 2002/10/31 21:00:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -71,8 +71,8 @@ int MPI_Comm_free ( MPI_Comm *commp )
   DBG(FPRINTF(OUTFILE,"About to check for null comm\n");fflush(OUTFILE);)
 
   /* Check for null communicator */
-  /* The actual effect of freeing a null communicator is not defined
-     by the standard.  For now, I'll leave it as ok */
+  /* The actual effect of freeing a null communicator is clearly defined
+     by the standard as an error. */
   if (*commp == MPI_COMM_NULL) {
       TR_POP;
       mpi_errno = MPIR_ERRCLASS_TO_CODE(MPI_ERR_COMM, MPIR_ERR_COMM_NULL);

@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.12 2001/12/14 16:34:28 toonen Exp $
+ *  $Id: comm_split.c,v 1.13 2002/08/29 14:48:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -39,8 +39,9 @@ MPI_Comm_split - Creates new communicators based on colors and keys
 
 Input Parameters:
 + comm - communicator (handle) 
-. color - control of subset assignment (nonnegative integer) 
-- key - control of rank assigment (integer) 
+. color - control of subset assignment (nonnegative integer).  Processes 
+  with the same color are in the same new communicator 
+- key - control of rank assigment (integer)
 
 Output Parameter:
 . newcomm - new communicator (handle) 

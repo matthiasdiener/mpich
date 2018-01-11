@@ -5,39 +5,31 @@ void CreateMPDRegistry()
     HKEY tkey;
     DWORD result;
 
-    PUSH_FUNC("CreateMPDRegistry");
-
     // Open the root key
     if (RegCreateKeyEx(HKEY_LOCAL_MACHINE, MPD_REGISTRY_KEY,
 	0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &tkey, &result) != ERROR_SUCCESS)
     {
 	int error = GetLastError();
 	//err_printf("Unable to create the mpd registry key, error %d\n", error);
-	POP_FUNC();
 	return;
     }
     RegCloseKey(tkey);
-    POP_FUNC();
 }
 
 void CleanMPDRegistry()
 {
-    PUSH_FUNC("Clean");
     if (RegDeleteKey(HKEY_LOCAL_MACHINE, MPD_REGISTRY_KEY) != ERROR_SUCCESS)
     {
 	int error = GetLastError();
 	if (error)
 	    err_printf("Unable to remove the MPD registry key, error %d\n", error);
     }
-    POP_FUNC();
 }
 
 bool ReadMPDRegistry(char *name, char *value, bool bPrintError /*= true*/ )
 {
     HKEY tkey;
     DWORD len, result;
-
-    PUSH_FUNC("ReadMPDRegistry");
 
     // Open the root key
     if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, MPD_REGISTRY_KEY,
@@ -47,7 +39,6 @@ bool ReadMPDRegistry(char *name, char *value, bool bPrintError /*= true*/ )
     {
 	if (bPrintError)
 	    err_printf("Unable to open SOFTWARE\\MPICH\\MPD registry key, error %d\n", GetLastError());
-	POP_FUNC();
 	return false;
     }
 
@@ -59,12 +50,10 @@ bool ReadMPDRegistry(char *name, char *value, bool bPrintError /*= true*/ )
 	    //warning_printf("Unable to read the mpd registry key '%s', error %d\n", name, GetLastError());
 	    dbg_printf("Unable to read the mpd registry key '%s', error %d\n", name, GetLastError());
 	RegCloseKey(tkey);
-	POP_FUNC();
 	return false;
     }
 
     RegCloseKey(tkey);
-    POP_FUNC();
     return true;
 }
 
@@ -76,12 +65,9 @@ void MPDRegistryToString(char *pszStr, int length)
     char *pszKey, *pszValue;
     char pszNum[10];
 
-    PUSH_FUNC("MPDRegistryToString");
-
     if (length < 1)
     {
 	err_printf("MPDRegistryToString: string too short\n");
-	POP_FUNC();
 	return;
     }
 
@@ -90,7 +76,6 @@ void MPDRegistryToString(char *pszStr, int length)
 	0, KEY_ALL_ACCESS, &tkey) != ERROR_SUCCESS)
     {
 	err_printf("Unable to open SOFTWARE\\MPICH\\MPD registry key, error %d\n", GetLastError());
-	POP_FUNC();
 	return;
     }
 
@@ -99,7 +84,6 @@ void MPDRegistryToString(char *pszStr, int length)
     {
 	err_printf("Unable to query the mpd registry key, error %d\n", GetLastError());
 	RegCloseKey(tkey);
-	POP_FUNC();
 	return;
     }
 
@@ -148,7 +132,6 @@ void MPDRegistryToString(char *pszStr, int length)
     delete pszValue;
 
     RegCloseKey(tkey);
-    POP_FUNC();
 }
 
 void WriteMPDRegistry(char *name, char *value)
@@ -156,13 +139,10 @@ void WriteMPDRegistry(char *name, char *value)
     HKEY tkey;
     DWORD result;
 
-    PUSH_FUNC("WriteMPDRegistry");
-
     // Open the root key
     if (RegCreateKeyEx(HKEY_LOCAL_MACHINE, MPD_REGISTRY_KEY,
 	0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &tkey, &result) != ERROR_SUCCESS)
     {
-	POP_FUNC();
 	return;
     }
     if (RegSetValueEx(tkey, name, 0, REG_SZ, (const unsigned char *)value, strlen(value)+1) != ERROR_SUCCESS)
@@ -190,7 +170,6 @@ void WriteMPDRegistry(char *name, char *value)
 	*/
     }
     RegCloseKey(tkey);
-    POP_FUNC();
 }
 
 void DeleteMPDRegistry(char *name)
@@ -198,13 +177,10 @@ void DeleteMPDRegistry(char *name)
     HKEY tkey;
     DWORD result;
 
-    PUSH_FUNC("DeleteMPDRegistry");
-
     // Open the root key
     if (RegCreateKeyEx(HKEY_LOCAL_MACHINE, MPD_REGISTRY_KEY,
 	0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &tkey, &result) != ERROR_SUCCESS)
     {
-	POP_FUNC();
 	return;
     }
     // Delete the entry
@@ -219,7 +195,6 @@ void DeleteMPDRegistry(char *name)
     }
     */
     RegCloseKey(tkey);
-    POP_FUNC();
 }
 
 void ParseRegistry(bool bSetDefaults)
@@ -228,10 +203,8 @@ void ParseRegistry(bool bSetDefaults)
     DWORD result, len;
     char phrase[MPD_PASSPHRASE_MAX_LENGTH];
     char port[10];
-    char str[100];
+    char str[4096];
     DWORD dwAccess;
-
-    PUSH_FUNC("ParseRegistry");
 
     // Set the defaults.
     g_nPort = MPD_DEFAULT_PORT;
@@ -248,7 +221,6 @@ void ParseRegistry(bool bSetDefaults)
 	{
 	    err_printf("Unable to open SOFTWARE\\MPICH\\MPD registry key, error %d\n", result);
 	}
-	POP_FUNC();
 	return;
     }
     
@@ -280,6 +252,30 @@ void ParseRegistry(bool bSetDefaults)
     result = RegQueryValueEx(tkey, "temp", 0, NULL, (unsigned char *)g_pszTempDir, &len);
     if (result != ERROR_SUCCESS && bSetDefaults)
 	RegSetValueEx(tkey, "temp", 0, REG_SZ, (const unsigned char *)"C:\\", strlen("C:\\")+1);
+
+    // Read the logfile option
+    len = 100;
+    result = RegQueryValueEx(tkey, "RedirectToLogfile", 0, NULL, (unsigned char *)str, &len);
+    if (result != ERROR_SUCCESS)
+    {
+	if (bSetDefaults)
+	    RegSetValueEx(tkey, "RedirectToLogfile", 0, REG_SZ, (const unsigned char *)"no", 4);
+    }
+    else
+    {
+	if (stricmp(str, "yes") == 0)
+	{
+	    len = 4096;
+	    if (RegQueryValueEx(tkey, "LogFile", 0, NULL, (unsigned char *)str, &len) == ERROR_SUCCESS)
+	    {
+		SetDbgRedirection(str);
+	    }
+	}
+	else
+	{
+	    CancelDbgRedirection();
+	}
+    }
 
     // Check to see if a passphrase has been set and set it to the default if necessary.
     len = MPD_PASSPHRASE_MAX_LENGTH;
@@ -335,7 +331,18 @@ void ParseRegistry(bool bSetDefaults)
 
     RegCloseKey(tkey);
 
+    if (bSetDefaults)
+    {
+	result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, 
+	    MPICHKEY,
+	    0, KEY_ALL_ACCESS, &tkey);
+	if (result == ERROR_SUCCESS)
+	{
+	    DWORD job_number = 0;
+	    RegSetValueEx(tkey, "Job Number", 0, REG_DWORD, (const unsigned char *)&job_number, sizeof(DWORD));
+	    RegCloseKey(tkey);
+	}
+    }
     //dbg_printf("ParseRegistry: port %d, insert 1 '%s', insert 2 '%s', %s\n", g_nPort, g_pszInsertHost, g_pszInsertHost2, g_bRshMode ? "RshMode" : "RingMode");
     //dbg_printf("ParseRegistry: port %d, insert 1 '%s', insert 2 '%s'\n", g_nPort, g_pszInsertHost, g_pszInsertHost2);
-    POP_FUNC();
 }

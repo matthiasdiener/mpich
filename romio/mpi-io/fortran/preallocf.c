@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: preallocf.c,v 1.11 2001/12/12 23:38:11 ashton Exp $    
+ *   $Id: preallocf.c,v 1.13 2002/10/24 17:01:22 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,21 +11,6 @@
 
 
 #if defined(MPIO_BUILD_PROFILING) || defined(HAVE_WEAK_SYMBOLS)
-#ifdef FORTRANCAPS
-#define mpi_file_preallocate_ PMPI_FILE_PREALLOCATE
-#elif defined(FORTRANDOUBLEUNDERSCORE)
-#define mpi_file_preallocate_ pmpi_file_preallocate__
-#elif !defined(FORTRANUNDERSCORE)
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_preallocate pmpi_file_preallocate_
-#endif
-#define mpi_file_preallocate_ pmpi_file_preallocate
-#else
-#if defined(HPUX) || defined(SPPUX)
-#pragma _HP_SECONDARY_DEF pmpi_file_preallocate_ pmpi_file_preallocate
-#endif
-#define mpi_file_preallocate_ pmpi_file_preallocate_
-#endif
 
 #if defined(HAVE_WEAK_SYMBOLS)
 #if defined(HAVE_PRAGMA_WEAK)
@@ -64,6 +50,22 @@
 #endif
 /* Include mapping from MPI->PMPI */
 #include "mpioprof.h"
+#endif
+
+#ifdef FORTRANCAPS
+#define mpi_file_preallocate_ PMPI_FILE_PREALLOCATE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_file_preallocate_ pmpi_file_preallocate__
+#elif !defined(FORTRANUNDERSCORE)
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_preallocate pmpi_file_preallocate_
+#endif
+#define mpi_file_preallocate_ pmpi_file_preallocate
+#else
+#if defined(HPUX) || defined(SPPUX)
+#pragma _HP_SECONDARY_DEF pmpi_file_preallocate_ pmpi_file_preallocate
+#endif
+#define mpi_file_preallocate_ pmpi_file_preallocate_
 #endif
 
 #else

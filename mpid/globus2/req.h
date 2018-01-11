@@ -2,7 +2,7 @@
 
 #include "mpi2.h"
 #include "datatype.h"
-#include <globus_common.h> /* needed for globus_mutex_t */
+/* #include <globus_common.h> needed for globus_mutex_t */
 
 /*
  * Modified definitions of the request.  The "device" handle has been 
@@ -72,7 +72,6 @@ struct _MPIR_SHANDLE {
      *    is_complete = [(!needs_ack | ack_arrived) && data_sent]
      * endif
      */
-    globus_mutex_t lock;
     globus_bool_t  needs_ack;
     globus_bool_t  ack_arrived;
     globus_bool_t  data_sent;
@@ -141,14 +140,18 @@ struct _MPIR_RHANDLE {
     /* Device data */
     int           is_non_blocking;
     /* START GLOBUS DEVICE */
-    globus_mutex_t lock;
     int            src_format;
     int		   packed_flag;
     int            needs_ack;
     int            req_src_proto;
     int            req_count;
-    int            libasize;
-    unsigned long  liba; /* LocallyInterpretedByteArray, addr on send side */
+    int            libasize; /* of remote side ... not 8 bytes of next field */
+    char           liba[8]; /* LocallyInterpretedByteArray, addr on send side 
+                               ... hardcoding 8 bytes for as workaround for 
+			       32- and 64-bit runs.  Correct solution is 
+			       to maintain tables of LIBAs on all machines
+			       and pass around fix-sized (2byte?) indexes
+			       into tables ... will be done in enxt release. */
 #ifdef VMPI
     int               req_rank;
     int               req_tag;
@@ -275,16 +278,9 @@ union MPIR_HANDLE {
 		      (ptr)->handle_type = in_type;\
                       (ptr)->ref_count = 1;\
 		      MPIR_SET_COOKIE((ptr),MPIR_REQUEST_COOKIE);\
-		      if ((in_type) == MPIR_SEND)\
-		      {\
-			globus_mutex_init(&(((MPIR_SHANDLE *)(ptr))->lock), \
-			    (globus_mutexattr_t *) GLOBUS_NULL); \
-		      }\
-		      else if ((in_type) == MPIR_RECV)\
+		      if ((in_type) == MPIR_RECV)\
 		      {\
 			(ptr)->my_mp = (struct mpircvreq *) GLOBUS_NULL; \
-			globus_mutex_init(&(((MPIR_RHANDLE *)(ptr))->lock), \
-			    (globus_mutexattr_t *) GLOBUS_NULL); \
 		      }\
 		      }
 #else
@@ -296,16 +292,9 @@ union MPIR_HANDLE {
 		      (ptr)->handle_type = in_type;\
                       (ptr)->ref_count = 1;\
 		      MPIR_SET_COOKIE((ptr),MPIR_REQUEST_COOKIE);\
-		      if ((in_type) == MPIR_SEND)\
-		      {\
-			globus_mutex_init(&(((MPIR_SHANDLE *)(ptr))->lock), \
-			    (globus_mutexattr_t *) GLOBUS_NULL); \
-		      }\
-		      else if ((in_type) == MPIR_RECV)\
+		      if ((in_type) == MPIR_RECV)\
 		      {\
 			(ptr)->my_mp = (struct mpircvreq *) GLOBUS_NULL; \
-			globus_mutex_init(&(((MPIR_RHANDLE *)(ptr))->lock), \
-			    (globus_mutexattr_t *) GLOBUS_NULL); \
 		      }\
 		      }
 #endif
@@ -317,16 +306,6 @@ union MPIR_HANDLE {
 		      (ptr)->handle_type = in_type;\
                       (ptr)->ref_count = 1;\
 		      MPIR_SET_COOKIE((ptr),MPIR_REQUEST_COOKIE);\
-		      if ((in_type) == MPIR_SEND)\
-		      {\
-			globus_mutex_init(&(((MPIR_SHANDLE *)(ptr))->lock), \
-			    (globus_mutexattr_t *) GLOBUS_NULL); \
-		      }\
-		      else if ((in_type) == MPIR_RECV)\
-		      {\
-			globus_mutex_init(&(((MPIR_RHANDLE *)(ptr))->lock), \
-			    (globus_mutexattr_t *) GLOBUS_NULL); \
-		      }\
 		      }
 #else
 /* For now, turn on deliberate garbaging of memory to catch problems */
@@ -337,16 +316,6 @@ union MPIR_HANDLE {
 		      (ptr)->handle_type = in_type;\
                       (ptr)->ref_count = 1;\
 		      MPIR_SET_COOKIE((ptr),MPIR_REQUEST_COOKIE);\
-		      if ((in_type) == MPIR_SEND)\
-		      {\
-			globus_mutex_init(&(((MPIR_SHANDLE *)(ptr))->lock), \
-			    (globus_mutexattr_t *) GLOBUS_NULL); \
-		      }\
-		      else if ((in_type) == MPIR_RECV)\
-		      {\
-			globus_mutex_init(&(((MPIR_RHANDLE *)(ptr))->lock), \
-			    (globus_mutexattr_t *) GLOBUS_NULL); \
-		      }\
 		      }
 #endif
 #endif /* VMPI */

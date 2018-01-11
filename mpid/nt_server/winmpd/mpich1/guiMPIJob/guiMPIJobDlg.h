@@ -19,7 +19,7 @@ class CGuiMPIJobDlg : public CDialog
 public:
 	CGuiMPIJobDlg(CWnd* pParent = NULL);	// standard constructor
 
-	int m_bfd;
+	SOCKET m_sock;
 	CString m_host;
 	int m_port;
 	CString m_passphrase;

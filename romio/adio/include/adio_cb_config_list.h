@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: adio_cb_config_list.h,v 1.1 2001/12/03 17:13:38 rross Exp $    
+ *   $Id: adio_cb_config_list.h,v 1.2 2002/10/24 17:01:15 gropp Exp $    
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

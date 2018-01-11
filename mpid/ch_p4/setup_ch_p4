@@ -26,17 +26,18 @@ for arg in $device_args $@; do
      	;;
 
      -u | -usage | --usage | --usag | --usa | --us | --u | -help | --help )
+        # backslash quote caused problems with MacOSX.
         cat >&2 <<EOF
 --with-device=$DEVICE[:-listener_sig=SIGNALNAME][-dlast][-socksize=BYTES]
 
-The option \'-listener_sig\' applies to the $DEVICE device, and changes the
+The option '-listener_sig' applies to the $DEVICE device, and changes the
 signal that is used to signal that a new connection should be made.  By
 default, SIGUSR1 is used.
 
-The option \'-dlast\' causes the p4 device to remember the last few debugging
+The option '-dlast' causes the p4 device to remember the last few debugging
 messages, printing them out only when the job terminates abnormally.
 
-The option \'-socksize\' changes the size of the socket buffers used.  
+The option '-socksize' changes the size of the socket buffers used.  
 EOF
 	exit 0;
 	;;
@@ -192,11 +193,12 @@ fi
 #     To check whether shared-memory works
 RSHCOMMAND="${RSHCOMMAND-$rshcommand}"
 export CC ; export RSHCOMMAND 
+export CROSS_SIZEOF_INT ; export CROSS_SIZEOF_LONG
 # Remove the configuration file if present
-rm -f $top_srcdir/mpid/ch_p4/mpich-mpid.h mpid/ch_p4/mpich-mpid.h
+rm -f $top_srcdir/mpid/ch_p4/mpich-mpid.h mpid/ch_p4/mpich-mpid.h mpid/ch_p4/localdefs
 # Export ARCH so that the machines file will get made in the right place
 (cd mpid/ch_p4 ; export ARCH ; \
-"$top_srcdir/mpid/ch_p4/configure" ) # --srcdir=$srcdir)
+"$top_srcdir/mpid/ch_p4/configure" --with-comm=$COMM ) # --srcdir=$srcdir)
 # Variable assignments from configure are in localdefs
 if [ ! -f mpid/ch_p4/localdefs ] ; then
     echo "Failed to build file of local definitions"

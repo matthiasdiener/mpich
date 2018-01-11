@@ -45,7 +45,11 @@ char *start_prog_error = 0;
  */
 #ifndef HAVE_STRERROR
 #define strerror(n) sys_errlist[n]
+/* Some systems define this as const char * instead of char * .  To
+   handle that, we only define it if it is needed */
+#ifdef NEEDS_SYS_ERRLIST
 extern char *sys_errlist[];
+#endif
 #endif
 
 static int connect_to_server (char *);

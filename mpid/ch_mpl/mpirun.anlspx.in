@@ -1,6 +1,6 @@
 #! /bin/sh
 # There's no good way to get the program's exit status
-exitstat=0
+exitstatus=0
 if [ "$argsset" = "" ] ; then
    . $MPIRUN_HOME/mpirun.args
    argsset=1

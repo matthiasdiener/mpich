@@ -1,5 +1,6 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs_open.c,v 1.10 2001/10/23 17:47:39 rross Exp $    
+ *   $Id: ad_pvfs_open.c,v 1.11 2002/10/24 17:00:58 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.

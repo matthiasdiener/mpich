@@ -33,6 +33,10 @@ void statMPD(char *pszParam, char *pszStr, int length)
     {
 	statForwarders(pszStr, length);
     }
+    else if (stricmp(pszParam, "cached") == 0)
+    {
+	statCachedUsers(pszStr, length);
+    }
     else if ((stricmp(pszParam, "help") == 0) || (stricmp(pszParam, "?") == 0))
     {
 	_snprintf(pszStr, length, 
@@ -43,6 +47,7 @@ void statMPD(char *pszParam, char *pszStr, int length)
 	    " tmp ........ temporary files\n"
 	    " barrier .... outstanding barriers\n"
 	    " forwarders . forwarders on this node\n"
+	    " cached ..... cached users\n"
 	    );
     }
     else

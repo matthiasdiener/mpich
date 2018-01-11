@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.22 2002/03/15 18:51:55 gropp Exp $
+ *  $Id: waitall.c,v 1.23 2002/11/27 19:58:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -242,7 +242,9 @@ int MPI_Waitall(
 	for (i=0; i<count; i++) {
 	    rc = MPI_Waitany( count, array_of_requests, &index, &status );
 	    PRINTF( "Found index = %d\n", index );
-	    if (array_of_statuses) {
+	    /* If all requests are MPI_REQUEST_NULL, then index is
+	       MPI_UNDEFINED */
+	    if (array_of_statuses && index != MPI_UNDEFINED) {
 		array_of_statuses[index] = status;
 	    }
 	    if (rc) {

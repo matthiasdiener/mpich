@@ -84,6 +84,7 @@ int p4_num_total_slaves (void);
 P4VOID p4_probend (p4_askfor_monitor_t *, int);
 P4VOID p4_progend (p4_askfor_monitor_t *);
 int p4_recv (int *, int *, char **, int *);
+int p4_waitformsg( void );
 int p4_get_dbg_level (void);
 P4VOID p4_set_dbg_level (int);
 P4VOID p4_shfree (P4VOID *);

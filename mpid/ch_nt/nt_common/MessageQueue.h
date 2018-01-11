@@ -193,7 +193,11 @@ inline bool MessageQueue::TestElementEvent(MsgQueueElement *pElement)
 // Argument         : MessageQueue::MsgQueueElement *pElement
 inline void MessageQueue::InitElement(MessageQueue::MsgQueueElement *pElement)
 {
-	pElement->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	SECURITY_ATTRIBUTES p;
+	p.bInheritHandle = FALSE;
+	p.lpSecurityDescriptor = NULL;
+	p.nLength = sizeof(SECURITY_ATTRIBUTES);
+	pElement->hEvent = CreateEvent(&p, TRUE, FALSE, NULL);
 	pElement->cTrigger = 0;
 	pElement->bIn_use = false;
 }
