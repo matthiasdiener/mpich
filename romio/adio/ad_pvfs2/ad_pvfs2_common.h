@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*-
  * vim: ts=8 sts=4 sw=4 noexpandtab
- *   $Id: ad_pvfs2_common.h,v 1.10 2004/03/25 22:22:34 robl Exp $    
+ *   $Id: ad_pvfs2_common.h,v 1.11 2004/10/04 15:51:10 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -31,6 +31,6 @@ void ADIOI_PVFS2_makecredentials(PVFS_credentials * credentials);
 void ADIOI_PVFS2_End(int *error_code);
 int ADIOI_PVFS2_End_call(MPI_Comm comm, int keyval, 
 	void *attribute_val, void *extra_state);
-int ADIOI_PVFS2_pvfs_error_convert(int pvfs_error, int *mpi_error);
+int ADIOI_PVFS2_error_convert(int pvfs_error);
 
 #endif

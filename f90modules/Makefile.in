@@ -96,8 +96,12 @@ mpi-base.$(MOD): mpi.$(F90SUFFIX) \
 	cp @MPIMOD@1.${MOD} ${includebuild_dir}/f90base
 	cp @MPIMOD@2.${MOD} ${includebuild_dir}/f90base
 
+# To avoid problems with some Fortran 77 /Fortran 90 systems that don't
+# accept both the Fortran 77 and Fortran 90 comments, we force a copy 
+# to the local directory of the mpif.h file that is used in mpi_constants.
 @MPICONSTMOD@.$(MOD): mpi_constants.$(F90SUFFIX) $(mpiincdir)/mpif.h
-	$(F90) $(F90FLAGS) -c -I$(mpiincdir) mpi_constants.$(F90SUFFIX)
+	sed -e 's/^C/!/g' $(mpiincdir)/mpif.h > mpif.h
+	$(F90) $(F90FLAGS) -c -I. mpi_constants.$(F90SUFFIX)
 	${AR} ${libbuild_dir}/lib@MPIMODLIBNAME@.a mpi_constants.o
 	${RANLIB} ${libbuild_dir}/lib@MPIMODLIBNAME@.a
 # Systems that make the module name upper case when the file name is lower

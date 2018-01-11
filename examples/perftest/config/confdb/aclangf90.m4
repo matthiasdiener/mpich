@@ -72,6 +72,10 @@
 
 # AC_LANG(Fortran 90)
 # -------------------
+# There is a problem here.  There is no standard extension for Fortran 90,
+# and some compiler will fail to accept f90; others fail to accept f (the
+# various IBM xlf/f90 compilers are very picky, and there is no extension
+# that both IBM compilers will accept without additional options).
 m4_define([AC_LANG(Fortran 90)],
 [ac_ext=${ac_f90ext-f}
 ac_compile='$F90 -c $F90FLAGS conftest.$ac_ext >&AS_MESSAGE_LOG_FD'
@@ -177,15 +181,61 @@ AU_DEFUN([ac_cv_prog_g90],
 # lf95 is the Lahey-Fujitsu compiler.
 # fl32 is the Microsoft Fortran "PowerStation" compiler.
 # epcf90 is the "Edinburgh Portable Compiler" F90.
+# pathf90 is the Pathscale Fortran 90 compiler
 # fort is the Compaq Fortran 90 (now 95) compiler for Tru64 and Linux/Alpha.
+# ifort is another name for the Inten f90 compiler
+# efc - An older Intel compiler (?)
+# ifc - An older Intel compiler
 AC_DEFUN([AC_PROG_F90],
-[AC_LANG_PUSH(Fortran 90)dnl
+[# This is the aclangf90 version of f90 language support
+AC_LANG_PUSH(Fortran 90)dnl
 AC_ARG_VAR([F90],    [Fortran 90 compiler command])dnl
 AC_ARG_VAR([F90FLAGS], [Fortran 90 compiler flags])dnl
 _AC_ARG_VAR_LDFLAGS()dnl
 AC_CHECK_TOOLS(F90,
       [m4_default([$1],
-                  [f95 f90 pgf90 epcf90 fort xlf95 xlf90 xlf lf95 g95 fc])])
+                  [f95 f90 pgf90 ifort epcf90 fort xlf95 xlf90 xlf lf95 pathf90 g95 fc ifc efc])])
+
+# Once we find the compiler, confirm the extension 
+AC_MSG_CHECKING([that $ac_ext works as the extension for Fortran 90 program])
+cat > conftest.$ac_ext <<EOF
+      program conftest
+      end
+EOF
+if AC_TRY_EVAL(ac_compile) ; then
+    AC_MSG_RESULT(yes)
+else
+    AC_MSG_RESULT(no)
+    AC_MSG_CHECKING([for extension for Fortran 90 programs])
+    ac_ext="f90"
+    cat > conftest.$ac_ext <<EOF
+      program conftest
+      end
+EOF
+    if AC_TRY_EVAL(ac_compile) ; then
+        AC_MSG_RESULT([f90])
+    else
+        rm -f conftest*
+        ac_ext="f"
+        cat > conftest.$ac_ext <<EOF
+      program conftest
+      end
+EOF
+        if AC_TRY_EVAL(ac_compile) ; then
+            AC_MSG_RESULT([f])
+        else
+            AC_MSG_RESULT([unknown!])
+        fi
+    fi
+    ac_f90ext=$ac_ext
+    if test "$ac_ext" = "f90" ; then
+        pac_cv_f90_ext_f90=yes
+    else 
+        pac_cv_f90_ext_f90=no
+    fi
+    pac_cv_f90_ext=$ac_ext
+    rm -f conftest*
+fi
 
 # Provide some information about the compiler.
 echo "$as_me:__oline__:" \
@@ -744,10 +794,11 @@ dnl
 AC_DEFUN([PAC_F90_MODULE_EXT],
 [AC_CACHE_CHECK([for Fortran 90 module extension],
 pac_cv_f90_module_ext,[
+# aclang90.m4 version
 pac_cv_f90_module_case="unknown"
 AC_LANG_PUSH(Fortran 90)
 cat >conftest.$ac_ext <<EOF
-	module conftest
+        module conftest
         integer n
         parameter (n=1)
         end module conftest
@@ -818,44 +869,87 @@ AC_CACHE_CHECK([for Fortran 90 module include flag],
 pac_cv_f90_module_incflag,[
 AC_REQUIRE([PAC_F90_MODULE_EXT])
 AC_LANG_PUSH(Fortran 90)
+#
+# Note that the name of the file and the name of the module must be
+# the same (some compilers use the module, some the file name)
+rm -f work.pc work.pcl conftest.$ac_ext
 cat >conftest.$ac_ext <<EOF
-	module conf
+        module conf
         integer n
         parameter (n=1)
         end module conf
 EOF
 pac_madedir="no"
-if test ! -d conf ; then mkdir conf ; pac_madedir="yes"; fi
+if test ! -d conftestdir ; then mkdir conftestdir ; pac_madedir="yes"; fi
 if test "$pac_cv_f90_module_case" = "upper" ; then
     pac_module="CONF.$pac_cv_f90_module_ext"
 else
     pac_module="conf.$pac_cv_f90_module_ext"
 fi
 if AC_TRY_EVAL(ac_compile) ; then
-    cp $pac_module conf
+    if test -s "$pac_module" ; then
+        mv $pac_module conftestdir
+	# Remove any temporary files, and hide the work.pc file (if
+	# the compiler generates them)
+	if test -f work.pc ; then 
+	    mv -f work.pc conftest.pc
+        fi
+	rm -f work.pcl
+    else
+	AC_MSG_WARN([Unable to build a simple F90 module])
+        echo "configure: failed program was:" >&AC_FD_CC
+        cat conftest.$ac_f90ext >&AC_FD_CC
+    fi
 else
     echo "configure: failed program was:" >&AC_FD_CC
     cat conftest.$ac_ext >&AC_FD_CC
 fi
 rm -f conftest.$ac_ext
 cat >conftest.$ac_ext <<EOF
-    program main
-    use conf
-    end
+        program main
+        use conf
+        end
 EOF
-if ${F90-f90} -c $F90FLAGS -Iconf conftest.$ac_ext 1>&AC_FD_CC && \
+if ${F90-f90} -c $F90FLAGS -Iconftestdir conftest.$ac_ext 1>&AC_FD_CC 2>&1 && \
 	test -s conftest.o ; then
     pac_cv_f90_module_incflag="-I"
-elif ${F90-f90} -c $F90FLAGS -Mconf conftest.$ac_ext 1>&AC_FD_CC && \
+elif ${F90-f90} -c $F90FLAGS -Mconftestdir conftest.$ac_ext 1>&AC_FD_CC 2>&1 && \
 	test-s conftest.o ; then
     pac_cv_f90_module_incflag="-M"
-elif ${F90-f90} -c $F90FLAGS -pconf conftest.$ac_ext 1>&AC_FD_CC && \
+elif ${F90-f90} -c $F90FLAGS -pconftestdir conftest.$ac_ext 1>&AC_FD_CC 2>&1 && \
 	test -s conftest.o ; then
     pac_cv_f90_module_incflag="-p"
+elif test -s work.pc ; then 
+     mv conftest.pc conftestdir/mpimod.pc
+     echo "mpimod.pc" > conftestdir/mpimod.pcl
+     echo "`pwd`/conftestdir/mpimod.pc" >> conftestdir/mpimod.pcl
+     if ${F90-f90} -c $F90FLAGS -cl,conftestdir/mpimod.pcl conftest.$ac_ext 1>&AC_FD_CC 2>&1 && test -s conftest.o ; then
+         pac_cv_f90_module_incflag='-cl,'
+	# Not quite right; see the comments that follow
+         AC_MSG_RESULT([-cl,filename where filename contains a list of files and directories])
+	 F90_WORK_FILES_ARG="-cl,mpimod.pcl"
+         F90MODINCSPEC="-cl,<dir>/<file>mod.pcl"
+	 AC_SUBST(F90_WORK_FILES_ARG)
+     else 
+         # The version of the Intel compiler that I have refuses to let
+	 # you put the "work catalog" list anywhere but the current directory.
+         pac_cv_f90_module_incflag="Unavailable!"
+     fi
 else
+    # Early versions of the Intel ifc compiler required a *file*
+    # containing the names of files that contained the names of the
+    # 
+    # -cl,filename.pcl
+    #   filename.pcl contains
+    #     fullpathname.pc
+    # The "fullpathname.pc" is generated, I believe, when a module is 
+    # compiled.  
+    # Intel compilers use a wierd system: -cl,filename.pcl .  If no file is
+    # specified, work.pcl and work.pc are created.  However, if you specify
+    # a file, it must contain a the name of a file ending in .pc .  Ugh!
     pac_cv_f90_module_incflag="unknown"
 fi
-if test "$pac_madedir" = "yes" ; then rm -rf conf ; fi
+if test "$pac_madedir" = "yes" ; then rm -rf conftestdir ; fi
 rm -f conftest*
 AC_LANG_POP
 ])
@@ -945,7 +1039,174 @@ AC_LANG_POP
 fi # is not cross compiling
 ])dnl
 dnl
+dnl PAC_F90_AND_F77_COMPATIBLE([action-if-true],[action-if-false])
+dnl
+AC_DEFUN([PAC_F90_AND_F77_COMPATIBLE],[
+AC_REQUIRE([PAC_PROG_F90_WORKS])
+AC_CACHE_CHECK([whether Fortran 90 works with Fortran 77],
+pac_cv_f90_and_f77,[
+pac_cv_f90_and_f77="unknown"
+rm -f conftest*
+if test -z "$ac_ext_f90" -a -n "$pac_cv_f90_ext" ; then ac_ext_f90=$pac_cv_f90_ext ; fi
+# Define the two language-specific steps
+link_f90='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest1.$ac_ext_f90 conftest2.o $LIBS 1>&AC_FD_CC'
+compile_f77='${F77-f77} -c $FFLAGS conftest2.f 1>&AC_FD_CC'
+# Create test programs
+cat > conftest1.$ac_ext_f90 <<EOF
+       program main
+       integer a
+       a = 1
+       call t1(a)
+       end
+EOF
+cat > conftest2.f <<EOF
+       subroutine t1(b)
+       integer b
+       b = b + 1
+       end
+EOF
+# compile the f77 program and link with the f90 program
+# The reverse may not work because the Fortran 90 environment may
+# expect to be in control (and to provide library files unknown to any other
+# environment, even Fortran 77!)
+if AC_TRY_EVAL(compile_f77) ; then
+    if AC_TRY_EVAL(link_f90) && test -x conftest ; then
+        pac_cv_f90_and_f77="yes"
+    else 
+        pac_cv_f90_and_f77="no"
+    fi
+    # Some versions of the Intel compiler produce these two files
+    rm -f work.pc work.pcl
+else
+    pac_cv_f90_and_f77="yes"
+fi])
+# Perform the requested action based on whether the test succeeded
+if test "$pac_cv_f90_and_f77" = yes ; then
+    ifelse($1,,:,[$1])
+else
+    ifelse($2,,:,[$2])
+fi
+])
+dnl
 dnl Backwards compatibility features
 dnl
 AC_DEFUN([PAC_PROG_F90],[AC_PROG_F90])
 AC_DEFUN([PAC_LANG_FORTRAN90],[AC_LANG_PUSH(Fortran 90)])
+dnl Internal routine for testing F90
+dnl PAC_PROG_F90_WORKS()
+AC_DEFUN(PAC_PROG_F90_WORKS,
+[AC_MSG_CHECKING([for extension for Fortran 90 programs])
+pac_cv_f90_ext="f90"
+cat > conftest.$pac_cv_f90_ext <<EOF
+      program conftest
+      end
+EOF
+ac_compile='${F90-f90} -c $F90FLAGS conftest.$pac_cv_f90_ext 1>&AC_FD_CC'
+if AC_TRY_EVAL(ac_compile) ; then
+    AC_MSG_RESULT([f90])
+else
+    rm -f conftest*
+    pac_cv_f90_ext="f"
+    cat > conftest.$pac_cv_f90_ext <<EOF
+      program conftest
+      end
+EOF
+    if AC_TRY_EVAL(ac_compile) ; then
+	AC_MSG_RESULT([f])
+    else
+        AC_MSG_RESULT([unknown!])
+    fi
+fi
+AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) works])
+AC_LANG_SAVE
+# We cannot use _LANG_FORTRAN90 here because we will usually be executing this
+# test in the context of _PROG_F90, which is a require on _LANG_FORTRAN90.
+# Instead, we insert the necessary code from _LANG_FORTRAN90 here
+dnl PAC_LANG_FORTRAN90
+dnl define(ifdef([_AC_LANG],[_AC_LANG],[AC_LANG]), [FORTRAN90])dnl
+ifdef([_AC_LANG],[define([_AC_LANG],FORTRAN90)],[define([AC_LANG],FORTRAN90)])
+dnl define([AC_LANG], [FORTRAN90])dnl
+ac_ext=$pac_cv_f90_ext
+ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
+ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
+cross_compiling=$pac_cv_prog_f90_cross
+# Include a Fortran 90 construction to distinguish between Fortran 77 
+# and Fortran 90 compilers.
+cat >conftest.$ac_ext <<EOF
+      program conftest
+      integer, dimension(10) :: n
+      end
+EOF
+if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeect} ; then
+    pac_cv_prog_f90_works="yes"
+    if (./conftest; exit) 2>/dev/null ; then
+        pac_cv_prog_f90_cross="no"
+    else
+        pac_cv_prog_f90_cross="yes"
+    fi
+else
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat conftest.$ac_ext >&AC_FD_CC
+  pac_cv_prog_f90_works="no"
+fi
+rm -f conftest*
+# The intel compiler sometimes generates these work.pc and .pcl files
+rm -f work.pc work.pcl
+AC_LANG_RESTORE
+AC_MSG_RESULT($pac_cv_prog_f90_works)
+if test "$pac_cv_prog_f90_works" = no; then
+  AC_MSG_WARN([installation or configuration problem: Fortran 90 compiler cannot create executables.])
+fi
+AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler])
+AC_MSG_RESULT($pac_cv_prog_f90_cross)
+cross_compiling=$pac_cv_prog_f90_cross
+])
+dnl
+dnl PAC_F90_AND_F77_COMPATIBLE([action-if-true],[action-if-false])
+dnl
+AC_DEFUN([PAC_F90_AND_F77_COMPATIBLE],[
+AC_REQUIRE([PAC_PROG_F90_WORKS])
+AC_CACHE_CHECK([whether Fortran 90 works with Fortran 77],
+pac_cv_f90_and_f77,[
+pac_cv_f90_and_f77="unknown"
+rm -f conftest*
+if test -z "$ac_ext_f90" ; then ac_ext_f90=$pac_cv_f90_ext ; fi
+# Define the two language-specific steps
+link_f90='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest1.$ac_ext_f90 conftest2.o $LIBS 1>&AC_FD_CC'
+compile_f77='${F77-f77} -c $FFLAGS conftest2.f 1>&AC_FD_CC'
+# Create test programs
+cat > conftest1.$ac_ext_f90 <<EOF
+       program main
+       integer a
+       a = 1
+       call t1(a)
+       end
+EOF
+cat > conftest2.f <<EOF
+       subroutine t1(b)
+       integer b
+       b = b + 1
+       end
+EOF
+# compile the f77 program and link with the f90 program
+# The reverse may not work because the Fortran 90 environment may
+# expect to be in control (and to provide library files unknown to any other
+# environment, even Fortran 77!)
+if AC_TRY_EVAL(compile_f77) ; then
+    if AC_TRY_EVAL(link_f90) && test -x conftest ; then
+        pac_cv_f90_and_f77="yes"
+    else 
+        pac_cv_f90_and_f77="no"
+    fi
+    # Some versions of the Intel compiler produce these two files
+    rm -f work.pc work.pcl
+else
+    pac_cv_f90_and_f77="yes"
+fi])
+# Perform the requested action based on whether the test succeeded
+if test "$pac_cv_f90_and_f77" = yes ; then
+    ifelse($1,,:,[$1])
+else
+    ifelse($2,,:,[$2])
+fi
+])

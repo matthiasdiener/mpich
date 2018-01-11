@@ -1,10 +1,10 @@
-.TH MPI_File_read_shared 3 "2/12/2004" " " "MPI-2"
+.TH MPI_File_read_shared 3 "2/17/2005" " " "MPI-2"
 .SH NAME
 MPI_File_read_shared \-  Read using shared file pointer 
 .SH SYNOPSIS
 .nf
-int MPI_File_read_shared(MPI_File fh, void *buf, int count, 
-                  MPI_Datatype datatype, MPI_Status *status)
+int MPI_File_read_shared(MPI_File mpi_fh, void *buf, int count, 
+                       MPI_Datatype datatype, MPI_Status *status)
 .fi
 .SH INPUT PARAMETERS
 .PD 0

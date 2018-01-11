@@ -37,10 +37,10 @@ CLASSDIR   = ../../..
 CLASSPATH  = ../../..
 PKGDIR     = logformat/slog2/input
 
-JFLAGS = -sourcepath @JPATH_START@$(SRCDIR)@JPATH_FINAL@ -classpath @JPATH_START@$(CLASSPATH)@JPATH_FINAL@ -d @JPATH_START@$(CLASSDIR)@JPATH_FINAL@ @JFLAGS@
+JCFLAGS = -sourcepath @JPATH_START@$(SRCDIR)@JPATH_FINAL@ -classpath @JPATH_START@$(CLASSPATH)@JPATH_FINAL@ -d @JPATH_START@$(CLASSDIR)@JPATH_FINAL@ @JFLAGS@
 
 .java.class:
-	$(JC) $(JFLAGS) @JPATH_START@$<@JPATH_FINAL@
+	$(JC) $(JCFLAGS) $(JFLAGS) @JPATH_START@$<@JPATH_FINAL@
 
 ALL: $(TARGET0) $(TARGET1) $(TARGET2)
 
@@ -49,10 +49,10 @@ $(TARGET0): $(OBJ)
 	$(RM) $(PACKAGE).manifest && \
 	echo "Main-Class: $(PACKAGE).PrintRecursively" > $(PACKAGE).manifest ; \
 	jarfile=@JPATH_START@$@@JPATH_FINAL@ ; \
-	$(JAR) cvfm $${jarfile} $(PACKAGE).manifest ; \
+	$(JAR) $(JARFLAGS)cfm $${jarfile} $(PACKAGE).manifest ; \
 	for dir in base/io/ base/drawable/ logformat/slog2/ $(PKGDIR)/ ; do \
 	    classdir_prefix=@JPATH_START@$${dir}@JPATH_FINAL@ ; \
-	    $(JAR) uvf $${jarfile} $${classdir_prefix}*.class ; \
+	    $(JAR) $(JARFLAGS)uf $${jarfile} $${classdir_prefix}*.class ; \
 	done
 
 $(TARGET1): $(OBJ)
@@ -60,10 +60,10 @@ $(TARGET1): $(OBJ)
 	$(RM) $(PACKAGE).manifest && \
 	echo "Main-Class: $(PACKAGE).PrintSerially" > $(PACKAGE).manifest ; \
 	jarfile=@JPATH_START@$@@JPATH_FINAL@ ; \
-	$(JAR) cvfm $${jarfile} $(PACKAGE).manifest ; \
+	$(JAR) $(JARFLAGS)cfm $${jarfile} $(PACKAGE).manifest ; \
 	for dir in base/io/ base/drawable/ logformat/slog2/ $(PKGDIR)/ ; do \
 	    classdir_prefix=@JPATH_START@$${dir}@JPATH_FINAL@ ; \
-	    $(JAR) uvf $${jarfile} $${classdir_prefix}*.class ; \
+	    $(JAR) $(JARFLAGS)uf $${jarfile} $${classdir_prefix}*.class ; \
 	done
 
 $(TARGET2): $(OBJ)
@@ -71,10 +71,10 @@ $(TARGET2): $(OBJ)
 	$(RM) $(PACKAGE).manifest && \
 	echo "Main-Class: $(PACKAGE).Navigator" > $(PACKAGE).manifest ; \
 	jarfile=@JPATH_START@$@@JPATH_FINAL@ ; \
-	$(JAR) cvfm $${jarfile} $(PACKAGE).manifest ; \
+	$(JAR) $(JARFLAGS)cfm $${jarfile} $(PACKAGE).manifest ; \
 	for dir in base/io/ base/drawable/ logformat/slog2/ $(PKGDIR)/ ; do \
 	    classdir_prefix=@JPATH_START@$${dir}@JPATH_FINAL@ ; \
-	    $(JAR) uvf $${jarfile} $${classdir_prefix}*.class ; \
+	    $(JAR) $(JARFLAGS)uf $${jarfile} $${classdir_prefix}*.class ; \
 	done
 
 clean:
@@ -82,6 +82,9 @@ clean:
 	$(RM) $(PACKAGE).manifest $(PKGDIR)/*.class 
 
 rmlib:
-	$(RM) $(TARGET1) $(TARGET2)
+	$(RM) $(TARGET0) $(TARGET1) $(TARGET2)
 
 realclean: clean rmlib
+
+distclean: realclean
+	@-$(RM) Makefile

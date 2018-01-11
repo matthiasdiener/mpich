@@ -38,7 +38,7 @@ done
 #
 #dbx -s$dbgfile $prognamemain
 # END EDITING HERE
-#/bin/rm -f $dbgfile
+#rm -f $dbgfile
 cat <<EOF
 Modify the mpirun_dbg.dbx file to make use of the proper dbx commands to
 run a program.  

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpioprof.h,v 1.10 2004/05/28 23:05:41 David Exp $    
+ *   $Id: mpioprof.h,v 1.11 2004/10/04 15:51:31 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -115,6 +115,8 @@
 
 #undef MPI_File_get_type_extent
 #define MPI_File_get_type_extent PMPI_File_get_type_extent
+#undef MPI_Register_datarep
+#define MPI_Register_datarep PMPI_Register_datarep
 #undef MPI_File_set_atomicity
 #define MPI_File_set_atomicity PMPI_File_set_atomicity
 #undef MPI_File_get_atomicity

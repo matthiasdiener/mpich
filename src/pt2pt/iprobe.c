@@ -1,5 +1,5 @@
 /*
- *  $Id: iprobe.c,v 1.10 2001/11/14 20:09:58 ashton Exp $
+ *  $Id: iprobe.c,v 1.11 2004/12/07 16:39:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -68,9 +68,11 @@ int MPI_Iprobe( int source, int tag, MPI_Comm comm, int *flag,
 #endif
 
     if (source == MPI_PROC_NULL) {
-	status->MPI_SOURCE = MPI_PROC_NULL;
-	status->MPI_TAG	   = MPI_ANY_TAG;
-	MPID_ZERO_STATUS_COUNT(status);
+	if (status) {
+	    status->MPI_SOURCE = MPI_PROC_NULL;
+	    status->MPI_TAG	   = MPI_ANY_TAG;
+	    MPID_ZERO_STATUS_COUNT(status);
+	}
 	return MPI_SUCCESS;
 	}
     MPID_Iprobe( comm_ptr, tag, comm_ptr->recv_context, source, flag, 

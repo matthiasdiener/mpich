@@ -1,5 +1,5 @@
 /*
- *  $Id: wtick.c,v 1.7 2001/11/14 19:56:41 ashton Exp $
+ *  $Id: wtick.c,v 1.8 2004/08/20 21:37:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -32,7 +32,7 @@
   MPI_Wtick - Returns the resolution of MPI_Wtime
 
   Return value:
-  Time in seconds of resolution of MPI_Wtime
+  Time in seconds of the resolution of MPI_Wtime .
 
   Notes for Fortran:
   This is a function, declared as 'DOUBLE PRECISION MPI_WTICK()' in Fortran.

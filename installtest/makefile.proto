@@ -32,7 +32,7 @@ pi3: pi3.o
 
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS)
+	rm -f *.o *~ PI* $(EXECS)
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

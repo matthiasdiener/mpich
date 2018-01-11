@@ -463,6 +463,9 @@ c
 
          call init_test_data(send_buf,TEST_SIZE)
 
+         call MPI_Recv( MPI_BOTTOM, 0, MPI_INTEGER, next, tag, 
+     .                  MPI_COMM_WORLD, status, ierr )
+
          call MPI_Startall(2, requests, ierr)
 
          index = -1
@@ -482,6 +485,9 @@ c
       else
 
          call MPI_Start(requests(2), ierr)
+
+         call MPI_Send( MPI_BOTTOM, 0, MPI_INTEGER, next, tag, 
+     .                  MPI_COMM_WORLD, ierr )
 
          flag = .FALSE.
          do while (.not. flag)

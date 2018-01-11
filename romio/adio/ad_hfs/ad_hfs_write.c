@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hfs_write.c,v 1.10 2003/04/18 20:14:54 David Exp $    
+ *   $Id: ad_hfs_write.c,v 1.11 2004/10/04 15:50:51 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -64,14 +64,4 @@ void ADIOI_HFS_WriteContig(ADIO_File fd, void *buf, int count,
 #endif
     }
     else *error_code = MPI_SUCCESS;
-}
-
-
-void ADIOI_HFS_WriteStrided(ADIO_File fd, void *buf, int count,
-                       MPI_Datatype datatype, int file_ptr_type,
-                       ADIO_Offset offset, ADIO_Status *status, int
-                       *error_code)
-{
-    ADIOI_GEN_WriteStrided(fd, buf, count, datatype, file_ptr_type,
-                        offset, status, error_code);
 }

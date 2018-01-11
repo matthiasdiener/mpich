@@ -70,4 +70,4 @@ ${libbuild_dir}/lib$(PROF_LIBNAME)_nompi.a: $(MPEGRAPHICS_OBJS) mpehname.@OBJEXT
 	$(RANLIB) $@
 
 clean: $(MPEGRAPHICS_OBJS) mpehname.@OBJEXT@
-	-/bin/rm -f $?
+	-rm -f $?

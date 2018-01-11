@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.4 1998/11/17 22:13:50 gropp Exp $
+#  $Id: Makefile.in,v 1.5 2004/08/11 15:30:21 gropp Exp $
 #
 #  (C) 1993 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -41,7 +41,7 @@ profile_all: $(MPI_OBJECTS)
 	$(AR) ../../build/$(ARCH)/$(DEVICE)/lib/libp@MPILIBNAME@.a $?
 
 clean:
-	/bin/rm -f *~ $(MPI_OBJECTS) 
+	rm -f *~ $(MPI_OBJECTS) 
 
 .c.o:
 	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)

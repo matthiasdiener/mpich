@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hfs_fcntl.c,v 1.13 2003/05/12 14:54:03 robl Exp $    
+ *   $Id: ad_hfs_fcntl.c,v 1.15 2004/11/01 20:33:26 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -87,58 +87,7 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	if ((fcntl_struct->diskspace > 2147483647) || 
 	    (err && (errno == ENOTEMPTY))) {
 #endif
-
-        
-	/* Explicitly write to allocate space. Since there could be
-	   holes in the file, I need to read up to the current file
-	   size, write it back, and then write beyond that depending
-	   on how much preallocation is needed.
-           read/write in sizes of no more than ADIOI_PREALLOC_BUFSZ */
-
-	    curr_fsize = lseek64(fd->fd_sys, 0, SEEK_END);
-	    alloc_size = fcntl_struct->diskspace;
-
-	    size = ADIOI_MIN(curr_fsize, alloc_size);
-	    
-	    ntimes = (size + ADIOI_PREALLOC_BUFSZ - 1)/ADIOI_PREALLOC_BUFSZ;
-	    buf = (char *) ADIOI_Malloc(ADIOI_PREALLOC_BUFSZ);
-	    done = 0;
-
-	    for (i=0; i<ntimes; i++) {
-		len = ADIOI_MIN(size-done, ADIOI_PREALLOC_BUFSZ);
-		ADIO_ReadContig(fd, buf, len, MPI_BYTE, ADIO_EXPLICIT_OFFSET, 
-                      done, &status, error_code);
-		if (*error_code != MPI_SUCCESS) {
-#ifdef MPICH2
-		    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, 
-			"**iopreallocrdwr", 0);
-#elif defined(PRINT_ERR_MSG)
-		    FPRINTF(stderr, "ADIOI_HFS_Fcntl: To preallocate disk space, ROMIO needs to read the file and write it back, but is unable to read the file. Please give the file read permission and open it with MPI_MODE_RDWR.\n");
-		    MPI_Abort(MPI_COMM_WORLD, 1);
-#else /* MPICH-1 */
-		    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_PREALLOC_PERM,
-			      myname, (char *) 0, (char *) 0);
-		    ADIOI_Error(fd, *error_code, myname);
-#endif
-		    return;
-		}
-		ADIO_WriteContig(fd, buf, len, MPI_BYTE, ADIO_EXPLICIT_OFFSET,
-                         done,  &status, error_code);
-		if (*error_code != MPI_SUCCESS) return;
-		done += len;
-	    }
-
-	    if (alloc_size > curr_fsize) {
-		memset(buf, 0, ADIOI_PREALLOC_BUFSZ); 
-		size = alloc_size - curr_fsize;
-		ntimes = (size + ADIOI_PREALLOC_BUFSZ - 1)/ADIOI_PREALLOC_BUFSZ;
-		for (i=0; i<ntimes; i++) {
-		    len = ADIOI_MIN(alloc_size-done, ADIOI_PREALLOC_BUFSZ);
-		    ADIO_WriteContig(fd, buf, len, MPI_BYTE, ADIO_EXPLICIT_OFFSET, 
-				     done, &status, error_code);
-		    if (*error_code != MPI_SUCCESS) return;
-		    done += len;  
-		}
+		ADIOI_GEN_Prealloc(fd,fcntl_struct->diskspace, error_code);
 	    }
 	    ADIOI_Free(buf);
 #ifdef HPUX
@@ -146,16 +95,6 @@ void ADIOI_HFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 		lseek64(fd->fd_sys, fd->fp_sys_posn, SEEK_SET);
 	    /* not required in SPPUX since there we use pread/pwrite */
 #endif
-	}
-	*error_code = MPI_SUCCESS;
-	break;
-
-    case ADIO_FCNTL_SET_IOMODE:
-        /* for implementing PFS I/O modes. will not occur in MPI-IO
-           implementation.*/
-	if (fd->iomode != fcntl_struct->iomode) {
-	    fd->iomode = fcntl_struct->iomode;
-	    MPI_Barrier(MPI_COMM_WORLD);
 	}
 	*error_code = MPI_SUCCESS;
 	break;

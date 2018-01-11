@@ -176,6 +176,10 @@ for arg in "$@" ; do
 	else
 	    echo "Configuration file mpif90-$FCname.conf not found"
 	fi
+	# Use the values from the config file in preference to 
+	# the defaults and the MPICH_F77 environment
+	F90=$F90BASE
+	F90LINKER=$F90LINKERBASE
 	;;
 	-f90=*)
 	F90=`echo A$arg | sed -e 's/A-f90=//g'`
@@ -328,7 +332,7 @@ added_link=0
 if [ -z "${F90INC}" ] ; then
     if [ ! -r mpif.h ] ; then
         #echo "Adding a symbolic link for mpif.h"
-	trap "$Show /bin/rm mpif.h" 0
+	trap "$Show rm -f mpif.h" 0
 	# This should really be the (related) f77includedir (see mpif77).
 	$Show ln -s ${includedir}/mpif.h mpif.h
 	added_link=1

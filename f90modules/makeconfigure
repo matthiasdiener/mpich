@@ -17,7 +17,7 @@ echo making configure in `pwd`
 #    autoconf=/homes/gropp/bin/autoconf
 #    autoheader=/homes/gropp/bin/autoheader
 #fi
-# Must use patched automake
+# Must use patched automake if version is 2.13
 if [ -z "$ARCH" ] ; then
     system="`uname -sr | sed -e 's/ /-/g'`"
     case "$system" in 

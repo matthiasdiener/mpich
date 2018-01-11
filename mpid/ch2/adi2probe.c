@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2probe.c,v 1.3 2001/11/12 23:06:50 ashton Exp $
+ *  $Id: adi2probe.c,v 1.4 2004/12/07 16:39:18 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -35,7 +35,9 @@ void MPID_Iprobe(
     }
     if (rhandle) {
 	*found  = 1;
-	*status = rhandle->s;
+	if (status) {
+	    *status = rhandle->s;
+	}
 	DEBUG_PRINT_MSG(" Iprobe found msg");
     } 
     else {

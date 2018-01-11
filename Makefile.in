@@ -26,7 +26,7 @@ RANLIB      = @RANLIB@
 
 ### Name of package and version (will be set with automake eventually) 
 PACKAGE = mpich
-VERSION = 1.2.6
+VERSION = 1.2.7
 ### End of name of package and version
 
 SHELL = /bin/sh
@@ -221,7 +221,7 @@ mpichsharelibs:
 
 
 mkbuilddirs:
-	@$(top_srcdir)/util/mkdirs ${libbuild_dir} ${includebuild_dir} ${binbuild_dir} ${sysconfdir}
+	@$(top_srcdir)/util/mkdirs ${libbuild_dir} ${includebuild_dir} ${binbuild_dir}
 
 #
 # Remove the - in the linktest because the linktest should abort the build
@@ -574,7 +574,7 @@ distclean: cleanslate
 	    (cd util && rm -f chkmachine chkserv Makefile ) ; \
 	    (cd util/machines && \
 	    rm -f machines.IRIX* machines.sun* machines.solaris* \
-	    machines.cray* machines.CRAY* machines.LINUX machines.rs600 \
+	    machines.cray* machines.CRAY* machines.LINUX machines.rs6000 \
 	    machines.alpha machines.hp* ) ; fi
 	-rm -f util/mympiinstall* util/mpichlib.conf
 	-if [ -d mpid/server -a -s mpid/server/Makefile ] ; then \
@@ -683,7 +683,7 @@ preinstall:
 		mv util/$$file ${binbuild_dir}/$$file ;\
 	    fi ;\
 	done
-	@if [ "@CASE_SENSITIVE@" = "no" ] ; then \
+	@if [ "@CASE_SENSITIVE@" = "yes" ] ; then \
 	    cp ${binbuild_dir}/mpicxx ${binbuild_dir}/mpiCC ; fi
 
 ${includebuild_dir}/mpichconf.h: mpichconf.h

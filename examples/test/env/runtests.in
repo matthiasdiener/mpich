@@ -92,7 +92,7 @@ RunTest getproc 1 "*** Test Get Processor Name ***"
 
 OutTime
 testfiles="$testfiles cmdline.out"
-/bin/rm -f cmdline.out
+rm -f cmdline.out
 MakeExe cmdline
 echo "*** Tests of command line handling ***"
 echo "*** Tests of command line handling ***" >> cmdline.out
@@ -124,7 +124,7 @@ else
 fi
 OutTime
 testfiles="$testfiles aborttest.out"
-/bin/rm -f aborttest.out aborttest.p1 aborttest.p2 aborttest.out2
+rm -f aborttest.out aborttest.p1 aborttest.p2 aborttest.out2
 MakeExe aborttest
 echo "*** Tests of MPI_Abort ***"
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
@@ -165,7 +165,7 @@ echo "*** Tests of MPI_Abort ***" >> aborttest.out
 rm -f aborttest.p1 aborttest.p2 aborttest.out2
 
 OutTime
-/bin/rm -f aborttest.p1 aborttest.p2 aborttest.out2
+rm -f aborttest.p1 aborttest.p2 aborttest.out2
 echo "*** Tests of MPI_Abort (alt) ***"
 echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
 $PSPGM | grep $LOGNAME | grep -v grep | grep -v runtests | \
@@ -196,7 +196,7 @@ else
     $PSPGM | grep $LOGNAME | grep aborttest | awk '{ print "kill ", $2 }' | sh
 fi
 echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
-/bin/rm -f aborttest.p1 aborttest.p2 aborttest.out2
+rm -f aborttest.p1 aborttest.p2 aborttest.out2
 CleanExe aborttest
 
 #

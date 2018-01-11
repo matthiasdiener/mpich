@@ -1,9 +1,9 @@
-.TH MPI_File_write_at_all 3 "4/18/2003" " " "MPI-2"
+.TH MPI_File_write_at_all 3 "2/17/2005" " " "MPI-2"
 .SH NAME
 MPI_File_write_at_all \-  Collective write using explict offset 
 .SH SYNOPSIS
 .nf
-int MPI_File_write_at_all(MPI_File fh, MPI_Offset offset, void *buf,
+int MPI_File_write_at_all(MPI_File mpi_fh, MPI_Offset offset, void *buf,
                           int count, MPI_Datatype datatype, 
                           MPI_Status *status)
 .fi

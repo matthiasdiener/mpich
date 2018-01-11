@@ -16,7 +16,7 @@ import javax.swing.*;
 import javax.swing.border.*;
 
 import base.drawable.Topology;
-import base.drawable.CategoryWeight;
+import base.statistics.CategoryWeightF;
 import base.statistics.CategoryTimeBox;
 import base.statistics.TimeAveBox;
 import base.statistics.Summarizable;
@@ -73,9 +73,9 @@ public class InfoPanelForSummary extends JPanel
         Border        border     = null;
         CategoryLabel label_type = null;
         if ( clicked_obj instanceof CategoryTimeBox ) {
-            CategoryWeight  twgt;
-            twgt       = ( (CategoryTimeBox) clicked_obj ).getCategoryWeight();
-            label_type = new CategoryLabel( twgt.getCategory() ); 
+            CategoryWeightF  twgf;
+            twgf       = ( (CategoryTimeBox) clicked_obj ).getCategoryWeightF();
+            label_type = new CategoryLabel( twgf.getCategory() ); 
             border     = BorderFactory.createTitledBorder(
                                        Normal_Border, type_name,
                                        TitledBorder.LEFT, TitledBorder.TOP,
@@ -243,63 +243,68 @@ public class InfoPanelForSummary extends JPanel
         {
             if ( topo.isState() )
                 if ( SummaryState.isDisplayTypeEqualWeighted() )
-                    return CategoryWeight.PRINT_ALL_RATIOS;
+                    return CategoryWeightF.PRINT_ALL_RATIOS;
                 else
                     if ( SummaryState.isDisplayTypeExclusiveRatio() )
-                        return CategoryWeight.PRINT_EXCL_RATIO;
+                        return CategoryWeightF.PRINT_EXCL_RATIO;
                     else
-                        return CategoryWeight.PRINT_INCL_RATIO;
+                        return CategoryWeightF.PRINT_INCL_RATIO;
             else  //  Non state, i.e. arrow and event;
-                return CategoryWeight.PRINT_INCL_RATIO;
+                return CategoryWeightF.PRINT_INCL_RATIO;
         }
 
         public void  setCategoryTimeBoxText( final CategoryTimeBox typebox )
         {
-            CategoryWeight  twgt;
-            String          twgt_str;
+            CategoryWeightF twgf;
+            String          twgf_str;
             int             print_status;
  
-            twgt          = typebox.getCategoryWeight();
-            print_status  = getPrintStatus( twgt.getCategory().getTopology() );
+            twgf          = typebox.getCategoryWeightF();
+            print_status  = getPrintStatus( twgf.getCategory().getTopology() );
             num_rows++;
-            strbuf.append( "\n" + CategoryWeight.getPrintTitle(print_status) );
+            strbuf.append( "\n" + CategoryWeightF.getPrintTitle(print_status) );
 
-            twgt_str      = twgt.toInfoBoxString( print_status );
-            if ( num_cols < twgt_str.length() )
-                num_cols = twgt_str.length();
+            twgf_str      = twgf.toInfoBoxString( print_status );
+            if ( num_cols < twgf_str.length() )
+                num_cols = twgf_str.length();
             num_rows++;
-            strbuf.append( "\n" + twgt_str );
+            strbuf.append( "\n" + twgf_str );
         }
 
         // For Shadow Primitive
         public void setTimeAveBoxText( final TimeAveBox  avebox )
         {
-            StringBuffer  linebuf;
-            linebuf = new StringBuffer("Averaged Number of Real Drawables = ");
+            StringBuffer       linebuf;
+            Topology           avebox_topo;
+            CategoryTimeBox[]  typeboxes;
+            CategoryWeightF    twgf;
+            String             twgf_str;
+            int                print_status;
+            int                idx;
+
+            typeboxes     = avebox.arrayOfCategoryTimeBoxes(); 
+            twgf          = typeboxes[ 0 ].getCategoryWeightF();
+            avebox_topo   = twgf.getCategory().getTopology(); 
+
+         // linebuf = new StringBuffer("Averaged Number of Real Drawables = ");
+            linebuf = new StringBuffer( "Averaged Number of Real " );
+            linebuf.append( avebox_topo + "s = " );
             linebuf.append( nfmt.format( avebox.getAveNumOfRealObjects() ) );
             if ( num_cols < linebuf.length() )
                 num_cols = linebuf.length();
             num_rows++;
             strbuf.append( "\n" + linebuf.toString() );
     
-            CategoryTimeBox[]  typeboxes;
-            CategoryWeight     twgt;
-            String             twgt_str;
-            int                print_status;
-            int                idx;
-
-            typeboxes     = avebox.arrayOfCategoryTimeBoxes(); 
-            twgt          = typeboxes[ 0 ].getCategoryWeight();
-            print_status  = getPrintStatus( twgt.getCategory().getTopology() );
+            print_status  = getPrintStatus( avebox_topo );
             num_rows++;
-            strbuf.append( "\n" + CategoryWeight.getPrintTitle(print_status) );
+            strbuf.append( "\n" + CategoryWeightF.getPrintTitle(print_status) );
             for ( idx = 0; idx < typeboxes.length; idx++ ) {
-                twgt     = typeboxes[ idx ].getCategoryWeight();
-                twgt_str = twgt.toInfoBoxString( print_status );
-                if ( num_cols < twgt_str.length() )
-                    num_cols = twgt_str.length();
+                twgf     = typeboxes[ idx ].getCategoryWeightF();
+                twgf_str = twgf.toInfoBoxString( print_status );
+                if ( num_cols < twgf_str.length() )
+                    num_cols = twgf_str.length();
                 num_rows++;
-                strbuf.append( "\n" + twgt_str );
+                strbuf.append( "\n" + twgf_str );
             }                               
         }
     }   //  End of   private class TextAreaBuffer

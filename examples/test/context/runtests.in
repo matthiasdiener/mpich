@@ -102,7 +102,7 @@ RunTest icdup 3 "*** Testing dup of an intercommunicator ***"
 # information).
 #
 #testfiles="$testfiles ictest2.out"
-#/bin/rm -f ictest2.out
+#rm -f ictest2.out
 #MakeExe ictest2
 #echo '*** Testing Intercommunicators (2) ***'
 #echo '*** Testing Intercommunicators (2) ***' >> ictest2.out

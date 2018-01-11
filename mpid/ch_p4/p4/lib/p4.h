@@ -12,6 +12,13 @@
 /* HP-UX does not properly guard rpc/rpc.h from multiple inclusion */
 /* We do not check for this in configure and have to put this check outside */
 /* of the rpc code so rpc.h does not get included twice */
+
+/* This definition is available if needed; there is currently no configure 
+   check for it */
+#ifdef NEEDS_INT64_DEFINITION
+typedef long long int int64_t;
+#endif
+
 #if defined(HAVE_RPC_RPC_H) && !defined(INCLUDED_RPC_RPC_H)
 #include <rpc/rpc.h>      
 #define INCLUDED_RPC_RPC_H
@@ -49,7 +56,7 @@ struct p4_procgroup_entry {
     int rm_rank;               /* Rank of the remote master for this entry */
     char host_name[HOSTNAME_LEN];
     char slave_full_pathname[256];
-    char username[10];
+    char username[16];
 };
 
 #define P4_MAX_PROCGROUP_ENTRIES 1024

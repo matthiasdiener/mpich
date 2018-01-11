@@ -86,7 +86,7 @@ done
 if [ -z "$noclean" ] ; then 
     for arch in $arches ; do
         for pgm in $programs ; do
-	    /bin/rm -f $pgm.$arch
+	    rm -f $pgm.$arch
         done
     done
 fi

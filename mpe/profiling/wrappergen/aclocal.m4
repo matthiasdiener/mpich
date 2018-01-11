@@ -32,7 +32,7 @@ EOF
     ifelse([$3], , , [$3
 ])
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           ifelse([$2], , :, [$2
 ])
@@ -74,7 +74,7 @@ if test -n "$Pac_testval" ; then
     Pac_CV_NAME=$Pac_testval
 else
  AC_MSG_CHECKING([for size of $Pac_name])
- /bin/rm -f conftestval
+ rm -f conftestval
  PAC_TEST_PROGRAM([#include <stdio.h>
 main() { 
   FILE *f=fopen("conftestval","w");
@@ -322,7 +322,7 @@ EOF
         # and the lib directory one above that
         tcllibs="$tcllibloc `dirname $tcllibloc`"
     fi
-    /bin/rm -f conftest   
+    rm -f conftest   
 fi
 for dir in $tcllibs \
     /usr \
@@ -405,7 +405,7 @@ if test -n "$wishloc" ; then
 	    fi
 	done
     fi
-    /bin/rm -f conftest   
+    rm -f conftest   
 fi
 for dir in $tklibs \
     /usr \
@@ -801,7 +801,7 @@ if test -d $CCBUGS ; then
 	else
 	    AC_MSG_RESULT(yes)
         fi
-	/bin/rm -f conftest conftest.c conftest.o conftest.out conftest.rout
+	rm -f conftest conftest.c conftest.o conftest.out conftest.rout
     done
     #
     # These are non-fatal, but must be run
@@ -833,7 +833,7 @@ if test -d $CCBUGS ; then
 	else
 	    AC_MSG_RESULT(yes)
         fi
-	/bin/rm -f conftest conftest.c conftest.o conftest.out conftest.rout
+	rm -f conftest conftest.c conftest.o conftest.out conftest.rout
     done
 
     # 
@@ -855,7 +855,7 @@ if test -d $CCBUGS ; then
             fi
         fi
 	# set +x
-	/bin/rm -f conftest conftest.[co]
+	rm -f conftest conftest.[co]
     done
     # 
     # After everything, see if there are any problems
@@ -881,7 +881,7 @@ cat >conftest.f <<EOF
           program main
           end
 EOF
-/bin/rm -f conftest.out
+rm -f conftest.out
 $F77 $FFLAGS -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     AC_MSG_RESULT(no)
@@ -918,7 +918,7 @@ cat >conftest.f <<EOF
           program main
           end
 EOF
-/bin/rm -f conftest.out
+rm -f conftest.out
 $F90 $F90FLAGS -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     AC_MSG_RESULT(no)
@@ -1089,7 +1089,7 @@ dnl determines that it is an improperly built gnumake, it adds
 dnl --no-print-directorytries to the symbol MAKE.
 define(PAC_MAKE_IS_GNUMAKE,[
 AC_MSG_CHECKING(gnumake)
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -1109,7 +1109,7 @@ if test "$str" != "success" ; then
 else
     AC_MSG_RESULT(no)
 fi
-/bin/rm -f conftest
+rm -f conftest
 str=""
 ])dnl
 dnl
@@ -1117,7 +1117,7 @@ dnl PAC_MAKE_IS_BSD44([true text])
 dnl
 define(PAC_MAKE_IS_BSD44,[
 AC_MSG_CHECKING(BSD 4.4 make)
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 ALL:
 	@echo "success"
@@ -1126,7 +1126,7 @@ cat > conftest1 <<.
 include conftest
 .
 str=`$MAKE -f conftest1 2>&1`
-/bin/rm -f conftest conftest1
+rm -f conftest conftest1
 if test "$str" != "success" ; then
     AC_MSG_RESULT(Found BSD 4.4 so-called make)
     echo "The BSD 4.4 make is INCOMPATIBLE with all other makes."
@@ -1143,7 +1143,7 @@ dnl PAC_MAKE_IS_OSF([true text])
 dnl
 define(PAC_MAKE_IS_OSF,[
 AC_MSG_CHECKING(OSF V3 make)
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -1151,7 +1151,7 @@ ALL:
 	@echo "success"
 .
 str=`$MAKE -f conftest 2>&1`
-/bin/rm -f conftest 
+rm -f conftest 
 if test "$str" != "success" ; then
     AC_MSG_RESULT(Found OSF V3 make)
     echo "The OSF V3 make does not allow comments in target code."
@@ -1612,7 +1612,7 @@ EOF
      nameform3=`strings -a confftest.o | grep mpir_init_fop   | sed -n -e '1p'`
      nameform4=`strings -a confftest.o | grep mpir_init_fop__ | sed -n -e '1p'`
     fi
-    /bin/rm -f confftest.f confftest.o
+    rm -f confftest.f confftest.o
     if test -n "$nameform4" ; then
 	echo "Fortran externals are lower case and have 1 or 2 trailing underscores"
 	FORTRANNAMES="FORTRANDOUBLEUNDERSCORE"
@@ -1826,7 +1826,7 @@ dnl TK_LIB and XINCLUDES must be defined (and no_x must NOT be true)
 dnl
 define(PAC_TK_VERSION,[
 AC_MSG_CHECKING(for version of TK)
-/bin/rm -f conftestval
+rm -f conftestval
 #
 # Some systems have a separate tcl dir; since we need both tcl and tk
 # we include both directories
@@ -1989,7 +1989,7 @@ else
     ifelse($3,,true,$3)
     AC_MSG_RESULT([does NOT support -I for include])
 fi
-/bin/rm -f conftest.f $1/conftestf.h
+rm -f conftest.f $1/conftestf.h
 ])dnl
 dnl
 dnl PAC_FORTRAN_GET_INTEGER_SIZE(var_for_size)
@@ -1998,8 +1998,8 @@ dnl sets var_for_size to the size.  Ignores if the size cannot be determined
 dnl
 define(PAC_FORTRAN_GET_INTEGER_SIZE,
 [AC_MSG_CHECKING([for size of Fortran INTEGER])
-/bin/rm -f conftestval
-/bin/rm -f conftestf.f conftestf.o
+rm -f conftestval
+rm -f conftestf.f conftestf.o
 cat <<EOF > conftestf.f
       subroutine isize( )
       integer i(2)
@@ -2044,14 +2044,14 @@ if test -z "$Pac_CV_NAME" ; then
 	echo "Could not build executable program:"
 	echo "${F77-f77} $FFLAGS -o conftest conftest.o $LIBS"
     else
-	/bin/rm -f conftestout
+	rm -f conftestout
 	if test -s conftest && (./conftest;exit) 2>conftestout ; then
 	    Pac_CV_NAME=`cat conftestval`
         fi
     fi
 
 fi
-/bin/rm -f conftestf.f conftestf.o
+rm -f conftestf.f conftestf.o
 if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     AC_MSG_RESULT($Pac_CV_NAME)
 else
@@ -2066,8 +2066,8 @@ dnl sets var_for_size to the size.  Ignores if the size cannot be determined
 dnl
 define(PAC_FORTRAN_GET_REAL_SIZE,
 [AC_MSG_CHECKING([for size of Fortran REAL])
-/bin/rm -f conftestval
-/bin/rm -f conftestf.f conftestf.o
+rm -f conftestval
+rm -f conftestf.f conftestf.o
 cat <<EOF > conftestf.f
       subroutine isize( )
       real i(2)
@@ -2103,7 +2103,7 @@ LIBS="$SaveLIBS"
 else
    :
 fi
-/bin/rm -f conftestf.f conftestf.o
+rm -f conftestf.f conftestf.o
 if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     AC_MSG_RESULT($Pac_CV_NAME)
 else
@@ -2130,7 +2130,7 @@ else
     ifelse($2,,true,$2)
     AC_MSG_RESULT([no])
 fi
-/bin/rm -f conftest.f
+rm -f conftest.f
 ])dnl
 dnl
 dnl Check that signal semantics work correctly
@@ -2171,7 +2171,7 @@ if eval $CC $CFLAGS -o conftest conftest.c > conftest.out 2>&1 ; then
 else
     AC_MSG_RESULT(Could not compile test program!)
 fi
-/bin/rm -f conftest conftest.c conftest.o conftest.out
+rm -f conftest conftest.c conftest.o conftest.out
 ])dnl
 dnl
 dnl
@@ -2201,18 +2201,18 @@ AC_MSG_CHECKING(for current directory name)
 $1=$PWD
 if test "${$1}" != "" -a -d "${$1}" ; then 
     if test -r ${$1}/.foo$$ ; then
-        /bin/rm -f ${$1}/.foo$$
-	/bin/rm -f .foo$$
+        rm -f ${$1}/.foo$$
+	rm -f .foo$$
     fi
     if test -r ${$1}/.foo$$ -o -r .foo$$ ; then
 	$1=
     else
 	echo "test" > ${$1}/.foo$$
 	if test ! -r .foo$$ ; then
-            /bin/rm -f ${$1}/.foo$$
+            rm -f ${$1}/.foo$$
 	    $1=
         else
- 	    /bin/rm -f ${$1}/.foo$$
+ 	    rm -f ${$1}/.foo$$
 	fi
     fi
 fi
@@ -2456,7 +2456,7 @@ EOF
 	    broken=1
         fi
     fi
-    /bin/rm -f foo.a
+    rm -f foo.a
     if test $broken = 1 ; then
         print_error "RANLIB ($RANLIB) failed!"
         print_error "Assuming that ranlib is a stub returning non-zero"
@@ -2480,9 +2480,9 @@ export CONFIG_FILES
 ./config.status
 CONFIG_FILES=""
 for pac_file in $1 ; do 
-    /bin/rm -f .pactmp
+    rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
-    /bin/rm -f $pac_file
+    rm -f $pac_file
     mv .pactmp $pac_file
     ifelse($2,,,chmod $2 $pac_file)
 done
@@ -2715,7 +2715,7 @@ cat > conftest.f <<EOF
         data MPTR/0/
         end
 EOF
-/bin/rm -f conftest.out
+rm -f conftest.out
 $F77 $FFLAGS -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     AC_MSG_RESULT(no)
@@ -2857,7 +2857,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for integer * 2)
     cat > testfort.f <<EOF
@@ -2875,7 +2875,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for integer * 4)
     cat > testfort.f <<EOF
@@ -2893,7 +2893,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for integer * 8)
     cat > testfort.f <<EOF
@@ -2911,7 +2911,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for integer * 16)
     cat > testfort.f <<EOF
@@ -2929,7 +2929,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for real * 4)
     cat > testfort.f <<EOF
@@ -2947,7 +2947,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for real * 8)
     cat > testfort.f <<EOF
@@ -2965,7 +2965,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for real * 16)
     cat > testfort.f <<EOF
@@ -2983,7 +2983,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for double complex)
     cat > testfort.f <<EOF
@@ -3001,7 +3001,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for complex * 8)
     cat > testfort.f <<EOF
@@ -3019,7 +3019,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for complex * 16)
     cat > testfort.f <<EOF
@@ -3037,7 +3037,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for complex * 32)
     cat > testfort.f <<EOF
@@ -3055,7 +3055,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
    ])dnl
 dnl
@@ -3101,7 +3101,7 @@ cat >conftest.f <<EOF
         program main
         end
 EOF
-/bin/rm -f conftest1.out conftest2.out
+rm -f conftest1.out conftest2.out
 if $F77 $FFLAGS -o conftest conftest.f > conftest1.out 2>&1 ; then
     if $F77 $FFLAGSSAV -o conftest conftest.f > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then

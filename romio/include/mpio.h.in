@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpio.h.in,v 1.26 2004/07/29 16:19:25 gropp Exp $    
+ *   $Id: mpio.h.in,v 1.28 2004/10/07 17:59:38 gropp Exp $
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -41,6 +41,15 @@ typedef struct ADIOI_RequestD *MPIO_Request;
 
 #ifndef HAVE_MPI_OFFSET
 @DEFINE_MPI_OFFSET@
+/* If we needed to define MPI_Offset, then we also need to make
+   this definition. */
+#ifndef HAVE_MPI_DATAREP_FUNCTIONS
+#define HAVE_MPI_DATAREP_FUNCTIONS
+typedef int (MPI_Datarep_conversion_function)(void *, MPI_Datatype, int, 
+             void *, MPI_Offset, void *);
+typedef int (MPI_Datarep_extent_function)(MPI_Datatype datatype, MPI_Aint *,
+					  void *);
+#endif
 #endif
 
 #ifndef NEEDS_MPI_FINT
@@ -192,6 +201,13 @@ int MPI_File_write_ordered_end(MPI_File, void *, MPI_Status *);
 
 /* Section 9.5.1 */
 int MPI_File_get_type_extent(MPI_File, MPI_Datatype, MPI_Aint *);
+
+/* Section 9.5.3 */
+int MPI_Register_datarep(char *,
+			 MPI_Datarep_conversion_function *,
+			 MPI_Datarep_conversion_function *,
+			 MPI_Datarep_extent_function *,
+			 void *);
 
 /* Section 9.6.1 */
 int MPI_File_set_atomicity(MPI_File, int);
@@ -369,6 +385,13 @@ int PMPI_File_write_ordered_end(MPI_File, void *, MPI_Status *);
 
 /* Section 9.5.1 */
 int PMPI_File_get_type_extent(MPI_File, MPI_Datatype, MPI_Aint *);
+
+/* Section 9.5.3 */
+int PMPI_Register_datarep(char *,
+			 MPI_Datarep_conversion_function *,
+			 MPI_Datarep_conversion_function *,
+			 MPI_Datarep_extent_function *,
+			 void *);
 
 /* Section 9.6.1 */
 int PMPI_File_set_atomicity(MPI_File, int);

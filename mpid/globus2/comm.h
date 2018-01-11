@@ -26,7 +26,7 @@
 #undef MPID_Scatterv /* not written yet: see MPID_Gatherv's performance 1st */
 #define MPID_Allgather /* symmetric operation: check performance gain */
 #define MPID_Allgatherv /* symmetric operation: check performance gain */
-#define MPID_Alltoall /* symmetric operation: check performance gain */
+#undef MPID_Alltoall /* symmetric operation: check performance gain */
 #undef MPID_Alltoallv /* same problem as MPI_Gatherv, in a worse version */
 #define MPID_Reduce /* check perf for non-commutative case, with large msg */
 #define MPID_Allreduce
@@ -177,6 +177,10 @@ struct MPIR_COMMUNICATOR {
 					    communicators */
     char 		     *comm_name; /* A print name for this 
 					    communicator */
+
+    globus_bool_t vmpi_only; /* to avoid polling TCP on MPI_SOURCE_ANY recvs
+				when all procs in comm use vMPI
+			      */
 
     /*** Topology aware stuff ***/
     int *Topology_Depths;   /* Depths[proc] */

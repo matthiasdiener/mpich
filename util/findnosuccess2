@@ -8,23 +8,27 @@ $no_tar     = 0;
 $no_varwarn = 0;
 $is_loose   = 0;
 foreach $_ (@ARGV) {
-    if (/-nowarn/) {
+    if (/^-nowarn/) {
         $MPICH_WARNING_SEP = 'MPICH Warning' ;
     }
-    elsif (/-echo/) {
+    elsif (/^-echo/) {
 	$debug = 1;
     }
-    elsif (/-notar/) {
+    elsif (/^-notar/) {
 	# special command to skip any step that extracts and builds the mpich
 	# tar file.
 	$no_tar = 1;
     }
-    elsif (/-novarwarn/) {
+    elsif (/^-novarwarn/) {
 	# Special command to skip "The variable ... is set but never used"
 	$no_varwarn = 1;
     }
-    elsif (/-loose/) {
+    elsif (/^-loose/) {
 	$is_loose = 1;
+    }
+    elsif (/^-/) {
+	print STDERR "Unrecognized argument $_\n";
+	exit(1);
     }
     else {
 	$filename = $_;
@@ -270,11 +274,16 @@ if ($is_loose) {
     @SymWarns = ( @p4globsyms );
 }
 
-open( INFD, "<$filename" ) || die "Could not open $filename\n";
+if ($filename) {
+    open( $INFD, "<$filename" ) || die "Could not open $filename\n";
+}
+else {
+    $INFD = STDIN;
+}
 
 $cur_line = 0;
 $nextlinepat = "";
-LINE: while (<INFD>) {
+LINE: while (<$INFD>) {
     $cur_line++;
     $last_line = $cur_line;
     $cur_line = $_;
@@ -285,10 +294,10 @@ LINE: while (<INFD>) {
     if ($is_loose) {
         if (/^\*#    \*\*\*/) {
              $saveline = $_;
-             $_ = <INFD>;  $cur_line++;
+             $_ = <$INFD>;  $cur_line++;
              if (/HAS NON-COMMUTATIVE ARITHMETIC/) {
                  # skip the message
-                 while (<INFD>) {
+                 while (<$INFD>) {
                      $cur_line++;
                      if (/x\*y-y\*x =/) { next LINE; }
                  }
@@ -302,7 +311,7 @@ LINE: while (<INFD>) {
     # Try to match against range
     for ($i=0; $i<$#Ranges; $i += 2) {
 	if (/$Ranges[$i]/) {
-	    while (<INFD>) {
+	    while (<$INFD>) {
 		$cur_line++;
 		if (/$Ranges[$i+1]/) { next LINE; }
 	    }
@@ -311,7 +320,7 @@ LINE: while (<INFD>) {
     # Fortran compiler messages:
     if (/^[-A-Za-z0-9\/_\.]*\.f:$/) {
         #print "In fortran with $_";
-	while (<INFD>) {
+	while (<$INFD>) {
 	    $cur_line++;
 	    if (/^\s*[A-Za-z0-9_]*:$/) { next; }
 	    if (/^\s*MAIN\s*[A-Za-z0-9_]*:\s*$/) { next; }
@@ -322,10 +331,10 @@ LINE: while (<INFD>) {
     # Multiline C compiler messages
     if (/cc-1171\s*cc: WARNING/) {
         $save_line = $_;
-        $_ = <INFD>;
+        $_ = <$INFD>;
         $cur_line++;
         if (/The indicated expression has no effect/) {
-           while (<INFD>) {
+           while (<$INFD>) {
                $cur_line++;
                if (/\s*\^/) { next LINE; }
            }
@@ -335,9 +344,9 @@ LINE: while (<INFD>) {
     if (/\"[a-zA-Z0-9_]*\.c\".* use of \"=\" where \"==\" may/) {
         # Intel compiler doesn't recognize the (a = b) idiom for 
 	# assignments within an if.
-        $_ = <INFD>;
+        $_ = <$INFD>;
         $cur_line++;
-	while (<INFD>) {
+	while (<$INFD>) {
 	    $cur_line++;
 	    if (/\s*\^/) { next LINE; }
 	}
@@ -346,10 +355,10 @@ LINE: while (<INFD>) {
         # Summarize java errors
 	$file = $1;
 	$missing_package = $2;
-	$_ = <INFD>;
+	$_ = <$INFD>;
 	$cur_line++;
 	$java_missing{$file} .= $missing_package;
-	while (<INFD>) {
+	while (<$INFD>) {
 	    $cur_line++;
 	    if (/\s*\^/) { next LINE; }
 	}
@@ -412,7 +421,7 @@ LINE: while (<INFD>) {
 	if (/$pat/) { 
 	    # Remove any continuation lines
 	    while (/^\s*[^#].*\\$/) {
-		 $_ = <INFD>; 
+		 $_ = <$INFD>; 
 		 $cur_line++;
 		 $last_line = $cur_line;
 		 $cur_line = $_;
@@ -437,7 +446,7 @@ LINE: while (<INFD>) {
     # Special case for excluding the tar build
     if ( $no_tar ) {
 	if (/^\*# Buildtar/) {
-	    while (<INFD>) {
+	    while (<$INFD>) {
 		$cur_line++;
 		if (/^Full distribution/) { next LINE; }
 	    }
@@ -447,17 +456,17 @@ LINE: while (<INFD>) {
     # In file included from <path>/basex11.h:15,
     if (/.*\/basex11\.h:1.,/) {
 	$cur_line++;
-	<INFD>; next LINE; 
+	<$INFD>; next LINE; 
     }
     if ( $no_varwarn ) {
 	if (/^\s*The variable .* is set but never used/) {
-	    while (<INFD>) {
+	    while (<$INFD>) {
 		$cur_line++;
 		if (/^\s*^/) { next LINE; }
 	    }
 	}
 	if (/^\s*The variable .* was declared never/) {
-	    while (<INFD>) {
+	    while (<$INFD>) {
 		$cur_line++;
 		if (/^\s*^/) { next LINE; }
 	    }

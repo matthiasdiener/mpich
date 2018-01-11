@@ -596,8 +596,11 @@ static int get_config( char *filename )
     }
     mpd_getval( "password", mpd_passwd );
     if ( mpd_passwd[0] == '\0' ) {
-	mpdprintf( 1, "get_config: no passwd in config file\n" );
-	return( -1 );
+	mpd_getval( "secretword", mpd_passwd );
+	if (mpd_passwd[0] == '\0') {
+	    mpdprintf( 1, "get_config: no passwd in config file\n" );
+	    return( -1 );
+	}
     }
     mpd_getval( "working_directory", working_directory );
     mpd_getval( "lhs_host", lhshost );

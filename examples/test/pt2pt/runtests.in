@@ -92,7 +92,7 @@ writesummaryfile=no
 # If cannot run test, do that and exit
 if [ $check_canrun = 1 ] ; then
     MakeExe third
-    /bin/rm -f third.out
+    rm -f third.out
     echo '*** Testing Unexpected messages ***' >> third.out
     $mpirun $args -np 2 ./third </dev/null >> third.out 2>&1
     echo '*** Testing Unexpected messages ***' >> third.out
@@ -114,7 +114,7 @@ EOF
 	rc=1
     fi
     CleanExe third
-    /bin/rm -f third.out 
+    rm -f third.out 
     exit $rc
 fi
 
@@ -295,7 +295,7 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     #
     OutTime
     testfiles="$testfiles structf.out"
-    /bin/rm -f structf.out
+    rm -f structf.out
     MakeExe structf
     echo '*** Testing Type_struct from Fortran ***'
     echo '*** Testing Type_struct from Fortran ***' >> structf.out
@@ -319,7 +319,7 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
 
     #
 #    testfiles="$testfiles pingpong.out"
-#    /bin/rm -f pingpong.out
+#    rm -f pingpong.out
 #    MakeExe pingpong
 #    echo '*** Testing pt-2-pt from Fortran (3) ***'
 #    echo '*** Testing pt-2-pt from Fortran (3) ***' >> pingpong.out

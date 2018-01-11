@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_hfs_open.c,v 1.10 2003/04/18 20:14:53 David Exp $    
+ *   $Id: ad_hfs_open.c,v 1.11 2005/05/23 23:27:40 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -35,6 +35,7 @@ void ADIOI_HFS_Open(ADIO_File fd, int *error_code)
 	amode = amode | O_EXCL;
 
     fd->fd_sys = open64(fd->filename, amode, perm);
+    fd->fd_direct = -1;
 
     if ((fd->fd_sys != -1) && (fd->access_mode & ADIO_APPEND)) {
 	fd->fp_ind = lseek64(fd->fd_sys, 0, SEEK_END);

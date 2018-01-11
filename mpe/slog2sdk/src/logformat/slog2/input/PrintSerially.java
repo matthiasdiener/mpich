@@ -22,11 +22,15 @@ import java.util.Iterator;
 */
 public class PrintSerially
 {
-    private static       boolean  isForeItr         = true;
-    private static       int      itrTopoLevel      = InputLog.ITERATE_ALL;
-    private static       String   in_filename;
-    private static       double   time_init_ftr     = 0.0;
-    private static       double   time_final_ftr    = 1.0;
+    private static String         in_filename;
+    private static Drawable.Order dobj_order   = Drawable.INCRE_STARTTIME_ORDER;
+    private static int            itrTopoLevel = InputLog.ITERATE_ALL;
+    private static double         time_init_ftr  = 0.0;
+    private static double         time_final_ftr = 1.0;
+    private static boolean        printCategoryMap  = true;
+    private static boolean        printTreeDir      = true;
+    private static boolean        printLineIDMaps   = true;
+    private static boolean        printDrawables    = true;
 
 
     public static final void main( String[] args )
@@ -53,7 +57,13 @@ public class PrintSerially
             InputLog.stdoutConfirmation();
         }
         slog_ins.initialize();
-        System.out.println( slog_ins );
+        System.out.println( slog_ins.toString( printCategoryMap,
+                                               printTreeDir,
+                                               printLineIDMaps ) );
+        if ( !printDrawables ) {
+            slog_ins.close();
+            System.exit( 0 );
+        }
 
         treedir = slog_ins.getTreeDir();
         // System.out.println( treedir );
@@ -63,28 +73,33 @@ public class PrintSerially
         timeframe = new TimeBoundingBox( root_dir.getTimeBoundingBox() );
         scaleTimeBounds( timeframe );
 
-        double    prev_starttime;
+        boolean   isStartTimeOrdered;
+        boolean   isIncreTimeOrdered;
+        double    prev_bordertime;
 
         Iterator  dobj_itr;
         Drawable  dobj;
+        double    dobj_bordertime;
         int       dobj_count;
 
-        if ( isForeItr )
-            prev_starttime = Double.NEGATIVE_INFINITY;
-        else
-            prev_starttime = Double.POSITIVE_INFINITY;
-        dobj_count = 0;
+        isStartTimeOrdered = dobj_order.isStartTimeOrdered();
+        isIncreTimeOrdered = dobj_order.isIncreasingTimeOrdered();
+        prev_bordertime    = isIncreTimeOrdered ?
+                             Double.NEGATIVE_INFINITY :
+                             Double.POSITIVE_INFINITY;
+        dobj_count         = 0;
 
-        dobj_itr = slog_ins.iteratorOfRealDrawables( timeframe, isForeItr,
+        dobj_itr = slog_ins.iteratorOfRealDrawables( timeframe, dobj_order,
                                                      itrTopoLevel );
         while ( dobj_itr.hasNext() ) {
-            dobj = (Drawable) dobj_itr.next();
-            if ( isForeItr ) {
-                if ( prev_starttime > dobj.getEarliestTime() )
+            dobj            = (Drawable) dobj_itr.next();
+            dobj_bordertime = dobj.getBorderTime( isStartTimeOrdered );
+            if ( isIncreTimeOrdered ) {
+                if ( prev_bordertime > dobj_bordertime )
                     System.out.print( "  *****  " );
             }
             else {
-                if ( prev_starttime < dobj.getEarliestTime() )
+                if ( prev_bordertime < dobj_bordertime )
                     System.out.print( "  *****  " );
             }
 
@@ -93,7 +108,7 @@ public class PrintSerially
             // System.out.println( dobj + " <=> " + (++dobj_count) );
             // System.out.println( dobj  );
             // printClogArrowMessageSize( dobj );
-            prev_starttime  = dobj.getEarliestTime();
+            prev_bordertime  = dobj_bordertime;
         }
 
         slog_ins.close();
@@ -124,20 +139,32 @@ public class PrintSerially
     private static String help_msg = "Usage: java slog2.input.PrintSerially "
                                    + "[options] slog2_filename.\n"
                                    + "Options: \n"
-                                   + "\t [-h|-help|--help]             "
+                                   + "\t [-h|-help|--help]           "
                                    + "\t Display this message.\n"
-                                   + "\t [-s|-state] (default all)     "
+                                   + "\t [-c|-category] DEF          "
+                                   + "\t Print category map only.\n"
+                                   + "\t [-d|-directory] DEF         "
+                                   + "\t Print directory tree only.\n"
+                                   + "\t [-y|-ycoordmap] DEF         "
+                                   + "\t Print Y-coord. map only.\n"
+                                   + "\t [-s|-state] DEF             "
                                    + "\t Print states only.\n"
-                                   + "\t [-a|-arrow]                   "
+                                   + "\t [-a|-arrow] DEF             "
                                    + "\t Print arrows only.\n"
-                                   + "\t [-f|-forward] (default)       "
+                                   + "\t [-is|-incre_starttime] DEF  "
                                    + "\t Print in increasing starttime order.\n"
-                                   + "\t [-b|-backward]                "
+                                   + "\t [-ds|-decre_starttime]      "
                                    + "\t Print in decreasing starttime order.\n"
-                                   + "\t [-ts time_start_factor]       "
+                                   + "\t [-ie|-incre_endtime]        "
+                                   + "\t Print in increasing endtime order.\n"
+                                   + "\t [-de|-decre_endtime]        "
+                                   + "\t Print in decreasing endtime order.\n"
+                                   + "\t [-ts time_start_factor]     "
                                    + "\t Default value is 0.0 (min).\n"
-                                   + "\t [-tf time_final_factor]       "
-                                   + "\t Default value is 1.0 (max).\n";
+                                   + "\t [-tf time_final_factor]     "
+                                   + "\t Default value is 1.0 (max).\n"
+                                   + "*** The options marked by DEF "
+                                   + "are enabled by default.\n";
 
     private static void parseCmdLineArgs( String argv[] )
     {
@@ -154,24 +181,64 @@ public class PrintSerially
                         System.out.flush();
                         System.exit( 0 );
                     }
-                    else if (  argv[ idx ].equals( "-f" )
-                            || argv[ idx ].equals( "-forward" ) ) {
-                         isForeItr = true;
+                    else if (  argv[ idx ].equals( "-c" )
+                            || argv[ idx ].equals( "-category" ) ) {
+                         printCategoryMap = true;
+                         printTreeDir     = false;
+                         printLineIDMaps  = false;
+                         printDrawables   = false;
                          idx++;
                     }
-                    else if (  argv[ idx ].equals( "-b" )
-                            || argv[ idx ].equals( "-backward" ) ) {
-                         isForeItr = false;
+                    else if (  argv[ idx ].equals( "-d" )
+                            || argv[ idx ].equals( "-directory" ) ) {
+                         printCategoryMap = false;
+                         printTreeDir     = true;
+                         printLineIDMaps  = false;
+                         printDrawables   = false;
+                         idx++;
+                    }
+                    else if (  argv[ idx ].equals( "-c" )
+                            || argv[ idx ].equals( "-ycoordmap" ) ) {
+                         printCategoryMap = false;
+                         printTreeDir     = false;
+                         printLineIDMaps  = true;
+                         printDrawables   = false;
+                         idx++;
+                    }
+                    else if (  argv[ idx ].equals( "-is" )
+                            || argv[ idx ].equals( "-incre_starttime" ) ) {
+                         dobj_order       = Drawable.INCRE_STARTTIME_ORDER;
+                         printDrawables   = true;
+                         idx++;
+                    }
+                    else if (  argv[ idx ].equals( "-ds" )
+                            || argv[ idx ].equals( "-decre_starttime" ) ) {
+                         dobj_order       = Drawable.DECRE_STARTTIME_ORDER;
+                         printDrawables   = true;
+                         idx++;
+                    }
+                    else if (  argv[ idx ].equals( "-ie" )
+                            || argv[ idx ].equals( "-incre_endtime" ) ) {
+                         dobj_order       = Drawable.INCRE_FINALTIME_ORDER;
+                         printDrawables   = true;
+                         idx++;
+                    }
+                    else if (  argv[ idx ].equals( "-de" )
+                            || argv[ idx ].equals( "-decre_endtime" ) ) {
+                         dobj_order       = Drawable.DECRE_FINALTIME_ORDER;
+                         printDrawables   = true;
                          idx++;
                     }
                     else if (  argv[ idx ].equals( "-s" )
                             || argv[ idx ].equals( "-state" ) ) {
-                         itrTopoLevel = InputLog.ITERATE_STATES;
+                         itrTopoLevel     = InputLog.ITERATE_STATES;
+                         printDrawables   = true;
                          idx++;
                     }
                     else if (  argv[ idx ].equals( "-a" )
                             || argv[ idx ].equals( "-arrow" ) ) {
-                         itrTopoLevel = InputLog.ITERATE_ARROWS;
+                         itrTopoLevel     = InputLog.ITERATE_ARROWS;
+                         printDrawables   = true;
                          idx++;
                     }
                     else if ( argv[ idx ].equals( "-ts" ) ) {

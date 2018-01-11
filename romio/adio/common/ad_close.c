@@ -1,37 +1,31 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_close.c,v 1.17 2004/07/27 20:44:12 thakur Exp $    
+ *   $Id: ad_close.c,v 1.21 2004/10/22 21:48:14 robl Exp $
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "adio.h"
-/* #ifdef MPISGI
-#include "mpisgi2.h"
-#endif */
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#ifdef PROFILE
+#include "mpe.h"
+#endif
 
 void ADIO_Close(ADIO_File fd, int *error_code)
 {
     int i, j, k, combiner, myrank, err, is_contig;
-#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIO_CLOSE";
-#endif
 
     if (fd->async_count) {
-#ifdef MPICH2
-	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
-	    "**io %s", strerror(errno));
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__, MPI_ERR_IO, "**io",
+					   "**io %s", strerror(errno));
 	return;
-#elif defined(PRINT_ERR_MSG)
-	FPRINTF(stderr, "ADIO_Close: Error! There are outstanding nonblocking I/O operations on this file.\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else /* MPICH-1 */
-	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_ASYNC_OUTSTANDING,
-				     myname, (char *) 0, (char *) 0);
-	ADIOI_Error(fd, *error_code, myname);
-#endif
-        return;
     }
 
     /* because of deferred open, this warants a bit of explaining.  First, if
@@ -71,6 +65,8 @@ void ADIO_Close(ADIO_File fd, int *error_code)
 	}
     }
 
+    ADIOI_Free(fd->hints->ranklist);
+    ADIOI_Free(fd->hints->cb_config_list);
     ADIOI_Free(fd->hints);
     ADIOI_Free(fd->fns);
     MPI_Comm_free(&(fd->comm));
@@ -92,5 +88,5 @@ void ADIO_Close(ADIO_File fd, int *error_code)
 
     MPI_Info_free(&(fd->info));
 
-    ADIOI_Free(fd);
+    /* memory for fd is freed in MPI_File_close */
 }

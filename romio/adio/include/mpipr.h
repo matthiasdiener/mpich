@@ -1,6 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/*  $Id: mpipr.h,v 1.9 2004/01/08 22:41:54 gropp Exp $
- *
+/*
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
@@ -361,6 +360,12 @@
 #define MPI_Info_dup PMPI_Info_dup
 #undef MPI_Info_free
 #define MPI_Info_free PMPI_Info_free
+#undef MPI_Grequest_start
+#define MPI_Grequest_start PMPI_Grequest_start
+#undef MPI_Grequest_complete
+#define MPI_Grequest_complete PMPI_Grequest_complete
+#undef MPI_Status_set_cancelled
+#define MPI_Status_set_cancelled PMPI_Status_set_cancelled
 /* #undef MPI_Info_c2f
 #define MPI_Info_c2f PMPI_Info_c2f
 #undef MPI_Info_f2c

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_atom.c,v 1.10 2003/04/05 07:52:06 David Exp $    
+ *   $Id: get_atom.c,v 1.13 2005/02/18 17:10:23 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -35,22 +35,22 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_File_get_atomicity(MPI_File fh, int *flag)
+int MPI_File_get_atomicity(MPI_File mpi_fh, int *flag)
 {
-#ifndef PRINT_ERR_MSG
     int error_code;
+    ADIO_File fh;
     static char myname[] = "MPI_FILE_GET_ATOMICITY";
-#endif
+    
+    MPID_CS_ENTER();
+    fh = MPIO_File_resolve(mpi_fh);
 
-#ifdef PRINT_ERR_MSG
-    if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
-	FPRINTF(stderr, "MPI_File_get_atomicity: Invalid file handle\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-#else
-    ADIOI_TEST_FILE_HANDLE(fh, myname);
-#endif
+    /* --BEGIN ERROR HANDLING-- */
+    MPIO_CHECK_FILE_HANDLE(fh, myname, error_code);
+    /* --END ERROR HANDLING-- */
 
     *flag = fh->atomicity;
+
+fn_exit:
+    MPID_CS_EXIT();
     return MPI_SUCCESS;
 }

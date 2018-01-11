@@ -12,8 +12,8 @@ Nonblocking read using individual file pointer
 #ifdef HAVE_MPI_GREQUEST
 #include "mpiu_greq.h"
 
-int MPI_File_iread(MPI_File fh, void *buf, int count, 
-               MPI_Datatype datatype, MPIO_Request *request)
+int MPI_File_iread(MPI_File mpi_fh, void *buf, int count, 
+                  MPI_Datatype datatype, MPIO_Request *request)
 </PRE>
 <H2>Input Parameters</H2>
 <DL><DT><B>fh </B> <DD> file handle (handle)

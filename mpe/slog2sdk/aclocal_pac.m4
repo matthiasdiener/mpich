@@ -25,18 +25,18 @@ AC_MSG_CHECKING(for current directory name)
 $1=$PWD
 if test "${$1}" != "" -a -d "${$1}" ; then 
     if test -r ${$1}/.foo$$ ; then
-        /bin/rm -f ${$1}/.foo$$
-	/bin/rm -f .foo$$
+        rm -f ${$1}/.foo$$
+	rm -f .foo$$
     fi
     if test -r ${$1}/.foo$$ -o -r .foo$$ ; then
 	$1=
     else
 	echo "test" > ${$1}/.foo$$
 	if test ! -r .foo$$ ; then
-            /bin/rm -f ${$1}/.foo$$
+            rm -f ${$1}/.foo$$
 	    $1=
         else
- 	    /bin/rm -f ${$1}/.foo$$
+ 	    rm -f ${$1}/.foo$$
 	fi
     fi
 fi
@@ -84,9 +84,9 @@ export CONFIG_FILES
 ./config.status
 CONFIG_FILES=""
 for pac_file in $1 ; do 
-    /bin/rm -f .pactmp
+    rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
-    /bin/rm -f $pac_file
+    rm -f $pac_file
     mv .pactmp $pac_file
     ifelse($2,,,chmod $2 $pac_file)
 done
@@ -111,7 +111,7 @@ dnl determines that it is an improperly built gnumake, it adds
 dnl --no-print-directorytries to the symbol MAKE.
 define(PAC_MAKE_IS_GNUMAKE,[
 AC_MSG_CHECKING(gnumake)
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -131,7 +131,7 @@ if test "$str" != "success" ; then
 else
     AC_MSG_RESULT(no)
 fi
-/bin/rm -f conftest
+rm -f conftest
 str=""
 ])dnl
 dnl
@@ -139,7 +139,7 @@ dnl PAC_MAKE_IS_BSD44([true text])
 dnl
 define(PAC_MAKE_IS_BSD44,[
 AC_MSG_CHECKING(BSD 4.4 make)
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 ALL:
 	@echo "success"
@@ -148,7 +148,7 @@ cat > conftest1 <<.
 include conftest
 .
 str=`$MAKE -f conftest1 2>&1`
-/bin/rm -f conftest conftest1
+rm -f conftest conftest1
 if test "$str" != "success" ; then
     AC_MSG_RESULT(Found BSD 4.4 so-called make)
     echo "The BSD 4.4 make is INCOMPATIBLE with all other makes."
@@ -165,7 +165,7 @@ dnl PAC_MAKE_IS_OSF([true text])
 dnl
 define(PAC_MAKE_IS_OSF,[
 AC_MSG_CHECKING(OSF V3 make)
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -173,7 +173,7 @@ ALL:
 	@echo "success"
 .
 str=`$MAKE -f conftest 2>&1`
-/bin/rm -f conftest 
+rm -f conftest 
 if test "$str" != "success" ; then
     AC_MSG_RESULT(Found OSF V3 make)
     echo "The OSF V3 make does not allow comments in target code."
@@ -243,3 +243,60 @@ else
     AC_MSG_ERROR([ $2 ])
 fi
 ])dnl
+dnl/*D
+dnl PAC_PROG_CHECK_INSTALL_WORKS - Check whether the install program in INSTALL
+dnl works.
+dnl
+dnl Synopsis:
+dnl PAC_PROG_CHECK_INSTALL_WORKS
+dnl
+dnl Output Effect:
+dnl   Sets the variable 'INSTALL' to the value of 'ac_sh_install' if 
+dnl   a file cannot be installed into a local directory with the 'INSTALL'
+dnl   program
+dnl
+dnl Notes:
+dnl   The 'AC_PROG_INSTALL' scripts tries to avoid broken versions of 
+dnl   install by avoiding directories such as '/usr/sbin' where some 
+dnl   systems are known to have bad versions of 'install'.  Unfortunately, 
+dnl   this is exactly the sort of test-on-name instead of test-on-capability
+dnl   that 'autoconf' is meant to eliminate.  The test in this script
+dnl   is very simple but has been adequate for working around problems 
+dnl   on Solaris, where the '/usr/sbin/install' program (known by 
+dnl   autoconf to be bad because it is in /usr/sbin) is also reached by a 
+dnl   soft link through /bin, which autoconf believes is good.
+dnl
+dnl   No variables are cached to ensure that we do not make a mistake in 
+dnl   our choice of install program.
+dnl
+dnl   The Solaris configure requires the directory name to immediately
+dnl   follow the '-c' argument, rather than the more common 
+dnl.vb
+dnl      args sourcefiles destination-dir
+dnl.ve
+dnl D*/
+AC_DEFUN([PAC_PROG_CHECK_INSTALL_WORKS],[
+if test -z "$INSTALL" ; then
+    AC_MSG_RESULT([No install program available])
+else
+    # Check that this install really works
+    rm -f conftest
+    echo "Test file" > conftest
+    if test ! -d .conftest ; then mkdir .conftest ; fi
+    AC_MSG_CHECKING([whether install works])
+    if $INSTALL conftest .conftest >/dev/null 2>&1 ; then
+        installOk=yes
+    else
+        installOk=no
+    fi
+    rm -rf .conftest conftest
+    AC_MSG_RESULT($installOk)
+    if test "$installOk" = no ; then
+        if test -n "$ac_install_sh" ; then
+            INSTALL=$ac_install_sh
+        else
+	    AC_MSG_ERROR([Unable to find working install])
+        fi
+    fi
+fi
+])

@@ -21,8 +21,8 @@ RM           = @RM@
 TARGET  = $(libbuild_dir)/clog2print.jar
 PACKAGE = logformat.clog2
 SRC     = Const.java MixedDataInputStream.java \
-          StrCname.java StrDesc.java StrFile.java StrFormat.java StrBytes.java \
-          RecHeader.java \
+          StrColor.java StrDesc.java StrFile.java StrFormat.java StrBytes.java \
+          Preamble.java RecHeader.java \
           RecDefState.java RecDefMsg.java \
           RecDefEvent.java RecDefConst.java \
           RecBare.java RecCargo.java RecMsg.java RecColl.java RecComm.java \
@@ -39,10 +39,10 @@ CLASSDIR   = ../..
 CLASSPATH  = ../..
 PKGDIR     = logformat/clog2
 
-JFLAGS = -sourcepath @JPATH_START@$(SRCDIR)@JPATH_FINAL@ -classpath @JPATH_START@$(CLASSPATH)@JPATH_FINAL@ -d @JPATH_START@$(CLASSDIR)@JPATH_FINAL@ @JFLAGS@
+JCFLAGS = -sourcepath @JPATH_START@$(SRCDIR)@JPATH_FINAL@ -classpath @JPATH_START@$(CLASSPATH)@JPATH_FINAL@ -d @JPATH_START@$(CLASSDIR)@JPATH_FINAL@ @JFLAGS@
 
 .java.class:
-	$(JC) $(JFLAGS) @JPATH_START@$<@JPATH_FINAL@
+	$(JC) $(JCFLAGS) $(JFLAGS) @JPATH_START@$<@JPATH_FINAL@
 
 ALL: $(TARGET)
 
@@ -52,7 +52,8 @@ $(TARGET): $(OBJ)
 	echo "Main-Class: $(PACKAGE).Print" > $(PACKAGE).manifest ; \
 	jarfile=@JPATH_START@$@@JPATH_FINAL@ ; \
 	classdir_prefix=@JPATH_START@$(PKGDIR)/@JPATH_FINAL@ ; \
-	$(JAR) cvfm $${jarfile} $(PACKAGE).manifest $${classdir_prefix}*.class
+	$(JAR) $(JARFLAGS)cfm $${jarfile} $(PACKAGE).manifest ; \
+        $(JAR) $(JARFLAGS)uf $${jarfile} $${classdir_prefix}*.class
 
 clean:
 	cd $(CLASSDIR) && \
@@ -62,3 +63,6 @@ rmlib:
 	$(RM) $(TARGET)
 
 realclean: clean rmlib
+
+distclean: realclean
+	@-$(RM) Makefile

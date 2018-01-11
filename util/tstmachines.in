@@ -58,7 +58,7 @@ if [ ! -f $machineFile ] ; then
     exit 1
 fi
 list=`cat $machineFile | sed -e '/\#/d' | tr -s '\012' ' '`
-/bin/rm -f mpichfoo
+rm -f mpichfoo
 echo "A test" > mpichfoo
 if [ ! -s mpichfoo ] ; then
     echo "Could not create test file in this directory. "
@@ -72,13 +72,13 @@ if [ -n "@AUTOMOUNTFIX@" ] ; then
         PWDtest=`pwd`
     fi
     if [ -n "$PWD" ] ; then
-        /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+        rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
         echo "test" > $PWD/.mpirtmp
         if [ ! -s $PWDtest/.mpirtmp ] ; then
-	    /bin/rm -f $PWD/.mpirtmp
+	    rm -f $PWD/.mpirtmp
             PWD=$PWDtest
         fi
-        /bin/rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
+        rm -f $PWDtest/.mpirtmp $PWD/.mpirtmp
     else 
         PWD=$PWDtest
     fi
@@ -205,7 +205,7 @@ for machine in $list ; do
 	livelist="$livelist $machine"
     fi
 done
-/bin/rm -f mpichfoo
+rm -f mpichfoo
 if [ $errls -gt 0 ] ; then
 cat <<EOF
     The ls test failed on some machines.
@@ -224,7 +224,7 @@ EOF
 fi
 #
 # Now, try running a simple USER program
-/bin/rm -f tstfoo.c 
+rm -f tstfoo.c 
 cat >tstfoo.c <<.
 main(){return 0;}
 .
@@ -232,7 +232,7 @@ $CC -c tstfoo.c
 $CLINKER -o tstfoo tstfoo.o
 if [ ! -x tstfoo ] ; then
     echo "Could not build a sample program using $CC and $CLINKER!"
-    /bin/rm -f tstfoo.c
+    rm -f tstfoo.c
     exit 1
 fi
 myprog=$PWD_TRIAL/tstfoo
@@ -258,7 +258,7 @@ for machine in $list ; do
 	livelist="$livelist $machine"
     fi
 done
-/bin/rm -f tstfoo tstfoo.c tstfoo.o
+rm -f tstfoo tstfoo.c tstfoo.o
 if [ $erruser -gt 0 ] ; then
     cat <<EOF
     The simple program test failed.

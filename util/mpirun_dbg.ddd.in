@@ -35,4 +35,4 @@ echo "br MPI_Init" >> $dbgfile
 echo "set args $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir" >> $dbgfile
 echo "run" >> $dbgfile
 ddd --command=$dbgfile $prognamemain
-/bin/rm -f $dbgfile
+rm -f $dbgfile

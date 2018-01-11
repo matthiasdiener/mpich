@@ -26,7 +26,7 @@ export CONFIG_FILES
 #
 # I once made a suggestion to do
 #if [ -n "$PREFIX" ] ; then 
-#    /bin/rm -f .t1 
+#    rm -f .t1 
 #    cat $file | sed -e "s%@INSTALL_DIR@%$PREFIX%g" > .t1
 #    mv .t1 $file
 #fi

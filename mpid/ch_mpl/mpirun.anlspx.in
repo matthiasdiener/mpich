@@ -50,7 +50,7 @@ if [ $mvhome = 1 ] ; then
     else
 	# If you don't remove the file first, sometimes the 
 	# WRONG FILE (the OLD ONE) is found by the system.
-	/bin/rm -f $localpgm
+	rm -f $localpgm
 	if [ -s $localpgm ] ; then
 	    echo "Could not move $progname to /sphome/$LOGNAME/$localpgm"
 	    if [ -d $localpgm ] ; then
@@ -70,14 +70,14 @@ fi
 #
 # See if we can write in $PWD_LOCAL.  If not, try $HOME.
 SCRIPT_DIR=$PWD_LOCAL
-/bin/rm -f $PWD_LOCAL/PItest$$
+rm -f $PWD_LOCAL/PItest$$
 echo "Test" > $PWD_LOCAL/PItest$$
 if [ ! -s $PWD_LOCAL/PItest$$ ] ; then
     SCRIPT_DIR=$HOME
 fi
-/bin/rm -f $PWD_LOCAL/PItest$$
-/bin/rm -f $SCRIPT_DIR/PIrun.$$
-/bin/rm -f /sphome/$LOGNAME/job.output.$$
+rm -f $PWD_LOCAL/PItest$$
+rm -f $SCRIPT_DIR/PIrun.$$
+rm -f /sphome/$LOGNAME/job.output.$$
 if [ -z "$stdinfile" ] ; then
    stdinfile=/dev/null
 fi
@@ -112,7 +112,7 @@ if [ $polling_mode = 0 ] ; then
    MP_CSS_INTERRUPT=YES
    export MP_CSS_INTERRUPT
 fi
-/bin/rm -f /sphome/$LOGNAME/job.output.$$
+rm -f /sphome/$LOGNAME/job.output.$$
 # Wait for no-zero-sized SPnodes file
 while test \! -s \$MP_HOSTFILE ; do sleep 1 ; done
 #
@@ -146,12 +146,12 @@ EOF
        rsh $homenode -n $SCRIPT_DIR/PIrun.$$
    fi
    if [ $rmhome = 1 ] ; then
-	/bin/rm $localpgm
+	rm $localpgm
    fi
-   /bin/rm -f $SCRIPT_DIR/PIrun.$$ 
+   rm -f $SCRIPT_DIR/PIrun.$$ 
    if [ "$mvback" != "" ] ; then
 	(cd $PWD_LOCAL ; for file in $mvback ; do \
-	if [ -f $file ] ; then cp $file $PWD_TRIAL ; /bin/rm $file ; \
+	if [ -f $file ] ; then cp $file $PWD_TRIAL ; rm $file ; \
 	fi ; done )
    fi
    exit 0
@@ -187,7 +187,7 @@ if [ $polling_mode = 0 ] ; then
    MP_CSS_INTERRUPT=YES
    export MP_CSS_INTERRUPT
 fi
-/bin/rm -f /sphome/$LOGNAME/job.output.$$
+rm -f /sphome/$LOGNAME/job.output.$$
 # Wait for no-zero-sized SPnodes file
 while test \! -s \$MP_HOSTFILE ; do sleep 1 ; done
 #
@@ -235,10 +235,10 @@ if [ $just_testing = 1 ] ; then
     echo JID=\`/usr/local/bin/getjid\`
     echo spwait \$JID
     if [ $rmhome = 1 ] ; then
-	echo "/bin/rm $localpgm"
+	echo "rm $localpgm"
     fi
     if [ "$mvback" != "" ] ; then
-	echo "(cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; /bin/rm $mvback )"
+	echo "(cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; rm $mvback )"
     fi
 else
     # Send output to /dev/null in case we're trying to 
@@ -283,19 +283,19 @@ else
     # (sleeps removed now that spwait works!)
     $SYNCLOC > /dev/null 2>&1
     if [ $rmhome = 1 ] ; then
-	/bin/rm $localpgm
+	rm $localpgm
     fi
-    /bin/rm -f /sphome/$LOGNAME/SPnodes.$JID $SCRIPT_DIR/PIrun.$$ 
+    rm -f /sphome/$LOGNAME/SPnodes.$JID $SCRIPT_DIR/PIrun.$$ 
     if [ "$mvback" != "" ] ; then
 	(cd $PWD_LOCAL ; for file in $mvback ; do \
-	if [ -f $file ] ; then cp $file $PWD_TRIAL ; /bin/rm $file ; \
+	if [ -f $file ] ; then cp $file $PWD_TRIAL ; rm $file ; \
 	fi ; done )
     fi
     if [ -s /sphome/$LOGNAME/job.output.$$ ] ; then 
 	# Try a touch to synchronize file caches... Sigh... 
 	touch /sphome/$LOGNAME/job.output.$$
 	cat /sphome/$LOGNAME/job.output.$$
-	/bin/rm -f /sphome/$LOGNAME/job.output.$$
+	rm -f /sphome/$LOGNAME/job.output.$$
     # Note that there is no good way to identify problems with the run
     # now...
 #    else

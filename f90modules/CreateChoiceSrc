@@ -54,9 +54,9 @@ if [ -z "$types" ] ; then
     # Ensure that the MAKE value is available 
     export MAKE
     if [ $choicetype = "traditional" ] ; then
-        types=`$srcdir/FindBasicTypes`
+        types="`$srcdir/FindBasicTypes` character"
     else
-        types=`$srcdir/FindKindTypes`
+        types="`$srcdir/FindKindTypes` character"
     fi
 fi
 rm -f mpi.add
@@ -75,6 +75,10 @@ for type in $types ; do
     else
       f90typestring=`echo $type | \
          sed -e 's/\([a-z]*\)\([0-9][0-9]*\)/\1 (KIND=\2)/'`
+    fi
+    if [ "$f90typestring" = "character" ] ; then
+	# Special case for character - always use len=* form
+	f90typestring="character (len=*)"
     fi
     eval f90typesize=\$"${type}size"
     if [ -z "$f90typesize" ] ; then
@@ -125,7 +129,6 @@ for type in $types ; do
         -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_sv.f90 > mpi1__${typename}_sv.${F90SUFFIX}
     sed -e "s/MODULE MPI1__<type>_v2/MODULE MPI1__${TYPEUC}_V2/g" \
         -e "s/<type>/$f90typestring/g" ${srcdir}/mpi1__type_v2.f90 > mpi1__${typename}_v2.${F90SUFFIX}
-
     sed -e "s/MODULE MPI2__<type>_v/MODULE MPI2__${TYPEUC}_V/g" \
         -e "s/<typesize>/$f90typesize/g" \
         -e "s/<type>/$f90typestring/g" \

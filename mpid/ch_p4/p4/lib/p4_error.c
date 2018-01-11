@@ -42,6 +42,13 @@ static P4_HANDLER_TYPE (*prev_sigint_handler) (HANDLER_ARGS) = NULL;
 static P4_HANDLER_TYPE (*prev_sigsegv_handler) (HANDLER_ARGS) = NULL;
 static P4_HANDLER_TYPE (*prev_sigbus_handler) (HANDLER_ARGS) = NULL;
 static P4_HANDLER_TYPE (*prev_sigfpe_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigquit_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigabrt_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sighup_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigill_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigpipe_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigterm_handler) (HANDLER_ARGS) = NULL;
+static P4_HANDLER_TYPE (*prev_sigio_handler) (HANDLER_ARGS) = NULL;
 static P4_HANDLER_TYPE (*prev_err_handler) (HANDLER_ARGS) = NULL;
 static int err_sig;
 #if defined(HAVE_FOUR_ARG_SIGS)
@@ -70,7 +77,25 @@ P4VOID p4_error( char *string, int value )
 #endif
 
     if (in_p4_error) {
-	/* Recursive call - emergency stop */
+	/* Recursive call.  We may have caught a signal.  If not, we'll 
+	   exit to avoid any possibility of an infinite loop of p4_error 
+	   calls caused by one of the routines that this routine calls 
+	   also signaling an error (which would be a bug, but this is intended
+	   as a firewall to work around such a bug.  Another option would 
+	   be to keep a counter and return if the counter got too high; 
+	   this would allow some routines to call p4_error and continue, 
+	   as long as they didn't loop and keep calling p4_error */
+      
+	if (interrupt_caught) {
+	    switch (value) {
+	    case SIGILL:
+	    case SIGBUS:
+	    case SIGSEGV:
+		exit(128 + value); /* emergency stop */
+	    }
+	    /* Otherwise, let us continue */
+	    return;
+	}
 	exit(1);
     }
     in_p4_error = 1;
@@ -153,10 +178,15 @@ P4VOID p4_error( char *string, int value )
 #endif
     p4_clean_execer_port();
 
-    if (interrupt_caught && value != SIGINT)
+    /* Allow SIGINT along with the other signals (code originally
+       had "if (interrupt_caught && value != SIGINT)" ) */
+    if (interrupt_caught)
     {
 	switch (value)
 	{
+	  case SIGINT:
+	    prev_err_handler = prev_sigint_handler;
+	    break;
 	  case SIGSEGV:
 	    prev_err_handler = prev_sigsegv_handler;
 	    break;
@@ -165,6 +195,37 @@ P4VOID p4_error( char *string, int value )
 	    break;
 	  case SIGFPE:
 	    prev_err_handler = prev_sigfpe_handler;
+	    break;
+	  case SIGQUIT:
+	    prev_err_handler = prev_sigquit_handler;
+	    break;
+#ifdef SIGABRT
+	  case SIGABRT:
+	    prev_err_handler = prev_sigabrt_handler;
+	    break;
+#endif
+#ifdef SIGHUP
+	  case SIGHUP:
+	    prev_err_handler = prev_sighup_handler;
+	    break;
+#endif
+#ifdef SIGILL
+	  case SIGILL:
+	    prev_err_handler = prev_sigill_handler;
+	    break;
+#endif
+#ifdef SIGPIPE
+	  case SIGPIPE:
+	    prev_err_handler = prev_sigpipe_handler;
+	    break;
+#endif
+#ifdef SIGTERM
+	  case SIGTERM:
+	    prev_err_handler = prev_sigterm_handler;
+	    break;
+#endif
+	  case SIGIO:
+	    prev_err_handler = prev_sigio_handler;
 	    break;
 	  default:
 	    printf("p4_error: unidentified err handler (signal %d)\n", value );
@@ -292,6 +353,63 @@ P4VOID trap_sig_errs( void )
 	if (((P4_Aint) rc > 1)  && ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	    prev_sigfpe_handler = rc;
     }
+    /* Install handers for the other signals */
+#ifdef SIGQUIT
+    SIGNAL_WITH_OLD_P4(SIGQUIT, sig_err_handler, 
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
+    if ((P4_Aint) rc == -1)
+	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGQUIT);
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
+	prev_sigquit_handler = rc;
+#endif
+#ifdef SIGABRT
+    SIGNAL_WITH_OLD_P4(SIGABRT, sig_err_handler, 
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
+    if ((P4_Aint) rc == -1)
+	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGABRT);
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
+	prev_sigabrt_handler = rc;
+#endif
+#ifdef SIGHUP
+    SIGNAL_WITH_OLD_P4(SIGHUP, sig_err_handler, 
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
+    if ((P4_Aint) rc == -1)
+	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGHUP);
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
+	prev_sighup_handler = rc;
+#endif
+#ifdef SIGILL
+    SIGNAL_WITH_OLD_P4(SIGILL, sig_err_handler, 
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
+    if ((P4_Aint) rc == -1)
+	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGILL);
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
+	prev_sigill_handler = rc;
+#endif
+#ifdef SIGPIPE
+    SIGNAL_WITH_OLD_P4(SIGPIPE, sig_err_handler, 
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
+    if ((P4_Aint) rc == -1)
+	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGPIPE);
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
+	prev_sigpipe_handler = rc;
+#endif
+#ifdef SIGTERM
+    SIGNAL_WITH_OLD_P4(SIGTERM, sig_err_handler, 
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
+    if ((P4_Aint) rc == -1)
+	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGTERM);
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
+	prev_sigterm_handler = rc;
+#endif
+#ifdef SIGIO
+    SIGNAL_WITH_OLD_P4(SIGIO, sig_err_handler, 
+                           rc= (P4_HANDLER_TYPE (*) (HANDLER_ARGS)));
+    if ((P4_Aint) rc == -1)
+	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGIO);
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
+	prev_sigio_handler = rc;
+#endif
 }
 
 P4VOID p4_set_hard_errors( int flag )

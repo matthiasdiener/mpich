@@ -92,7 +92,7 @@ MPI1_OBJECTS = abortf.o addressf.o allgatherf.o allgathervf.o allreducef.o \
 
 MPI2_OBJECTS = info_createf.o info_deletef.o info_dupf.o \
 	info_freef.o info_getf.o info_getnksf.o info_getnthf.o info_getvlnf.o \
-	info_setf.o 
+	info_setf.o open_portf.o close_portf.o comm_acceptf.o comm_connectf.o
 
 MPI1_SOURCES = abortf.c addressf.c allgatherf.c allgathervf.c allreducef.c \
 	alltoallf.c alltoallvf.c attr_delvalf.c attr_getvalf.c attr_putvalf.c \
@@ -139,7 +139,7 @@ MPI1_SOURCES = abortf.c addressf.c allgatherf.c allgathervf.c allreducef.c \
 
 MPI2_SOURCES = info_createf.c info_deletef.c info_dupf.c \
 	info_freef.c info_getf.c info_getnksf.c info_getnthf.c info_getvlnf.c \
-	info_setf.c 
+	info_setf.c open_portf.c close_portf.c comm_acceptf.c comm_connectf.c
 
 MPIINIT_OBJECTS = initfutil.o initfcmn.o initfdte.o
 MPIINIT_SOURCES = initfutil.c initfcmn.f initfdte.f

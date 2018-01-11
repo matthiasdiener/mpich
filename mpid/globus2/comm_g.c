@@ -362,7 +362,15 @@ int MPID_Comm_init(
 #endif   /* VMPI */
     if ( rc == MPI_SUCCESS  &&  newcomm )
     {
-        rc = topology_initialization(newcomm);
+        if ((rc = topology_initialization(newcomm)) == MPI_SUCCESS)
+	{
+	    int i;
+
+	    for (newcomm->vmpi_only = GLOBUS_TRUE, i = 0;
+		newcomm->vmpi_only && i < newcomm->np;
+		    i ++)
+			newcomm->vmpi_only = (get_proto(newcomm, i) == mpi);
+	} /* endif */
     } /* endif */
     DEBUG_FN_EXIT(DEBUG_MODULE_COMM);
     return rc;

@@ -18,7 +18,6 @@ import java.util.Collections;
 
 import base.io.MixedDataInput;
 import base.io.MixedDataOutput;
-import base.drawable.DrawOrderComparator;
 import base.drawable.TimeBoundingBox;
 import base.drawable.Drawable;
 import base.drawable.Primitive;
@@ -29,8 +28,6 @@ public class BufForDrawables extends BufForObjects
     private static final int  INIT_BYTESIZE = BufForObjects.BYTESIZE
                                             + 4  /* buf4nestable.size() */
                                             + 4  /* buf4nestless.size() */ ;
-    private static final DrawOrderComparator DRAWING_ORDER
-                                             = new DrawOrderComparator();
 
     private static final byte PRIMITIVE_ID  = 0;
     private static final byte COMPOSITE_ID  = 1;
@@ -41,6 +38,7 @@ public class BufForDrawables extends BufForObjects
     */
     private List              buf4nestable;   /* state and composite */
     private List              buf4nestless;   /* arrow/event */
+    private Drawable.Order    buf4dobj_order; /* buf4nestxxx's storage order */
 
     /*  
         isOutputBuf = true  when BufForDrawables is used in Output API
@@ -54,13 +52,18 @@ public class BufForDrawables extends BufForObjects
     {
         super();
         isOutputBuf          = isForOutput;
+        // TRACE-API passes drawables in Drawable.INCRE_FINALTIME_ORDER.
+        // At writeObject(), drawables are saved in INCRE_STARTTIME_ORDER.
+        // At readObject(), drawables are read/stored in INCRE_STARTTIME_ORDER.
         if ( isOutputBuf ) {
             buf4nestable       = new ArrayList();
             buf4nestless       = new ArrayList();
+            buf4dobj_order     = Drawable.INCRE_FINALTIME_ORDER;
         }
         else {
             buf4nestable       = null;
             buf4nestless       = null;
+            buf4dobj_order     = Drawable.INCRE_STARTTIME_ORDER;
         }
 
         haveObjectsBeenSaved = false;
@@ -90,11 +93,13 @@ public class BufForDrawables extends BufForObjects
         total_bytesize += ( cmplx.getByteSize() + 1 );
     }
 
+    // For SLOG-2 Output API
     public void empty()
     {
         if ( haveObjectsBeenSaved ) {
             buf4nestable.clear();
             buf4nestless.clear();
+            buf4dobj_order       = Drawable.INCRE_FINALTIME_ORDER;
             haveObjectsBeenSaved = false;
             total_bytesize       = INIT_BYTESIZE;
         }
@@ -158,6 +163,17 @@ public class BufForDrawables extends BufForObjects
     }
 
 
+    // For SLOG-2 Input/Output API
+    public void reorderDrawables( final Drawable.Order dobj_order )
+    {
+        if ( ! buf4dobj_order.equals( dobj_order ) ) {
+            buf4dobj_order = dobj_order;
+            // Save the Lists in the specified Drawable.Order
+            Collections.sort( buf4nestable, buf4dobj_order );
+            Collections.sort( buf4nestless, buf4dobj_order );
+        }
+    }
+
     public void writeObject( MixedDataOutput outs )
     throws java.io.IOException
     {
@@ -168,8 +184,7 @@ public class BufForDrawables extends BufForObjects
         super.writeObject( outs );   // BufForObjects.writeObject( outs )
 
         // Save the Lists in Increasing Starttime order
-        Collections.sort( buf4nestable, DRAWING_ORDER );
-        Collections.sort( buf4nestless, DRAWING_ORDER );
+        this.reorderDrawables( Drawable.INCRE_STARTTIME_ORDER );
 
         // assume buf4nestless contains only primitives, e.g. arrow/event
         Nobjs  = buf4nestless.size();
@@ -286,8 +301,9 @@ public class BufForDrawables extends BufForObjects
 
         nestable_itr  = new IteratorOfForeDrawables( buf4nestable, this );
         nestless_itr  = new IteratorOfForeDrawables( buf4nestless, this );
-        dobjs_itr     = new IteratorOfForeDrawablesOfAll( nestable_itr,
-                                                          nestless_itr );
+        dobjs_itr     = new IteratorOfAllDrawables( nestable_itr,
+                                                    nestless_itr,
+                                                    buf4dobj_order );
         for ( idx = 1; dobjs_itr.hasNext(); idx++ )
             rep.append( idx + ": " + dobjs_itr.next() + "\n" );
 

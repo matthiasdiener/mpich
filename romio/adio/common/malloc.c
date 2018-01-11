@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: malloc.c,v 1.9 2002/10/24 17:01:15 gropp Exp $    
+ *   $Id: malloc.c,v 1.11 2005/05/23 23:27:49 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -24,6 +24,10 @@
 #include <stdio.h>
 #include "mpipr.h"
 
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
 #define FPRINTF fprintf
 void *ADIOI_Malloc_fn(size_t size, int lineno, char *fname);
 void *ADIOI_Calloc_fn(size_t nelem, size_t elsize, int lineno, char *fname);
@@ -34,7 +38,7 @@ void *ADIOI_Malloc_fn(size_t size, int lineno, char *fname)
 {
     void *new;
 
-#ifdef XFS
+#ifdef ROMIO_XFS
     new = (void *) memalign(XFS_MEMALIGN, size);
 #else
     new = (void *) malloc(size);

@@ -10,8 +10,8 @@
 The package is developed based on SUN's Java 2 SDK.  The non-CLOG related
 code can be compiled by older JDK like Solaris_JDK_1.2_01_dev06_fcsV.
 
-One need to make sure there is at least a Jave 2 Run Time is installed
-to run the code.  To install this package without any compilation, do
+A Jave 2 Run Time is required to run the code.
+To install this package without any compilation, do
 
 <slog2sdk>/configure --disable-build \
                      --with-trace-libdir=<libTraceInput.so_path>
@@ -57,3 +57,27 @@ is configured.  The build process is written based on libtool, so it is
 supported only for the platforms that are sypported by libtool
 (i.e. most Unixes and Cygwin under Windows).  If you are not interested
 in this feature, you could disable it through --disable-sample.
+
+
+
+To enable debugging support, i.e. the java source files are needed to be
+compiled with -g.  Two way of doing that:
+
+Either through configure,
+<slog2sdk>/configure .... JFLAGS=-g
+make
+make install PREFIX=<slog2sdk_install>
+
+Or through make,
+<slog2sdk>/configure ....
+make JFLAGS=-g
+make install PREFIX=<slog2sdk_install>
+
+
+
+To enable the verbose option of the java archive process (i.e. using jar),
+add "JARFLAGS=v" during make:
+
+<slog2sdk>/configure ....
+make JARFLAGS=v
+make install PREFIX=<slog2sdk_install>

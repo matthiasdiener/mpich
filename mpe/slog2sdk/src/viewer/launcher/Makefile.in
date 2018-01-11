@@ -32,10 +32,10 @@ CLASSDIR   = ../..
 CLASSPATH  = ../..
 PKGDIR     = viewer/launcher
 
-JFLAGS = -sourcepath @JPATH_START@$(SRCDIR)@JPATH_FINAL@ -classpath @JPATH_START@$(CLASSPATH)@JPATH_FINAL@ -d @JPATH_START@$(CLASSDIR)@JPATH_FINAL@ @JFLAGS@
+JCFLAGS = -sourcepath @JPATH_START@$(SRCDIR)@JPATH_FINAL@ -classpath @JPATH_START@$(CLASSPATH)@JPATH_FINAL@ -d @JPATH_START@$(CLASSDIR)@JPATH_FINAL@ @JFLAGS@
 
 .java.class:
-	$(JC) $(JFLAGS) @JPATH_START@$<@JPATH_FINAL@
+	$(JC) $(JCFLAGS) $(JFLAGS) @JPATH_START@$<@JPATH_FINAL@
 
 ALL: $(TARGET)
 
@@ -44,11 +44,12 @@ $(TARGET): $(OBJ)
 	$(RM) $(PACKAGE).manifest && \
 	echo "Main-Class: $(PACKAGE).Launcher" > $(PACKAGE).manifest ; \
 	jarfile=@JPATH_START@$@@JPATH_FINAL@ ; \
-	$(JAR) cvfm $${jarfile} $(PACKAGE).manifest ; \
-        $(JAR) uvf $${jarfile} viewer/common/Dialogs.class ; \
+	$(JAR) $(JARFLAGS)cfm $${jarfile} $(PACKAGE).manifest ; \
+	$(JAR) $(JARFLAGS)uf $${jarfile} viewer/common/Dialogs.class \
+	                     viewer/common/RuntimeExecCommand.class ; \
 	for dir in $(PKGDIR)/ ; do \
 	    classdir_prefix=@JPATH_START@$${dir}@JPATH_FINAL@ ; \
-	    $(JAR) uvf $${jarfile} $${classdir_prefix}*.class ; \
+	    $(JAR) $(JARFLAGS)uf $${jarfile} $${classdir_prefix}*.class ; \
 	done
 
 clean:
@@ -59,3 +60,6 @@ rmlib:
 	$(RM) $(TARGET)
 
 realclean: clean rmlib
+
+distclean: realclean
+	@-$(RM) Makefile

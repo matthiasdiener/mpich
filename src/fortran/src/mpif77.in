@@ -160,6 +160,10 @@ for arg in "$@" ; do
 	else
 	    echo "Configuration file mpif77-$FCname.conf not found"
 	fi
+	# Use the values from the config file in preference to 
+	# the defaults and the MPICH_F77 environment
+	F77=$F77BASE
+	F77LINKER=$FLINKERBASE
 	;;
 	-fc=*)
 	F77=`echo A$arg | sed -e 's/A-fc=//g'`
@@ -281,7 +285,7 @@ if [ -z "$FINC" ] ; then
     # -r is true if we can read the file, which is what we want
     if [ ! -r mpif.h ] ; then
         #echo "Adding a symbolic link for mpif.h"
-	trap "$Show /bin/rm mpif.h" 0
+	trap "$Show rm -f mpif.h" 0
 	$Show ln -s $f77includedir/mpif.h mpif.h
         added_link=1
     fi

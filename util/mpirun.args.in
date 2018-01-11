@@ -572,10 +572,10 @@ if [ -n "$AUTOMOUNTFIX" ] ; then
     if [ -n "$PWD" ] ; then
 	# Use a process-specific filename
 	PWDtest2=`echo $PWD | $AUTOMOUNTFIX`
-        /bin/rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
+        rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
         if `eval "echo test > $PWDtest2/.mpirtmp$$" 2>/dev/null` ; then
             if [ ! -s "$PWDtest/.mpirtmp$$" ] ; then
-	        /bin/rm -f $PWDtest2/.mpirtmp$$
+	        rm -f $PWDtest2/.mpirtmp$$
                 PWDreal=$PWDtest
 	    else
 		PWDreal=$PWDtest2
@@ -584,7 +584,7 @@ if [ -n "$AUTOMOUNTFIX" ] ; then
 	    # Current directory is not writable.  Hope for the best
             PWDreal=$PWDtest        
         fi
-        /bin/rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
+        rm -f $PWDtest/.mpirtmp$$ $PWDtest2/.mpirtmp$$
     else 
         PWDreal=$PWDtest
     fi

@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include "mpi.h"
 #include "test.h"
+#ifdef HAVE_WINDOWS_H
+#define sleep(a_) Sleep((a_)*1000)
+#include <windows.h>
+#endif
 
 int main( int argc, char **argv )
 {

@@ -1,12 +1,16 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_xfs_write.c,v 1.14 2003/04/18 20:15:06 David Exp $    
+ *   $Id: ad_xfs_write.c,v 1.16 2005/05/23 23:27:47 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "ad_xfs.h"
+
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
 static void ADIOI_XFS_Aligned_Mem_File_Write(ADIO_File fd, void *buf, int len, 
 					     ADIO_Offset offset, int *err);
@@ -17,9 +21,7 @@ void ADIOI_XFS_WriteContig(ADIO_File fd, void *buf, int count,
 {
     int err=-1, datatype_size, len, diff, size, nbytes;
     void *newbuf;
-#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_XFS_WRITECONTIG";
-#endif
 
     MPI_Type_size(datatype, &datatype_size);
     len = datatype_size * count;
@@ -88,16 +90,9 @@ void ADIOI_XFS_WriteContig(ADIO_File fd, void *buf, int count,
 #endif
 
     if (err == -1) {
-#ifdef MPICH2
-	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
-	    "**io %s", strerror(errno));
-#elif defined(PRINT_ERR_MSG)
-	*error_code = MPI_ERR_UNKNOWN;
-#else /* MPICH-1 */
-	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	ADIOI_Error(fd, *error_code, myname);
-#endif
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__, MPI_ERR_IO, "**io",
+					   "**io %s", strerror(errno));
     }
     else *error_code = MPI_SUCCESS;
 }
@@ -152,14 +147,4 @@ void ADIOI_XFS_Aligned_Mem_File_Write(ADIO_File fd, void *buf, int len,
 	nbytes += pwrite(fd->fd_sys, (char *)buf + size, rem, offset+size);
 	*err = nbytes;
     }
-}
-
-
-void ADIOI_XFS_WriteStrided(ADIO_File fd, void *buf, int count,
-                       MPI_Datatype datatype, int file_ptr_type,
-                       ADIO_Offset offset, ADIO_Status *status, int
-                       *error_code)
-{
-    ADIOI_GEN_WriteStrided(fd, buf, count, datatype, file_ptr_type,
-                        offset, status, error_code);
 }

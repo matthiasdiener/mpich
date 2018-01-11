@@ -52,7 +52,7 @@ EOF
     ifelse([$3], , , [$3
 ])
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           ifelse([$2], , :, [$2
 ])
@@ -97,7 +97,7 @@ if test -n "$Pac_testval" ; then
     Pac_CV_NAME=$Pac_testval
 else
  AC_MSG_CHECKING([for size of $Pac_name])
- /bin/rm -f conftestval
+ rm -f conftestval
  PAC_TEST_PROGRAM([#include <stdio.h>
 main() { 
   FILE *f=fopen("conftestval","w");
@@ -172,7 +172,7 @@ else
     AC_MSG_RESULT(no)
 fi
 if test "$has_long_long" = 1 ; then
-   AC_MSG_CHECKING(that compiler can handle loops with long long)
+   AC_MSG_CHECKING([whether compiler can handle loops with long long])
    dnl We'd like to use AC_COMPILE_CHECK, but this example dies only when
    dnl used with arrays ([]).
    changequote(,)
@@ -250,7 +250,7 @@ dnl
 dnl
 dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_WORDS_BIGENDIAN,
-[AC_MSG_CHECKING([byte ordering])
+[AC_MSG_CHECKING([for byte ordering])
 PAC_TEST_PROGRAM([main () {
   /* Are we little or big endian?  From Harbison&Steele.  */
   union
@@ -525,7 +525,7 @@ dnl PAC_CHECK_COMPILER_OK(true-action, false-action)
 dnl
 define(PAC_CHECK_COMPILER_OK,[
 AC_REQUIRE([AC_CROSS_CHECK])
-AC_MSG_CHECKING(that the compiler $CC runs)
+AC_MSG_CHECKING(whether the compiler $CC runs)
 AC_COMPILE_CHECK(,,return 0;,eval "ac_cv_ccworks=yes",eval "ac_cv_ccworks=no")
 AC_MSG_RESULT($ac_cv_ccworks)
 if test $ac_cv_ccworks = "yes" ; then
@@ -556,7 +556,7 @@ dnl
 dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_CHECK_CC_PROTOTYPES,[
 if test "$ac_cv_ccansi" != "$CC $CFLAGS" ; then
-AC_MSG_CHECKING(that the compiler $CC accepts ANSI prototypes)
+AC_MSG_CHECKING(whether the compiler $CC accepts ANSI prototypes)
 AC_COMPILE_CHECK(,[int f(double a){return 0;}],,eval "ac_cv_ccworks=yes",eval "ac_cv_ccworks=no")
 AC_MSG_RESULT($ac_cv_ccworks)
 if test $ac_cv_ccworks = "yes" ; then
@@ -574,7 +574,7 @@ dnl PAC_CHECK_CC_CONST(true-action, false-action)
 dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 dnl
 define(PAC_CHECK_CC_CONST,[
-AC_MSG_CHECKING(that the compiler $CC accepts const modifier)
+AC_MSG_CHECKING(whether the compiler $CC accepts const modifier)
 AC_COMPILE_CHECK(,[int f(const int a){return a;}],,eval "ac_cv_ccworks=yes",eval "ac_cv_ccworks=no")
 AC_MSG_RESULT($ac_cv_ccworks)
 if test $ac_cv_ccworks = "yes" ; then
@@ -591,7 +591,7 @@ dnl
 dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_CHECK_CPP_CONCAT,[
 ac_pound="#"
-AC_MSG_CHECKING([that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp])
+AC_MSG_CHECKING([whether the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp])
 AC_COMPILE_CHECK(,[
 #define concat(a,b) a##b],[int concat(a,b);return ab;],
 eval "ac_cv_ccworks=yes",eval "ac_cv_ccworks=no")
@@ -648,7 +648,7 @@ if test -d $CCBUGS ; then
 	else
 	    AC_MSG_RESULT(yes)
         fi
-	/bin/rm -f conftest conftest.c conftest.o conftest.out conftest.rout
+	rm -f conftest conftest.c conftest.o conftest.out conftest.rout
     done
     #
     # These are non-fatal, but must be run
@@ -680,7 +680,7 @@ if test -d $CCBUGS ; then
 	else
 	    AC_MSG_RESULT(yes)
         fi
-	/bin/rm -f conftest conftest.c conftest.o conftest.out conftest.rout
+	rm -f conftest conftest.c conftest.o conftest.out conftest.rout
     done
 
     # 
@@ -703,7 +703,7 @@ if test -d $CCBUGS ; then
             fi
         fi
 	# set +x
-	/bin/rm -f conftest conftest.[co]
+	rm -f conftest conftest.[co]
     done
     # 
     # After everything, see if there are any problems
@@ -724,12 +724,12 @@ dnl PAC_CHECK_F77_COMPILER_OK(true-action, false-action)
 dnl The name of the compiler is F77
 dnl
 define(PAC_CHECK_F77_COMPILER_OK,[
-AC_MSG_CHECKING(that the compiler $F77 runs)
+AC_MSG_CHECKING(whether the compiler $F77 runs)
 cat >conftest.f <<EOF
           program main
           end
 EOF
-/bin/rm -f conftest.out
+rm -f conftest.out
 $F77 $FFLAGS $OPTFLAGSF -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     AC_MSG_RESULT(no)
@@ -763,12 +763,12 @@ dnl Also defines F90_SUFFIX as f or f90 (xlf90 accepts only f; Solaris
 dnl uses suffix to decide on free versus fixed format.
 dnl
 define(PAC_CHECK_F90_COMPILER_OK,[
-AC_MSG_CHECKING(that the compiler $F90 runs)
+AC_MSG_CHECKING(whether the compiler $F90 runs)
 cat >conftest.f <<EOF
           program main
           end
 EOF
-/bin/rm -f conftest.out
+rm -f conftest.out
 $F90 $F90FLAGS -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     AC_MSG_RESULT(no)
@@ -799,7 +799,7 @@ else
     AC_MSG_RESULT(yes)
     ifelse([$1],,:,[$1])
     /bin/mv -f conftest.f conftest.f90
-    AC_MSG_CHECKING(that the compiler $F90 accepts .f90 suffix)
+    AC_MSG_CHECKING(whether the compiler $F90 accepts .f90 suffix)
     $F90 $F90FLAGS -c conftest.f90 > conftest.out 2>&1
     if test $? != 0 ; then
         F90_SUFFIX="f"
@@ -918,7 +918,7 @@ if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
         AC_CV_NAME=$testsize
     fi
 else
-AC_MSG_CHECKING(size of $1)
+AC_MSG_CHECKING(for size of $1)
 PAC_TEST_PROGRAM([#include <stdio.h>
 main()
 {
@@ -960,8 +960,8 @@ dnl determines that it is an improperly built gnumake, it adds
 dnl --no-print-directorytries to the symbol MAKE.
 dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_MAKE_IS_GNUMAKE,[
-AC_MSG_CHECKING(gnumake)
-/bin/rm -f conftest
+AC_MSG_CHECKING(for gnumake)
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -984,7 +984,7 @@ if test "$str" != "success" ; then
 else
     AC_MSG_RESULT(no)
 fi
-/bin/rm -f conftest
+rm -f conftest
 str=""
 ])dnl
 dnl
@@ -994,7 +994,7 @@ dnl
 dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_MAKE_IS_BSD44,[
 AC_MSG_CHECKING(whether make supports include)
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 ALL:
 	@echo "success"
@@ -1003,7 +1003,7 @@ cat > conftest1 <<.
 include conftest
 .
 str=`$MAKE -f conftest1 2>&1`
-/bin/rm -f conftest conftest1
+rm -f conftest conftest1
 if test "$str" != "success" ; then
     AC_MSG_RESULT(no)
 dnl    echo "The BSD 4.4 make is INCOMPATIBLE with all other makes."
@@ -1020,8 +1020,8 @@ dnl PAC_MAKE_IS_OSF([true text])
 dnl
 dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_MAKE_IS_OSF,[
-AC_MSG_CHECKING(OSF V3 make)
-/bin/rm -f conftest
+AC_MSG_CHECKING(for OSF V3 make)
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -1029,7 +1029,7 @@ ALL:
 	@echo "success"
 .
 str=`$MAKE -f conftest 2>&1`
-/bin/rm -f conftest 
+rm -f conftest 
 if test "$str" != "success" ; then
     AC_MSG_RESULT(Found OSF V3 make)
     echo "The OSF V3 make does not allow comments in target code."
@@ -1226,7 +1226,7 @@ case $1 in
 	    #FLINKER=fort77
 	    #FFLAGS="$FFLAGS +ppu"
 	    # Try and see that this works
-	    AC_COMPILE_CHECK(Checking that HP compiler has ANSI option...,,,
+	    AC_COMPILE_CHECK([Checking whether HP compiler has ANSI option...],,,
 		hpux_ansi=1,hpux_ansi=0)
 	    if test $hpux_ansi = 0 ; then
 	       print_error "HPUX C compiler does not support ANSI mode!"
@@ -1319,7 +1319,7 @@ dnl
 dnl Special check for Intel linker
 pac_msg=`$CC -V 2>&1 | grep Itanium`
 if test "$CC" = "ecc" -o -n "$pac_msg" ; then
-    AC_MSG_CHECKING([if -i_dynamic is required for Itanium C compiler])
+    AC_MSG_CHECKING([whether -i_dynamic is required for Itanium C compiler])
     pac_result=no
     cat > conftest.c <<EOF
 int main( int argc, char **argv ) { return 0; }	
@@ -1567,7 +1567,7 @@ dnl
 dnl Special check for Intel linker
 pac_msg=`$F77 -V 2>&1 | grep Itanium`
 if test "$F77" = "efc" -o -n "$pac_msg" ; then
-    AC_MSG_CHECKING([if -i_dynamic is required for Itanium Fortran compiler])
+    AC_MSG_CHECKING([whether -i_dynamic is required for Itanium Fortran compiler])
     pac_result=no
     cat > conftest.f <<EOF
         program main
@@ -1641,7 +1641,7 @@ EOF
      nameform3=`strings -a confftest.o | grep mpir_init_fop   | sed -n -e '1p'`
      nameform4=`strings -a confftest.o | grep mpir_init_fop__ | sed -n -e '1p'`
     fi
-    /bin/rm -f confftest.f confftest.o
+    rm -f confftest.f confftest.o
     if test -n "$nameform4" ; then
 	echo "Fortran externals are lower case and have 1 or 2 trailing underscores"
 	FORTRANNAMES="FORTRANDOUBLEUNDERSCORE"
@@ -1860,7 +1860,7 @@ dnl TK_LIB and XINCLUDES must be defined (and no_x must NOT be true)
 dnl
 define(PAC_TK_VERSION,[
 AC_MSG_CHECKING(for version of TK)
-/bin/rm -f conftestval
+rm -f conftestval
 #
 # Some systems have a separate tcl dir; since we need both tcl and tk
 # we include both directories
@@ -2065,7 +2065,7 @@ else
     ifelse($3,,true,$3)
     AC_MSG_RESULT([does NOT support -I or -Wf,-I for include])
 fi
-/bin/rm -f conftest.f $1/conftestf.h
+rm -f conftest.f $1/conftestf.h
 ])dnl
 dnl
 dnl PAC_FORTRAN_GET_INTEGER_SIZE(var_for_size)
@@ -2074,8 +2074,8 @@ dnl sets var_for_size to the size.  Ignores if the size cannot be determined
 dnl
 define(PAC_FORTRAN_GET_INTEGER_SIZE,
 [AC_MSG_CHECKING([for size of Fortran INTEGER])
-/bin/rm -f conftestval
-/bin/rm -f conftestf.f conftestf.o
+rm -f conftestval
+rm -f conftestf.f conftestf.o
 cat <<EOF > conftestf.f
       subroutine isize( )
       integer i(2)
@@ -2122,14 +2122,14 @@ if test -z "$Pac_CV_NAME" ; then
 	echo "Could not build executable program:"
 	echo "${F77-f77} $FFLAGS -o conftest conftest.o $LDFLAGS $LIBS"
     else
-	/bin/rm -f conftestout
+	rm -f conftestout
 	if test -s conftest && (./conftest;exit) 2>conftestout ; then
 	    Pac_CV_NAME=`cat conftestval`
         fi
     fi
 
 fi
-/bin/rm -f conftestf.f conftestf.o
+rm -f conftestf.f conftestf.o
 if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     AC_MSG_RESULT($Pac_CV_NAME)
 else
@@ -2146,8 +2146,8 @@ dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 dnl *** (new is PAC_PROG_F77_CHECK_SIZEOF)
 define(PAC_FORTRAN_GET_REAL_SIZE,
 [AC_MSG_CHECKING([for size of Fortran REAL])
-/bin/rm -f conftestval
-/bin/rm -f conftestf.f conftestf.o
+rm -f conftestval
+rm -f conftestf.f conftestf.o
 cat <<EOF > conftestf.f
       subroutine isize( )
       real i(2)
@@ -2184,7 +2184,7 @@ LIBS="$SaveLIBS"
 else
    :
 fi
-/bin/rm -f conftestf.f conftestf.o
+rm -f conftestf.f conftestf.o
 if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     AC_MSG_RESULT($Pac_CV_NAME)
 else
@@ -2214,7 +2214,7 @@ else
     ifelse($2,,true,$2)
     AC_MSG_RESULT([no])
 fi
-/bin/rm -f conftest.f
+rm -f conftest.f
 ])dnl
 dnl
 dnl tries to determine the Fortran 90 kind parameter for 8-byte integers
@@ -2302,7 +2302,7 @@ dnl Check that signal semantics work correctly
 dnl
 define(PAC_SIGNALS_WORK,[
 AC_REQUIRE([AC_CROSS_CHECK])
-AC_MSG_CHECKING([that signals work correctly])
+AC_MSG_CHECKING([whether signals work correctly])
 cat >conftest.c <<EOF
 #include <signal.h>
 static int rc = 0, irc = 1, maxcnt=5;
@@ -2339,7 +2339,7 @@ else
     cat conftest.c >>config.log
     AC_MSG_RESULT(Could not compile test program!)
 fi
-/bin/rm -f conftest conftest.c conftest.o conftest.out
+rm -f conftest conftest.c conftest.o conftest.out
 ])dnl
 dnl
 dnl
@@ -2369,18 +2369,18 @@ AC_MSG_CHECKING(for current directory name)
 $1=$PWD
 if test "${$1}" != "" -a -d "${$1}" ; then 
     if test -r ${$1}/.foo$$ ; then
-        /bin/rm -f ${$1}/.foo$$
-	/bin/rm -f .foo$$
+        rm -f ${$1}/.foo$$
+	rm -f .foo$$
     fi
     if test -r ${$1}/.foo$$ -o -r .foo$$ ; then
 	$1=
     else
 	echo "test" > ${$1}/.foo$$
 	if test ! -r .foo$$ ; then
-            /bin/rm -f ${$1}/.foo$$
+            rm -f ${$1}/.foo$$
 	    $1=
         else
- 	    /bin/rm -f ${$1}/.foo$$
+ 	    rm -f ${$1}/.foo$$
 	fi
     fi
 fi
@@ -2572,7 +2572,7 @@ dnl
 dnl Requires that CC, AR, and RANLIB already be defined.
 dnl
 define(PAC_RANLIB_WORKS,[
-AC_MSG_CHECKING(that ranlib works)
+AC_MSG_CHECKING(whether ranlib works)
 broken=0
 cat <<EOF >conftest.c
 int a(){return 1;}
@@ -2627,7 +2627,7 @@ EOF
 	    broken=1
         fi
     fi
-    /bin/rm -f foo.a
+    rm -f foo.a
     if test $broken = 1 ; then
         print_error "RANLIB ($RANLIB) failed!"
         print_error "Assuming that ranlib is a stub returning non-zero"
@@ -2705,9 +2705,9 @@ export CONFIG_FILES
 ./config.status
 CONFIG_FILES=""
 for pac_file in $1 ; do 
-    /bin/rm -f .pactmp
+    rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
-    /bin/rm -f $pac_file
+    rm -f $pac_file
     mv .pactmp $pac_file
     ifelse($2,,,chmod $2 $pac_file)
 done
@@ -2945,7 +2945,7 @@ dnl pointer
 dnl
 dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define(PAC_FORTRAN_HAS_POINTER,[
-AC_MSG_CHECKING(Fortran has pointer declaration)
+AC_MSG_CHECKING([whether Fortran has pointer declaration])
 cat > conftest.f <<EOF
         program main
         integer M
@@ -2953,7 +2953,7 @@ cat > conftest.f <<EOF
         data MPTR/0/
         end
 EOF
-/bin/rm -f conftest.out
+rm -f conftest.out
 $F77 $FFLAGS -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     AC_MSG_RESULT(no)
@@ -3093,7 +3093,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for integer * 2)
     cat > testfort.f <<EOF
@@ -3112,7 +3112,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for integer * 4)
     cat > testfort.f <<EOF
@@ -3131,7 +3131,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for integer * 8)
     cat > testfort.f <<EOF
@@ -3150,7 +3150,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for integer * 16)
     cat > testfort.f <<EOF
@@ -3169,7 +3169,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for real * 4)
     cat > testfort.f <<EOF
@@ -3188,7 +3188,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for real * 8)
     cat > testfort.f <<EOF
@@ -3207,7 +3207,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for real * 16)
     cat > testfort.f <<EOF
@@ -3226,7 +3226,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for double complex)
     cat > testfort.f <<EOF
@@ -3245,7 +3245,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for complex * 8)
     cat > testfort.f <<EOF
@@ -3264,7 +3264,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for complex * 16)
     cat > testfort.f <<EOF
@@ -3283,7 +3283,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
 AC_MSG_CHECKING(for complex * 32)
     cat > testfort.f <<EOF
@@ -3302,7 +3302,7 @@ EOF
    else
        AC_MSG_RESULT(yes)
    fi
-   /bin/rm -f testfort.f testfort.o
+   rm -f testfort.f testfort.o
 dnl
    ])dnl
 dnl
@@ -3318,7 +3318,7 @@ dnl Side effect: If compiler option works, it is added to CFLAGS
 dnl
 dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define([PAC_CHECK_COMPILER_OPTION],[
-AC_MSG_CHECKING([that C compiler accepts option $1])
+AC_MSG_CHECKING([whether C compiler accepts option $1])
 CFLAGSSAV="$CFLAGS"
 CFLAGS="$1 $CFLAGS"
 rm -f conftest.out
@@ -3328,9 +3328,9 @@ if ${CC-cc} $CFLAGSSAV -o conftest conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
    if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          AC_MSG_RESULT(yes)
-         AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
-         /bin/rm -f conftest.out
-         /bin/rm -f conftest.bas
+         AC_MSG_CHECKING([whether routines compiled with $1 can be linked with ones compiled  without $1])       
+         rm -f conftest.out
+         rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
             if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
                if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
@@ -3399,7 +3399,7 @@ dnl Side effect: If compiler option works, it is added to FFLAGS
 dnl
 dnl *** DO NOT CHANGE WITHOUT CHANGING sowing/confdb VERSION ***
 define([PAC_CHECK_FC_COMPILER_OPTION],[
-AC_MSG_CHECKING([that Fortran compiler accepts option $1])
+AC_MSG_CHECKING([whether Fortran compiler accepts option $1])
 FFLAGSSAV="$FFLAGS"
 FFLAGS="$1 $FFLAGS"
 cat >conftest.f <<EOF
@@ -3411,14 +3411,14 @@ cat >conftest3.f <<EOF
        return
        end
 EOF
-/bin/rm -f conftest1.out conftest2.out
-/bin/rm -f conftest3.out
+rm -f conftest1.out conftest2.out
+rm -f conftest3.out
 if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
     if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
             AC_MSG_RESULT(yes)
-            AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled without $1])
-            /bin/rm -f conftest1.out 
+            AC_MSG_CHECKING([whether routines compiled with $1 can be linked with ones compiled without $1])
+            rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
                 if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -3483,7 +3483,7 @@ define(PAC_SHARED_LIBS_OK,[
 	echo "Error in configure; SHARED_LIB_UTIL not set"
 	exit 1
     fi
-    AC_MSG_CHECKING([that shared libraries can be built])
+    AC_MSG_CHECKING([whether shared libraries can be built])
     rm -f conftest* libconftest*
     cat >conftest.c <<EOF
 int foo(int a);
@@ -3510,7 +3510,7 @@ EOF
 		$SHARED_LIB_SEARCH_PATH -lconftest >conftest.out 2>&1 ; then
 	   ifelse([$1],,,[$1])
 	   AC_MSG_RESULT(yes)
-	   AC_MSG_CHECKING(that programs remember where the shared lib is)
+	   AC_MSG_CHECKING(whether programs remember where the shared lib is)
            mkdir .tmp
            cp conftest .tmp
 	   cd .tmp 
@@ -3562,7 +3562,7 @@ dnl Note that we can't put a pound sign into the msg_checking macro because
 dnl it confuses autoconf
 define(PAC_MACRO_NAME_IN_MACRO,
 [AC_REQUIRE([AC_PROG_CC])dnl
-AC_MSG_CHECKING([that compiler allows define a(b) a(b,__LINE__)])
+AC_MSG_CHECKING([whether compiler allows define a(b) a(b,__LINE__)])
 AC_COMPILE_CHECK(,
 [
 void a(i,j)int i,j;{}
@@ -3583,7 +3583,7 @@ dnl PAC_HAVE_ANON_MMAP([action-if-success],[action-if-failure])
 define([PAC_HAVE_ANON_MMAP],[
 AC_HAVE_FUNCS(mmap)
 # Check that MMAP works!
-AC_MSG_CHECKING([that shared, anonymous mmap works with -1 filedes])
+AC_MSG_CHECKING([whether shared, anonymous mmap works with -1 filedes])
 PAC_TEST_PROGRAM([
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -3622,7 +3622,7 @@ dnl to suppress output.
 define([PAC_SEMGET_WORKS],[
 # We need to check that semctl is ok.
 # Both of these need to go into aclocal.m4
-AC_MSG_CHECKING([that semget works])
+AC_MSG_CHECKING([whether semget works])
 ###
 ### Still need to check for SEMUN_UNDEFINED - see mpid/ch_p4/p4/configure.in
 ### 
@@ -3657,7 +3657,7 @@ EOF
 echo "${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS" >> config.log
 if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >> config.log 2>&1 ; then
     if test -x conftest ; then
-	/bin/rm -f conftest.out
+	rm -f conftest.out
 	./conftest > conftest.out
 	errno=`cat conftest.out`
 
@@ -3718,7 +3718,7 @@ else
     ifelse($2,,,$2)
     ifelse($3,,echo,$3) "Could not compile program"
 fi
-/bin/rm -f conftest*
+rm -f conftest*
 ])
 dnl
 dnl
@@ -3807,7 +3807,7 @@ havestdarg=1])
 USE_STDARG=0
 AC_SUBST(USE_STDARG)
 #
-AC_MSG_CHECKING([that stdarg is oldstyle])
+AC_MSG_CHECKING([whether stdarg is oldstyle])
 PAC_TRY_COMPILE_CLEAN([#include <stdio.h>
 #include <stdarg.h>],
 [int func( int a, ... ){
@@ -3837,7 +3837,7 @@ case $check_compile in
 esac
 
 if test -n "$havestdarg" -a "$USE_STDARG" != 1 ; then
-    AC_MSG_CHECKING([stdarg is correct])
+    AC_MSG_CHECKING([whether stdarg is correct])
     PAC_TRY_COMPILE_CLEAN([
 #include <stdio.h>
 #include <stdarg.h>],[
@@ -3923,7 +3923,7 @@ done
 echo '}' >>conftest1.c
 if ${CC-cc} -c $CFLAGS conftest1.c >>config.log 2>&1 ; then
     if test -n "$F77" ; then
-	AC_MSG_CHECKING([that Fortran programs can link with needed C functions])
+	AC_MSG_CHECKING([whether Fortran programs can link with needed C functions])
         cat > conftest.f <<EOF
         program main
         end
@@ -3944,7 +3944,7 @@ EOF
     if test -n "$CCC" -a -z "$CXX" ; then CXX="$CCC" ; fi
     if test -z "$CXX" -a -n "$CPP_COMPILER" ; then CXX="$CPP_COMPILER" ; fi
     if test -n "$CXX" ; then
-	AC_MSG_CHECKING([that C++ programs can link with needed C functions])
+	AC_MSG_CHECKING([whether C++ programs can link with needed C functions])
 	cat > conftest.cc <<EOF
 	int main() { return 0; }
 EOF

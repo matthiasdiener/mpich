@@ -71,7 +71,7 @@ groupcreate: groupcreate.o
 	$(CLINKER) $(OPTFLAGS) -o groupcreate groupcreate.o $(LIBS)
 
 clean:
-	@-/bin/rm -f *.o *~ PI* $(EXECS) $(OTHEREXECS) $(MPI2EXECS) \
+	@-rm -f *.o *~ PI* $(EXECS) $(OTHEREXECS) $(MPI2EXECS) \
 		core *.out *.diff *.trace mpif.h ${srcdir}/*.o *.stdo
 	@-rm -f work.pc work.pcl
 .c.o:

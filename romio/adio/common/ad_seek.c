@@ -1,7 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_seek.c,v 1.18 2003/06/10 15:16:00 robl Exp $    
- *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
@@ -12,20 +10,12 @@
 #include "mpe.h"
 #endif
 
-#ifdef SX4
-#define lseek llseek
-#endif
-
-#ifdef tflops
-#define lseek eseek
-#endif
-
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
 ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 
-		      int whence, int *error_code)
+				     int whence, int *error_code)
 {
 /* implemented for whence=SEEK_SET only. SEEK_CUR and SEEK_END must
    be converted to the equivalent with SEEK_SET before calling this 
@@ -79,37 +69,16 @@ ADIO_Offset ADIOI_GEN_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
                 abs_off_in_filetype;
     }
 
-    fd->fp_ind = off;
 /*
- * we used to do a seek here, but the fs-specifc ReadContig and
- * WriteContig will seek to the correct place in the file before
- * reading/writing.  
+ * we used to call lseek here and update both fp_ind and fp_sys_posn, but now
+ * we don't seek and only update fp_ind (ROMIO's idea of where we are in the
+ * file).  We leave the system file descriptor and fp_sys_posn alone. 
+ * The fs-specifc ReadContig and WriteContig will seek to the correct place in
+ * the file before reading/writing if the 'offset' parameter doesn't match
+ * fp_sys_posn
  */
-#if 0
-#ifdef PROFILE
-    MPE_Log_event(11, 0, "start seek");
-#endif
-    err = lseek(fd->fd_sys, off, SEEK_SET);
-#ifdef PROFILE
-    MPE_Log_event(12, 0, "end seek");
-#endif
     fd->fp_ind = off;
-    fd->fp_sys_posn = off;
 
-    if (err == -1) {
-#ifdef MPICH2
-	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
-	    "**io %s", strerror(errno));
-#elif defined(PRINT_ERR_MSG)
-			*error_code = MPI_ERR_UNKNOWN;
-#else /* MPICH-1 */
-	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	ADIOI_Error(MPI_FILE_NULL, *error_code, myname);	    
-#endif
-    }
-    else *error_code = MPI_SUCCESS;    
-#endif
     *error_code = MPI_SUCCESS;
 
     return off;

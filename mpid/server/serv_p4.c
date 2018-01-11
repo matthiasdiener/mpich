@@ -541,11 +541,14 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o] [-s cert_file key_file key_passw
 	    (void) open("/", 0);
 	    (void) dup2(0, 1);
 	    (void) dup2(0, 2);
+#ifdef TIOCNOTTY
+	    /* Cygwin, for example, doesn't define /dev or TIOCNOTTY */
 	    fd = open("/dev/tty", O_RDWR);
 	    if (fd >= 0) {
 		ioctl(fd, TIOCNOTTY, 0);
 		(void) close(fd);
 	    }
+#endif
 #endif
 	}
 

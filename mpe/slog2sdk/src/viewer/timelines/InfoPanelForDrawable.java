@@ -222,15 +222,17 @@ public class InfoPanelForDrawable extends SearchPanel // SearchPanel is JPanel
             int            coords_length;
             int            idx, ii;
     
-            coords_length = coords.length;
-            duration = coords[ coords_length-1 ].time - coords[ 0 ].time;
             linebuf = new StringBuffer();
-            linebuf.append( "duration" + description
-                          + " = " + tfmt.format( duration ) );
-            if ( num_cols < linebuf.length() )
-                num_cols = linebuf.length();
-            num_rows++;
-            strbuf.append( linebuf.toString() );
+            coords_length = coords.length;
+            if ( coords_length > 1 ) {
+                duration = coords[ coords_length-1 ].time - coords[ 0 ].time;
+                linebuf.append( "duration" + description
+                              + " = " + tfmt.format( duration ) );
+                if ( num_cols < linebuf.length() )
+                    num_cols = linebuf.length();
+                num_rows++;
+                strbuf.append( linebuf.toString() + "\n" );
+            }
             for ( idx = 0; idx < coords_length; idx++ ) {
                 linebuf = new StringBuffer( "[" + idx + "]: " );
                 vertex  = coords[ idx ];
@@ -245,7 +247,9 @@ public class InfoPanelForDrawable extends SearchPanel // SearchPanel is JPanel
                 if ( num_cols < linebuf.length() )
                     num_cols = linebuf.length();
                 num_rows++;
-                strbuf.append( "\n" + linebuf.toString() );
+                strbuf.append( linebuf.toString() );
+                if ( idx < coords_length-1 )
+                    strbuf.append( "\n" );
             }
         }
     
@@ -352,8 +356,19 @@ public class InfoPanelForDrawable extends SearchPanel // SearchPanel is JPanel
             this.setCoordsText( shade.getVertices(), " (ave)" );
             strbuf.append( "\n" );
     
-            StringBuffer  linebuf;
-            linebuf = new StringBuffer( "Number of Real Drawables = " );
+            StringBuffer      linebuf;
+            Topology          shade_topo;
+            CategoryWeight[]  twgts;
+            CategoryWeight    twgt;
+            String            twgt_str;
+            int               print_status;
+            int               idx;
+
+            shade_topo  = shade.getCategory().getTopology();
+
+            // linebuf = new StringBuffer( "Number of Real Drawables = " );
+            linebuf = new StringBuffer( "Number of Real " );
+            linebuf.append( shade_topo + "s = " );
             linebuf.append( shade.getNumOfRealObjects() );
             if ( num_cols < linebuf.length() )
                 num_cols = linebuf.length();
@@ -361,13 +376,7 @@ public class InfoPanelForDrawable extends SearchPanel // SearchPanel is JPanel
             strbuf.append( "\n" + linebuf.toString() );
             strbuf.append( "\n" );
     
-            CategoryWeight[]  twgts;
-            CategoryWeight    twgt;
-            String            twgt_str;
-            int               print_status;
-            int               idx;
-
-            print_status = getPrintStatus( shade.getCategory().getTopology() );
+            print_status = getPrintStatus( shade_topo );
             strbuf.append( "\n" + CategoryWeight.getPrintTitle(print_status) );
             twgts = shade.arrayOfCategoryWeights();
             for ( idx = 0; idx < twgts.length; idx++ ) {

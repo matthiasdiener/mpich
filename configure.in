@@ -144,7 +144,7 @@ Packages that may be included with MPICH
                          device name, separated by a colon.  E.g., 
                          --with-device=globus2:-flavor=mpi,nothreads
 --with-romio[=OPTIONS] - Use ROMIO to provide MPI-I/O from MPI-2 (default).
-                         The options include -file_system=FSTYPE, where
+                         The options include --with-file-system=FSTYPE, where
                          fstype can be any combination of nfs, ufs, 
                          pfs (intel), piofs (IBM), hfs (HP), sfs (NEC), and 
                          xfs (SGI), combined with '+'.  If romio is not
@@ -181,6 +181,9 @@ for mpid in $srcdir/mpid/* ; do
         if test -f $device_setup ; then
 	    echo "Options for device $DEVICE:" 
 	    export DEVICE
+	    if test ! -x $device_setup ; then
+	        chmod a+x $device_setup
+	    fi
 	    eval $device_setup --usage 2>&1
 	    echo " "
 	fi
@@ -436,6 +439,12 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 F90=${F90:-""}
+# Allow F77 instead of FC
+if test -z "$FC" -a -n "$F77" ; then
+    FC=$F77
+    export F77
+    export FC
+fi
 f90nag=0
 f95nag=0
 NOF77=0
@@ -1289,8 +1298,8 @@ do
 	enable_args="$enable_args $arg"
 	;;
 
-     -file_system=* | --file_system=* )
-        print_dep $arg "--with-romio=-file_system=value"
+     --file_system=* | --file_system=* )
+        print_dep $arg "--with-romio=--with-file-system=value"
         FILE_SYSTEM="`echo $arg|sed 's/-*file_system=//'`"
        ;;
 
@@ -1340,16 +1349,16 @@ AC_CONFIG_HEADER(mpichconf.h)
 # We may need to delete this
 PAC_FIXUP_SRCDIR
 # Check that file system understands different file name cases
-CASE_SENSITIVE=no
 AC_MSG_CHECKING([whether filesystem respects case in file names])
 echo 1 > CONFTEST
 echo 2 > conftest
 if diff CONFTEST conftest 2>&1 >/dev/null ; then
     AC_MSG_RESULT([no])
     AC_MSG_WARN([You may encounter problems with the commands mpicc and MPICC])
-    CASE_SENSITIVE=yes
+    CASE_SENSITIVE=no
 else
     AC_MSG_RESULT([yes])
+    CASE_SENSITIVE=yes
 fi
 rm -f CONFTEST conftest
 AC_SUBST(CASE_SENSITIVE)
@@ -1466,8 +1475,11 @@ if test -n "$arch_tflops"; then
    CROSS_F77_SIZEOF_DOUBLE_PRECISION=${CROSS_F77_SIZEOF_DOUBLE_PRECISION:-8}
    CROSS_BIGENDIAN=${CROSS_BIGENDIAN:-false}
    FORT_INT8=1
+   
    # Romio now looks at the CROSS_args
-#   ROMIO_ARGS="-intsize=$CROSS_SIZEOF_INT -ptrsize=$CROSS_SIZEOF_VOID_P -longsize=$CROSS_SIZEOF_LONG -longlongsize=$CROSS_SIZEOF_LONG_LONG --without-setbytes"
+   # ROMIO now uses a autoconf version 2 configure, and no longer
+   # accepts arguments in this style
+   #   ROMIO_ARGS="-intsize=$CROSS_SIZEOF_INT -ptrsize=$CROSS_SIZEOF_VOID_P -longsize=$CROSS_SIZEOF_LONG -longlongsize=$CROSS_SIZEOF_LONG_LONG --without-setbytes"
 
 fi
 #
@@ -1519,7 +1531,7 @@ fi
 # If it wasn't set, try to guess using "bin/tdevice"
 #
 if test -z "$DEVICE" -a -x "$srcdir/bin/tdevice" ; then
-    AC_MSG_CHECKING(device)
+    AC_MSG_CHECKING(for device)
     DEVICE=`$srcdir/bin/tdevice $ARCH`
     if test ! -n "$DEVICE" ; then
 	AC_MSG_RESULT(Unknown!)
@@ -1537,7 +1549,7 @@ if test ! -d "$srcdir/mpid/$DEVICE" ; then
     exit 1
 fi
 #
-#
+# 
 F77="${FC:-f77}"
 if test -n "$FC" ; then
     USERF77=1
@@ -1754,7 +1766,7 @@ if test -z "$NOCXX" ; then
     # Allow standard environment variable for the C++ compiler
     if test -n "$CXX" ; then CPP_COMPILER="$CXX" ; fi
     if test -n "$CPP_COMPILER" ; then
-        AC_MSG_CHECKING([if $CPP_COMPILER returns correct error code])
+        AC_MSG_CHECKING([whether $CPP_COMPILER returns correct error code])
         cat > conftest.cc <<EOF
 int main(){int a=b;}
 EOF
@@ -1765,7 +1777,7 @@ EOF
         else
             AC_MSG_RESULT(yes)
         fi
-	/bin/rm conftest*
+	rm conftest*
     elif test -z "$CPP_COMPILER" ; then
 	# aCC is the HPUX ANSI C++ compiler (CC is their older one)
 	# We need to use xlC in preference to g++ on AIX 
@@ -1790,12 +1802,12 @@ EOF
 #include <iostream.h>
 EOF
 	        rm -f conftest.out
-  	        if $GXXTRIAL -c conftest.cc >conftest.out 2>&1 ; then
-		    AC_MSG_CHECKING([if $GXXTRIAL returns correct error code])
+  	        if $GXXTRIAL $CXXFLAGS -c conftest.cc >conftest.out 2>&1 ; then
+		    AC_MSG_CHECKING([whether $GXXTRIAL $CXXFLAGS returns correct error code])
                     cat > conftest1.cc <<EOF
 int main(){int a=b;}
 EOF
-                    $GXXTRIAL -c conftest1.cc>conftest1.out 2>&1
+                    $GXXTRIAL $CXXFLAGS -c conftest1.cc>conftest1.out 2>&1
 	            if test $? = 0; then
 	                AC_MSG_RESULT([no!])
 	            else
@@ -1805,7 +1817,7 @@ EOF
 		        GXX="$GXXTRIAL"
                     fi
 	        else
-		    print_error "C++ compiler $GXXTRIAL failed to compile a simple program"
+		    print_error "C++ compiler $GXXTRIAL $CXXFLAGS failed to compile a simple program"
 		    print_error "C++ interface will not be built with this compiler"
 	            if test -s conftest.out ; then 
 		        cat conftest.out >>config.log
@@ -1815,7 +1827,7 @@ EOF
 	            fi
 	            GXX=""
 	        fi
-	        /bin/rm -f conftest*
+	        rm -f conftest*
 		GXXTRIAL=""
 	    fi
 	    # If we found a working C++ compiler, then stop looking.
@@ -1828,19 +1840,19 @@ EOF
     # used above is used only to *find* a compiler; if the user selected
     # a compiler that doesn't work, we still need the test.
     if test -n "$CPP_COMPILER" ; then 
-        AC_MSG_CHECKING([that selected C++ compiler can compile iostream.h])
+        AC_MSG_CHECKING([whether selected C++ compiler can compile iostream.h])
         rm -f conftest*
         cat > conftest.cc <<EOF
 #include <iostream.h>	
 EOF
-        if $CPP_COMPILER -c conftest.cc>conftest.out 2>&1 ; then 
+        if $CPP_COMPILER $CXXFLAGS -c conftest.cc>conftest.out 2>&1 ; then 
             AC_MSG_RESULT(yes)
 	else
-	    AC_MSG_RESULT([no!...Cannot use $CPP_COMPILER compiler])
+	    AC_MSG_RESULT([no!...Cannot use $CPP_COMPILER $CXXFLAGS compiler])
 	    CPP_COMPILER=""
 	    NOCXX=1
         fi
-	/bin/rm conftest*
+	rm conftest*
     fi
     # Note that C++ doesn't support VPATH build yet.
     # It does (sort of!)
@@ -1874,7 +1886,7 @@ if test -z "$NOCXX" ; then
     # This is for the Notre Dame version.  The altcxx version just uses
     # the mpi include dir
     if test "$CPP_DIR" = "MPI-2-C++" ; then
-        CXXFLAGS='-I${includedir}/mpi2c++'
+        CXXFLAGS='-I${includedir}/mpi2c++'" $CXXFLAGS"
     fi
     if test "$CPP_COMPILER" = "g++" ; then 
 	# Particularly for LDFLAGS, -fhandle-exceptions must ONLY be used
@@ -1883,20 +1895,20 @@ if test -z "$NOCXX" ; then
 	cat > conftest.cc <<EOF
 int main () {}
 EOF
-	$CPP_COMPILER -c conftest.cc -fhandle-exceptions 2>conftest.out
+	$CPP_COMPILER $CXXFLAGS -c conftest.cc -fhandle-exceptions 2>conftest.out
 	if test ! -s conftest.out ; then
 	    CXXFLAGS="$CXXFLAGS -fhandle-exceptions"
 	    AC_MSG_RESULT(-fhandle-exceptions)
 	else
-	    /bin/rm -f conftest.o conftest.out
-	    $CPP_COMPILER -c conftest.cc -fexceptions 2>conftest.out
+	    rm -f conftest.o conftest.out
+	    $CPP_COMPILER $CXXFLAGS -c conftest.cc -fexceptions 2>conftest.out
 	    if test ! -s conftest.out ; then
 	        CXXFLAGS="$CXXFLAGS -fexceptions"
 		AC_MSG_RESULT(-fexceptions)
 	    else
 		AC_MSG_RESULT(not determined)	
 	    fi
-	    /bin/rm -f conftest.o conftest.out conftest.cc
+	    rm -f conftest.o conftest.out conftest.cc
 	fi	
 	# These LDFLAGS break configure tests that try to link when the
 	# compiler is not the C++ compiler.
@@ -2008,6 +2020,30 @@ if test -z "$CC" ; then
     print_error "Could not find a C compiler!"
     exit 1
 fi
+#
+# Check for the extension for executable programs (needed by mpiinstall for
+# installing binary programs under cygwin 
+AC_MSG_CHECKING([for extension on executables])
+EXEEXTmsg=none
+rm -f conftest* a.out a.out.exe
+cat >conftest.c <<EOF
+int main() { return 0; }
+EOF
+if $CC conftest.c 1>/dev/null 2>&1 ; then
+   if test -x a.out.exe ; then 
+       EXEEXT=".exe"
+       EXEEXTmsg=$EXEEXT
+   elif test -x a.out ; then
+       # Found a.out
+       :
+   else
+       EXEEXTmsg="could not determine; assuming no extension"
+   fi
+else
+   EXEEXTmsg="could not determine; assuming no extension"
+fi
+AC_MSG_RESULT($EXEEXTmsg)
+AC_SUBST(EXEEXT)
 # We must NOT check for Unix variants until after we have determined the
 # compiler that we will use.  This is due to a bug in autoconf: it tries to 
 # use the C preprocessor directly, without invoking the compiler.
@@ -2672,7 +2708,7 @@ int Foo(a) { return a; }
 # only within a single object file!  This tests that case.
 if test "$has_pragma_weak" = 1 ; then
     AC_MSG_RESULT([pragma weak])
-    AC_MSG_CHECKING([that weak symbols are visible to other files])
+    AC_MSG_CHECKING([whether weak symbols are visible to other files])
     rm -f conftest*
     cat >>conftest1.c <<EOF
 extern int PFoo(int a);
@@ -2793,10 +2829,21 @@ PAC_WORDS_BIGENDIAN
 # definitions that it requires!  rpc.h seems to be more reliable.
 #
 if test "$IS_HETERO" = 1 ; then
-    AC_COMPILE_CHECK("XDR includes and functions",[#include <rpc/rpc.h>],[
+    AC_COMPILE_CHECK("XDR include",[#include <rpc/rpc.h>],[
     int a=1;
     ],HAS_XDR=1,HAS_XDR=0)
-    if test "$HAS_XDR" = 1 ; then
+    # Now, check whether a special library is needed by looking at xdr_bool
+    AC_COMPILE_CHECK("XDR functions",,[xdr_bool();],HAS_XDR_BOOL=yes,HAS_XDR_BOOL=no)
+    if test "$HAS_XDR_BOOL" = "no" ; then
+        # Try again with -lrpc
+	LIBS_save="$LIBS"
+	LIBS="$LIBS -lrpc"
+	AC_COMPILE_CHECK("XDR functions",,[xdr_bool();],HAS_XDR_BOOL=yes,HAS_XDR_BOOL=no)
+	if test "$HAS_XDR_BOOL" = no ; then
+	    LIBS="$LIBS_save"
+	fi
+    fi
+    if test "$HAS_XDR" = 1 -a "$HAS_XDR_BOOL" = yes ; then
 	AC_DEFINE(HAS_XDR)
     else 
         print_error  "XDR not available on this system" 
@@ -2826,7 +2873,7 @@ int main() {
     gethostbyname(); return 0; }
 EOF
    # Try to compile and link with the C++ compiler
-   AC_MSG_CHECKING([that C++ compiler also has gethostbyname])
+   AC_MSG_CHECKING([whether C++ compiler also has gethostbyname])
    if ${CPP_COMPILER} -o conftest conftest.C >>config.log 2>&1 ; then
 	AC_MSG_RESULT(yes)
    else
@@ -3009,7 +3056,7 @@ dnl havestdarg=1])
 dnl USE_STDARG=0
 AC_SUBST(USE_STDARG)
 dnl #
-dnl AC_MSG_CHECKING([that stdarg is oldstyle])
+dnl AC_MSG_CHECKING([whether stdarg is oldstyle])
 dnl PAC_TRY_COMPILE_CLEAN([#include <stdio.h>
 dnl #include <stdarg.h>],
 dnl [int func( int a, ... ){
@@ -3037,7 +3084,7 @@ dnl	;;
 dnl esac
 dnl
 dnl if test -n "$havestdarg" -a "$USE_STDARG" != 1 ; then
-dnl     AC_MSG_CHECKING([stdarg is correct])
+dnl     AC_MSG_CHECKING([whether stdarg is correct])
 dnl     PAC_TRY_COMPILE_CLEAN([
 dnl #include <stdio.h>
 dnl #include <stdarg.h>],[
@@ -3201,7 +3248,7 @@ dnl
 # However, in some situations, we may want to use something larger
 # than the size of void*.  By setting MPI_AINT_SIZE, we can bypass the
 # code that computes the size of void *
-if test -z "MPI_AINT_SIZE" ; then
+if test -z "$MPI_AINT_SIZE" ; then
     PAC_GET_TYPE_SIZE(void *,MPI_AINT_SIZE)
 fi
 if test "$MPI_AINT_SIZE" != "unknown" ; then
@@ -3443,7 +3490,7 @@ BASE_LIB_LIST="$LIB_LIST"
 # does not give libmpich.a in the current directory; instead, it uses 
 # libmpich.a in another, system directory.  This is really a misconfigured
 # ecc.cfg file, but here is the place to check for it.
-AC_MSG_CHECKING([that $MPILIBNAME can be used as the library name])
+AC_MSG_CHECKING([whether $MPILIBNAME can be used as the library name])
 canuse=yes
 cat >conftest.c <<EOF
 int foobar( int );
@@ -3538,6 +3585,7 @@ if test "$NOF77" != 1 ; then
   export CC ;\
   export CFLAGS ;\
   export F77 ;\
+  export FC ;\
   export FFLAGS ;\
   export F90 ;\
   export LDFLAGS ;\
@@ -3676,15 +3724,15 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
       if test -z "$f_integer_size" -o "$f_integer_size" = "unavailable" ; then
         f_integer_size=4
       fi
-      if test "$OFFSET_KIND" = 8 ; then
-        # F90 has an 8-byte integer kind but F77 doesn't support it
-        # as integer*8.
-	if test "$F90" != "FC" ; then
-          ROMIO_ARGS="$ROMIO_ARGS -longlongsize=int"
-        fi
-      else 	   
-          ROMIO_ARGS="$ROMIO_ARGS -longlongsize=int"
-      fi
+#      if test "$OFFSET_KIND" = 8 ; then
+#        # F90 has an 8-byte integer kind but F77 doesn't support it
+#        # as integer*8.
+#	if test "$F90" != "FC" ; then
+#          ROMIO_ARGS="$ROMIO_ARGS -longlongsize=int"
+#        fi
+#      else 	   
+#          ROMIO_ARGS="$ROMIO_ARGS -longlongsize=int"
+#      fi
     fi
   fi
   if test -z "$FILE_SYSTEM" ; then
@@ -3717,7 +3765,7 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   export CROSS_SIZEOF_LONG;\
   export MAKE;\
   export ARCH;\
-  export CC; export F77; export F90; export MPILIBNAME ; \
+  export CC; export F77; export FC; export F90; export MPILIBNAME ; \
   export FROM_MPICH;\
   export int_len ; export void_star_len ; export OFFSET_KIND ; \
   export long_long_len ; \
@@ -3801,7 +3849,7 @@ if test "$NOMPE" = 0 -a -d "${top_srcdir}/mpe" ; then
       MPI_CC=${binbuild_dir}/mpicc ; export MPI_CC ; \
       MPI_F77=${binbuild_dir}/mpif77 ; export MPI_F77 ; \
       CC="${TESTCC}" ; export CC ; \
-      F77="${TESTF77}" ; export F77 ; \
+      F77="${TESTF77}" ; export F77 ; export FC ; \
       export CLINKER ; export FLINKER ; \
       export CROSS_SIZEOF_CHAR ; \
       export CROSS_SIZEOF_SHORT ; \
@@ -3980,7 +4028,7 @@ AC_SUBST(MPI_INTRA)dnl
 #
 # Make sure we remove any configuration file incase there is out-of-date data.
 # We remove the version in include in case this is a vpath build
-/bin/rm -f mpichconf.h "${top_srcdir}/include/mpichconf.h include/mpichconf.h"
+rm -f mpichconf.h "${top_srcdir}/include/mpichconf.h include/mpichconf.h"
 
 # Make the directories that do not contain Makefiles (should they?) but 
 # are needed for the subsequent directories.
@@ -4109,18 +4157,6 @@ fi
 	--with-mpichbuilding --with-mpich=$binbuild_dir \
 	-prefix=$prefix $otherargs )
 
-#if test "$HAS_F77" != "0" ; then
-#    ( cd examples/perftest ; \
-#       $srcdir/examples/perftest/configure -cc="$MPICC" -basecc="$CC" \
-#				-fc="$MPIF77" -basefc="$F77" \
-#				-f77_extra_flag="$F77_EXTRA_FLAG" \
-#				-make="$MAKE" )
-#else
-#    ( cd examples/perftest ; \
-#       $srcdir/examples/perftest/configure -cc="$MPICC" -basecc="$CC" -nof77 \
-#				-make="$MAKE" )
-#fi
-#
 # Configure JUST the correct device file
 CONFIG_FILES="mpid/$DEVICE/Makefile"
 if test -f "$srcdir/mpid/tests/Makefile.in" ; then

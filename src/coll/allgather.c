@@ -1,5 +1,5 @@
 /*
- *  $Id: allgather.c,v 1.7 1999/09/03 13:03:36 swider Exp $
+ *  $Id: allgather.c,v 1.8 2004/10/01 13:27:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -29,7 +29,7 @@
 
 /*@
 
-MPI_Allgather - Gathers data from all tasks and distribute it to all 
+MPI_Allgather - Gathers data from all tasks and distribute it to all tasks
 
 Input Parameters:
 + sendbuf - starting address of send buffer (choice) 

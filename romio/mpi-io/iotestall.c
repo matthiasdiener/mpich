@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iotestall.c,v 1.3 2003/09/09 15:49:26 gropp Exp $    
+ *   $Id: iotestall.c,v 1.5 2005/02/18 00:39:06 robl Exp $    
  *
  *   Copyright (C) 2003 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -29,12 +29,19 @@
   requests.
 */
 
-int MPIO_Testall( int count, MPIO_Request requests[], int *flag, MPI_Status statuses[] )
+int MPIO_Testall(int count, MPIO_Request requests[], int *flag,
+		 MPI_Status statuses[])
 {
     int done, i, err; 
 
-    if (count == 1) 
-	return MPIO_Test( requests, flag, statuses );
+
+    MPID_CS_ENTER();
+    if (count == 1)  {
+            MPIR_Nest_decr();
+	    err = MPIO_Test( requests, flag, statuses );
+            MPIR_Nest_decr();
+	    goto fn_exit;
+    }
 
     /* This is actually very difficult to do.  We can't use MPIO_Test, 
        since we must change the requests only if *ALL* requests are complete
@@ -44,9 +51,11 @@ int MPIO_Testall( int count, MPIO_Request requests[], int *flag, MPI_Status stat
     done = 1;
     for (i=0; i<count; i++) {
       if (requests[i] != MPIO_REQUEST_NULL) {
+        MPIR_Nest_incr();
 	err = MPIO_Test( &requests[i], flag, &statuses[i] );
+        MPIR_Nest_decr();
 	if (!*flag) done = 0;
-	if (err) return err;
+	if (err) goto fn_exit;
       }
       else {
 #ifdef MPICH2
@@ -64,6 +73,10 @@ int MPIO_Testall( int count, MPIO_Request requests[], int *flag, MPI_Status stat
     }
     
     *flag = done;
-    return MPI_SUCCESS;
+
+    err = MPI_SUCCESS;
+fn_exit:
+    MPID_CS_EXIT();
+    return err;
 }
 

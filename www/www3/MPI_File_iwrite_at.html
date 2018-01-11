@@ -12,7 +12,7 @@ Nonblocking write using explict offset
 #ifdef HAVE_MPI_GREQUEST
 #include "mpiu_greq.h"
 
-int MPI_File_iwrite_at(MPI_File fh, MPI_Offset offset, void *buf,
+int MPI_File_iwrite_at(MPI_File mpi_fh, MPI_Offset offset, void *buf,
                        int count, MPI_Datatype datatype, 
                        MPIO_Request *request)
 </PRE>

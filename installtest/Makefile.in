@@ -88,8 +88,8 @@ hello++.o: hello++.cc
 # We also remove any copy of pi3f90 that is created (e.g., pi3f90.f; pi3f90.f90
 # is the master file)
 clean:
-	-/bin/rm -f *.o *~ PI* $(EXECS) pi3 simpleio hello++ pi3f90 cpilog
-	-/bin/rm -rf SunWS_cache ii_files pi3f90.f pi3p cpip *.ti *.ii
+	-rm -f *.o *~ PI* $(EXECS) pi3 simpleio hello++ pi3f90 cpilog
+	-rm -rf SunWS_cache ii_files pi3f90.f pi3p cpip *.ti *.ii
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<

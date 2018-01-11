@@ -21,9 +21,12 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 
 import viewer.common.Dialogs;
+import viewer.common.RuntimeExecCommand;
 
 public class Launcher
 {
+    private static       String  setupfile_path   = null;
+
     // Assume Unix convention.
     private static       String  FileSeparator    = "/";
     private static       String  PathSeparator    = ":";
@@ -31,10 +34,11 @@ public class Launcher
     private static       String  ClassPath        = null;
     private static       String  UserHome         = null;
 
-    private static final String  SETUP_FILENAME   = ".jumpshot_launcher.conf";
+    private static final String  VERSION_INFO     = "1.0.0.1";
     private static       String  JVM              = "java";
     private static       String  JVM_OPTIONS      = "-Xms64m -Xmx256m";
     private static       String  VIEWER_JAR       = "jumpshot.jar";
+    private static       boolean VERBOSE          = true;
 
     private static void initializeSystemProperties()
     {
@@ -56,49 +60,105 @@ public class Launcher
             JVM = "java";
         else
             JVM = "javaw.exe";
+
+        setupfile_path = UserHome + FileSeparator + ".jumpshot_launcher.conf";
     }
 
     private static final String CONFIGURATION_HEADER
                    = "# Jumpshot-4 Launcher setup file.\n"
+                   + "#VERSION_INFO: version-ID of the jumpshot-launcher.\n"
                    + "#JVM: Java Virtual Machine name, can be absolute path.\n"
                    + "#JVM_OPTIONS: JVM launch parameters.\n"
-                   + "#VIEWER_JAR: executable jar file to be launched.";
+                   + "#VIEWER_JAR: executable jar file to be launched.\n"
+                   + "#VERBOSE: be informative about this setup file change, "
+                   +           "true(yes) or false(no).\n";
 
-    private static boolean readLauncherConstants()
+    private static String readLauncherConstants()
     {
         Properties   setup_pptys;
-        String       setupfile_path;
+        String       ppty_val;
+        StringBuffer msgbuf;
 
-        setupfile_path = UserHome + FileSeparator + SETUP_FILENAME;
         setup_pptys    = new Properties();
         try {
             FileInputStream fins = new FileInputStream( setupfile_path );
             setup_pptys.load( fins );
             fins.close();
-            JVM          = setup_pptys.getProperty( "JVM" );
-            JVM_OPTIONS  = setup_pptys.getProperty( "JVM_OPTIONS" );
-            VIEWER_JAR   = setup_pptys.getProperty( "VIEWER_JAR" );
         } catch ( FileNotFoundException fioerr ) {
-            return false;
+            return   "This is your first time using the launcher.\n"
+                   + "A launcher setup file, " + setupfile_path + ",\n"
+                   + "will be created in your home directory.";
         } catch ( IOException ioerr ) {
             ioerr.printStackTrace();
             System.exit( 1 );
         }
-        return true;
+
+        msgbuf = null;
+        ppty_val = setup_pptys.getProperty( "VERSION_INFO" );
+        if ( ! VERSION_INFO.equals( ppty_val ) ) {
+            msgbuf = new StringBuffer();
+            if ( ppty_val != null )
+                msgbuf.append( "Your setup file verion is " + ppty_val + ".\n");
+            else
+                msgbuf.append( "Your setup file verion is older.\n" );
+             msgbuf.append( "This launcher version is " + VERSION_INFO +".\n" );
+        }
+        ppty_val = setup_pptys.getProperty( "JVM" );
+        if ( ppty_val != null && !JVM.equals( ppty_val ) ) {
+            if ( msgbuf == null )
+                msgbuf = new StringBuffer();
+            else
+                msgbuf.append( "\n" );
+            msgbuf.append( "The default JVM, " + JVM + ",\n"
+                         + "is overriden by value, " + ppty_val + ",\n"
+                         + "specified in your setup file.\n" );
+            JVM          = ppty_val;
+        }
+        ppty_val = setup_pptys.getProperty( "JVM_OPTIONS" );
+        if ( ppty_val != null && !JVM_OPTIONS.equals( ppty_val ) ) {
+            if ( msgbuf == null )
+                msgbuf = new StringBuffer();
+            else
+                msgbuf.append( "\n" );
+            msgbuf.append( "The default JVM_OPTIONS, " + JVM_OPTIONS + ",\n"
+                         + "is overriden by value, " + ppty_val + ",\n"
+                         + "specified in your setup file.\n" );
+            JVM_OPTIONS  = ppty_val;
+        }
+        ppty_val = setup_pptys.getProperty( "VIEWER_JAR" );
+        if ( ppty_val != null && !VIEWER_JAR.equals( ppty_val ) ) {
+            if ( msgbuf == null )
+                msgbuf = new StringBuffer();
+            else
+                msgbuf.append( "\n" );
+            msgbuf.append( "The default VIEWER_JAR, " + VIEWER_JAR + ",\n"
+                         + "is overriden by value, " + ppty_val + ",\n"
+                         + "specified in your setup file.\n" );
+            VIEWER_JAR   = ppty_val;
+        }
+        ppty_val = setup_pptys.getProperty( "VERBOSE" );
+        if ( ppty_val != null ) {
+            VERBOSE      =    ppty_val.equalsIgnoreCase( "true" )
+                           || ppty_val.equalsIgnoreCase( "yes" );
+        }
+        if ( msgbuf != null )
+            return msgbuf.toString();
+        else
+            return null;
     }
 
     private static void writeLauncherConstants()
     {
         Properties   setup_pptys;
-        String       setupfile_path;
 
-        setupfile_path = UserHome + FileSeparator + SETUP_FILENAME;
         setup_pptys    = new Properties();
         try {
             FileOutputStream fouts = new FileOutputStream( setupfile_path );
+            setup_pptys.setProperty( "VERSION_INFO", VERSION_INFO );
             setup_pptys.setProperty( "JVM", JVM );
             setup_pptys.setProperty( "JVM_OPTIONS", JVM_OPTIONS );
             setup_pptys.setProperty( "VIEWER_JAR", VIEWER_JAR );
+            setup_pptys.setProperty( "VERBOSE", String.valueOf( VERBOSE ) );
             setup_pptys.store( fouts, CONFIGURATION_HEADER );
             fouts.close();
         } catch ( IOException ioerr ) {
@@ -148,7 +208,7 @@ public class Launcher
             return VIEWER_JAR;
     }
 
-    private String exec( String exec_cmd )
+    private String exec( String[] exec_cmd_ary )
     {
         Runtime            runtime;
         Process            proc;
@@ -161,7 +221,7 @@ public class Launcher
         proc_istatus  = 0;
         runtime       = Runtime.getRuntime();
         try {
-            proc = runtime.exec( exec_cmd );
+            proc = runtime.exec( exec_cmd_ary );
             proc_err_task = new InputStreamThread( proc.getErrorStream(),
                                                    "Error", proc_err_buf );
             proc_out_task = new InputStreamThread( proc.getInputStream(),
@@ -188,22 +248,23 @@ public class Launcher
     
     public static final void main( String[] argv )
     {
-        String        path2jardir;
-        String        path2jvm;
-        String        opt4jvm;
-        String        jar_path;
-        String        exec_cmd;
-        File          jar_file;
-        File          jvm_file;
-        Launcher      launcher;
-        String        exec_err_msg;
+        String              path2jardir;
+        String              path2jvm;
+        String              opt4jvm;
+        String              jar_path;
+        RuntimeExecCommand  exec_cmd;
+        File                jar_file;
+        File                jvm_file;
+        Launcher            launcher;
+        String              exec_err_msg;
+        String              setupfile_msg;
 
         Launcher.initializeSystemProperties();
         Launcher.initializeLauncherConstants();
-        if ( ! Launcher.readLauncherConstants() ) {
-            Dialogs.info( null, "This is your first time using the launcher.\n"
-                              + "A launcher setup file will be written to\n"
-                              + "your home directory " + UserHome + ".", null );
+        setupfile_msg = Launcher.readLauncherConstants();
+        if ( setupfile_msg != null ) {
+            if ( Launcher.VERBOSE )
+                Dialogs.info( null, setupfile_msg, null );
             Launcher.writeLauncherConstants();
         }
 
@@ -242,11 +303,17 @@ public class Launcher
         }
 
         opt4jvm  = JVM_OPTIONS;
-        exec_cmd = path2jvm + " " + opt4jvm + " -jar " + jar_path;
-        launcher = new  Launcher();
-        if ( ( exec_err_msg = launcher.exec( exec_cmd ) ) != null ) {
+        exec_cmd = new RuntimeExecCommand();
+        exec_cmd.addWholeString( path2jvm );
+        exec_cmd.addTokenizedString( opt4jvm );
+        exec_cmd.addWholeString( "-jar" );
+        exec_cmd.addWholeString( jar_path );
+
+        launcher = new Launcher();
+        if (    ( exec_err_msg = launcher.exec( exec_cmd.toStringArray() ) )
+             != null ) {
             Dialogs.error( null, "The following process exits with error:\n"
-                               + exec_cmd + "\n" + exec_err_msg );
+                               + exec_cmd.toString() + "\n" + exec_err_msg );
             System.exit( 1 );
         }
 

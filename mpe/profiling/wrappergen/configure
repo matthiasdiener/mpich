@@ -237,18 +237,18 @@ fi
 WG_TRIAL=$PWD
 if test "${WG_TRIAL}" != "" -a -d "${WG_TRIAL}" ; then 
     if test -r ${WG_TRIAL}/.foo$$ ; then
-        /bin/rm -f ${WG_TRIAL}/.foo$$
-	/bin/rm -f .foo$$
+        rm -f ${WG_TRIAL}/.foo$$
+	rm -f .foo$$
     fi
     if test -r ${WG_TRIAL}/.foo$$ -o -r .foo$$ ; then
 	WG_TRIAL=
     else
 	echo "test" > ${WG_TRIAL}/.foo$$
 	if test ! -r .foo$$ ; then
-            /bin/rm -f ${WG_TRIAL}/.foo$$
+            rm -f ${WG_TRIAL}/.foo$$
 	    WG_TRIAL=
         else
- 	    /bin/rm -f ${WG_TRIAL}/.foo$$
+ 	    rm -f ${WG_TRIAL}/.foo$$
 	fi
     fi
 fi
@@ -314,18 +314,18 @@ fi
 MPIR_HOME=$PWD
 if test "${MPIR_HOME}" != "" -a -d "${MPIR_HOME}" ; then 
     if test -r ${MPIR_HOME}/.foo$$ ; then
-        /bin/rm -f ${MPIR_HOME}/.foo$$
-	/bin/rm -f .foo$$
+        rm -f ${MPIR_HOME}/.foo$$
+	rm -f .foo$$
     fi
     if test -r ${MPIR_HOME}/.foo$$ -o -r .foo$$ ; then
 	MPIR_HOME=
     else
 	echo "test" > ${MPIR_HOME}/.foo$$
 	if test ! -r .foo$$ ; then
-            /bin/rm -f ${MPIR_HOME}/.foo$$
+            rm -f ${MPIR_HOME}/.foo$$
 	    MPIR_HOME=
         else
- 	    /bin/rm -f ${MPIR_HOME}/.foo$$
+ 	    rm -f ${MPIR_HOME}/.foo$$
 	fi
     fi
 fi
@@ -447,7 +447,7 @@ echo $ac_n "checking gnumake""... $ac_c"
 else
 echo $ac_n "checking gnumake""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -479,7 +479,7 @@ else
 echo "$ac_t""no" 1>&1
 fi
 fi
-/bin/rm -f conftest
+rm -f conftest
 str=""
 
 
@@ -509,7 +509,7 @@ echo $ac_n "checking BSD 4.4 make""... $ac_c"
 else
 echo $ac_n "checking BSD 4.4 make""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 ALL:
 	@echo "success"
@@ -518,7 +518,7 @@ cat > conftest1 <<.
 include conftest
 .
 str=`$MAKE -f conftest1 2>&1`
-/bin/rm -f conftest conftest1
+rm -f conftest conftest1
 if test "$str" != "success" ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""Found BSD 4.4 so-called make"
@@ -565,7 +565,7 @@ echo $ac_n "checking OSF V3 make""... $ac_c"
 else
 echo $ac_n "checking OSF V3 make""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -573,7 +573,7 @@ ALL:
 	@echo "success"
 .
 str=`$MAKE -f conftest 2>&1`
-/bin/rm -f conftest 
+rm -f conftest 
 if test "$str" != "success" ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""Found OSF V3 make"

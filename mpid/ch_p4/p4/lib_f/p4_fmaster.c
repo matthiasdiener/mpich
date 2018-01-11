@@ -17,6 +17,8 @@ VOID p4init_()
         q = (char *)malloc(200);
         /* args Fortran subroutine */
         fflush(stdout);
+	/* Some HP systems may need to use temp = argidx+1 and args_(&temp,q)
+	   instead.  */
         args_(&argidx,q);
         argv[argidx] = q;
         q = (char *)index(argv[argidx],' ');

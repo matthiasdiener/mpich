@@ -456,13 +456,16 @@ int MPID_Type_XDR_encode(
       /* Packed data is already encoded in XDR, so just copy it.  This needs
          to insert data into the xdr stream and to reset the position */
       case MPIR_PACKED:
-/*      len = N;
-      memcpy( d, s, len );
-      break;
- */     
-      case MPIR_BYTE:
       len = MPID_Mem_XDR_ByteEncode(d, s, N, xdr_ctx);
       break;
+
+      /* See mpich-maint req 8262 for why we don't use ByteEncode (XDR 
+	 likes rounding up to multiples of 4 bytes) */
+      case MPIR_BYTE:
+	  len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_u_char, N, 
+				    (int)sizeof(char), xdr_ctx);
+      break;
+
       case MPIR_SHORT:
       len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_short, N, (int)sizeof(short), xdr_ctx);
       break;
@@ -562,6 +565,11 @@ int MPID_Type_XDR_decode(
 				      srcreadlen, destlen, xdr_ctx  );    
       break;
       case MPIR_BYTE:
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_char, N, 
+				      (int)sizeof(char), 
+				      act_size, srcreadlen, destlen, 
+				      xdr_ctx  );
+      break;
       case MPIR_PACKED:
       mpi_errno = MPID_Mem_XDR_ByteDecode(d, s, N, act_size, 
 					  srcreadlen, destlen, 

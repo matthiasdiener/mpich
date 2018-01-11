@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iotest.c,v 1.17 2003/04/18 20:15:08 David Exp $    
+ *   $Id: iotest.c,v 1.19 2005/02/18 00:39:06 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -47,9 +47,7 @@ int MPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status)
 int MPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status)
 {
     int error_code;
-#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPIO_TEST";
-#endif
 #ifdef MPI_hpux
     int fl_xmpi;
 
@@ -58,22 +56,24 @@ int MPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status)
     }
 #endif /* MPI_hpux */
 
-    if (*request == MPIO_REQUEST_NULL) return MPI_SUCCESS;
+    MPID_CS_ENTER();
 
-    if ((*request < (MPIO_Request) 0) || 
-	     ((*request)->cookie != ADIOI_REQ_COOKIE)) {
-#ifdef MPICH2
-			error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_REQUEST, "**request", 0);
-			return error_code;
-#elif defined(PRINT_ERR_MSG)
-	FPRINTF(stderr, "MPIO_Test: Invalid request object\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else /* MPICH-1 */
-	error_code = MPIR_Err_setmsg(MPI_ERR_REQUEST, MPIR_ERR_REQUEST_NULL,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
+    if (*request == MPIO_REQUEST_NULL) {
+	    error_code = MPI_SUCCESS;
+	    goto fn_exit;
     }
+
+    /* --BEGIN ERROR HANDLING-- */
+    if ((*request < (MPIO_Request) 0) || 
+	((*request)->cookie != ADIOI_REQ_COOKIE))
+    {
+	error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+					  myname, __LINE__, MPI_ERR_REQUEST,
+					  "**request", 0);
+	error_code = MPIO_Err_return_file(MPI_FILE_NULL, error_code);
+	goto fn_exit;
+    }
+    /* --END ERROR HANDLING-- */
 
     switch ((*request)->optype) {
     case ADIOI_READ:
@@ -87,6 +87,9 @@ int MPIO_Test(MPIO_Request *request, int *flag, MPI_Status *status)
 #ifdef MPI_hpux
     HPMP_IO_WEND(fl_xmpi);
 #endif /* MPI_hpux */
+
+fn_exit:
+    MPID_CS_EXIT();
     return error_code;
 }
 #endif

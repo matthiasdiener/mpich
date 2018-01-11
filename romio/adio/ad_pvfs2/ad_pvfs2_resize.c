@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs2_resize.c,v 1.10 2004/05/20 20:31:05 robl Exp $
+ *   $Id: ad_pvfs2_resize.c,v 1.12 2005/03/09 17:36:20 robl Exp $
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -16,6 +16,7 @@ void ADIOI_PVFS2_Resize(ADIO_File fd, ADIO_Offset size, int *error_code)
 {
     int ret, rank;
     ADIOI_PVFS2_fs *pvfs_fs;
+    static char myname[] = "ADIOI_PVFS2_RESIZE";
 
     *error_code = MPI_SUCCESS;
 
@@ -27,8 +28,10 @@ void ADIOI_PVFS2_Resize(ADIO_File fd, ADIO_Offset size, int *error_code)
      * ADIO_Open.  This node can perform operations on files and then 
      * inform the other nodes of the result */
 
-    /* we know all processes have reached this point because we did an
-     * MPI_Barrier in MPI_File_set_size() */
+    /* MPI-IO semantics treat conflicting MPI_File_set_size requests the
+     * same as conflicting write requests. Thus, a resize from one
+     * process does not have to be visible to the other processes until a
+     * syncronization point is reached */
 
     if (rank == fd->hints->ranklist[0]) {
 	ret = PVFS_sys_truncate(pvfs_fs->object_ref, 
@@ -37,8 +40,16 @@ void ADIOI_PVFS2_Resize(ADIO_File fd, ADIO_Offset size, int *error_code)
     } else  {
 	MPI_Bcast(&ret, 1, MPI_INT, 0, fd->comm);
     }
-    if (ret < 0 ) 
-	ADIOI_PVFS2_pvfs_error_convert(ret, error_code);
+    /* --BEGIN ERROR HANDLING-- */
+    if (ret != 0) {
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					   MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__,
+					   ADIOI_PVFS2_error_convert(ret),
+					   "Error in PVFS_sys_truncate", 0);
+	return;
+    }
+    /* --END ERROR HANDLING-- */
 }
 
 /*

@@ -81,7 +81,7 @@ EOF
 	# May not be able to write there.  Try the user's home directory
 	p4pgfile=$HOME/PI$$
     else
-	/bin/rm -rf $p4pgfile
+	rm -rf $p4pgfile
     fi
     # cnt is the "index" into the list of machines
     procNum=1
@@ -253,10 +253,10 @@ if [ "$just_testing" != 1 ] ; then
         if [ "$nolocal" = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
 	    $rshcmd -n $machinehead /bin/rm $p4pgfile_master
         fi
-        /bin/rm "$p4pgfile"
+        rm "$p4pgfile"
     fi
     if [ "$MPIRUN_RANDOM" = "yes" ] ; then
-        /bin/rm -f "$TEMPDIR/mpirand-$LOGNAME"*
+        rm -f "$TEMPDIR/mpirand-$LOGNAME"*
     fi
 fi
 #

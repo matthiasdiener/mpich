@@ -27,7 +27,9 @@ int MPIU_Greq_query_fn(void *extra_state, MPI_Status *status)
 	status->MPI_ERROR = foo;
 
 	/* and let Test|Wait know we weren't canceled */
+        MPIR_Nest_incr();
 	MPI_Status_set_cancelled(status, 0);
+        MPIR_Nest_decr();
 
 	/* the MPI_Status structure is a convienent place to stash the return
 	 * code of the blocking operation */
@@ -36,7 +38,7 @@ int MPIU_Greq_query_fn(void *extra_state, MPI_Status *status)
 
 int MPIU_Greq_free_fn(void *extra_state)
 {
-	free(extra_state);
+	ADIOI_Free(extra_state);
 	return MPI_SUCCESS;
 }
 int MPIU_Greq_cancel_fn(void *extra_state, int complete)

@@ -37,6 +37,7 @@ Module MPI
       Integer, parameter :: MPI_MAX_PROCESSOR_NAME=256
       Integer, parameter :: MPI_MAX_ERROR_STRING=512
       Integer, parameter :: MPI_MAX_NAME_STRING=63
+      Integer, parameter :: MPI_MAX_PORT_NAME=256
 !
       Integer, parameter :: MPI_COMM_NULL=0
 !

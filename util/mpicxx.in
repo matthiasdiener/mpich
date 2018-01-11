@@ -327,6 +327,16 @@ for arg in "$@" ; do
 done
 #
 status=0
+#
+# One user has asked that 
+#   mpicxx -o foo mysources/foo.c
+# not generate the local foo.o file, which happens if you use
+# two steps, like
+#   mpicxx -c mysources/foo.c
+#   mpicxx -o foo foo.o
+# which is not desired.  The user is correct; the MPICH2 scripts try
+# to use a single step.
+#
 if [ $DoCompile = 1 -o $show_compile = 1 ] ; then 
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"

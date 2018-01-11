@@ -521,13 +521,42 @@ dnl
 dnl tries to determine the Fortran 90 kind parameter for 8-byte integers
 dnl
 define(PAC_MPI_OFFSET_KIND,
-[AC_MSG_CHECKING([for Fortran 90 KIND parameter for 8-byte integers])
-rm -f kind.f kind.o kind
-cat <<EOF > kind.f
+[rm -f conftest*
+# Determine the extension for Fortran 90 files (not all compilers accept
+# .f and not all accept .f90)
+if test -z "$ac_f90ext" ; then
+    if test -z "$F90" ; then
+       AC_CHECK_PROGS(F90,f90 xlf90 pgf90 ifort epcf90 f95 fort xlf95 lf95 pathf90 g95 fc ifc efc)
+    fi
+    AC_MSG_CHECKING([for extension for Fortran 90 programs])
+    ac_f90ext="f90"
+    ac_f90compile='${F90-f90} -c $F90FLAGS conftest.$ac_f90ext 1>&AC_FD_CC'
+    cat > conftest.$ac_f90ext <<EOF
+      program conftest
+      end
+EOF
+    if AC_TRY_EVAL(ac_f90compile) ; then
+        AC_MSG_RESULT([f90])
+    else
+        rm -f conftest*
+        ac_f90ext="f"
+        cat > conftest.$ac_f90ext <<EOF
+      program conftest
+      end
+EOF
+        if AC_TRY_EVAL(ac_f90compile) ; then
+            AC_MSG_RESULT([f])
+        else
+            AC_MSG_RESULT([unknown!])
+        fi
+    fi
+fi
+AC_MSG_CHECKING([for Fortran 90 KIND parameter for 8-byte integers])
+cat <<EOF > conftest.$ac_f90ext
       program main
       integer i
       i = selected_int_kind(16)
-      open(8, file="k.out", form="formatted")
+      open(8, file="conftest.out", form="formatted")
       write (8,*) i
       close(8)
       stop
@@ -537,13 +566,13 @@ if test -z "$F90" ; then
    F90=f90
 fi
 KINDVAL=""
-if $F90 -o kind kind.f >/dev/null 2>&1 ; then
-    ./kind >/dev/null 2>&1
-    if test -s k.out ; then 
-        KINDVAL=`cat k.out`
+if $F90 -o conftest conftest.$ac_f90ext >/dev/null 2>&1 ; then
+    ./conftest >/dev/null 2>&1
+    if test -s conftest.out ; then 
+        KINDVAL=`cat conftest.out`
     fi
 fi
-rm -f kind k.out kind.f kind.o k.out
+rm -f conftest*
 if test -n "$KINDVAL" -a "$KINDVAL" != "-1" ; then
    AC_MSG_RESULT($KINDVAL)
    MPI_OFFSET_KIND1="      INTEGER MPI_OFFSET_KIND"
@@ -812,4 +841,39 @@ EOF
   fi
   rm -f conftest mpitest.c
 ])dnl
+dnl
+dnl/*D
+dnl PAC_FUNC_NEEDS_DECL - Set NEEDS_<funcname>_DECL if a declaration is needed
+dnl
+dnl Synopsis:
+dnl PAC_FUNC_NEEDS_DECL(headerfiles,funcname)
+dnl
+dnl Output Effect:
+dnl Sets 'NEEDS_<funcname>_DECL' if 'funcname' is not declared by the 
+dnl headerfiles.
+dnl
+dnl Approach:
+dnl Try to compile a program with the function, but passed with an incorrect
+dnl calling sequence.  If the compilation fails, then the declaration
+dnl is provided within the header files.  If the compilation succeeds,
+dnl the declaration is required.
+dnl
+dnl We use a 'double' as the first argument to try and catch varargs
+dnl routines that may use an int or pointer as the first argument.
+dnl 
+dnl D*/
+AC_DEFUN(PAC_FUNC_NEEDS_DECL,[
+AC_CACHE_CHECK([whether $2 needs a declaration],
+pac_cv_func_decl_$2,[
+AC_TRY_COMPILE([$1],[int a=$2(1.0,27,1.0,"foo");],
+pac_cv_func_decl_$2=yes,pac_cv_func_decl_$2=no)])
+if test "$pac_cv_func_decl_$2" = "yes" ; then
+changequote(<<,>>)dnl
+define(<<PAC_FUNC_NAME>>, translit(NEEDS_$2_DECL, [a-z *], [A-Z__]))dnl
+changequote([, ])dnl
+    AC_DEFINE_UNQUOTED(PAC_FUNC_NAME,1,[Define if $2 needs a declaration])
+undefine([PAC_FUNC_NAME])
+fi
+])dnl
+dnl
 

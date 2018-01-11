@@ -45,14 +45,15 @@ ALL_SOURCES = ${PROGRAM_SOURCES} ${SOURCES}
 # There are two install targets.  The first is the usual; the
 # second is a subset used for installing multiple Fortran wrapper libraries
 # for a single MPICH installation
+# Use cp -p for the libraries to preserve modification times
 install: src/lib${FLIBNAME}.a
 	if [ ! -d ${f77includedir} ] ; then mkdir ${f77includedir} ; fi
 	if [ ! -d ${f77libdir} ] ; then mkdir ${f77libdir} ; fi
 	cp include/mpif.h ${f77includedir}/mpif.h
 	cp include/mpi_fortdefs.h ${includedir}/mpi_fortdefs.h
-	cp ${libbuild_dir}/lib${FLIBNAME}.a ${f77libdir}/lib${FLIBNAME}.a
-	cp ${libbuild_dir}/lib${FWRAPNAME}.a ${f77libdir}/lib${FWRAPNAME}.a
-	cp ${libbuild_dir}/lib${FLIBNAME}fsup.a ${f77libdir}/lib${FLIBNAME}fsup.a
+	cp -p ${libbuild_dir}/lib${FLIBNAME}.a ${f77libdir}/lib${FLIBNAME}.a
+	cp -p ${libbuild_dir}/lib${FWRAPNAME}.a ${f77libdir}/lib${FWRAPNAME}.a
+	cp -p ${libbuild_dir}/lib${FLIBNAME}fsup.a ${f77libdir}/lib${FLIBNAME}fsup.a
 	cp src/mpif77 ${f77bindir}/mpif77${subname}
 	cp src/mpif77.conf ${sysconfdir}/mpif77${subname}.conf
 
@@ -71,9 +72,9 @@ uninstall:
 install-alt: src/lib${FLIBNAME}.a
 	if [ ! -d ${f77includedir} ] ; then mkdir ${f77includedir} ; fi
 	if [ ! -d ${f77libdir} ] ; then mkdir ${f77libdir} ; fi
-	cp ${libbuild_dir}/lib${FLIBNAME}.a ${f77libdir}/lib${FLIBNAME}.a
-	cp ${libbuild_dir}/lib${FWRAPNAME}.a ${f77libdir}/lib${FWRAPNAME}.a
-	cp ${libbuild_dir}/lib${FLIBNAME}fsup.a ${f77libdir}/lib${FLIBNAME}fsup.a
+	cp -p ${libbuild_dir}/lib${FLIBNAME}.a ${f77libdir}/lib${FLIBNAME}.a
+	cp -p ${libbuild_dir}/lib${FWRAPNAME}.a ${f77libdir}/lib${FWRAPNAME}.a
+	cp -p ${libbuild_dir}/lib${FLIBNAME}fsup.a ${f77libdir}/lib${FLIBNAME}fsup.a
 	cp src/mpif77 ${f77bindir}/mpif77${subname}
 	cp src/mpif77.conf ${sysconfdir}/mpif77${subname}.conf
 

@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
 		data = 6;
 		MPI_Send(&data, 1, MPI_INT, 1, 5, MPI_COMM_WORLD);
 		
+		data = 7;
 		MPI_Isend(&data, 1, MPI_INT, 1, 1, MPI_COMM_WORLD,&request);
 		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Cancel(&request);
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
 	    MPI_Barrier(MPI_COMM_WORLD);
 	    data = 0;
 	    MPI_Recv(&data, 1, MPI_INT, 0, 1, MPI_COMM_WORLD,&status);
-	    if (data != 6) {
+	    if (data != 7) {
 		err1++;
 		printf("task %d ERROR: Send request not cancelled!\n", me);
 	    }

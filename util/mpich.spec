@@ -1,6 +1,6 @@
 Summary: Argonne National Laboratory MPI implementation
 Name: mpich
-Version: 1.2.6
+Version: 1.2.7
 Vendor: Argonne National Laboratory
 Packager: William Gropp <gropp@mcs.anl.gov>
 Copyright: BSD-like

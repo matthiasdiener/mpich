@@ -162,7 +162,13 @@ va_dcl
 	strcpy( error_ring[error_ring_pos], def_format );
     }
     else {
-	vsprintf( error_ring[error_ring_pos], format, Argp );
+	if (format) {
+	    vsprintf( error_ring[error_ring_pos], format, Argp );
+	}
+	else {
+	    if (def_format) strcpy( error_ring[error_ring_pos], def_format );
+	    else strcpy (error_ring[error_ring_pos], "No error message" );
+	}
     }
     error_ring_idx[error_ring_pos] = error_ring_id;
     va_end( Argp );

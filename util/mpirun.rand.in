@@ -34,4 +34,4 @@ do
    machine_num=`expr ${machine_num} - 1`
 done
 #
-/bin/rm -f $machines_temp $machines_temp2
+rm -f $machines_temp $machines_temp2

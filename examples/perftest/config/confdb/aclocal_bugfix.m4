@@ -56,14 +56,19 @@ AC_DEFUN(AC_CONFIG_AUX_DIRS,
 [if test -f $CONFIG_AUX_DIR/install-sh ; then ac_aux_dir=$CONFIG_AUX_DIR 
 else
 ac_aux_dir=
+# We force the test to use the absolute path to ensure that the install
+# program can be used if we cd to a different directory before using
+# install.
 for ac_dir in $1; do
   if test -f $ac_dir/install-sh; then
     ac_aux_dir=$ac_dir
-    ac_install_sh="$ac_aux_dir/install-sh -c"
+    abs_ac_aux_dir=`(cd $ac_aux_dir && pwd)`
+    ac_install_sh="$abs_ac_aux_dir/install-sh -c"
     break
   elif test -f $ac_dir/install.sh; then
     ac_aux_dir=$ac_dir
-    ac_install_sh="$ac_aux_dir/install.sh -c"
+    abs_ac_aux_dir=`(cd $ac_aux_dir && pwd)`
+    ac_install_sh="$abs_ac_aux_dir/install.sh -c"
     break
   fi
 done
@@ -171,6 +176,12 @@ dnl   soft link through /bin, which autoconf believes is good.
 dnl
 dnl   No variables are cached to ensure that we do not make a mistake in 
 dnl   our choice of install program.
+dnl
+dnl   The Solaris configure requires the directory name to immediately
+dnl   follow the '-c' argument, rather than the more common 
+dnl.vb
+dnl      args sourcefiles destination-dir
+dnl.ve
 dnl D*/
 AC_DEFUN([PAC_PROG_CHECK_INSTALL_WORKS],[
 if test -z "$INSTALL" ; then

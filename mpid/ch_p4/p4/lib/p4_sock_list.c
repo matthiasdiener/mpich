@@ -175,6 +175,11 @@ poke_slave( int idx )
  * Question: is there a possible race condition here when the 
  * processes are exiting?  We've seen some failures the appear to happen
  * near or during MPI_Finalize.
+ *
+ * Note that kill doesn't guarantee signal delivery.  Possible alternatives
+ * include using sigqueue (the POSIX version of a reliable kill).
+ * Also, the order of delivery is not specified for kill and for sa_handler;
+ * it may be better to use sa_sigaction instead of sa_handler.
  */
 static void
 wakeup_slave( int idx )

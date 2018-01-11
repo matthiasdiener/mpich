@@ -21,7 +21,7 @@ ALL_DIRS = $(P4_DIRS) $(EXAMPLES_DIRS) \
 
 DIRS = $(ALL_DIRS)
 
-RM = /bin/rm
+RM = rm
 
 all:
 	@echo making p4 on architecture=$(P4ARCH)
@@ -31,7 +31,7 @@ all:
 	  do \
 	  echo " " ;\
 	  echo making p4 in directory $$dir ;\
-	  (cd $$dir; $(MAKE) $(MFLAGS) default) ;\
+	  (cd $$dir && $(MAKE) $(MFLAGS) default) ;\
 	  done 
 
 p4:
@@ -42,7 +42,7 @@ p4:
 	  do \
 	  echo " " ;\
 	  echo making p4 in directory $$dir ;\
-	  (cd $$dir; $(MAKE) $(MFLAGS) default) ;\
+	  (cd $$dir && $(MAKE) $(MFLAGS) default) ;\
 	  done 
 
 #
@@ -54,7 +54,7 @@ p4:
 #	  do \
 #	  echo " " ;\
 #	  echo making p4 in directory $$dir ;\
-#	  (cd $$dir; $(MAKE) $(MFLAGS) default) ;\
+#	  (cd $$dir && $(MAKE) $(MFLAGS) default) ;\
 #	  done 
 p4inmpi: 
 	@echo making p4 on architecture=$(P4ARCH)
@@ -66,6 +66,8 @@ p4inmpi:
 	@(cd usc;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
 		MPILIBNAME=$(MPILIBNAME) p4inmpi)
 
+# Remove links before using ln in case a VPATH build was made to an
+# old source directory (ln -f is not portable)
 p4links:
 #	@if [ -f lib/p4_config.h ] ;\
 #	then\
@@ -78,6 +80,7 @@ p4links:
 	    true ;\
 	else\
 	    (cd include ;\
+	    rm -f alog.h alog_eventdfs.h ; \
 	    ln -s ${top_srcdir}/alog/alog.h . ;\
 	    ln -s ${top_srcdir}/alog/alog_evntdfs.h . ;\
 	    ) ;\
@@ -87,6 +90,7 @@ p4links:
 	    true ;\
 	else\
 	    (cd include ;\
+	    rm -f usc.h usc_sys.h ; \
 	    ln -s ${top_srcdir}/usc/usc.h . ;\
 	    ln -s ${top_srcdir}/usc/usc_sys.h . ;\
 	    ) ;\
@@ -96,6 +100,9 @@ p4links:
 	    true ;\
 	else\
 	    (cd include ;\
+	    rm -f p4.h p4_MD.h p4_defs.h p4_funcs.h p4_globals.h ;\
+	    rm -f p4_macros.h p4_mon.h p4_patchlevel.h p4_sock_util.h ;\
+	    rm -f p4_sr.h p4_sys.h p4_sys_funcs.h sfcdchi.h p4_config.h ;\
 	    ln -s ${top_srcdir}/lib/p4.h . ;\
 	    ln -s ${top_srcdir}/lib/p4_MD.h . ;\
 	    ln -s ${top_srcdir}/lib/p4_defs.h . ;\
@@ -113,12 +120,15 @@ p4links:
 	    ) ;\
 	fi
 
+# Remove links before using ln in case a VPATH build was made to an
+# old source directory (ln -f is not portable)
 links:
 	@if [ -f include/alog.h ] ;\
 	then\
 	    true ;\
 	else\
 	    (cd include ;\
+	    rm -f alog.h alog_evntdfs.h ;\
 	    ln -s ${top_srcdir}/alog/alog.h . ;\
 	    ln -s ${top_srcdir}/alog/alog_evntdfs.h . ;\
 	    ) ;\
@@ -128,6 +138,7 @@ links:
 	    true ;\
 	else\
 	    (cd include ;\
+	    rm -f usc.h usc_sys.h ; \
 	    ln -s ${top_srcdir}/usc/usc.h . ;\
 	    ln -s ${top_srcdir}/usc/usc_sys.h . ;\
 	    ) ;\
@@ -137,6 +148,9 @@ links:
 	    true ;\
 	else\
 	    (cd include ;\
+	    rm -f p4.h p4_MD.h p4_defs.h p4_funcs.h p4_globals.h ;\
+	    rm -f p4_macros.h p4_mon.h p4_patchlevel.h p4_sock_util.h ;\
+	    rm -f p4_sr.h p4_sys.h p4_sys_funcs.h sfcdchi.h p4_config.h ;\
 	    ln -s ${top_srcdir}/lib/p4.h . ;\
 	    ln -s ${top_srcdir}/lib/p4_MD.h . ;\
 	    ln -s ${top_srcdir}/lib/p4_defs.h . ;\
@@ -157,13 +171,17 @@ links:
 	then\
 		true ;\
 	else\
-		(cd messages_f; ln -s ${top_srcdir}/lib_f/p4f.h . ; cd ..) ;\
+		(cd messages_f; \
+		rm -f p4f.h ;\
+		ln -s ${top_srcdir}/lib_f/p4f.h . ) ;\
 	fi
 	@if [ -f contrib_f/p4f.h ] ;\
 	then\
 		true ;\
 	else\
-		(cd contrib_f; ln -s ${top_srcdir}/lib_f/p4f.h . ; cd ..) ;\
+		(cd contrib_f; \
+		rm -f p4f.h ;\
+		ln -s ${top_srcdir}/lib_f/p4f.h . ) ;\
 	fi
 
 
@@ -171,7 +189,7 @@ clean:
 	@for dir in $(DIRS) ;\
 	  do \
 	  echo cleaning $$dir ;\
-	  (cd $$dir; $(MAKE) clean) ;\
+	  (cd $$dir && $(MAKE) clean) ;\
 	  done
 	$(RM) -f *~ *.o *.bak
 
@@ -182,7 +200,7 @@ realclean:
 	  do \
 	  if test -s $$dir/Makefile ; then \
 	  echo cleaning $$dir ;\
-	  (cd $$dir; $(MAKE) realclean) ; fi ;\
+	  (cd $$dir && $(MAKE) realclean) ; fi ;\
 	  done
 	@-$(RM) -f *~ *.o *.bak Makefile mdepcflags config.log config.status \
 	p4_config.h
@@ -220,7 +238,7 @@ install:
 	  $(INSTALLDIR)/examples/makefile.proto >  $(INSTALLDIR)/temp
 	@mv $(INSTALLDIR)/temp  $(INSTALLDIR)/examples/makefile.proto
 	@$(MAKE) makefiles DIRS=$(INSTALLDIR)/examples
-	@(cd $(INSTALLDIR)/examples; $(MAKE) sr_test systest)
+	@(cd $(INSTALLDIR)/examples && $(MAKE) sr_test systest)
 	@mkdir $(INSTALLDIR)/lib_f
 	@cp lib_f/libp4_f.a lib_f/*.h $(INSTALLDIR)/lib_f
 	@grep RANLIB util/defs.MD > $(INSTALLDIR)/lib_f/makeranlib

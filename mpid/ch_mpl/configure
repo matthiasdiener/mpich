@@ -517,8 +517,12 @@ fi
 #
 # Get a test value and flag whether we should remove/replace the 
 # cache_system file (do so unless cache_system_ok is yes)
-cleanargs=`echo "$CC $F77 $CXX $F90 $PATH" | tr '"' ' '`
-# We might want to add CFLAGS and some of the configure parms ()
+# FC and F77 should be synonyms.  Save both in case
+# We include the xxxFLAGS in case the user is using the flags to change
+# the language (either input or output) of the compiler.  E.g., 
+# using -xarch=v9 on Solaris to select 64 bit output or using -D_BSD_SOURCE 
+# with gcc to get different header files on input.
+cleanargs=`echo "$CC $F77 $FC $CXX $F90 $CFLAGS $FFLAGS $CXXFLAGS $F90FLAGS $PATH" | tr '"' ' '`
 if uname -srm >/dev/null 2>&1 ; then
     cache_system_text="`uname -srm` $cleanargs"
 else
@@ -630,7 +634,7 @@ fi
 # to use /lib/cpp instead of the C compiler (mpcc in this case)
 # (try compile instead?)
 cat > conftest.$ac_ext <<EOF
-#line 634 "configure"
+#line 638 "configure"
 #include "confdefs.h"
 
 #include <mpproto.h>
@@ -639,7 +643,7 @@ int main() {
 int a=0;
 ; return 0; }
 EOF
-if { (eval echo configure:643: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:647: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   pre_req=1
 else
@@ -665,12 +669,12 @@ fi
 for ac_func in gettimeofday
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:669: checking for $ac_func" >&5
+echo "configure:673: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 674 "configure"
+#line 678 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -693,7 +697,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:697: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:701: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: delete.c,v 1.19 2004/02/12 06:08:22 David Exp $    
+ *   $Id: delete.c,v 1.21 2005/02/18 00:39:04 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -40,9 +40,7 @@ int MPI_File_delete(char *filename, MPI_Info info)
     int flag, error_code, file_system;
     char *tmp;
     ADIOI_Fns *fsops;
-#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_DELETE";
-#endif
 #ifdef MPI_hpux
     int fl_xmpi;
   
@@ -50,38 +48,34 @@ int MPI_File_delete(char *filename, MPI_Info info)
                 MPI_FILE_NULL, MPI_DATATYPE_NULL, -1);
 #endif /* MPI_hpux */
 
+    MPID_CS_ENTER();
+    MPIR_Nest_incr();
+
     /* first check if ADIO has been initialized. If not, initialize it */
     if (ADIO_Init_keyval == MPI_KEYVAL_INVALID) {
-
-   /* check if MPI itself has been initialized. If not, flag an error.
-   Can't initialize it here, because don't know argc, argv */
         MPI_Initialized(&flag);
+
 	/* --BEGIN ERROR HANDLING-- */
-        if (!flag)
-	{
-#ifdef MPICH2
-	    error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_INTERN, 
-					  "**initialized", 0);
-	    return MPIR_Err_return_file(MPI_FILE_NULL, myname, error_code);
-#else
-            FPRINTF(stderr, "Error: MPI_Init() must be called before using MPI-IO\n");
-            MPI_Abort(MPI_COMM_WORLD, 1);
-#endif
+        if (!flag) {
+	    error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+					      myname, __LINE__, MPI_ERR_OTHER, 
+					      "**initialized", 0);
+	    error_code = MPIO_Err_return_file(MPI_FILE_NULL, error_code);
+	    goto fn_exit;
 	}
 	/* --END ERROR HANDLING-- */
 
         MPI_Keyval_create(MPI_NULL_COPY_FN, ADIOI_End_call, &ADIO_Init_keyval,
                           (void *) 0);  
 
-   /* put a dummy attribute on MPI_COMM_WORLD, because we want the delete
-   function to be called when MPI_COMM_WORLD is freed. Hopefully the
-   MPI library frees MPI_COMM_WORLD when MPI_Finalize is called,
-   though the standard does not mandate this. */
+	/* put a dummy attribute on MPI_COMM_WORLD, because we want the delete
+	   function to be called when MPI_COMM_WORLD is freed. Hopefully the
+	   MPI library frees MPI_COMM_WORLD when MPI_Finalize is called,
+	   though the standard does not mandate this. */
 
         MPI_Attr_put(MPI_COMM_WORLD, ADIO_Init_keyval, (void *) 0);
 
-/* initialize ADIO */
-
+	/* initialize ADIO */
         ADIO_Init( (int *)0, (char ***)0, &error_code);
     }
 
@@ -89,6 +83,7 @@ int MPI_File_delete(char *filename, MPI_Info info)
     /* resolve file system type from file name; this is a collective call */
     ADIO_ResolveFileType(MPI_COMM_SELF, filename, &file_system, &fsops, 
 			 &error_code);
+
     /* --BEGIN ERROR HANDLING-- */
     if (error_code != MPI_SUCCESS)
     {
@@ -97,20 +92,16 @@ int MPI_File_delete(char *filename, MPI_Info info)
 	 * the error up.  In the PRINT_ERR_MSG case MPI_Abort has already
 	 * been called as well, so we probably didn't even make it this far.
 	 */
-#ifdef MPICH2
-	return MPIR_Err_return_file(MPI_FILE_NULL, myname, error_code);
-#elif defined(PRINT_ERR_MSG)
-	MPI_Abort(MPI_COMM_WORLD, 1); /* this is mostly here for clarity */
-#else /* MPICH-1 */
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
+	error_code = MPIO_Err_return_file(MPI_FILE_NULL, error_code);
+	goto fn_exit;
     }
     /* --END ERROR HANDLING-- */
 
-    /* skip prefix on filename if there is one */
+    /* skip prefixes on file names if they have more than one character;
+     * single-character prefixes are assumed to be windows drive
+     * specifications (e.g. c:\foo) and are left alone.
+     */
     tmp = strchr(filename, ':');
-    /* Only skip prefixes greater than length one to allow for windows drive specification (c:\...)*/
-    /*if (tmp) filename = tmp + 1;*/
     if (tmp > filename + 1)
 	filename = tmp + 1;
 
@@ -120,5 +111,9 @@ int MPI_File_delete(char *filename, MPI_Info info)
 #ifdef MPI_hpux
     HPMP_IO_END(fl_xmpi, MPI_FILE_NULL, MPI_DATATYPE_NULL, -1);
 #endif /* MPI_hpux */
+
+fn_exit:
+    MPIR_Nest_decr();
+    MPID_CS_EXIT();   
     return error_code;
 }

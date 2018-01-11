@@ -1129,6 +1129,7 @@ P4VOID zap_p4_processes( void )
     while (n--)
     {
 	if (pid_list[n] > 0) {
+	    p4_dprintfl(99,"ZAPPING: %d\n",pid_list[n]);
 	    kill(pid_list[n], SIGINT);
 	}
     }
@@ -1531,7 +1532,10 @@ beowulf_init(void)
 	  strncpy(pe->slave_full_pathname, "self", 4);
       else
 	  pe->slave_full_pathname[cnt] = 0;
-      strncpy(pe->username, pwent->pw_name, 10);
+      if (strlen(pwent->pw_name) >= sizeof(pe->username)) {
+	  p4_error("beowulf_init: username is too long",0);
+      }
+      strncpy(pe->username, pwent->pw_name, sizeof(pe->username)-1);
       pe++;
   }
 

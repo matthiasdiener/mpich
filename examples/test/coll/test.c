@@ -77,7 +77,7 @@ void Test_Finalize(void)
 #include "mpi.h"
 /* Wait for every process to pass through this point.  This test is used
    to make sure that all processes complete, and that a test "passes" because
-   it executed, not because it some process failed.  
+   it executed, not because some process failed.  
  */
 void Test_Waitforall(void)
 {

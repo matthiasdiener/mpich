@@ -801,6 +801,8 @@ int net_send(int fd, P4VOID *in_buf, int size, int flag)
 		p4_dprintf("net_send: could not write to fd=%d, errno = %d\n",
 			   fd, errno);
 		p4_error("net_send write", n);
+		break;    /* Allow p4_error() to return in case of a 
+			     recursive call to p4_error */
 	    }
 	}
 	sent += n;
@@ -868,6 +870,8 @@ int net_send_w(int fd, void *in_buf, int size, int flag)
 		p4_dprintf("net_send: could not write to fd=%d, errno = %d\n",
 			   fd, errno);
 		p4_error("net_send write", n);
+		break;    /* Allow p4_error() to return in case of a 
+			     recursive call to p4_error */
 	    }
 	}
 	COLLECT_STAT(if (n >n_send_max) n_send_max = n);

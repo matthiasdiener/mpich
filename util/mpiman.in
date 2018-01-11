@@ -26,17 +26,17 @@ for arg in "$@" ; do
 	set -x
 	;;
 	-xmosaic)
-	program="xmosaic $htmldir/index.html"
+	program="xmosaic $htmldir/mpich.html"
 	docdir=$htmldir
 	mankind=HTML
 	;;
 	-mosaic)
-	program="mosaic $htmldir/index.html"
+	program="mosaic $htmldir/mpich.html"
 	docdir=$htmldir
 	mankind=HTML
 	;;
 	-netscape)
-	program="netscape $htmldir/index.html"
+	program="netscape $htmldir/mpich.html"
 	docdir=$htmldir
 	mankind=HTML
 	;;

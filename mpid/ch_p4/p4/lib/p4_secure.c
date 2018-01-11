@@ -56,10 +56,8 @@ static int connect_to_server (char *);
 static void send_string (int,char *);
 static void recv_string (int,char *,int);
 
-int start_slave(host, username, prog, port, am_slave, pw_hook)
-char *host, *username, *prog, *am_slave;
-int port;
-char *(*pw_hook) ( char *, char *);
+int start_slave(char *host, char *username, char *prog, int port, 
+		char *am_slave, char *(*pw_hook)(char *,char*))
 {
     int n, conn;
     struct passwd *pw;

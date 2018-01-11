@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: error.c,v 1.2 2002/10/24 17:01:14 gropp Exp $    
+ *   $Id: error.c,v 1.3 2004/10/04 15:51:26 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,6 +9,9 @@
 #include "adio.h"
 #include "adio_extern.h"
 
+/* NOTE: THIS FUNCTION IS DEPRECATED AND ONLY EXISTS HERE BECAUSE
+ * SOME DEPRECATED ADIO IMPLEMENTATIONS STILL CALL IT (SFS, HFS, PIOFS).
+ */
 int ADIOI_Error(ADIO_File fd, int error_code, char *string)
 {
     char buf[MPI_MAX_ERROR_STRING];

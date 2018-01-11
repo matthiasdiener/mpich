@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.46 2004/07/29 14:22:23 gropp Exp $
+ *  $Id: mpi.h,v 1.47 2005/02/12 14:48:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -196,7 +196,7 @@ typedef int (MPI_Delete_function) ( MPI_Comm, int, void *, void * );
 #define MPI_VERSION    1
 #define MPI_SUBVERSION 2
 #define MPICH_NAME     1
-#define MPICH_VERSION "1.2.6"
+#define MPICH_VERSION "1.2.7"
 
 /********************** MPI-2 FEATURES BEGIN HERE ***************************/
 #define MPICH_HAS_C2F

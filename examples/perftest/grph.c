@@ -567,7 +567,9 @@ GraphData SetupGraph( int *argc, char *argv[] )
     filename[0] = 0;
     /* Set default.  The gnuplot isn't as nice (separate file for data) */
     /* But gnuplot is everywhere and C.It is available essentially nowhere */
-    isgnu = 1;
+    /* But on the other hand, the C.It output is human readable. So
+       we still make that the default */
+    isgnu = 0;
 #ifdef FOO
 #if GRAPHICS_PGM == gnuplot
     isgnu = 1;
@@ -576,25 +578,21 @@ GraphData SetupGraph( int *argc, char *argv[] )
 #endif
 #endif
     if (SYArgHasName( argc, argv, 1, "-gnuplot" )) isgnu = 1;
+    if (SYArgHasName( argc, argv, 1, "-gnuploteps" )) {
+	isgnu       = 1;
+	output_type = GRF_EPS;
+    };
+    if (SYArgHasName( argc, argv, 1, "-gnuplotps" )) {
+	isgnu       = 1;
+	output_type = GRF_PS;
+    };
+    if (SYArgHasName( argc, argv, 1, "-gnuplotgif" )) {
+	isgnu       = 1;
+	output_type = GRF_GIF;
+    };
     if (SYArgHasName( argc, argv, 1, "-cit" )) isgnu = 0;
 
-    if (!isgnu) {
-	if ((isgnu = SYArgHasName( argc, argv, 1, "-gnuploteps" ))) {
-	    output_type = GRF_EPS;
-	};
-    }
-    if (!isgnu) {
-	if ((isgnu = SYArgHasName( argc, argv, 1, "-gnuplotps" ))) {
-	    output_type = GRF_PS;
-	};
-    }
-    if (!isgnu) {
-	if ((isgnu = SYArgHasName( argc, argv, 1, "-gnuplotgif" ))) {
-	    output_type = GRF_GIF;
-	};
-    }
 
-    if (SYArgHasName( argc, argv, 1, "-cit" )) isgnu = 0;
     if (SYArgGetString( argc, argv, 1, "-fname", filename, 1024 ) &&
 	__MYPROCID == 0) {
 	new->fp = fopen( filename, "a" );

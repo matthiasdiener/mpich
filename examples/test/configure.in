@@ -508,6 +508,9 @@ if test -z "$ARCH" -a -x tarch ; then
     echo "Trying to guess architecture ..."
     ARCH=`./tarch | sed s/-/_/g`
 fi
+if test -z "$ARCH" -a -x bin/tarch ; then
+    ARCH=`bin/tarch | sed s/-/_/g`
+fi
 if test -z "$ARCH" -a -x ../../bin/tarch ; then
     ARCH=`../../bin/tarch | sed s/-/_/g`
 fi
@@ -710,7 +713,7 @@ EOF
         if $MPICC -o conftest conftest.c $LIB_LIST -lmpi >conftest.log 2>&1 ; then
             LIB_LIST="$LIB_LIST -lmpi"
         else
-	    printerror "Could not compile/link a program containing MPI_Init"
+	    AC_MSG_WARN([Could not compile/link a program containing MPI_Init])
             if test -s conftest.log ; then cat conftest.out ; fi
         fi
     fi
@@ -743,10 +746,11 @@ AC_SUBST(MPIRUNARGS)
 # values, these should be optional (they really are not needed 
 # by the tests).
 # Override by setting all 5 in the environment.
+# Set a default for LL just in case
+LL="ld"
 if test -z "$FTESTDEFINE" -a "$HAS_FORTRAN" = 1 ; then
-    # The % must have a backslash to keep from confusing sed when 
-    # configure replaces @LL@.
-    LL="\%lld"
+    # FIXME: We need to know if %lld is available as a format
+    LL="lld"
     # We really should try to compute the size of MPI_Offset in bytes
     # and then use that value.
     AC_MSG_CHECKING([for sizeof MPI_Offset])
@@ -888,7 +892,11 @@ if test -n "$IO" ; then
 	   fi
        done
    else 
-       AC_MSG_WARN([No IO directory available for tests])
+       # Check to see if we already HAVE the I/O tests
+       # (This is the case for stand-alone MPICH1 tests)
+       if test ! -s $IO/Mfile.in ; then
+           AC_MSG_WARN([No IO directory available for tests])
+       fi
    fi
 fi
 # End configuration file

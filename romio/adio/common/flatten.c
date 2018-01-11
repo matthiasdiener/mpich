@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: flatten.c,v 1.15 2004/07/27 20:44:13 thakur Exp $    
+ *   $Id: flatten.c,v 1.18 2004/11/02 18:35:09 robl Exp $
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -510,6 +510,7 @@ void ADIOI_Flatten(MPI_Datatype datatype, ADIOI_Flatlist_node *flat,
  	break;
 
     default:
+	/* TODO: FIXME (requires changing prototypes to return errors...) */
 	FPRINTF(stderr, "Error: Unsupported datatype passed to ADIOI_Flatten\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }
@@ -534,8 +535,8 @@ void ADIOI_Flatten(MPI_Datatype datatype, ADIOI_Flatlist_node *flat,
 
 /* ADIOI_Count_contiguous_blocks
  *
- * Returns number of contiguous blocks in type, and also saves this value in
- * curr_index.
+ * Returns number of contiguous blocks in type, and also updates
+ * curr_index to reflect the space for the additional blocks.
  *
  * ASSUMES THAT TYPE IS NOT A BASIC!!!
  */
@@ -569,7 +570,10 @@ int ADIOI_Count_contiguous_blocks(MPI_Datatype datatype, int *curr_index)
 	ADIOI_Datatype_iscontig(types[0], &old_is_contig);
 	if ((old_combiner != MPI_COMBINER_NAMED) && (!old_is_contig))
 	    count = ADIOI_Count_contiguous_blocks(types[0], curr_index);
-	else count = 1;
+	else {
+		count = 1;
+		(*curr_index)++;
+	}
         break;
 #endif
 #ifdef MPIIMPL_HAVE_MPI_COMBINER_SUBARRAY
@@ -580,9 +584,16 @@ int ADIOI_Count_contiguous_blocks(MPI_Datatype datatype, int *curr_index)
 	MPI_Type_get_envelope(types[0], &old_nints, &old_nadds,
 			      &old_ntypes, &old_combiner);
 	ADIOI_Datatype_iscontig(types[0], &old_is_contig);
-	if ((old_combiner != MPI_COMBINER_NAMED) && (!old_is_contig))
+
+
+	prev_index = *curr_index;
+	if ((old_combiner != MPI_COMBINER_NAMED) && (!old_is_contig)) {
 	    count = ADIOI_Count_contiguous_blocks(types[0], curr_index);
-	else count = 1;
+	}
+	else {
+	    count = 1;
+	    (*curr_index)++;
+	}
 
 	/* now multiply that by the number of types in the subarray.
 	 *
@@ -593,11 +604,16 @@ int ADIOI_Count_contiguous_blocks(MPI_Datatype datatype, int *curr_index)
 	 * ints[0] - ndims
 	 * ints[ndims+1..2*ndims] - subsizes
 	 */
-	n = 1; /* going to tally up # of types in here */
+	top_count = 1; /* going to tally up # of types in here */
 	for (i=0; i < ints[0]; i++) {
-	    n *= ints[ints[0]+1+i];
+	    top_count *= ints[ints[0]+1+i];
 	}
-	count *= n;
+
+	if (top_count > 1) {
+	    num = *curr_index - prev_index;
+	    count *= top_count;
+	    *curr_index += (top_count - 1) * num;
+	}
 	break;
 #endif
 #ifdef MPIIMPL_HAVE_MPI_COMBINER_DARRAY
@@ -608,11 +624,17 @@ int ADIOI_Count_contiguous_blocks(MPI_Datatype datatype, int *curr_index)
 	    MPI_Type_get_envelope(types[0], &old_nints, &old_nadds,
 				  &old_ntypes, &old_combiner);
 	    ADIOI_Datatype_iscontig(types[0], &old_is_contig);
-	    if ((old_combiner != MPI_COMBINER_NAMED) && (!old_is_contig))
+
+	    prev_index = *curr_index;
+	    if ((old_combiner != MPI_COMBINER_NAMED) && (!old_is_contig)) {
 		count = ADIOI_Count_contiguous_blocks(types[0], curr_index);
-	    else count = 1;
+	    }
+	    else {
+		count = 1;
+		(*curr_index)++;
+	    }
 	    
-	    n = 1;
+	    top_count = 1;
 	    dims = ints[2];
 	    ranks = ADIOI_Malloc(sizeof(int) * dims);
 	    get_darray_position(ints[1],         /* rank */
@@ -627,13 +649,18 @@ int ADIOI_Count_contiguous_blocks(MPI_Datatype datatype, int *curr_index)
 				 ints[dims+3+i],    /* distrib */
 				 ints[2*dims+3+i]); /* darg */
 
-		n *= local_types_in_dim(ints[3+i],        /* gsize */
-					ranks[i],         /* dim rank */
-					ints[3*dims+3+i], /* psize */
-					k);
+		top_count *= local_types_in_dim(ints[3+i],       /* gsize */
+						ranks[i],        /* dim rank */
+						ints[3*dims+3+i],/* psize */
+						k);
 	    }
 	    ADIOI_Free(ranks);
-	    count *= n;
+
+	    if (top_count > 1) {
+		num = *curr_index - prev_index;
+		count *= top_count;
+		*curr_index += (top_count - 1) * num;
+	    }
 	}
 	break;
 #endif
@@ -755,6 +782,7 @@ int ADIOI_Count_contiguous_blocks(MPI_Datatype datatype, int *curr_index)
 	}
 	break;
     default:
+	/* TODO: FIXME */
 	FPRINTF(stderr, "Error: Unsupported datatype passed to ADIOI_Count_contiguous_blocks\n");
 	MPI_Abort(MPI_COMM_WORLD, 1);
     }

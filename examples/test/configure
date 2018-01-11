@@ -527,18 +527,18 @@ fi
 MPITEST_TRIAL=$PWD
 if test "${MPITEST_TRIAL}" != "" -a -d "${MPITEST_TRIAL}" ; then 
     if test -r ${MPITEST_TRIAL}/.foo$$ ; then
-        /bin/rm -f ${MPITEST_TRIAL}/.foo$$
-	/bin/rm -f .foo$$
+        rm -f ${MPITEST_TRIAL}/.foo$$
+	rm -f .foo$$
     fi
     if test -r ${MPITEST_TRIAL}/.foo$$ -o -r .foo$$ ; then
 	MPITEST_TRIAL=
     else
 	echo "test" > ${MPITEST_TRIAL}/.foo$$
 	if test ! -r .foo$$ ; then
-            /bin/rm -f ${MPITEST_TRIAL}/.foo$$
+            rm -f ${MPITEST_TRIAL}/.foo$$
 	    MPITEST_TRIAL=
         else
- 	    /bin/rm -f ${MPITEST_TRIAL}/.foo$$
+ 	    rm -f ${MPITEST_TRIAL}/.foo$$
 	fi
     fi
 fi
@@ -646,6 +646,9 @@ F77="$FC"
 if test -z "$ARCH" -a -x tarch ; then
     echo "Trying to guess architecture ..."
     ARCH=`./tarch | sed s/-/_/g`
+fi
+if test -z "$ARCH" -a -x bin/tarch ; then
+    ARCH=`bin/tarch | sed s/-/_/g`
 fi
 if test -z "$ARCH" -a -x ../../bin/tarch ; then
     ARCH=`../../bin/tarch | sed s/-/_/g`
@@ -806,9 +809,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC runs""... $ac_c"
+echo $ac_n "checking whether the compiler $CC runs""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC runs""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC runs""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -905,15 +908,15 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $F77 runs""... $ac_c"
+echo $ac_n "checking whether the compiler $F77 runs""... $ac_c"
 else
-echo $ac_n "checking that the compiler $F77 runs""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $F77 runs""... $ac_c" 1>&1
 fi
 cat >conftest.f <<EOF
           program main
           end
 EOF
-/bin/rm -f conftest.out
+rm -f conftest.out
 $F77 $FFLAGS $OPTFLAGSF -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -1031,11 +1034,11 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking gnumake""... $ac_c"
+echo $ac_n "checking for gnumake""... $ac_c"
 else
-echo $ac_n "checking gnumake""... $ac_c" 1>&1
+echo $ac_n "checking for gnumake""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -1070,7 +1073,7 @@ else
 echo "$ac_t""no" 1>&1
 fi
 fi
-/bin/rm -f conftest
+rm -f conftest
 str=""
 
 
@@ -1100,7 +1103,7 @@ echo $ac_n "checking whether make supports include""... $ac_c"
 else
 echo $ac_n "checking whether make supports include""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 ALL:
 	@echo "success"
@@ -1109,7 +1112,7 @@ cat > conftest1 <<.
 include conftest
 .
 str=`$MAKE -f conftest1 2>&1`
-/bin/rm -f conftest conftest1
+rm -f conftest conftest1
 if test "$str" != "success" ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -1149,11 +1152,11 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking OSF V3 make""... $ac_c"
+echo $ac_n "checking for OSF V3 make""... $ac_c"
 else
-echo $ac_n "checking OSF V3 make""... $ac_c" 1>&1
+echo $ac_n "checking for OSF V3 make""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -1161,7 +1164,7 @@ ALL:
 	@echo "success"
 .
 str=`$MAKE -f conftest 2>&1`
-/bin/rm -f conftest 
+rm -f conftest 
 if test "$str" != "success" ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""Found OSF V3 make"
@@ -1716,7 +1719,7 @@ echo "$ac_t""no" 1>&1
 fi
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           
 {
@@ -1830,7 +1833,7 @@ EOF
     has_long_long=0
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           has_long_long=1
 
@@ -1885,9 +1888,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that compiler can handle loops with long long""... $ac_c"
+echo $ac_n "checking whether compiler can handle loops with long long""... $ac_c"
 else
-echo $ac_n "checking that compiler can handle loops with long long""... $ac_c" 1>&1
+echo $ac_n "checking whether compiler can handle loops with long long""... $ac_c" 1>&1
 fi
          
    cat > conftest.c <<EOF
@@ -1959,9 +1962,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c"
+echo $ac_n "checking whether the compiler $CC accepts ANSI prototypes""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -2532,7 +2535,11 @@ EOF
         if $MPICC -o conftest conftest.c $LIB_LIST -lmpi >conftest.log 2>&1 ; then
             LIB_LIST="$LIB_LIST -lmpi"
         else
-	    printerror "Could not compile/link a program containing MPI_Init"
+	    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Warning: Could not compile/link a program containing MPI_Init"
+else
+echo "$ac_t""Warning: Could not compile/link a program containing MPI_Init" 1>&1
+fi
             if test -s conftest.log ; then cat conftest.out ; fi
         fi
     fi
@@ -2565,10 +2572,11 @@ fi
 # values, these should be optional (they really are not needed 
 # by the tests).
 # Override by setting all 5 in the environment.
+# Set a default for LL just in case
+LL="ld"
 if test -z "$FTESTDEFINE" -a "$HAS_FORTRAN" = 1 ; then
-    # The % must have a backslash to keep from confusing sed when 
-    # configure replaces @LL@.
-    LL="\%lld"
+    # FIXME: We need to know if %lld is available as a format
+    LL="lld"
     # We really should try to compute the size of MPI_Offset in bytes
     # and then use that value.
     if test -z "$ac_echo_n" ; then
@@ -2653,7 +2661,7 @@ EOF
     pac_cv_sizeof_mpi_offset=0
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           pac_cv_sizeof_mpi_offset=`cat cftestval`
 
@@ -2795,11 +2803,15 @@ if test -n "$IO" ; then
 	   fi
        done
    else 
-       if test -z "$ac_echo_test" -a 1 = 1 ; then
+       # Check to see if we already HAVE the I/O tests
+       # (This is the case for stand-alone MPICH1 tests)
+       if test ! -s $IO/Mfile.in ; then
+           if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""Warning: No IO directory available for tests"
 else
 echo "$ac_t""Warning: No IO directory available for tests" 1>&1
 fi
+       fi
    fi
 fi
 # End configuration file
@@ -3013,9 +3025,9 @@ export CONFIG_FILES
 CONFIG_FILES=""
 for pac_file in pt2pt/runtests coll/runtests topol/runtests context/runtests \
 	command/runtests env/runtests profile/runtests ; do 
-    /bin/rm -f .pactmp
+    rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
-    /bin/rm -f $pac_file
+    rm -f $pac_file
     mv .pactmp $pac_file
     chmod a+x $pac_file
 done

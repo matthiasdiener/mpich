@@ -28,9 +28,12 @@ import java.util.Iterator;
 import base.io.MixedDataInput;
 import base.io.MixedDataOutput;
 import base.topology.Line;
+import base.topology.PreviewEvent;
+import base.topology.PreviewState;
+/*
 import base.topology.Arrow;
 import base.topology.State;
-import base.topology.PreviewState;
+*/
 
 public class Shadow extends Primitive
 {
@@ -38,14 +41,11 @@ public class Shadow extends Primitive
                                             + 8  /* num_real_objs */
                                             + 4  /* map_type2twgt's size() */;
 
-    private static final DrawOrderComparator DRAWING_ORDER
-                                             = new DrawOrderComparator();
-
     private              long                num_real_objs;
 
     private              CategoryWeight[]    twgt_ary;           // For Input
 
-    // For SLOG2 Ouput, map_type2twgt ?= null determine getByteSize().
+    // For SLOG2 Ouput, map_type2twgt ?= null determines getByteSize().
     private              Map                 map_type2twgt;      // For Output
     private              Map                 map_type2dobjs;     // For Output
     private              Set                 set_nestables;      // For Output 
@@ -113,7 +113,7 @@ public class Shadow extends Primitive
         map_type2dobjs.put( prime.getCategory(), dobj_list );
 
         if ( shadow_type.getTopology().isState() ) {
-            set_nestables     = new TreeSet( DRAWING_ORDER );
+            set_nestables     = new TreeSet( Drawable.INCRE_STARTTIME_ORDER );
             set_nestables.add( prime );
             list_childshades  = new ArrayList();
         }
@@ -132,10 +132,11 @@ public class Shadow extends Primitive
         Coord[] shade_vtxs = super.getVertices();
 
         if ( prime_vtxs.length != shade_vtxs.length ) {
-            System.err.println( "Shadow.mergeWithPrimitive(): ERROR! "
-                              + "Incompatible Topology between "
-                              + "Shadow and Primitive." );
-            System.exit( 1 );
+            String err_msg = "Shadow.mergeWithPrimitive(): ERROR! "
+                           + "Incompatible Topology between "
+                           + "Shadow and Primitive.";
+            throw new IllegalArgumentException( err_msg );
+            // System.exit( 1 );
         }
 
         // do a Time Average over the total number of real drawables
@@ -175,10 +176,11 @@ public class Shadow extends Primitive
         Coord[] shade_vtxs = super.getVertices();
 
         if ( sobj_vtxs.length != shade_vtxs.length ) {
-            System.err.println( "Shadow.mergeWithShadow(): ERROR! "
-                              + "Incompatible Topology between "
-                              + "the 2 Shadows." );
-            System.exit( 1 );
+            String err_msg = "Shadow.mergeWithShadow(): ERROR! "
+                           + "Incompatible Topology between "
+                           + "the 2 Shadows.";
+            throw new IllegalArgumentException( err_msg );
+            // System.exit( 1 );
         }
 
         double old_duration, new_duration;
@@ -227,8 +229,10 @@ public class Shadow extends Primitive
                 this_twgt.rescaleAllRatios( duration_ratio ); 
                 map_type2twgt.put( sobj_type, this_twgt );
             }
-            else
+            else {
+                this_twgt.addDrawableCount( sobj_twgt.getDrawableCount() );
                 this_twgt.addAllRatios( sobj_twgt, duration_ratio );
+            }
         }
 
         // if ( super.getCategory().getTopology().isState() )
@@ -316,7 +320,8 @@ public class Shadow extends Primitive
                 incl_fract  = dobj.getDuration() / shadow_duration;
                 incl_ratio += (float) incl_fract;
             }
-            twgt  = new CategoryWeight( type, incl_ratio, 0.0f );
+            twgt  = new CategoryWeight( type, incl_ratio, 0.0f,
+                                        dobj_list.size() );
             map_type2twgt.put( type, twgt );
             dobj_list  = null;
         }
@@ -438,6 +443,23 @@ public class Shadow extends Primitive
     public long getNumOfRealObjects()
     {
         return num_real_objs;
+    }
+
+    public void summarizeCategories( double buf4sobjs_duration )
+    {
+        CategoryWeight   this_twgt;
+        CategorySummary  type_smy;
+        Iterator         this_twgts_itr;
+        float            duration_ratio;
+
+        duration_ratio = (float) ( super.getDuration() / buf4sobjs_duration );
+        this_twgts_itr = this.map_type2twgt.values().iterator();
+        while ( this_twgts_itr.hasNext() ) {
+            this_twgt = (CategoryWeight) this_twgts_itr.next(); 
+            type_smy  = this_twgt.getCategory().getSummary();
+            type_smy.addDrawableCount( this_twgt.getDrawableCount() );
+            type_smy.addAllRatios( this_twgt, duration_ratio );
+        }
     }
 
     public void writeObject( MixedDataOutput outs )
@@ -609,6 +631,36 @@ public class Shadow extends Primitive
                           tStart, (float) iStart, tFinal, (float) iFinal );
     }
 
+    public  int  drawEvent( Graphics2D g, CoordPixelXform coord_xform,
+                            Map map_line2row, DrawnBoxSet drawn_boxes,
+                            ColorAlpha color )
+    {
+        Coord  vtx;
+        vtx = this.getStartVertex();
+
+        double tStart, tFinal;
+        tStart = super.getEarliestTime();    /* different from Primitive */
+        tFinal = super.getLatestTime();      /* different from Primitive */
+
+        double tPoint;
+        tPoint = vtx.time;
+
+        int    rowID;
+        float  rPeak, rStart, rFinal;
+        rowID  = ( (Integer)
+                   map_line2row.get( new Integer(vtx.lineID) )
+                 ).intValue();
+        // rPeak  = (float) rowID + NestingStacks.getHalfInitialNestingHeight();
+        rPeak  = (float) rowID - 0.25f;
+        rStart = (float) rowID - 0.5f;
+        rFinal = rStart + 1.0f;
+
+        return PreviewEvent.draw( g, color, null, coord_xform,
+                                 drawn_boxes.getLastEventPos( rowID ),
+                                 tStart, rStart, tFinal, rFinal,
+                                 tPoint, rPeak );
+    }
+
     /* 
         0.0f < nesting_ftr <= 1.0f
     */
@@ -669,6 +721,34 @@ public class Shadow extends Primitive
 
         return Line.containsPixel( coord_xform, pix_pt,
                                    tStart, rStart, tFinal, rFinal );
+    }
+
+    public  boolean isPixelAtEvent( CoordPixelXform coord_xform,
+                                    Map map_line2row, Point pix_pt )
+    {
+        Coord  vtx;
+        vtx = this.getStartVertex();
+
+        double tStart, tFinal;
+        tStart = super.getEarliestTime();    /* different from Primitive */
+        tFinal = super.getLatestTime();      /* different from Primitive */
+
+        double tPoint;
+        tPoint = vtx.time;
+
+        int    rowID;
+        float  rPeak, rStart, rFinal;
+        rowID  = ( (Integer)
+                   map_line2row.get( new Integer(vtx.lineID) )
+                 ).intValue();
+        // rPeak  = (float) rowID + NestingStacks.getHalfInitialNestingHeight();
+        rPeak  = (float) rowID - 0.25f;
+        rStart = (float) rowID - 0.5f;
+        rFinal = rStart + 1.0f;
+
+        return PreviewEvent.containsPixel( coord_xform, pix_pt,
+                                           tStart, rStart, tFinal, rFinal,
+                                           tPoint, rPeak );
     }
 
     public boolean containSearchable()

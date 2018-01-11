@@ -20,15 +20,16 @@ RM           = @RM@
 
 TARGET  = $(libbuild_dir)/drawable.jar
 PACKAGE = base.drawable
-SRC     = ColorAlpha.java Coord.java CoordPixelXform.java \
-          Topology.java Method.java \
-          TimeBoundingBox.java InfoType.java InfoValue.java \
+SRC     = ColorAlpha.java Topology.java Method.java \
+          TimeBoundingBox.java Coord.java CoordPixelXform.java \
+          InfoType.java InfoValue.java \
+          CategoryRatios.java CategorySummary.java \
           Category.java CategoryWeight.java \
           DrawnBox.java DrawnBoxSet.java \
-          InfoBox.java NestingStacks.java Drawable.java \
-          Primitive.java Primitive_TwoVtx.java Shadow.java \
-          DrawOrderComparator.java Composite.java \
-          Kind.java YCoordMap.java InputAPI.java \
+          InfoBox.java Drawable.java NestingStacks.java \
+          Primitive.java Primitive_TwoVtx.java \
+          Shadow.java Composite.java \
+          Kind.java YCoordMap.java InputAPI.java
 
 OBJ     = $(SRC:.java=.class)
 
@@ -40,18 +41,18 @@ CLASSDIR   = ../..
 CLASSPATH  = ../..
 PKGDIR     = base/drawable
 
-JFLAGS = -sourcepath @JPATH_START@$(SRCDIR)@JPATH_FINAL@ -classpath @JPATH_START@$(CLASSPATH)@JPATH_FINAL@ -d @JPATH_START@$(CLASSDIR)@JPATH_FINAL@ @JFLAGS@
+JCFLAGS = -sourcepath @JPATH_START@$(SRCDIR)@JPATH_FINAL@ -classpath @JPATH_START@$(CLASSPATH)@JPATH_FINAL@ -d @JPATH_START@$(CLASSDIR)@JPATH_FINAL@ @JFLAGS@
 
 .java.class:
-	$(JC) $(JFLAGS) @JPATH_START@$<@JPATH_FINAL@
+	$(JC) $(JCFLAGS) $(JFLAGS) @JPATH_START@$<@JPATH_FINAL@
 
-ALL: $(TARGET)
+ALL: $(OBJ)
 
 $(TARGET): $(OBJ)
 	cd $(CLASSDIR) && \
 	jarfile=@JPATH_START@$@@JPATH_FINAL@ && \
 	classdir_prefix=@JPATH_START@$(PKGDIR)/@JPATH_FINAL@ && \
-	$(JAR) cvf $${jarfile} $${classdir_prefix}*.class
+	$(JAR) $(JARFLAGS)cf $${jarfile} $${classdir_prefix}*.class
 
 clean:
 	cd $(CLASSDIR) && \
@@ -61,3 +62,6 @@ rmlib:
 	$(RM) $(TARGET)
 
 realclean: clean rmlib
+
+distclean: realclean
+	@-$(RM) Makefile

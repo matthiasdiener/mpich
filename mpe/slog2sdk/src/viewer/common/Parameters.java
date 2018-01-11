@@ -23,7 +23,9 @@ import base.topology.Line;
 import base.topology.Arrow;
 import base.topology.StateBorder;
 import base.topology.State;
+import base.topology.Event;
 import base.topology.PreviewState;
+import base.topology.PreviewEvent;
 import base.topology.SummaryState;
 import base.topology.SummaryArrow;
 import base.drawable.Shadow;
@@ -31,7 +33,7 @@ import base.drawable.NestingStacks;
 
 public class Parameters
 {
-    private static final String       VERSION_INFO             = "1.0.1.0";
+    private static final String       VERSION_INFO             = "1.0.1.1";
     private static       String       setupfile_path           = null;
 
     // Options: Zoomable window reinitialization (requires window restart)
@@ -60,7 +62,8 @@ public class Parameters
     public  static       StateBorder  STATE_BORDER
                                       = StateBorder.COLOR_RAISED_BORDER;
     public  static       int          ARROW_HEAD_LENGTH        = 10;
-    public  static       int          ARROW_HEAD_HALF_WIDTH    = 3;
+    public  static       int          ARROW_HEAD_WIDTH         = 6;
+    public  static       int          EVENT_BASE_WIDTH         = 8;
 
     public  static       String       PREVIEW_STATE_DISPLAY
                                       = PreviewState.CUMULATIVE_EXCLUSION;
@@ -102,14 +105,20 @@ public class Parameters
         LabeledComboBox.setDefaultFont( Const.FONT );
         // Define the size of ArrowHead
         Arrow.setHeadLength( Parameters.ARROW_HEAD_LENGTH );
-        Arrow.setHeadHalfWidth( Parameters.ARROW_HEAD_HALF_WIDTH );
-        // Define how close a pixel is considered to be lying on a Line/Arrow
+        Arrow.setHeadWidth( Parameters.ARROW_HEAD_WIDTH );
+        // Define the size of EventBase
+        Event.setBaseWidth( Parameters.EVENT_BASE_WIDTH ); 
+        // Define how a pixel is considered to be lying on a Line/Arrow/Event
         Line.setPixelClosenessTolerance( Parameters.CLICK_RADIUS_TO_LINE );
+        Event.setPixelClosenessTolerance( Parameters.CLICK_RADIUS_TO_LINE );
         // Define state border type
         State.setBorderStyle( Parameters.STATE_BORDER );
         PreviewState.setBorderStyle( Parameters.PREVIEW_STATE_BORDER );
         PreviewState.setDisplayType( Parameters.PREVIEW_STATE_DISPLAY );
         PreviewState.setMinCategoryHeight( Parameters.PREVIEW_STATE_LEGEND_H );
+        // PreviewEvent.setBaseWidth( Parameters.EVENT_BASE_WIDTH );
+        PreviewEvent.setPixelClosenessTolerance(
+                                      Parameters.CLICK_RADIUS_TO_LINE );
 
         // Define Shadow State's insets dimension
         Shadow.setStateInsetsDimension( Parameters.PREVIEW_STATE_BORDER_W,
@@ -176,8 +185,10 @@ public class Parameters
                            String.valueOf( STATE_BORDER ) );
         pptys.setProperty( "ARROW_HEAD_LENGTH",
                            String.valueOf( ARROW_HEAD_LENGTH ) );
-        pptys.setProperty( "ARROW_HEAD_HALF_WIDTH",
-                           String.valueOf( ARROW_HEAD_HALF_WIDTH ) );
+        pptys.setProperty( "ARROW_HEAD_WIDTH",
+                           String.valueOf( ARROW_HEAD_WIDTH ) );
+        pptys.setProperty( "EVENT_BASE_WIDTH",
+                           String.valueOf( EVENT_BASE_WIDTH ) );
 
         pptys.setProperty( "PREVIEW_STATE_DISPLAY", PREVIEW_STATE_DISPLAY );
         pptys.setProperty( "PREVIEW_STATE_BORDER",
@@ -327,9 +338,12 @@ public class Parameters
         ppty_val = pptys.getProperty( "ARROW_HEAD_LENGTH" );
         if ( ppty_val != null )
             ARROW_HEAD_LENGTH = Integer.parseInt( ppty_val );
-        ppty_val = pptys.getProperty( "ARROW_HEAD_HALF_WIDTH" );
+        ppty_val = pptys.getProperty( "ARROW_HEAD_WIDTH" );
         if ( ppty_val != null )
-            ARROW_HEAD_HALF_WIDTH = Integer.parseInt( ppty_val );
+            ARROW_HEAD_WIDTH = Integer.parseInt( ppty_val );
+        ppty_val = pptys.getProperty( "EVENT_BASE_WIDTH" );
+        if ( ppty_val != null )
+            EVENT_BASE_WIDTH = Integer.parseInt( ppty_val );
 
         ppty_val = pptys.getProperty( "PREVIEW_STATE_DISPLAY" );
         if ( ppty_val != null )
@@ -412,7 +426,8 @@ public class Parameters
 
         rep.append( "STATE_BORDER = "          + STATE_BORDER          + "\n" );
         rep.append( "ARROW_HEAD_LENGTH = "     + ARROW_HEAD_LENGTH     + "\n" );
-        rep.append( "ARROW_HEAD_HALF_WIDTH = " + ARROW_HEAD_HALF_WIDTH + "\n" );
+        rep.append( "ARROW_HEAD_WIDTH = "      + ARROW_HEAD_WIDTH      + "\n" );
+        rep.append( "EVENT_BASE_WIDTH = "      + EVENT_BASE_WIDTH      + "\n" );
         //
         rep.append( "PREVIEW_STATE_DISPLAY = " + PREVIEW_STATE_DISPLAY + "\n" );
         rep.append( "PREVIEW_STATE_BORDER = "  + PREVIEW_STATE_BORDER  + "\n" );

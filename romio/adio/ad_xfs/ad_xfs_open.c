@@ -1,21 +1,27 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_xfs_open.c,v 1.12 2003/04/18 20:15:05 David Exp $    
+ *   $Id: ad_xfs_open.c,v 1.14 2005/05/23 23:27:47 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "ad_xfs.h"
+#ifdef HAVE_STDDEF_H
+#include <stddef.h>
+#endif
+
+#if defined(MPISGI)
+#include <mpitypedefs.h>
+#include <mpifunctions.h>
+#endif
 
 void ADIOI_XFS_Open(ADIO_File fd, int *error_code)
 {
     int perm, amode, amode_direct;
     unsigned int old_mask;
     struct dioattr st;
-#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "ADIOI_XFS_OPEN";
-#endif
 
     if (fd->perm == ADIO_PERM_NULL) {
 	old_mask = umask(022);
@@ -43,10 +49,24 @@ void ADIOI_XFS_Open(ADIO_File fd, int *error_code)
 
     fd->fd_direct = open(fd->filename, amode_direct, perm);
     if (fd->fd_direct != -1) {
+
+#if defined(LINUX) && defined(MPISGI)
+	ioctl(fd->fd_direct, XFS_IOC_DIOINFO, &st);
+#else
 	fcntl(fd->fd_direct, F_DIOINFO, &st);
+#endif
+
 	fd->d_mem = st.d_mem;
 	fd->d_miniosz = st.d_miniosz;
 	fd->d_maxiosz = st.d_maxiosz;
+
+	if (fd->d_mem > XFS_MEMALIGN) {
+	    FPRINTF(stderr, "MPI: Run-time Direct-IO memory alignment, %d, does not match compile-time value, %d.\n",
+		fd->d_mem, XFS_MEMALIGN);
+	    FPRINTF(stderr, "MPI: Report this error and rerun with Direct-IO disabled.\n");
+	    close(fd->fd_direct);
+	    fd->fd_direct = -1;
+	}
     }
 
     if ((fd->fd_sys != -1) && (fd->access_mode & ADIO_APPEND))
@@ -55,16 +75,9 @@ void ADIOI_XFS_Open(ADIO_File fd, int *error_code)
     fd->fp_sys_posn = -1; /* set it to null because we use pread/pwrite */
 
     if ((fd->fd_sys == -1) || (fd->fd_direct == -1)) {
-#ifdef MPICH2
-	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
-	    "**io %s", strerror(errno));
-#elif defined(PRINT_ERR_MSG)
-	*error_code = MPI_ERR_UNKNOWN;
-#else
-	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	ADIOI_Error(ADIO_FILE_NULL, *error_code, myname);	    
-#endif
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__, MPI_ERR_IO, "**io",
+					   "**io %s", strerror(errno));
     }
     else *error_code = MPI_SUCCESS;
 }

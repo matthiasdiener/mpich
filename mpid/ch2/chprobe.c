@@ -1,5 +1,5 @@
 /*
- *  $Id: chprobe.c,v 1.2 2000/07/17 20:50:43 swider Exp $
+ *  $Id: chprobe.c,v 1.3 2004/12/07 16:39:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -17,9 +17,8 @@ static char vcid[] = "$Id";
    Implement probe by checking the unexpected receive queue.
 
  */
-int MPID_CH_Iprobe( tag, source, context_id, found, status )
-int tag, source, context_id, *found;
-MPI_Status *status;
+int MPID_CH_Iprobe( int tag, int source, int context_id, int *found, 
+		    MPI_Status *status )
 {
 MPIR_RHANDLE *dmpi_unexpected;
 
@@ -39,18 +38,19 @@ if (*found) {
     register MPIR_RHANDLE *d = dmpi_unexpected;
 
     /* Copy relevant data to status */
-    status->count	   = d->dev_rhandle.bytes_as_contig;
-    status->MPI_SOURCE	   = d->source;
-    status->MPI_TAG	   = d->tag; 
+    if (status) {
+	status->count	   = d->dev_rhandle.bytes_as_contig;
+	status->MPI_SOURCE = d->source;
+	status->MPI_TAG	   = d->tag; 
     }
+}
 DEBUG_PRINT_MSG("Exiting Iprobe")
 return MPI_SUCCESS;
 }
 
 
-void MPID_CH_Probe( tag, source, context_id, status )
-int tag, source, context_id;
-MPI_Status *status;
+void MPID_CH_Probe( int tag, int source, int context_id, 
+		    MPI_Status *status )
 {
 int found;
 

@@ -48,10 +48,10 @@ colluses: colluses.o
 #
 # Make sure that we remove executables for specific architectures
 clean:
-	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core profile.diff \
+	@-rm -f *.o *~ PI* $(EXECS) *.out core profile.diff \
 		$(OTHEREXECS) mpif.h ${srcdir}/*.o *.stdo
 	@-for file in $(EXECS) Makefile ; do \
-	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
+	   rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done
 
 .c.o:

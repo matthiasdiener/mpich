@@ -836,8 +836,8 @@ fi
 done
 
 # Check that MMAP works!
-echo $ac_n "checking that shared, anonymous mmap works with -1 filedes""... $ac_c" 1>&1
-echo "configure:841: checking that shared, anonymous mmap works with -1 filedes" >&2
+echo $ac_n "checking whether shared, anonymous mmap works with -1 filedes""... $ac_c" 1>&1
+echo "configure:841: checking whether shared, anonymous mmap works with -1 filedes" >&2
 
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -897,7 +897,7 @@ EOF
     ac_cv_mmap=0
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           ac_cv_mmap=1
 
@@ -931,8 +931,8 @@ fi
     
 # We need to check that semctl is ok.
 # Both of these need to go into aclocal.m4
-echo $ac_n "checking that semget works""... $ac_c" 1>&1
-echo "configure:936: checking that semget works" >&2
+echo $ac_n "checking whether semget works""... $ac_c" 1>&1
+echo "configure:936: checking whether semget works" >&2
 ###
 ### Still need to check for SEMUN_UNDEFINED - see mpid/ch_p4/p4/configure.in
 ### 
@@ -967,7 +967,7 @@ EOF
 echo "${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS" >> config.log
 if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >> config.log 2>&1 ; then
     if test -x conftest ; then
-	/bin/rm -f conftest.out
+	rm -f conftest.out
 	./conftest > conftest.out
 	errno=`cat conftest.out`
 
@@ -1028,7 +1028,7 @@ else
     SEMGET=0
     print_error "Could not compile program"
 fi
-/bin/rm -f conftest*
+rm -f conftest*
 
 
     if test $MMAP = 0 -a "$SEMGET" = 0; then
@@ -1039,8 +1039,8 @@ fi
 
 
 
-echo $ac_n "checking that signals work correctly""... $ac_c" 1>&1
-echo "configure:1044: checking that signals work correctly" >&2
+echo $ac_n "checking whether signals work correctly""... $ac_c" 1>&1
+echo "configure:1044: checking whether signals work correctly" >&2
 cat >conftest.c <<EOF
 #include <signal.h>
 static int rc = 0, irc = 1, maxcnt=5;
@@ -1080,7 +1080,7 @@ else
     cat conftest.c >>config.log
     echo "$ac_t""Could not compile test program!" 1>&1
 fi
-/bin/rm -f conftest conftest.c conftest.o conftest.out
+rm -f conftest conftest.c conftest.o conftest.out
 
 #
 if test -z "$RSHCOMMAND" ; then

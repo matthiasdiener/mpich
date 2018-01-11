@@ -136,7 +136,7 @@ testing_save: runtest
 		done
 
 clean:
-	@-/bin/rm -f test.log testing.log *.diff sendchar.sun4 sendchar.freebsd \
+	@-rm -f test.log testing.log *.diff sendchar.sun4 sendchar.freebsd \
 		sendshort.sun4 sendshort.freebsd *.o \
 		sendvector.sun4 sendvector.freebsd \
 		sendstruct.sun4 sendstruct.freebsd \

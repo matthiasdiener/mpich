@@ -27,7 +27,7 @@ case $paragon_type in
 mkpart -sz $np ${LOGNAME}$$
 $progname -pn ${LOGNAME}$$ < $stdinfile
 rmpart ${LOGNAME}$$
-/bin/rm -f `pwd`/NQS$$
+rm -f `pwd`/NQS$$
 .
     chmod a+x NQS$$
     $Show qsub -lP $np -lT ${max_time}:0 `pwd`/NQS$$

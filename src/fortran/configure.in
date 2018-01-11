@@ -53,9 +53,11 @@ dnl Change the default to yes soon
 
 dnl
 dnl The default is the usual MPICH library
+dnl We store the value in FLIBNAMEOverride so that we can include
+dnl mpichlib.conf and then override the FLIBNAME value in that file
 AC_ARG_WITH(flibname,
 [--with-flibname=name  - Specify name of library containing Fortran interface
-routines],[FLIBNAME=$withval;set_FLIBNAME="yes"],FLIBNAME=mpich)
+routines],[FLIBNAMEOverride=$withval;set_FLIBNAME="yes"],FLIBNAME=mpich)
 AC_SUBST(FLIBNAME)
 
 dnl
@@ -98,6 +100,7 @@ AC_ARG_WITH(subname,
               --with-mpichconfig],
 subname=$withval,subname="")
 
+
 # Propagate any optimization flags
 AC_SUBST(OPTFLAGS)
 AC_SUBST(OPTFLAGSF)
@@ -118,9 +121,16 @@ if test -n "$mpichconfig_file" -a -s "$mpichconfig_file" ; then
     pac_lib_mpi_is_building="yes"
 fi
 
-dnl
-dnl Set size of MPI_Status
-dnl
+#
+# Handle the FLIBNAMEOverride after the argument processing and loading
+# of the mpichconfig file
+if test "$set_FLIBNAME" = "yes" ; then 
+   FLIBNAME=$FLIBNAMEOverride
+fi
+
+#
+# Set size of MPI_Status
+#
 if test -z "$MPI_STATUS_SIZE" ; then
     AC_MSG_WARN([MPI_STATUS_SIZE was not defined!])
     # The default size is 4
@@ -183,6 +193,7 @@ fi
 AC_SUBST(libbuild_dir)
 
 PAC_PROG_CC
+AC_SUBST(CFLAGS)
 AC_C_CONST
 AC_TRY_COMPILE(,[long long i;],AC_DEFINE(HAVE_LONG_LONG,1,[Define if C compiler supports long long type]))
 AC_TRY_COMPILE(,[long double d;],AC_DEFINE(HAVE_LONG_DOUBLE,1,[Define if C compiler supports long double type]))
@@ -750,18 +761,24 @@ else
     PAC_PROG_F90_INT_KIND(OFFSET_KIND,8,$CROSS_OFFSET_KIND)
 fi
 #
-# Some compilers won't allow a -1 kind (e.g., absoft).  In this case, 
-# use a fallback (sizeof(int) kind)
-if test "$ADDRESS_KIND" = "-1" -o "$OFFSET_KIND" = "-1" ; then
+# Some compilers won't allow a -1 kind (e.g., absoft), others won't 
+# allow a 0 (Intel?).  In this case, use a fallback (sizeof(int) kind),
+# which is correct for many but not all Fortran 90 compilers (the NAG
+# F90 compiler uses consequetive integers, i.e., 1,2,3)
+if test "$ADDRESS_KIND" = "-1" -o "$OFFSET_KIND" = "-1" -o \
+        "$ADDRESS_KIND" = "0" -o "$OFFSET_KIND" = "0" ; then
     PAC_PROG_F90_INT_KIND(simpleintkind,${pac_cv_f77_sizeof_integer})
     if test "$simpleintkind" = "-1" ; then
 	# Wild guess; probably means that Fortran 90 is not available
 	simpleintkind=4
+	AC_MSG_WARN([Unable to determine the size of a simple integer])
     fi
-    if test "$ADDRESS_KIND" = "-1" ; then
+    if test "$ADDRESS_KIND" = "-1" -o "$ADDRESS_KIND" = "0" ; then
+        AC_MSG_WARN([Using $simpleintkind for the Fortran 90 KIND of an MPI_Aint])
 	ADDRESS_KIND=$simpleintkind
     fi
-    if test "$OFFSET_KIND" = "-1" ; then
+    if test "$OFFSET_KIND" = "-1" -o "$OFFSET_KIND" = "0" ; then
+        AC_MSG_WARN([Using $simpleintkind for the Fortran 90 KIND of an MPI_Offset])
 	OFFSET_KIND=$simpleintkind
     fi
 fi

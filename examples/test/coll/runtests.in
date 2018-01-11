@@ -115,7 +115,7 @@ rm -f longuser1
 
 #OutTime
 #testfiles="$testfiles allredmany.out"
-#/bin/rm -f allredmany.out
+#rm -f allredmany.out
 #MakeExe allredmany
 #echo '**** allredmany ****'
 #echo '*** allredmany ***' >> allredmany.out

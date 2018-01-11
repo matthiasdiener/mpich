@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: read_alle.c,v 1.16 2004/02/12 06:08:42 David Exp $    
+ *   $Id: read_alle.c,v 1.20 2005/02/18 00:39:09 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -25,7 +25,8 @@
 #endif
 
 /*@
-    MPI_File_read_all_end - Complete a split collective read using individual file pointer
+    MPI_File_read_all_end - Complete a split collective read using
+    individual file pointer
 
 Input Parameters:
 . fh - file handle (handle)
@@ -36,38 +37,40 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_File_read_all_end(MPI_File fh, void *buf, MPI_Status *status)
+int MPI_File_read_all_end(MPI_File mpi_fh, void *buf, MPI_Status *status)
 {
-#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     int error_code;
     static char myname[] = "MPI_FILE_IREAD";
-#endif
+
+    error_code = MPIOI_File_read_all_end(mpi_fh, buf, myname, status);
+
+    return error_code;
+}
+
+/* prevent multiple definitions of this routine */
+#ifdef MPIO_BUILD_PROFILING
+int MPIOI_File_read_all_end(MPI_File mpi_fh,
+			    void *buf,
+			    char *myname,
+			    MPI_Status *status)
+{
+    int error_code;
+    ADIO_File fh;
+
+    MPID_CS_ENTER();
+    MPIR_Nest_incr();
+
+    fh = MPIO_File_resolve(mpi_fh);
 
     /* --BEGIN ERROR HANDLING-- */
-#ifdef PRINT_ERR_MSG
-    if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE))
-    {
-	FPRINTF(stderr, "MPI_File_read_all_end: Invalid file handle\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-#else
-    ADIOI_TEST_FILE_HANDLE(fh, myname);
-#endif
+    MPIO_CHECK_FILE_HANDLE(fh, myname, error_code);
 
-    if (!(fh->split_coll_count))
-    {
-#ifdef MPICH2
-	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, 
-	    "**iosplitcollnone", 0);
-	return MPIR_Err_return_file(fh, myname, error_code);
-#elif defined(PRINT_ERR_MSG)
-        FPRINTF(stderr, "MPI_File_read_all_end: Does not match a previous MPI_File_read_all_begin\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
-#else /* MPICH-1 */
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_SPLIT_COLL,
-                              myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(fh, error_code, myname);
-#endif
+    if (!(fh->split_coll_count)) {
+	error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+					  myname, __LINE__, MPI_ERR_IO, 
+					  "**iosplitcollnone", 0);
+	error_code = MPIO_Err_return_file(fh, error_code);
+	goto fn_exit;
     }
     /* --END ERROR HANDLING-- */
 
@@ -77,5 +80,10 @@ int MPI_File_read_all_end(MPI_File fh, void *buf, MPI_Status *status)
 #endif
     fh->split_coll_count = 0;
 
+fn_exit:
+    MPIR_Nest_decr();
+    MPID_CS_EXIT();
+
     return MPI_SUCCESS;
 }
+#endif

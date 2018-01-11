@@ -72,7 +72,7 @@ testerr: testerr.o
 getproc: getproc.o
 	$(CLINKER) $(OPTFLAGS) -o getproc getproc.o $(LIBS)
 clean:
-	@-/bin/rm -f *.o *~ PI* $(EXECS) core *.out *.orig env.diff \
+	@-rm -f *.o *~ PI* $(EXECS) core *.out *.orig env.diff \
 	argstest $(OTHEREXECS) mpif.h ${srcdir}/*.o *.stdo
 	@-rm -f work.pc work.pcl
 

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs2_flush.c,v 1.9 2004/05/20 20:31:05 robl Exp $    
+ *   $Id: ad_pvfs2_flush.c,v 1.10 2004/10/04 15:51:11 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -20,6 +20,7 @@ void ADIOI_PVFS2_Flush(ADIO_File fd, int *error_code)
 { 
     int ret, rank, dummy=0, dummy_in=0; 
     ADIOI_PVFS2_fs *pvfs_fs;
+    static char myname[] = "ADIOI_PVFS2_FLUSH";
 
     *error_code = MPI_SUCCESS;
 
@@ -40,8 +41,15 @@ void ADIOI_PVFS2_Flush(ADIO_File fd, int *error_code)
     } else {
 	MPI_Bcast(&ret, 1, MPI_INT, 0, fd->comm);
     }
-    if (ret < 0)
-	ADIOI_PVFS2_pvfs_error_convert(ret, error_code);
+    /* --BEGIN ERROR HANDLING-- */
+    if (ret != 0) {
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					   MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__,
+					   ADIOI_PVFS2_error_convert(ret),
+					   "Error in PVFS_sys_flush", 0);
+    }
+    /* --END ERROR HANDLING-- */
 }
 
 /* 

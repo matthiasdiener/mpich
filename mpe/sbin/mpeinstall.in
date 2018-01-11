@@ -38,8 +38,7 @@ sysconfdir=@sysconfdir@
 
 PROF_LIBNAME=@PROF_LIBNAME@
 CPRP="@CPRP@"
-MPICH=@FROM_MPICH@
-MPICH2=@FROM_MPICH2@
+MPI_IMPL=@MPI_IMPL@
 NOF77=@NOF77@
 LOGVIEWERS=@LOGVIEWERS@
 SLOG2TOOLS=@SLOG2TOOLS@
@@ -180,7 +179,7 @@ elif [ ! -f $1 ] ; then
     if [ $failmode = "hard" ] ; then exit 1 ; fi
 else
     if [ $verbose = 1 ] ; then echo "Copying $1 to $dest" ; fi
-    if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
+    if [ -f $dest ] ; then $Show rm -f $dest ; fi
     $Show $CP $1 $dest
     rc=$?
     if [ $rc != 0 ] ; then
@@ -296,9 +295,9 @@ if [ $replace = 0 -a -f $dest ] ; then
 elif [ -d $1 ] ; then
     echo "$1 is a directory; not copied"
 else
-    if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
+    if [ -f $dest ] ; then $Show rm -f $dest ; fi
     if [ $just_testing = 0 ] ; then \
-        if [ "$MPICH" = yes -o "$MPICH2" = yes ] ; then
+        if [ "$MPI_IMPL" = "MPICH" -o "$MPI_IMPL" = "MPICH2" ] ; then
             sed \
             -e "s%^MPI_CC\([ ]*\)=\([ ]*\).*\$%MPI_CC\1=\2$bindir/mpicc%g" \
             -e "s%^MPI_F77\([ ]*\)=\([ ]*\).*\$%MPI_F77\1=\2$bindir/mpif77%g" \
@@ -428,13 +427,13 @@ MkDir $examplesdir
 CopyDirRecurP $top_srcdir/contrib/test $examplesdir
 
 # Create MPE examples Makefile
-( cd $DESTDIR$examplesdir ; \
+( cd $DESTDIR$examplesdir && \
   FixInstallFile $libbuild_dir/../contrib/test/Makefile $examplesdir/Makefile ) 
 filelist="$filelist $examplesdir/Makefile"
 
 if [ -x $bindir/mpirun ] ; then
-    $Show "( cd $DESTDIR$examplesdir ; \
-             /bin/rm -f mpirun ; \
+    $Show "( cd $DESTDIR$examplesdir && \
+             rm -f mpirun && \
              ln -s $bindir/mpirun mpirun )"
     filelist="$filelist $examplesdir/mpirun" 
 fi
@@ -442,17 +441,17 @@ fi
 if [ -z "$DESTDIR" ]; then 
   if [ -f $DESTDIR$examplesdir/Makefile ] ; then
     echo "About to run installation test for C programs..."
-    $Show "( cd $DESTDIR$examplesdir ; $MAKE linktest_C )"
+    $Show "( cd $DESTDIR$examplesdir && $MAKE linktest_C )"
     if test "$NOF77" = "0" ; then
         echo "About to run installation test for Fortran programs..."
-        $Show "( cd $examplesdir ; $MAKE linktest_f77 )"
+        $Show "( cd $examplesdir && $MAKE linktest_f77 )"
     fi
   fi
 fi
 
 # Remove old uninstall file
 if [ "$appendUninstall" = 0 -a -f $UNINSTALLFILE ] ; then
-    /bin/rm -f $UNINSTALLFILE
+    rm -f $UNINSTALLFILE
 fi
 #
 # Open an uninstall file and force strong echo if one does NOT exist
@@ -470,11 +469,11 @@ chmod u+x $UNINSTALLFILE
 # lets us use --with-common-prefix with the viewers
 if [ "$LOGVIEWERS" = 1 ] ; then
     if [ "$prefix_override" = "1" ] ; then
-        ( cd $sbinbuild_dir/../viewers ; \
+        ( cd $sbinbuild_dir/../viewers && \
           ./sbin/install-viewers -prefix=$prefix -uninstall=$UNINSTALLFILE \
           -mode=$MODE -xmode=$XMODE )
     else
-        ( cd $sbinbuild_dir/../viewers ; \
+        ( cd $sbinbuild_dir/../viewers && \
           ./sbin/install-viewers -uninstall=$UNINSTALLFILE \
           -mode=$MODE -xmode=$XMODE )
     fi
@@ -485,28 +484,28 @@ fi
 # lets us use --with-common-prefix with the viewers
 if [ -s $sbinbuild_dir/../slog2sdk -a $SLOG2TOOLS = 1 ] ; then
     if [ "$prefix_override" = "1" ] ; then
-        ( cd $sbinbuild_dir/../slog2sdk ; \
+        ( cd $sbinbuild_dir/../slog2sdk && \
           ./sbin/install-package -prefix=$prefix -uninstall=$UNINSTALLFILE \
           -mode=$MODE -xmode=$XMODE -copymode=core)
     else
-        ( cd $sbinbuild_dir/../slog2sdk ; \
+        ( cd $sbinbuild_dir/../slog2sdk && \
           ./sbin/install-package -uninstall=$UNINSTALLFILE \
           -mode=$MODE -xmode=$XMODE -copymode=core )
     fi
 fi
 
 if [ -s $DESTDIR$examplesdir/Makefile ] ; then
-    echo "( cd $examplesdir ; $MAKE clean )" >> $UNINSTALLFILE
+    echo "( cd $examplesdir && $MAKE clean )" >> $UNINSTALLFILE
 fi
 
 # Add the files to be removed to the UNINSTALLFILE
 for file in $filelist ; do
-    echo "/bin/rm -f $file" >> $UNINSTALLFILE
+    echo "rm -f $file" >> $UNINSTALLFILE
 done
 
 if [ "$appendUninstall" = 0 ] ; then
-    echo "/bin/rm -f $sbindir/mpeuninstall" >> $UNINSTALLFILE
-    echo "/bin/rm -f $UNINSTALLFILE" >> $UNINSTALLFILE
+    echo "rm -f $sbindir/mpeuninstall" >> $UNINSTALLFILE
+    echo "rm -f $UNINSTALLFILE" >> $UNINSTALLFILE
 fi
 
 # Add the directory removes to the UNINSTALL file

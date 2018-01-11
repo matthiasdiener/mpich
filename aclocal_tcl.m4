@@ -102,7 +102,7 @@ EOF
         # and the lib directory one above that
         tcllibs="$tcllibloc `dirname $tcllibloc`"
     fi
-    /bin/rm -f conftest   
+    rm -f conftest   
 fi
 foundversion=""
 # At ANL, the software is in a common tree; we need to pick the
@@ -220,7 +220,7 @@ if test -n "$wishloc" ; then
 	    fi
 	done
     fi
-    /bin/rm -f conftest   
+    rm -f conftest   
 fi
 foundversion=""
 TK_UPDIR=""

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: iowaitsome.c,v 1.3 2003/09/09 21:45:00 gropp Exp $    
+ *   $Id: iowaitsome.c,v 1.4 2005/02/18 00:39:07 robl Exp $    
  *
  *   Copyright (C) 2003 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -34,13 +34,17 @@ int MPIO_Waitsome(int count, MPIO_Request requests[], int *outcount,
 {
     int i, flag, err; 
 
+    MPID_CS_ENTER();
+
     if (count == 1) {
+    	MPIR_Nest_incr();
 	err = MPIO_Wait( requests, statuses );
+    	MPIR_Nest_decr();
 	if (!err) {
 	    *outcount = 1;
 	    indices[0] = 0;
 	}
-	return err;
+	goto fn_exit;
     }
 
     /* Check for no active requests */
@@ -51,7 +55,8 @@ int MPIO_Waitsome(int count, MPIO_Request requests[], int *outcount,
     }
     if (i == count) {
 	*outcount = MPI_UNDEFINED;
-	return MPI_SUCCESS;
+	err = MPI_SUCCESS;
+	goto fn_exit;
     }
 
     err = MPI_SUCCESS;
@@ -72,5 +77,7 @@ int MPIO_Waitsome(int count, MPIO_Request requests[], int *outcount,
 	}
     } while (*outcount == 0);
 
+fn_exit:
+    MPID_CS_EXIT();
     return err;
 }

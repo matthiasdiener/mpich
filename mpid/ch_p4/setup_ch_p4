@@ -157,12 +157,14 @@ fi
 echo "Finished setting p4arch..."
 #
 echo "Configuring p4$P4EXT subsystem..."
+baseotherargs=
 # Make sure that the lib Makefile gets remade
 if test -n "$SOCKSIZE" ; then
     otherargs="-socksize=$SOCKSIZE"
 fi
 if test -n "$configure_echo" ; then
     otherargs="$otherargs -echo"
+    baseotherargs="$baseotherargs --enable-echo"
 fi
 if test -n "$rshnol" ; then
     otherargs="$otherargs -rshnol"
@@ -199,7 +201,7 @@ export CROSS_SIZEOF_INT ; export CROSS_SIZEOF_LONG
 rm -f $top_srcdir/mpid/ch_p4/mpich-mpid.h mpid/ch_p4/mpich-mpid.h mpid/ch_p4/localdefs
 # Export ARCH so that the machines file will get made in the right place
 (cd mpid/ch_p4 ; export ARCH ; \
-"$top_srcdir/mpid/ch_p4/configure" --with-comm=$COMM $otherargs) # --srcdir=$srcdir)
+"$top_srcdir/mpid/ch_p4/configure" --with-comm=$COMM $baseotherargs) # --srcdir=$srcdir)
 # Variable assignments from configure are in localdefs
 if [ ! -f mpid/ch_p4/localdefs ] ; then
     echo "Failed to build file of local definitions"

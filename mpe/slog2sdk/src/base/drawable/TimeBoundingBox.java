@@ -9,6 +9,7 @@
 
 package base.drawable;
 
+import java.util.Comparator;
 import java.io.DataOutput;
 import java.io.DataInput;
 
@@ -17,6 +18,18 @@ public class TimeBoundingBox
     public  static final TimeBoundingBox  ALL_TIMES
                          = new TimeBoundingBox( Double.NEGATIVE_INFINITY,
                                                 Double.POSITIVE_INFINITY );
+
+    public  static final Order            INCRE_STARTTIME_ORDER
+                         = new IncreasingStarttimeOrder();
+
+    public  static final Order            DECRE_STARTTIME_ORDER
+                         = new DecreasingStarttimeOrder();
+
+    public  static final Order            INCRE_FINALTIME_ORDER
+                         = new IncreasingFinaltimeOrder();
+
+    public  static final Order            DECRE_FINALTIME_ORDER
+                         = new DecreasingFinaltimeOrder();
 
     public  static final int              BYTESIZE = 8  /* earliest_time */
                                                    + 8  /* latest_time */  ;
@@ -116,6 +129,16 @@ public class TimeBoundingBox
     {
         return latest_time;
     }
+
+
+    public double getBorderTime( boolean isStartTime )
+    {
+        if ( isStartTime )
+            return earliest_time;
+        else
+            return latest_time;
+    }
+
 
     // Functions useful in ScrollableObject
     // This is used after this.setEarliestTime() is invoked.
@@ -318,11 +341,180 @@ public class TimeBoundingBox
         */
     }
 
+
+
+    /*
+        Define TimeBoundingBox.Order as an alias of java.util.Comparator
+    */
+    public interface Order extends Comparator
+    {
+        public boolean isIncreasingTimeOrdered();
+        public boolean isStartTimeOrdered();
+        public String  toString();
+    }
+
 /*
+    This comparator to Collections.sort() will arrange TimeBoundingBoxs
+    in increasing starttime order.  If starttimes are equals, TimeBoundingBox
+    will then be arranged in decreasing finaltime order.
+*/
+    private static class IncreasingStarttimeOrder implements Order
+    {
+        public int compare( Object o1, Object o2 )
+        {
+            TimeBoundingBox  timebox1, timebox2;
+            timebox1 = (TimeBoundingBox) o1;
+            timebox2 = (TimeBoundingBox) o2;
+            if ( timebox1.earliest_time != timebox2.earliest_time )
+                // increasing starttime order ( 1st order )
+                return ( timebox1.earliest_time < timebox2.earliest_time
+                       ? -1 : 1 );
+            else {
+                if ( timebox1.latest_time != timebox2.latest_time )
+                    // decreasing finaltime order ( 2nd order )
+                    return ( timebox1.latest_time > timebox2.latest_time
+                           ? -1 : 1 );
+                else {
+                    // if ( timebox1 == timebox2 )
+                        return 0;
+                }   // FinalTime
+            }   // StartTime
+        }
+
+        public boolean isIncreasingTimeOrdered() {return true;}
+        public boolean isStartTimeOrdered() {return true;}
+        public String toString() {return "INCRE_STARTTIME_ORDER";}
+    }
+
+/*
+    This comparator to Collections.sort() will arrange TimeBoundingBoxs
+    in decreasing starttime order.  If starttimes are equals, TimeBoundingBox
+    will then be arranged in increasing finaltime order.
+*/
+    private static class DecreasingStarttimeOrder implements Order
+    {
+        public int compare( Object o1, Object o2 )
+        {
+            TimeBoundingBox  timebox1, timebox2;
+            timebox1 = (TimeBoundingBox) o1;
+            timebox2 = (TimeBoundingBox) o2;
+            if ( timebox1.earliest_time != timebox2.earliest_time )
+                // decreasing starttime order ( 1st order )
+                return ( timebox1.earliest_time > timebox2.earliest_time
+                       ? -1 : 1 );
+            else {
+                if ( timebox1.latest_time != timebox2.latest_time )
+                    // increasing finaltime order ( 2nd order )
+                    return ( timebox1.latest_time < timebox2.latest_time
+                           ? -1 : 1 );
+                else {
+                    // if ( timebox1 == timebox2 )
+                        return 0;
+                }   // FinalTime
+            }   // StartTime
+        }
+
+        public boolean isIncreasingTimeOrdered() {return false;}
+        public boolean isStartTimeOrdered() {return true;}
+        public String toString() {return "DECRE_STARTTIME_ORDER";}
+    }
+
+/*
+    This comparator to Collections.sort() will arrange TimeBoundingBoxs
+    in increasing finaltime order.  If finaltimes are equals, TimeBoundingBox
+    will then be arranged in decreasing starttime order.
+*/
+    private static class IncreasingFinaltimeOrder implements Order
+    {
+        public int compare( Object o1, Object o2 )
+        {
+            TimeBoundingBox  timebox1, timebox2;
+            timebox1 = (TimeBoundingBox) o1;
+            timebox2 = (TimeBoundingBox) o2;
+            if ( timebox1.latest_time != timebox2.latest_time )
+                // increasing finaltime order ( 1st order )
+                return ( timebox1.latest_time < timebox2.latest_time
+                       ? -1 : 1 );
+            else {
+                if ( timebox1.earliest_time != timebox2.earliest_time )
+                    // decreasing starttime order ( 2nd order )
+                    return ( timebox1.earliest_time > timebox2.earliest_time
+                           ? -1 : 1 );
+                else {
+                    // if ( timebox1 == timebox2 )
+                        return 0;
+                }   // StartTime
+            }   // FinalTime
+        }
+
+        public boolean isIncreasingTimeOrdered() {return true;}
+        public boolean isStartTimeOrdered() {return false;}
+        public String toString() {return "INCRE_FINALTIME_ORDER";}
+    }
+
+/*
+    This comparator to Collections.sort() will arrange TimeBoundingBoxs
+    in decreasing finaltime order.  If finaltimes are equals, TimeBoundingBox
+    will then be arranged in increasing starttime order.
+*/
+    private static class DecreasingFinaltimeOrder implements Order
+    {
+        public int compare( Object o1, Object o2 )
+        {
+            TimeBoundingBox  timebox1, timebox2;
+            timebox1 = (TimeBoundingBox) o1;
+            timebox2 = (TimeBoundingBox) o2;
+            if ( timebox1.latest_time != timebox2.latest_time )
+                // increasing finaltime order ( 1st order )
+                return ( timebox1.latest_time > timebox2.latest_time
+                       ? -1 : 1 );
+            else {
+                if ( timebox1.earliest_time != timebox2.earliest_time )
+                    // decreasing starttime order ( 2nd order )
+                    return ( timebox1.earliest_time < timebox2.earliest_time
+                           ? -1 : 1 );
+                else {
+                    // if ( timebox1 == timebox2 )
+                        return 0;
+                }   // StartTime
+            }   // FinalTime
+        }
+
+        public boolean isIncreasingTimeOrdered() {return false;}
+        public boolean isStartTimeOrdered() {return false;}
+        public String toString() {return "DECRE_FINALTIME_ORDER";}
+    }
+
     public static final void main( String[] args )
     {
         TimeBoundingBox timebox = new TimeBoundingBox();
         System.out.println( timebox );
+
+        if ( INCRE_STARTTIME_ORDER.equals( DECRE_STARTTIME_ORDER ) )
+            System.out.println( "INCRE_STARTTIME_ORDER=DECRE_STARTTIME_ORDER" );
+        else
+            System.out.println( "INCRE_STARTTIME_ORDER!DECRE_STARTTIME_ORDER" );
+
+        if ( INCRE_STARTTIME_ORDER.equals( INCRE_FINALTIME_ORDER ) )
+            System.out.println( "INCRE_STARTTIME_ORDER=INCRE_FINALTIME_ORDER" );
+        else
+            System.out.println( "INCRE_STARTTIME_ORDER!INCRE_FINALTIME_ORDER" );
+
+        if ( INCRE_STARTTIME_ORDER.equals( DECRE_FINALTIME_ORDER ) )
+            System.out.println( "INCRE_STARTTIME_ORDER=DECRE_FINALTIME_ORDER" );
+        else
+            System.out.println( "INCRE_STARTTIME_ORDER!DECRE_FINALTIME_ORDER" );
+
+        if ( INCRE_STARTTIME_ORDER.equals( INCRE_STARTTIME_ORDER ) )
+            System.out.println( "INCRE_STARTTIME_ORDER=INCRE_STARTTIME_ORDER" );
+        else
+            System.out.println( "INCRE_STARTTIME_ORDER!INCRE_STARTTIME_ORDER" );
+
+        TimeBoundingBox.Order tmp_order = new IncreasingStarttimeOrder();
+        if ( INCRE_STARTTIME_ORDER.equals( tmp_order ) )
+            System.out.println( "INCRE_STARTTIME_ORDER=tmp_order" );
+        else
+            System.out.println( "INCRE_STARTTIME_ORDER!tmp_order" );
     }
-*/
+
 }

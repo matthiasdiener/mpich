@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_util.c,v 1.7 2004/07/26 18:26:14 gropp Exp $
+ *  $Id: topo_util.c,v 1.8 2005/05/04 21:13:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -27,7 +27,9 @@ int MPIR_TOPOLOGY_KEYVAL = MPI_KEYVAL_INVALID;
   rest of the package.  Note that this file calls a few MPI routines,
   such as MPI_Keyval_create.  
 */
+#ifndef MPI_BUILD_PROFILING
 #define MPI_BUILD_PROFILING
+#endif
 #include "mpiprof.h"
 
 /* 

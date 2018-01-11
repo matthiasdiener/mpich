@@ -28,14 +28,14 @@ if [ $just_testing = 1 ] ; then
   if [ "$mvback" != "" ] ; then
 	(cd $PWD_LOCAL ; for file in $mvback ; do \
 	if [ -s $file ] ; then echo cp $file $PWD_TRIAL ; \
-	echo /bin/rm $file ; \
+	echo rm $file ; \
 	fi ; done )
   fi
 else
   $EXECER "-jobid=$jobid" $cmdline
   if [ "$mvback" != "" ] ; then
 	(cd $PWD_LOCAL ; for file in $mvback ; do \
-	if [ -s $file ] ; then cp $file $PWD_TRIAL ; /bin/rm $file ; \
+	if [ -s $file ] ; then cp $file $PWD_TRIAL ; rm $file ; \
 	fi ; done )
   fi
 fi

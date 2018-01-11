@@ -1542,8 +1542,8 @@ rm -f mconftest1.out
 
 # We need to check that semctl is ok.
 # Both of these need to go into aclocal.m4
-echo $ac_n "checking that semget works""... $ac_c" 1>&1
-echo "configure:1547: checking that semget works" >&2
+echo $ac_n "checking whether semget works""... $ac_c" 1>&1
+echo "configure:1547: checking whether semget works" >&2
 ###
 ### Still need to check for SEMUN_UNDEFINED - see mpid/ch_p4/p4/configure.in
 ### 
@@ -1578,7 +1578,7 @@ EOF
 echo "${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS" >> config.log
 if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >> config.log 2>&1 ; then
     if test -x conftest ; then
-	/bin/rm -f conftest.out
+	rm -f conftest.out
 	./conftest > conftest.out
 	errno=`cat conftest.out`
 
@@ -1639,7 +1639,7 @@ else
     SEMGET=0
     echo "configure: warning: " 1>&2 "Could not compile program"
 fi
-/bin/rm -f conftest*
+rm -f conftest*
 
 
 if test $MMAP = 0 -a "$SEMGET" = 0; then
@@ -2054,8 +2054,8 @@ fi
 # Also need to get signal hander arg count 1? 3? 4? something else?
 
 
-echo $ac_n "checking that signals work correctly""... $ac_c" 1>&1
-echo "configure:2059: checking that signals work correctly" >&2
+echo $ac_n "checking whether signals work correctly""... $ac_c" 1>&1
+echo "configure:2059: checking whether signals work correctly" >&2
 cat >conftest.c <<EOF
 #include <signal.h>
 static int rc = 0, irc = 1, maxcnt=5;
@@ -2095,7 +2095,7 @@ else
     cat conftest.c >>config.log
     echo "$ac_t""Could not compile test program!" 1>&1
 fi
-/bin/rm -f conftest conftest.c conftest.o conftest.out
+rm -f conftest conftest.c conftest.o conftest.out
 
 echo $ac_n "checking return type of signal handlers""... $ac_c" 1>&1
 echo "configure:2102: checking return type of signal handlers" >&2

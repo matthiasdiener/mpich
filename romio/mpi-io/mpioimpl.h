@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: mpioimpl.h,v 1.10 2003/03/11 06:03:20 David Exp $    
+ *   $Id: mpioimpl.h,v 1.13 2005/05/23 23:28:10 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -15,6 +15,19 @@
 
 #include "adio.h"
 #include "mpio.h"
+#ifdef ROMIO_INSIDE_MPICH2
+#include "mpiimpl.h"
+#include "mpiimplthread.h"
+#else
+/* Any MPI implementation that wishes to follow the thread-safety and
+   error reporting features provided by MPICH2 must implement these 
+   four functions.  Defining these as empty should not change the behavior 
+   of correct programs */
+#define MPID_CS_EXIT()
+#define MPID_CS_ENTER()
+#define MPIR_Nest_incr()
+#define MPIR_Nest_decr()
+#endif
 
 /* info is a linked list of these structures */
 struct MPIR_Info {

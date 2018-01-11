@@ -49,7 +49,8 @@ void MPID_CH_Wtick( double *tick )
     if (tickval < 0.0) {
 	tickval = 1.0e6;
 	for (icnt=0; icnt<10; icnt++) {
-	    cnt = 1000;
+	    /* 1000 wasn't enough on some systems */
+	    cnt = 100000;
 	    MPID_Wtime( &t1 );
 	    while (cnt--) {
 		MPID_Wtime( &t2 );

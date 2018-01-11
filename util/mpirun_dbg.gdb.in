@@ -34,5 +34,8 @@ echo "handle SIGUSR1" >> $dbgfile
 echo "br MPI_Init" >> $dbgfile
 echo "set args $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir" >> $dbgfile
 echo "run" >> $dbgfile
+# 
+# For use within Emacs, add --annotate=1
+# For use within GdbMode, add --annotate=2
 gdb -x $dbgfile $prognamemain
-/bin/rm -f $dbgfile
+rm -f $dbgfile

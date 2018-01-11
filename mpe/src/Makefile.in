@@ -33,7 +33,7 @@ LIB_PATH       = @X_LIB@ $(MPI_LIBS)
 LOG_LIBS       = -L$(MPE_LIBDIR) @LOG_LIBS@ $(MPI_LIBS)
 PROF_LIBS      = -L$(MPE_LIBDIR) @PROF_LIBS@ $(MPI_LIBS)
 LDFLAGS        = @LDFLAGS@
-MPICH          = @MPICH@
+MPI_IMPL       = @MPI_IMPL@
 F2CMPI_LIBNAME = @F2CMPI_LIBNAME@
 F2CMPI_LIBS    = @F2CMPI_LIBS@
 MPEDBG         = @MPEDBG@
@@ -133,9 +133,9 @@ default: clean rmprog rmlib
 #
 # This target will get compiled if the user specified --with-mpedbg option
 mpe_debug_objs:
-	@-if [ "$(MPEDBG)" = "1" -a "$(MPICH)" = "1" ] ; then \
+	@-if [ "$(MPEDBG)" = "1" -a "$(MPI_IMPL)" = "MPICH" ] ; then \
 	    echo "making MPICH's mpedbg" ;  \
-	    ( cd ../../src/env ; $(MAKE) mpe_debug_objs ) ; \
+	    ( cd ../../src/env && $(MAKE) mpe_debug_objs ) ; \
 	fi
 
 #
@@ -146,7 +146,7 @@ mpe_debug_objs:
 # first is true.
 libslog.a:
 	@if [ "$(SLOG_HOME)" != "" ] && [ -d "$(SLOG_HOME)" ]; then \
-	    ( cd ../slog_api ; \
+	    ( cd ../slog_api && \
 	      $(MAKE) "SLOG_DESTLIB=${libbuild_dir}/lib$(PROF_LIBNAME).a" )   \
 	fi
 #
@@ -239,7 +239,7 @@ clog2alog: ctoalog.@OBJEXT@ clog2alog.@OBJEXT@ \
 
 slog_print: libslog.a
 	@if [ ! -x ../slog_api/bin/slog_printbbufs@EXEEXT@ ] ; then \
-	     ( cd ../slog_api ; $(MAKE) ) ; \
+	     ( cd ../slog_api && $(MAKE) ) ; \
 	 fi
 	@if [ -x ../slog_api/bin/slog_printbbufs@EXEEXT@ ] ; then \
 	     cp -p ../slog_api/bin/slog_printbbufs@EXEEXT@ $(binbuild_dir)/$@@EXEEXT@ ; \
@@ -285,7 +285,7 @@ testlog: testlog.@OBJEXT@ clog.@OBJEXT@ clog_time.@OBJEXT@ \
 # architecture or are otherwise damaged)
 rmlib:
 	@-if [ "$(SLOG_HOME)" != "" ] && [ -d "$(SLOG_HOME)" ] ; then \
-	    ( cd ../slog_api ; $(MAKE) rmlib ) \
+	    ( cd ../slog_api && $(MAKE) rmlib ) \
 	fi
 	$(RM) -f ${libbuild_dir}/lib$(PROF_LIBNAME).a 
 	$(RM) -f ${libbuild_dir}/lib$(PROF_LIBNAME).so 
@@ -298,7 +298,7 @@ rmlib:
 
 rmprog:
 	@-if [ "$(SLOG_HOME)" != "" ] && [ -d "$(SLOG_HOME)" ] ; then \
-	    ( cd ../slog_api ; $(MAKE) rmprog ) \
+	    ( cd ../slog_api && $(MAKE) rmprog ) \
 	fi
 	$(RM) -f $(EXECS)
 	$(RM) -f $(binbuild_dir)/clog_print@EXEEXT@ 
@@ -308,12 +308,12 @@ rmprog:
 
 clean:
 	@-if [ "$(SLOG_HOME)" != "" ] && [ -d "$(SLOG_HOME)" ] ; then \
-	    ( cd ../slog_api ; $(MAKE) clean ) \
+	    ( cd ../slog_api && $(MAKE) clean ) \
 	fi
 	-@$(RM) -f *.@OBJEXT@ ${srcdir}/*.@OBJEXT@ *~ $(EXECS) PI*
 
 distclean: clean rmprog rmlib
 	@-if [ "$(SLOG_HOME)" != "" ] && [ -d "$(SLOG_HOME)" ] ; then \
-	    ( cd ../slog_api ; $(MAKE) distclean ) \
+	    ( cd ../slog_api && $(MAKE) distclean ) \
 	fi
 	-@$(RM) -f Makefile Makefile_nompi dbxerr.c

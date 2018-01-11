@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_testfs_seek.c,v 1.5 2003/06/10 15:16:00 robl Exp $    
+ *   $Id: ad_testfs_seek.c,v 1.6 2004/10/25 18:46:00 robl Exp $    
  *
  *   Copyright (C) 2001 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -76,7 +76,6 @@ ADIO_Offset ADIOI_TESTFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
     }
 
     fd->fp_ind = off;
-    fd->fp_sys_posn = -1;
 
     return off;
 }

@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_xfs_fcntl.c,v 1.14 2004/07/27 20:44:08 thakur Exp $    
+ *   $Id: ad_xfs_fcntl.c,v 1.17 2005/05/23 23:27:47 rross Exp $
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -8,32 +8,25 @@
 
 #include "ad_xfs.h"
 #include "adio_extern.h"
-/* #ifdef MPISGI
-#include "mpisgi2.h"
-#endif */
 
 void ADIOI_XFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *error_code)
 {
     int i, err;
+#if defined(LINUX) && defined(MPISGI)
+    struct xfs_flock64 fl;
+#else
     struct flock64 fl;
-#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
-    static char myname[] = "ADIOI_XFS_FCNTL";
 #endif
+    static char myname[] = "ADIOI_XFS_FCNTL";
 
     switch(flag) {
     case ADIO_FCNTL_GET_FSIZE:
 	fcntl_struct->fsize = lseek64(fd->fd_sys, 0, SEEK_END);
 	if (fcntl_struct->fsize == -1) {
-#ifdef MPICH2
-	    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
-		"**io %s", strerror(errno));
-#elif defined(PRINT_ERR_MSG)
-	    *error_code = MPI_ERR_UNKNOWN;
-#else /* MPICH-1 */
-	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	    ADIOI_Error(fd, *error_code, myname);	    
-#endif
+	    *error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					       MPIR_ERR_RECOVERABLE, myname,
+					       __LINE__, MPI_ERR_IO, "**io",
+					       "**io %s", strerror(errno));
 	}
 	else *error_code = MPI_SUCCESS;
 	break;
@@ -43,7 +36,13 @@ void ADIOI_XFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	fl.l_start = 0;
 	fl.l_whence = SEEK_SET;
 	fl.l_len = fcntl_struct->diskspace;
+
+#if defined(LINUX) && defined(MPISGI)
+	err = fcntl(fd->fd_sys, XFS_IOC_RESVSP64, &fl);
+#else
 	err = fcntl(fd->fd_sys, F_RESVSP64, &fl);
+#endif
+
 	if (err) i = 1;
 	if (fcntl_struct->diskspace > lseek64(fd->fd_sys, 0, SEEK_END)) {
 	    /* also need to set the file size */
@@ -52,28 +51,12 @@ void ADIOI_XFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	}
 
 	if (i == 1) {
-#ifdef MPICH2
-	    *error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
-		"**io %s", strerror(errno));
-#elif defined(PRINT_ERR_MSG)
-	    *error_code = MPI_ERR_UNKNOWN;
-#else /* MPICH-1 */
-	    *error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	    ADIOI_Error(fd, *error_code, myname);	    
-#endif
+	    *error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					       MPIR_ERR_RECOVERABLE, myname,
+					       __LINE__, MPI_ERR_IO, "**io",
+					       "**io %s", strerror(errno));
 	}
 	else *error_code = MPI_SUCCESS;
-	break;
-
-    case ADIO_FCNTL_SET_IOMODE:
-        /* for implementing PFS I/O modes. will not occur in MPI-IO
-           implementation.*/
-	if (fd->iomode != fcntl_struct->iomode) {
-	    fd->iomode = fcntl_struct->iomode;
-	    MPI_Barrier(MPI_COMM_WORLD);
-	}
-	*error_code = MPI_SUCCESS;
 	break;
 
     case ADIO_FCNTL_SET_ATOMICITY:
@@ -82,7 +65,13 @@ void ADIOI_XFS_Fcntl(ADIO_File fd, int flag, ADIO_Fcntl_t *fcntl_struct, int *er
 	break;
 
     default:
-	FPRINTF(stderr, "Unknown flag passed to ADIOI_XFS_Fcntl\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+	/* --BEGIN ERROR HANDLING-- */
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					   MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__,
+					   MPI_ERR_ARG,
+					   "**flag", "**flag %d", flag);
+	return;
+	/* --END ERROR HANDLING-- */
     }
 }

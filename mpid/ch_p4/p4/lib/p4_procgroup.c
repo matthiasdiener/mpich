@@ -137,8 +137,12 @@ struct p4_procgroup *read_procgroup( void )
 
 	if (n == 3)
 	{
-	    if (logname != NULL && logname[0] != '\0')
+	    if (logname != NULL && logname[0] != '\0') {
+		if (strlen(logname) >= sizeof(pe->username)) {
+		    p4_error("create_procgroup: username is too long",0);
+		}
 		strcpy(pe->username, logname);
+	    }
 	    else
 	    {
 #               if defined(CM5)  ||  defined(NCUBE)
@@ -146,6 +150,9 @@ struct p4_procgroup *read_procgroup( void )
 #               else
 		if ((pwent = getpwuid(getuid())) == NULL)
 		    p4_error("create_procgroup: getpwuid failed", 0);
+		if (strlen(pwent->pw_name) >= sizeof(pe->username)) {
+		    p4_error("create_procgroup: username is too long",0);
+		}
 		strcpy(pe->username, pwent->pw_name);
 #               endif
 	    }

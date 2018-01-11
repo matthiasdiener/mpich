@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pfs_done.c,v 1.10 2003/04/18 20:14:58 David Exp $    
+ *   $Id: ad_pfs_done.c,v 1.11 2004/10/04 15:50:56 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -8,12 +8,11 @@
 
 #include "ad_pfs.h"
 
-int ADIOI_PFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_code)  
+int ADIOI_PFS_ReadDone(ADIO_Request *request, ADIO_Status *status,
+		       int *error_code)  
 {
     int done=0;
-#ifndef PRINT_ERR_MSG
     static char myname[] = "ADIOI_PFS_READDONE";
-#endif
 
     if (*request == ADIO_REQUEST_NULL) {
         *error_code = MPI_SUCCESS;
@@ -42,23 +41,18 @@ int ADIOI_PFS_ReadDone(ADIO_Request *request, ADIO_Status *status, int *error_co
     }
     
     if (done == -1 && errno != 0) {
-#ifdef MPICH2
-	*error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_IO, "**io",
-	    "**io %s", strerror(errno));
-#elif defined(PRINT_ERR_MSG)
-	*error_code =  MPI_ERR_UNKNOWN;
-#else
-	*error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ADIO_ERROR,
-			      myname, "I/O Error", "%s", strerror(errno));
-	ADIOI_Error((*request)->fd, *error_code, myname);	    
-#endif
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__, MPI_ERR_IO,
+					   "**io",
+					   "**io %s", strerror(errno));
     }
     else *error_code = MPI_SUCCESS;
     return done;
 }
 
 
-int ADIOI_PFS_WriteDone(ADIO_Request *request, ADIO_Status *status, int *error_code)  
+int ADIOI_PFS_WriteDone(ADIO_Request *request, ADIO_Status *status,
+			int *error_code)
 {
     return ADIOI_PFS_ReadDone(request, status, error_code);
 } 

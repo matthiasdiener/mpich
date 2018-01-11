@@ -58,7 +58,7 @@ linktest:
 all: subdirs testing
 
 clean:
-	/bin/rm -f $(EXECS) *.o
+	rm -f $(EXECS) *.o
 	@for dir in $(SUBDIRS) ;\
 		do \
 			if [ ! -d $$dir -o ! -s $$dir/Makefile ] ; then \

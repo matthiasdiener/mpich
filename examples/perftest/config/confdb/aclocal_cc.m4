@@ -57,7 +57,7 @@ dnl Because this is a long script, we have ensured that you can pass a
 dnl variable containing the option name as the first argument.
 dnl D*/
 AC_DEFUN(PAC_C_CHECK_COMPILER_OPTION,[
-AC_MSG_CHECKING([that C compiler accepts option $1])
+AC_MSG_CHECKING([whether C compiler accepts option $1])
 save_CFLAGS="$CFLAGS"
 CFLAGS="$1 $CFLAGS"
 rm -f conftest.out
@@ -67,9 +67,9 @@ if ${CC-cc} $save_CFLAGS $CPPFLAGS -o conftest conftest.c $LDFLAGS >conftest.bas
    if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest.c $LDFLAGS >conftest.out 2>&1 ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          AC_MSG_RESULT(yes)
-         AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
-         /bin/rm -f conftest.out
-         /bin/rm -f conftest.bas
+         AC_MSG_CHECKING([whether routines compiled with $1 can be linked with ones compiled  without $1])       
+         rm -f conftest.out
+         rm -f conftest.bas
          if ${CC-cc} -c $save_CFLAGS $CPPFLAGS conftest2.c >conftest2.out 2>&1 ; then
             if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
                if ${CC-cc} $CFLAGS $CPPFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
@@ -321,7 +321,7 @@ dnl PAC_C_PROTOTYPES([action if true],[action if false])
 dnl
 dnl D*/
 AC_DEFUN(PAC_C_PROTOTYPES,[
-AC_CACHE_CHECK([if $CC supports function prototypes],
+AC_CACHE_CHECK([whether $CC supports function prototypes],
 pac_cv_c_prototypes,[
 AC_TRY_COMPILE([int f(double a){return 0;}],[return 0];,
 pac_cv_c_prototypes="yes",pac_cv_c_prototypes="no")])
@@ -427,7 +427,7 @@ dnl
 dnl D*/
 AC_DEFUN(PAC_C_CPP_CONCAT,[
 pac_pound="#"
-AC_CACHE_CHECK([that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp],
+AC_CACHE_CHECK([whether the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp],
 pac_cv_c_cpp_concat,[
 AC_TRY_COMPILE([
 #define concat(a,b) a##b],[int concat(a,b);return ab;],
@@ -897,7 +897,7 @@ dnl incompatible one and trying to compile it.
 dnl Defines NEED_CRYPT_PROTOTYPE if no prototype is found.
 dnl D*/
 AC_DEFUN(PAC_FUNC_CRYPT,[
-AC_CACHE_CHECK([if crypt defined in unistd.h],
+AC_CACHE_CHECK([whether crypt defined in unistd.h],
 pac_cv_func_crypt_defined,[
 AC_TRY_COMPILE([
 #include <unistd.h>
@@ -905,7 +905,7 @@ double crypt(double a){return a;}],[return 0];,
 pac_cv_func_crypt_defined="no",pac_cv_func_crypt_defined="yes")])
 if test "$pac_cv_func_crypt_defined" = "no" ; then
     # check to see if defining _XOPEN_SOURCE helps
-    AC_CACHE_CHECK([if crypt defined in unistd with _XOPEN_SOURCE],
+    AC_CACHE_CHECK([whether crypt defined in unistd with _XOPEN_SOURCE],
 pac_cv_func_crypt_xopen,[
     AC_TRY_COMPILE([
 #define _XOPEN_SOURCE    
@@ -930,8 +930,13 @@ dnl Adds '--enable-strict' to the command line.  If this is enabled, then
 dnl if no compiler has been set, set 'CC' to 'gcc'.
 dnl If the compiler is 'gcc', 'COPTIONS' is set to include
 dnl.vb
-dnl	-O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL
+dnl	-O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -std=c89
 dnl.ve
+dnl
+dnl -std=c89 is used to select the C89 version of the ANSI/ISO C standard.
+dnl As of this writing, many C compilers still accepted only this version,
+dnl not the later C99 version.  When all compilers accept C99, this 
+dnl should be changed to the appropriate standard level.
 dnl
 dnl If the value 'all' is given to '--enable-strict', additional warning
 dnl options are included.  These are
@@ -943,6 +948,9 @@ dnl If the value 'noopt' is given to '--enable-strict', no optimization
 dnl options are set.  For some compilers (including gcc), this may 
 dnl cause some strict complication tests to be skipped (typically, these are
 dnl tests for unused variables or variables used before they are defined).
+dnl
+dnl If the value 'posix' is given to '--enable-strict', POSIX is selected
+dnl as the C dialect (including the definition for the POSIX level)
 dnl 
 dnl This only works where 'gcc' is available.
 dnl In addition, it exports the variable 'enable_strict_done'. This
@@ -970,19 +978,30 @@ if test "$enable_strict_done" != "yes" ; then
 	yes)
         enable_strict_done="yes"
         if test "$CC" = "gcc" ; then 
-            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -std=c89"
         fi
 	;;
 	all)
         enable_strict_done="yes"
         if test "$CC" = "gcc" ; then 
-            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+	    # Note that -Wall does not include all of the warnings that
+	    # the gcc documentation claims that it does; in particular,
+	    # the -Wunused-parameter option is *not* part of -Wall
+            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long -Wunused-parameter -Wunused-value -std=c89"
         fi
 	;;
+
+	posix)
+	enable_strict_done="yes"
+        if test "$CC" = "gcc" ; then
+            COPTIONS="${COPTIONS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -D_POSIX_C_SOURCE=199506L -std=c89"
+    	fi
+ 	;;	
+	
 	noopt)
         enable_strict_done="yes"
         if test "$CC" = "gcc" ; then 
-            COPTIONS="${COPTIONS} -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+            COPTIONS="${COPTIONS} -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -std=c89"
         fi
 	;;
 	no)
@@ -997,6 +1016,7 @@ if test "$enable_strict_done" != "yes" ; then
 	;;
     esac
 fi
+export enable_strict_done
 ])
 dnl
 dnl Use the value of enable-strict to update CFLAGS
@@ -1012,7 +1032,7 @@ if test "$enable_strict_done" != "yes" ; then
 	yes)
         enable_strict_done="yes"
         if test "$ac_cv_prog_gcc" = "yes" ; then 
-            CFLAGS="${CFLAGS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
+            CFLAGS="${CFLAGS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -std=c89"
 	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
 	else 
 	    AC_MSG_WARN([enable strict supported only for gcc])
@@ -1021,15 +1041,26 @@ if test "$enable_strict_done" != "yes" ; then
 	all)
         enable_strict_done="yes"
         if test "$ac_cv_prog_gcc" = "yes" ; then 
-            CFLAGS="${CFLAGS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+            CFLAGS="${CFLAGS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wunused-parameter -Wunused-value -Wno-long-long -std=c89"
 	else 
 	    AC_MSG_WARN([enable strict supported only for gcc])
     	fi
 	;;
+
+	posix)
+	enable_strict_done="yes"
+        if test "$ac_cv_prog_gcc" = "yes" ; then 
+            CFLAGS="${CFLAGS} -Wall -O2 -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -D_POSIX_C_SOURCE=199506L -std=c89"
+	    AC_MSG_RESULT([Adding strict check arguments (POSIX flavor) to CFLAGS])
+	else 
+	    AC_MSG_WARN([enable strict supported only for gcc])
+    	fi
+ 	;;	
+	
 	noopt)
         enable_strict_done="yes"
         if test "$ac_cv_prog_gcc" = "yes" ; then 
-            CFLAGS="${CFLAGS} -Wall -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL"
+            CFLAGS="${CFLAGS} -Wall -Wstrict-prototypes -Wmissing-prototypes -Wundef -Wpointer-arith -Wbad-function-cast -ansi -DGCC_WALL -std=c89"
 	    AC_MSG_RESULT([Adding strict check arguments to CFLAGS])
 	else 
 	    AC_MSG_WARN([enable strict supported only for gcc])
@@ -1376,7 +1407,8 @@ changequote(<<,>>)dnl
 define(<<AC_TYPE_NAME>>,translit(sizeof_$1,[a-z *], [A-Z_P]))dnl
 define(<<AC_CV_NAME>>,translit(pac_cv_sizeof_$1,[ *], [_p]))dnl
 changequote([,])dnl
-AC_MSG_CHECKING(size of $1)
+rm -f conftestval
+AC_MSG_CHECKING([for size of $1])
 AC_CACHE_VAL(AC_CV_NAME,
 [AC_TRY_RUN([#include <stdio.h>
 main()
@@ -1387,6 +1419,37 @@ main()
   fprintf(f, "%d\n", sizeof(a));
   exit(0);
 }],AC_CV_NAME=`cat conftestval`,AC_CV_NAME=0,ifelse([$3],,,AC_CV_NAME=$3))])
+AC_MSG_RESULT($AC_CV_NAME)
+dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
+undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])
+])
+dnl
+dnl /*D
+dnl PAC_CHECK_SIZEOF_2TYPES - Get the size of a pair of types
+dnl
+dnl PAC_CHECK_SIZEOF_2TYPES(shortname,type1,type2,defaultsize)
+dnl Like AC_CHECK_SIZEOF, but handles pairs of types.
+dnl Unlike AC_CHECK_SIZEOF, does not define SIZEOF_xxx (because
+dnl autoheader can''t handle this case)
+dnl D*/
+AC_DEFUN(PAC_CHECK_SIZEOF_2TYPES,[
+changequote(<<,>>)dnl
+define(<<AC_TYPE_NAME>>,translit(sizeof_$1,[a-z *], [A-Z_P]))dnl
+define(<<AC_CV_NAME>>,translit(pac_cv_sizeof_$1,[ *], [_p]))dnl
+changequote([,])dnl
+rm -f conftestval
+AC_MSG_CHECKING([for size of $1])
+AC_CACHE_VAL(AC_CV_NAME,
+[AC_TRY_RUN([#include <stdio.h>
+main()
+{
+  $2 a;
+  $3 b;
+  FILE *f=fopen("conftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", sizeof(a) + sizeof(b));
+  exit(0);
+}],AC_CV_NAME=`cat conftestval`,AC_CV_NAME=0,ifelse([$4],,,AC_CV_NAME=$4))])
 AC_MSG_RESULT($AC_CV_NAME)
 dnl AC_DEFINE_UNQUOTED(AC_TYPE_NAME,$AC_CV_NAME)
 undefine([AC_TYPE_NAME])undefine([AC_CV_NAME])

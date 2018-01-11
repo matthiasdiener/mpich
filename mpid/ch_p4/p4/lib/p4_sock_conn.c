@@ -689,7 +689,22 @@ P4VOID handle_connection_interrupt( int sig )
         /* send msg to listener indicating I made the connection */
         net_send(listener_fd, &msg, sizeof(msg), P4_FALSE);
 	p4_dprintfl(99, "handle_connection_interrupt: exiting due to DIE msg\n");
-	/* Immediate exit on KILL_SLAVE */
+	/* Try to clean up first, then exit.  This tries to handle the
+	   cases that can leave SYSV IPC's around, along with 
+	   ensuring that sockets are shut down */
+	/* shutdown(sock,2), close(sock) all sockets */
+#	ifdef CAN_DO_SOCKET_MSGS
+	shutdown_p4_socks();
+#	endif
+
+#	ifdef SYSV_IPC
+	remove_sysv_ipc();
+#	endif
+
+#	if defined(SGI)  &&  defined(VENDOR_IPC)
+	unlink(p4_sgi_shared_arena_filename);
+#	endif
+	p4_clean_execer_port();
 	exit(0);
     }
 

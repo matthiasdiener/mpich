@@ -135,7 +135,7 @@ Packages that may be included with MPICH
                          device name, separated by a colon.  E.g., 
                          --with-device=globus2:-flavor=mpi,nothreads
 --with-romio[=OPTIONS] - Use ROMIO to provide MPI-I/O from MPI-2 (default).
-                         The options include -file_system=FSTYPE, where
+                         The options include --with-file-system=FSTYPE, where
                          fstype can be any combination of nfs, ufs, 
                          pfs (intel), piofs (IBM), hfs (HP), sfs (NEC), and 
                          xfs (SGI), combined with '+'.  If romio is not
@@ -172,6 +172,9 @@ for mpid in $srcdir/mpid/* ; do
         if test -f $device_setup ; then
 	    echo "Options for device $DEVICE:" 
 	    export DEVICE
+	    if test ! -x $device_setup ; then
+	        chmod a+x $device_setup
+	    fi
 	    eval $device_setup --usage 2>&1
 	    echo " "
 	fi
@@ -427,6 +430,12 @@ FLIB_PATH=""
 OPTFLAGS=""
 OPTFLAGSF=""
 F90=${F90:-""}
+# Allow F77 instead of FC
+if test -z "$FC" -a -n "$F77" ; then
+    FC=$F77
+    export F77
+    export FC
+fi
 f90nag=0
 f95nag=0
 NOF77=0
@@ -1280,8 +1289,8 @@ do
 	enable_args="$enable_args $arg"
 	;;
 
-     -file_system=* | --file_system=* )
-        print_dep $arg "--with-romio=-file_system=value"
+     --file_system=* | --file_system=* )
+        print_dep $arg "--with-romio=--with-file-system=value"
         FILE_SYSTEM="`echo $arg|sed 's/-*file_system=//'`"
        ;;
 
@@ -1402,7 +1411,6 @@ case $srcdir in
 esac
 
 # Check that file system understands different file name cases
-CASE_SENSITIVE=no
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -1442,13 +1450,14 @@ echo "$ac_t""Warning: You may encounter problems with the commands mpicc and MPI
 else
 echo "$ac_t""Warning: You may encounter problems with the commands mpicc and MPICC" 1>&1
 fi
-    CASE_SENSITIVE=yes
+    CASE_SENSITIVE=no
 else
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
+    CASE_SENSITIVE=yes
 fi
 rm -f CONFTEST conftest
 
@@ -1559,18 +1568,18 @@ fi
 MPIR_TRIAL=$PWD
 if test "${MPIR_TRIAL}" != "" -a -d "${MPIR_TRIAL}" ; then 
     if test -r ${MPIR_TRIAL}/.foo$$ ; then
-        /bin/rm -f ${MPIR_TRIAL}/.foo$$
-	/bin/rm -f .foo$$
+        rm -f ${MPIR_TRIAL}/.foo$$
+	rm -f .foo$$
     fi
     if test -r ${MPIR_TRIAL}/.foo$$ -o -r .foo$$ ; then
 	MPIR_TRIAL=
     else
 	echo "test" > ${MPIR_TRIAL}/.foo$$
 	if test ! -r .foo$$ ; then
-            /bin/rm -f ${MPIR_TRIAL}/.foo$$
+            rm -f ${MPIR_TRIAL}/.foo$$
 	    MPIR_TRIAL=
         else
- 	    /bin/rm -f ${MPIR_TRIAL}/.foo$$
+ 	    rm -f ${MPIR_TRIAL}/.foo$$
 	fi
     fi
 fi
@@ -1716,8 +1725,11 @@ if test -n "$arch_tflops"; then
    CROSS_F77_SIZEOF_DOUBLE_PRECISION=${CROSS_F77_SIZEOF_DOUBLE_PRECISION:-8}
    CROSS_BIGENDIAN=${CROSS_BIGENDIAN:-false}
    FORT_INT8=1
+   
    # Romio now looks at the CROSS_args
-#   ROMIO_ARGS="-intsize=$CROSS_SIZEOF_INT -ptrsize=$CROSS_SIZEOF_VOID_P -longsize=$CROSS_SIZEOF_LONG -longlongsize=$CROSS_SIZEOF_LONG_LONG --without-setbytes"
+   # ROMIO now uses a autoconf version 2 configure, and no longer
+   # accepts arguments in this style
+   #   ROMIO_ARGS="-intsize=$CROSS_SIZEOF_INT -ptrsize=$CROSS_SIZEOF_VOID_P -longsize=$CROSS_SIZEOF_LONG -longlongsize=$CROSS_SIZEOF_LONG_LONG --without-setbytes"
 
 fi
 #
@@ -1791,9 +1803,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking device""... $ac_c"
+echo $ac_n "checking for device""... $ac_c"
 else
-echo $ac_n "checking device""... $ac_c" 1>&1
+echo $ac_n "checking for device""... $ac_c" 1>&1
 fi
     DEVICE=`$srcdir/bin/tdevice $ARCH`
     if test ! -n "$DEVICE" ; then
@@ -1820,7 +1832,7 @@ if test ! -d "$srcdir/mpid/$DEVICE" ; then
     exit 1
 fi
 #
-#
+# 
 F77="${FC:-f77}"
 if test -n "$FC" ; then
     USERF77=1
@@ -1931,11 +1943,11 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking gnumake""... $ac_c"
+echo $ac_n "checking for gnumake""... $ac_c"
 else
-echo $ac_n "checking gnumake""... $ac_c" 1>&1
+echo $ac_n "checking for gnumake""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -1970,7 +1982,7 @@ else
 echo "$ac_t""no" 1>&1
 fi
 fi
-/bin/rm -f conftest
+rm -f conftest
 str=""
 
 
@@ -2000,7 +2012,7 @@ echo $ac_n "checking whether make supports include""... $ac_c"
 else
 echo $ac_n "checking whether make supports include""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 ALL:
 	@echo "success"
@@ -2009,7 +2021,7 @@ cat > conftest1 <<.
 include conftest
 .
 str=`$MAKE -f conftest1 2>&1`
-/bin/rm -f conftest conftest1
+rm -f conftest conftest1
 if test "$str" != "success" ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
@@ -2049,11 +2061,11 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking OSF V3 make""... $ac_c"
+echo $ac_n "checking for OSF V3 make""... $ac_c"
 else
-echo $ac_n "checking OSF V3 make""... $ac_c" 1>&1
+echo $ac_n "checking for OSF V3 make""... $ac_c" 1>&1
 fi
-/bin/rm -f conftest
+rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
 ALL:
@@ -2061,7 +2073,7 @@ ALL:
 	@echo "success"
 .
 str=`$MAKE -f conftest 2>&1`
-/bin/rm -f conftest 
+rm -f conftest 
 if test "$str" != "success" ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""Found OSF V3 make"
@@ -2607,9 +2619,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking if $CPP_COMPILER returns correct error code""... $ac_c"
+echo $ac_n "checking whether $CPP_COMPILER returns correct error code""... $ac_c"
 else
-echo $ac_n "checking if $CPP_COMPILER returns correct error code""... $ac_c" 1>&1
+echo $ac_n "checking whether $CPP_COMPILER returns correct error code""... $ac_c" 1>&1
 fi
         cat > conftest.cc <<EOF
 int main(){int a=b;}
@@ -2629,7 +2641,7 @@ else
 echo "$ac_t""yes" 1>&1
 fi
         fi
-	/bin/rm conftest*
+	rm conftest*
     elif test -z "$CPP_COMPILER" ; then
 	# aCC is the HPUX ANSI C++ compiler (CC is their older one)
 	# We need to use xlC in preference to g++ on AIX 
@@ -2670,7 +2682,7 @@ test -n "$GXXTRIAL" && test -n "$verbose" && echo "	setting GXXTRIAL to $GXXTRIA
 #include <iostream.h>
 EOF
 	        rm -f conftest.out
-  	        if $GXXTRIAL -c conftest.cc >conftest.out 2>&1 ; then
+  	        if $GXXTRIAL $CXXFLAGS -c conftest.cc >conftest.out 2>&1 ; then
 		    if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -2693,14 +2705,14 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking if $GXXTRIAL returns correct error code""... $ac_c"
+echo $ac_n "checking whether $GXXTRIAL $CXXFLAGS returns correct error code""... $ac_c"
 else
-echo $ac_n "checking if $GXXTRIAL returns correct error code""... $ac_c" 1>&1
+echo $ac_n "checking whether $GXXTRIAL $CXXFLAGS returns correct error code""... $ac_c" 1>&1
 fi
                     cat > conftest1.cc <<EOF
 int main(){int a=b;}
 EOF
-                    $GXXTRIAL -c conftest1.cc>conftest1.out 2>&1
+                    $GXXTRIAL $CXXFLAGS -c conftest1.cc>conftest1.out 2>&1
 	            if test $? = 0; then
 	                if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no!"
@@ -2718,7 +2730,7 @@ fi
 		        GXX="$GXXTRIAL"
                     fi
 	        else
-		    print_error "C++ compiler $GXXTRIAL failed to compile a simple program"
+		    print_error "C++ compiler $GXXTRIAL $CXXFLAGS failed to compile a simple program"
 		    print_error "C++ interface will not be built with this compiler"
 	            if test -s conftest.out ; then 
 		        cat conftest.out >>config.log
@@ -2728,7 +2740,7 @@ fi
 	            fi
 	            GXX=""
 	        fi
-	        /bin/rm -f conftest*
+	        rm -f conftest*
 		GXXTRIAL=""
 	    fi
 	    # If we found a working C++ compiler, then stop looking.
@@ -2763,15 +2775,15 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that selected C++ compiler can compile iostream.h""... $ac_c"
+echo $ac_n "checking whether selected C++ compiler can compile iostream.h""... $ac_c"
 else
-echo $ac_n "checking that selected C++ compiler can compile iostream.h""... $ac_c" 1>&1
+echo $ac_n "checking whether selected C++ compiler can compile iostream.h""... $ac_c" 1>&1
 fi
         rm -f conftest*
         cat > conftest.cc <<EOF
 #include <iostream.h>	
 EOF
-        if $CPP_COMPILER -c conftest.cc>conftest.out 2>&1 ; then 
+        if $CPP_COMPILER $CXXFLAGS -c conftest.cc>conftest.out 2>&1 ; then 
             if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
@@ -2779,14 +2791,14 @@ echo "$ac_t""yes" 1>&1
 fi
 	else
 	    if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo "$ac_t""no!...Cannot use $CPP_COMPILER compiler"
+echo "$ac_t""no!...Cannot use $CPP_COMPILER $CXXFLAGS compiler"
 else
-echo "$ac_t""no!...Cannot use $CPP_COMPILER compiler" 1>&1
+echo "$ac_t""no!...Cannot use $CPP_COMPILER $CXXFLAGS compiler" 1>&1
 fi
 	    CPP_COMPILER=""
 	    NOCXX=1
         fi
-	/bin/rm conftest*
+	rm conftest*
     fi
     # Note that C++ doesn't support VPATH build yet.
     # It does (sort of!)
@@ -2820,7 +2832,7 @@ if test -z "$NOCXX" ; then
     # This is for the Notre Dame version.  The altcxx version just uses
     # the mpi include dir
     if test "$CPP_DIR" = "MPI-2-C++" ; then
-        CXXFLAGS='-I${includedir}/mpi2c++'
+        CXXFLAGS='-I${includedir}/mpi2c++'" $CXXFLAGS"
     fi
     if test "$CPP_COMPILER" = "g++" ; then 
 	# Particularly for LDFLAGS, -fhandle-exceptions must ONLY be used
@@ -2854,7 +2866,7 @@ fi
 	cat > conftest.cc <<EOF
 int main () {}
 EOF
-	$CPP_COMPILER -c conftest.cc -fhandle-exceptions 2>conftest.out
+	$CPP_COMPILER $CXXFLAGS -c conftest.cc -fhandle-exceptions 2>conftest.out
 	if test ! -s conftest.out ; then
 	    CXXFLAGS="$CXXFLAGS -fhandle-exceptions"
 	    if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -2863,8 +2875,8 @@ else
 echo "$ac_t""-fhandle-exceptions" 1>&1
 fi
 	else
-	    /bin/rm -f conftest.o conftest.out
-	    $CPP_COMPILER -c conftest.cc -fexceptions 2>conftest.out
+	    rm -f conftest.o conftest.out
+	    $CPP_COMPILER $CXXFLAGS -c conftest.cc -fexceptions 2>conftest.out
 	    if test ! -s conftest.out ; then
 	        CXXFLAGS="$CXXFLAGS -fexceptions"
 		if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -2879,7 +2891,7 @@ else
 echo "$ac_t""not determined" 1>&1
 fi	
 	    fi
-	    /bin/rm -f conftest.o conftest.out conftest.cc
+	    rm -f conftest.o conftest.out conftest.cc
 	fi	
 	# These LDFLAGS break configure tests that try to link when the
 	# compiler is not the C++ compiler.
@@ -3098,9 +3110,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that C compiler accepts option -Ae""... $ac_c"
+echo $ac_n "checking whether C compiler accepts option -Ae""... $ac_c"
 else
-echo $ac_n "checking that C compiler accepts option -Ae""... $ac_c" 1>&1
+echo $ac_n "checking whether C compiler accepts option -Ae""... $ac_c" 1>&1
 fi
 CFLAGSSAV="$CFLAGS"
 CFLAGS="-Ae $CFLAGS"
@@ -3137,12 +3149,12 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -Ae can be linked with ones compiled  without -Ae""... $ac_c"
+echo $ac_n "checking whether routines compiled with -Ae can be linked with ones compiled  without -Ae""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -Ae can be linked with ones compiled  without -Ae""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -Ae can be linked with ones compiled  without -Ae""... $ac_c" 1>&1
 fi       
-         /bin/rm -f conftest.out
-         /bin/rm -f conftest.bas
+         rm -f conftest.out
+         rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
             if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
                if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
@@ -3263,9 +3275,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that C compiler accepts option -Aa""... $ac_c"
+echo $ac_n "checking whether C compiler accepts option -Aa""... $ac_c"
 else
-echo $ac_n "checking that C compiler accepts option -Aa""... $ac_c" 1>&1
+echo $ac_n "checking whether C compiler accepts option -Aa""... $ac_c" 1>&1
 fi
 CFLAGSSAV="$CFLAGS"
 CFLAGS="-Aa $CFLAGS"
@@ -3302,12 +3314,12 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -Aa can be linked with ones compiled  without -Aa""... $ac_c"
+echo $ac_n "checking whether routines compiled with -Aa can be linked with ones compiled  without -Aa""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -Aa can be linked with ones compiled  without -Aa""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -Aa can be linked with ones compiled  without -Aa""... $ac_c" 1>&1
 fi       
-         /bin/rm -f conftest.out
-         /bin/rm -f conftest.bas
+         rm -f conftest.out
+         rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
             if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
                if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
@@ -3441,9 +3453,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that C compiler accepts option -Aa""... $ac_c"
+echo $ac_n "checking whether C compiler accepts option -Aa""... $ac_c"
 else
-echo $ac_n "checking that C compiler accepts option -Aa""... $ac_c" 1>&1
+echo $ac_n "checking whether C compiler accepts option -Aa""... $ac_c" 1>&1
 fi
 CFLAGSSAV="$CFLAGS"
 CFLAGS="-Aa $CFLAGS"
@@ -3480,12 +3492,12 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -Aa can be linked with ones compiled  without -Aa""... $ac_c"
+echo $ac_n "checking whether routines compiled with -Aa can be linked with ones compiled  without -Aa""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -Aa can be linked with ones compiled  without -Aa""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -Aa can be linked with ones compiled  without -Aa""... $ac_c" 1>&1
 fi       
-         /bin/rm -f conftest.out
-         /bin/rm -f conftest.bas
+         rm -f conftest.out
+         rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
             if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
                if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
@@ -3616,9 +3628,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for Checking that HP compiler has ANSI option...""... $ac_c"
+echo $ac_n "checking for Checking whether HP compiler has ANSI option...""... $ac_c"
 else
-echo $ac_n "checking for Checking that HP compiler has ANSI option...""... $ac_c" 1>&1
+echo $ac_n "checking for Checking whether HP compiler has ANSI option...""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -4260,9 +4272,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking if -i_dynamic is required for Itanium C compiler""... $ac_c"
+echo $ac_n "checking whether -i_dynamic is required for Itanium C compiler""... $ac_c"
 else
-echo $ac_n "checking if -i_dynamic is required for Itanium C compiler""... $ac_c" 1>&1
+echo $ac_n "checking whether -i_dynamic is required for Itanium C compiler""... $ac_c" 1>&1
 fi
     pac_result=no
     cat > conftest.c <<EOF
@@ -4308,9 +4320,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c"
+echo $ac_n "checking whether the compiler $CC accepts ANSI prototypes""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -4539,9 +4551,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC runs""... $ac_c"
+echo $ac_n "checking whether the compiler $CC runs""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC runs""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC runs""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -4629,9 +4641,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c"
+echo $ac_n "checking whether the compiler $CC accepts ANSI prototypes""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -5332,9 +5344,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking if -i_dynamic is required for Itanium Fortran compiler""... $ac_c"
+echo $ac_n "checking whether -i_dynamic is required for Itanium Fortran compiler""... $ac_c"
 else
-echo $ac_n "checking if -i_dynamic is required for Itanium Fortran compiler""... $ac_c" 1>&1
+echo $ac_n "checking whether -i_dynamic is required for Itanium Fortran compiler""... $ac_c" 1>&1
 fi
     pac_result=no
     cat > conftest.f <<EOF
@@ -5584,9 +5596,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c"
+echo $ac_n "checking whether the compiler $CC accepts ANSI prototypes""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC accepts ANSI prototypes""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -5676,9 +5688,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp""... $ac_c"
+echo $ac_n "checking whether the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC accepts $ac_pound$ac_pound for concatenation in cpp""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -5768,9 +5780,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC accepts const modifier""... $ac_c"
+echo $ac_n "checking whether the compiler $CC accepts const modifier""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC accepts const modifier""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC accepts const modifier""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -5840,6 +5852,59 @@ if test -z "$CC" ; then
     print_error "Could not find a C compiler!"
     exit 1
 fi
+#
+# Check for the extension for executable programs (needed by mpiinstall for
+# installing binary programs under cygwin 
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for extension on executables""... $ac_c"
+else
+echo $ac_n "checking for extension on executables""... $ac_c" 1>&1
+fi
+EXEEXTmsg=none
+rm -f conftest* a.out a.out.exe
+cat >conftest.c <<EOF
+int main() { return 0; }
+EOF
+if $CC conftest.c 1>/dev/null 2>&1 ; then
+   if test -x a.out.exe ; then 
+       EXEEXT=".exe"
+       EXEEXTmsg=$EXEEXT
+   elif test -x a.out ; then
+       # Found a.out
+       :
+   else
+       EXEEXTmsg="could not determine; assuming no extension"
+   fi
+else
+   EXEEXTmsg="could not determine; assuming no extension"
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""$EXEEXTmsg"
+else
+echo "$ac_t""$EXEEXTmsg" 1>&1
+fi
+
 # We must NOT check for Unix variants until after we have determined the
 # compiler that we will use.  This is due to a bug in autoconf: it tries to 
 # use the C preprocessor directly, without invoking the compiler.
@@ -6097,9 +6162,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that C compiler accepts option -fPIC""... $ac_c"
+echo $ac_n "checking whether C compiler accepts option -fPIC""... $ac_c"
 else
-echo $ac_n "checking that C compiler accepts option -fPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether C compiler accepts option -fPIC""... $ac_c" 1>&1
 fi
 CFLAGSSAV="$CFLAGS"
 CFLAGS="-fPIC $CFLAGS"
@@ -6136,12 +6201,12 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -fPIC can be linked with ones compiled  without -fPIC""... $ac_c"
+echo $ac_n "checking whether routines compiled with -fPIC can be linked with ones compiled  without -fPIC""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -fPIC can be linked with ones compiled  without -fPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -fPIC can be linked with ones compiled  without -fPIC""... $ac_c" 1>&1
 fi       
-         /bin/rm -f conftest.out
-         /bin/rm -f conftest.bas
+         rm -f conftest.out
+         rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
             if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
                if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
@@ -6263,9 +6328,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that C compiler accepts option -KPIC""... $ac_c"
+echo $ac_n "checking whether C compiler accepts option -KPIC""... $ac_c"
 else
-echo $ac_n "checking that C compiler accepts option -KPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether C compiler accepts option -KPIC""... $ac_c" 1>&1
 fi
 CFLAGSSAV="$CFLAGS"
 CFLAGS="-KPIC $CFLAGS"
@@ -6302,12 +6367,12 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -KPIC can be linked with ones compiled  without -KPIC""... $ac_c"
+echo $ac_n "checking whether routines compiled with -KPIC can be linked with ones compiled  without -KPIC""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -KPIC can be linked with ones compiled  without -KPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -KPIC can be linked with ones compiled  without -KPIC""... $ac_c" 1>&1
 fi       
-         /bin/rm -f conftest.out
-         /bin/rm -f conftest.bas
+         rm -f conftest.out
+         rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
             if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
                if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
@@ -6438,9 +6503,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that C compiler accepts option -KPIC""... $ac_c"
+echo $ac_n "checking whether C compiler accepts option -KPIC""... $ac_c"
 else
-echo $ac_n "checking that C compiler accepts option -KPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether C compiler accepts option -KPIC""... $ac_c" 1>&1
 fi
 CFLAGSSAV="$CFLAGS"
 CFLAGS="-KPIC $CFLAGS"
@@ -6477,12 +6542,12 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -KPIC can be linked with ones compiled  without -KPIC""... $ac_c"
+echo $ac_n "checking whether routines compiled with -KPIC can be linked with ones compiled  without -KPIC""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -KPIC can be linked with ones compiled  without -KPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -KPIC can be linked with ones compiled  without -KPIC""... $ac_c" 1>&1
 fi       
-         /bin/rm -f conftest.out
-         /bin/rm -f conftest.bas
+         rm -f conftest.out
+         rm -f conftest.bas
          if ${CC-cc} -c $CFLAGSSAV conftest2.c >conftest2.out 2>&1 ; then
             if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.bas 2>&1 ; then
                if ${CC-cc} $CFLAGS -o conftest conftest2.o conftest.c $LDFLAGS >conftest.out 2>&1 ; then
@@ -6619,9 +6684,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that Fortran compiler accepts option -PIC""... $ac_c"
+echo $ac_n "checking whether Fortran compiler accepts option -PIC""... $ac_c"
 else
-echo $ac_n "checking that Fortran compiler accepts option -PIC""... $ac_c" 1>&1
+echo $ac_n "checking whether Fortran compiler accepts option -PIC""... $ac_c" 1>&1
 fi
 FFLAGSSAV="$FFLAGS"
 FFLAGS="-PIC $FFLAGS"
@@ -6634,8 +6699,8 @@ cat >conftest3.f <<EOF
        return
        end
 EOF
-/bin/rm -f conftest1.out conftest2.out
-/bin/rm -f conftest3.out
+rm -f conftest1.out conftest2.out
+rm -f conftest3.out
 if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
     if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -6666,11 +6731,11 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -PIC can be linked with ones compiled without -PIC""... $ac_c"
+echo $ac_n "checking whether routines compiled with -PIC can be linked with ones compiled without -PIC""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -PIC can be linked with ones compiled without -PIC""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -PIC can be linked with ones compiled without -PIC""... $ac_c" 1>&1
 fi
-            /bin/rm -f conftest1.out 
+            rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
                 if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -6765,9 +6830,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that Fortran compiler accepts option -fPIC""... $ac_c"
+echo $ac_n "checking whether Fortran compiler accepts option -fPIC""... $ac_c"
 else
-echo $ac_n "checking that Fortran compiler accepts option -fPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether Fortran compiler accepts option -fPIC""... $ac_c" 1>&1
 fi
 FFLAGSSAV="$FFLAGS"
 FFLAGS="-fPIC $FFLAGS"
@@ -6780,8 +6845,8 @@ cat >conftest3.f <<EOF
        return
        end
 EOF
-/bin/rm -f conftest1.out conftest2.out
-/bin/rm -f conftest3.out
+rm -f conftest1.out conftest2.out
+rm -f conftest3.out
 if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
     if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -6812,11 +6877,11 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -fPIC can be linked with ones compiled without -fPIC""... $ac_c"
+echo $ac_n "checking whether routines compiled with -fPIC can be linked with ones compiled without -fPIC""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -fPIC can be linked with ones compiled without -fPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -fPIC can be linked with ones compiled without -fPIC""... $ac_c" 1>&1
 fi
-            /bin/rm -f conftest1.out 
+            rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
                 if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -6911,9 +6976,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that Fortran compiler accepts option -KPIC""... $ac_c"
+echo $ac_n "checking whether Fortran compiler accepts option -KPIC""... $ac_c"
 else
-echo $ac_n "checking that Fortran compiler accepts option -KPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether Fortran compiler accepts option -KPIC""... $ac_c" 1>&1
 fi
 FFLAGSSAV="$FFLAGS"
 FFLAGS="-KPIC $FFLAGS"
@@ -6926,8 +6991,8 @@ cat >conftest3.f <<EOF
        return
        end
 EOF
-/bin/rm -f conftest1.out conftest2.out
-/bin/rm -f conftest3.out
+rm -f conftest1.out conftest2.out
+rm -f conftest3.out
 if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
     if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -6958,11 +7023,11 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with -KPIC can be linked with ones compiled without -KPIC""... $ac_c"
+echo $ac_n "checking whether routines compiled with -KPIC can be linked with ones compiled without -KPIC""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with -KPIC can be linked with ones compiled without -KPIC""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with -KPIC can be linked with ones compiled without -KPIC""... $ac_c" 1>&1
 fi
-            /bin/rm -f conftest1.out 
+            rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
                 if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -7108,9 +7173,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that shared libraries can be built""... $ac_c"
+echo $ac_n "checking whether shared libraries can be built""... $ac_c"
 else
-echo $ac_n "checking that shared libraries can be built""... $ac_c" 1>&1
+echo $ac_n "checking whether shared libraries can be built""... $ac_c" 1>&1
 fi
     rm -f conftest* libconftest*
     cat >conftest.c <<EOF
@@ -7164,9 +7229,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that programs remember where the shared lib is""... $ac_c"
+echo $ac_n "checking whether programs remember where the shared lib is""... $ac_c"
 else
-echo $ac_n "checking that programs remember where the shared lib is""... $ac_c" 1>&1
+echo $ac_n "checking whether programs remember where the shared lib is""... $ac_c" 1>&1
 fi
            mkdir .tmp
            cp conftest .tmp
@@ -7497,9 +7562,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that shared, anonymous mmap works with -1 filedes""... $ac_c"
+echo $ac_n "checking whether shared, anonymous mmap works with -1 filedes""... $ac_c"
 else
-echo $ac_n "checking that shared, anonymous mmap works with -1 filedes""... $ac_c" 1>&1
+echo $ac_n "checking whether shared, anonymous mmap works with -1 filedes""... $ac_c" 1>&1
 fi
 
 
@@ -7560,7 +7625,7 @@ EOF
     ac_cv_mmap=0
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           ac_cv_mmap=1
 
@@ -7632,9 +7697,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that semget works""... $ac_c"
+echo $ac_n "checking whether semget works""... $ac_c"
 else
-echo $ac_n "checking that semget works""... $ac_c" 1>&1
+echo $ac_n "checking whether semget works""... $ac_c" 1>&1
 fi
 ###
 ### Still need to check for SEMUN_UNDEFINED - see mpid/ch_p4/p4/configure.in
@@ -7670,7 +7735,7 @@ EOF
 echo "${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS" >> config.log
 if ${CC-cc} $CFLAGS -o conftest conftest.c $LDFLAGS $LIBS >> config.log 2>&1 ; then
     if test -x conftest ; then
-	/bin/rm -f conftest.out
+	rm -f conftest.out
 	./conftest > conftest.out
 	errno=`cat conftest.out`
 
@@ -7767,7 +7832,7 @@ fi
     SEMGET=0
     print_error "Could not compile program"
 fi
-/bin/rm -f conftest*
+rm -f conftest*
 
 
     if test $MMAP = 0 -a "$SEMGET" = 0; then
@@ -7882,9 +7947,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that Fortran compiler accepts option $P4_MDEPFFLAGS""... $ac_c"
+echo $ac_n "checking whether Fortran compiler accepts option $P4_MDEPFFLAGS""... $ac_c"
 else
-echo $ac_n "checking that Fortran compiler accepts option $P4_MDEPFFLAGS""... $ac_c" 1>&1
+echo $ac_n "checking whether Fortran compiler accepts option $P4_MDEPFFLAGS""... $ac_c" 1>&1
 fi
 FFLAGSSAV="$FFLAGS"
 FFLAGS="$P4_MDEPFFLAGS $FFLAGS"
@@ -7897,8 +7962,8 @@ cat >conftest3.f <<EOF
        return
        end
 EOF
-/bin/rm -f conftest1.out conftest2.out
-/bin/rm -f conftest3.out
+rm -f conftest1.out conftest2.out
+rm -f conftest3.out
 if $F77 $FFLAGS -o conftest conftest.f $LDFLAGS > conftest1.out 2>&1 ; then
     if $F77 $FFLAGSSAV -o conftest conftest.f $LDFLAGS > conftest2.out 2>&1 ; then
         if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -7929,11 +7994,11 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that routines compiled with $P4_MDEPFFLAGS can be linked with ones compiled without $P4_MDEPFFLAGS""... $ac_c"
+echo $ac_n "checking whether routines compiled with $P4_MDEPFFLAGS can be linked with ones compiled without $P4_MDEPFFLAGS""... $ac_c"
 else
-echo $ac_n "checking that routines compiled with $P4_MDEPFFLAGS can be linked with ones compiled without $P4_MDEPFFLAGS""... $ac_c" 1>&1
+echo $ac_n "checking whether routines compiled with $P4_MDEPFFLAGS can be linked with ones compiled without $P4_MDEPFFLAGS""... $ac_c" 1>&1
 fi
-            /bin/rm -f conftest1.out 
+            rm -f conftest1.out 
             if $F77 -c $FFLAGSSAVE conftest3.f >conftest3.out 2>&1 ;then
                 if $F77 $FFLAGS -o conftest conftest3.o conftest.f $LDFLAGS >conftest1.out 2>&1 ; then
                     if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
@@ -8986,7 +9051,7 @@ fi
 DEVCFLAGS="$DEVCFLAGS -DUSE_WIERDGETTIMEOFDAY"
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""two - whew"
@@ -9388,9 +9453,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that weak symbols are visible to other files""... $ac_c"
+echo $ac_n "checking whether weak symbols are visible to other files""... $ac_c"
 else
-echo $ac_n "checking that weak symbols are visible to other files""... $ac_c" 1>&1
+echo $ac_n "checking whether weak symbols are visible to other files""... $ac_c" 1>&1
 fi
     rm -f conftest*
     cat >>conftest1.c <<EOF
@@ -9794,9 +9859,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking byte ordering""... $ac_c"
+echo $ac_n "checking for byte ordering""... $ac_c"
 else
-echo $ac_n "checking byte ordering""... $ac_c" 1>&1
+echo $ac_n "checking for byte ordering""... $ac_c" 1>&1
 fi
 
 
@@ -9847,7 +9912,7 @@ EOF
     pac_r=1
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           :
       else
@@ -9924,9 +9989,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking for "XDR includes and functions"""... $ac_c"
+echo $ac_n "checking for "XDR include"""... $ac_c"
 else
-echo $ac_n "checking for "XDR includes and functions"""... $ac_c" 1>&1
+echo $ac_n "checking for "XDR include"""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -9986,7 +10051,180 @@ fi
 fi
 rm -f conftest*
 
-    if test "$HAS_XDR" = 1 ; then
+    # Now, check whether a special library is needed by looking at xdr_bool
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for "XDR functions"""... $ac_c"
+else
+echo $ac_n "checking for "XDR functions"""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { xdr_bool(); }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  HAS_XDR_BOOL=yes
+
+else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+  fi
+  HAS_XDR_BOOL=no
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    if test "$HAS_XDR_BOOL" = "no" ; then
+        # Try again with -lrpc
+	LIBS_save="$LIBS"
+	LIBS="$LIBS -lrpc"
+	if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for "XDR functions"""... $ac_c"
+else
+echo $ac_n "checking for "XDR functions"""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { xdr_bool(); }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  HAS_XDR_BOOL=yes
+
+else
+  expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+  eval echo "configure:$expandcompile" >> config.log
+  echo "configure: failed program was:" >>config.log
+  cat confdefs.h >> config.log
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+  fi
+  HAS_XDR_BOOL=no
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    expandcompile=`echo "$compile" | sed -e 's/>.*//'`
+    eval echo "configure:$expandcompile" >> config.log
+    echo "configure: failed program was:" >>config.log
+    cat confdefs.h >> config.log
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LDFLAGS $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+	if test "$HAS_XDR_BOOL" = no ; then
+	    LIBS="$LIBS_save"
+	fi
+    fi
+    if test "$HAS_XDR" = 1 -a "$HAS_XDR_BOOL" = yes ; then
 	
 {
 test -n "$verbose" && \
@@ -10323,9 +10561,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that C++ compiler also has gethostbyname""... $ac_c"
+echo $ac_n "checking whether C++ compiler also has gethostbyname""... $ac_c"
 else
-echo $ac_n "checking that C++ compiler also has gethostbyname""... $ac_c" 1>&1
+echo $ac_n "checking whether C++ compiler also has gethostbyname""... $ac_c" 1>&1
 fi
    if ${CPP_COMPILER} -o conftest conftest.C >>config.log 2>&1 ; then
 	if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -11139,9 +11377,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that Fortran programs can link with needed C functions""... $ac_c"
+echo $ac_n "checking whether Fortran programs can link with needed C functions""... $ac_c"
 else
-echo $ac_n "checking that Fortran programs can link with needed C functions""... $ac_c" 1>&1
+echo $ac_n "checking whether Fortran programs can link with needed C functions""... $ac_c" 1>&1
 fi
         cat > conftest.f <<EOF
         program main
@@ -11193,9 +11431,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that C++ programs can link with needed C functions""... $ac_c"
+echo $ac_n "checking whether C++ programs can link with needed C functions""... $ac_c"
 else
-echo $ac_n "checking that C++ programs can link with needed C functions""... $ac_c" 1>&1
+echo $ac_n "checking whether C++ programs can link with needed C functions""... $ac_c" 1>&1
 fi
 	cat > conftest.cc <<EOF
 	int main() { return 0; }
@@ -11954,9 +12192,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that stdarg is oldstyle""... $ac_c"
+echo $ac_n "checking whether stdarg is oldstyle""... $ac_c"
 else
-echo $ac_n "checking that stdarg is oldstyle""... $ac_c" 1>&1
+echo $ac_n "checking whether stdarg is oldstyle""... $ac_c" 1>&1
 fi
 
 check_compile=2
@@ -12081,9 +12319,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking stdarg is correct""... $ac_c"
+echo $ac_n "checking whether stdarg is correct""... $ac_c"
 else
-echo $ac_n "checking stdarg is correct""... $ac_c" 1>&1
+echo $ac_n "checking whether stdarg is correct""... $ac_c" 1>&1
 fi
     
 check_compile=2
@@ -13024,9 +13262,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $CC runs""... $ac_c"
+echo $ac_n "checking whether the compiler $CC runs""... $ac_c"
 else
-echo $ac_n "checking that the compiler $CC runs""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $CC runs""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -13119,15 +13357,15 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that the compiler $F77 runs""... $ac_c"
+echo $ac_n "checking whether the compiler $F77 runs""... $ac_c"
 else
-echo $ac_n "checking that the compiler $F77 runs""... $ac_c" 1>&1
+echo $ac_n "checking whether the compiler $F77 runs""... $ac_c" 1>&1
 fi
 cat >conftest.f <<EOF
           program main
           end
 EOF
-/bin/rm -f conftest.out
+rm -f conftest.out
 $F77 $FFLAGS $OPTFLAGSF -c conftest.f > conftest.out 2>&1
 if test $? != 0 ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -13268,7 +13506,7 @@ else
 echo "$ac_t""yes" 1>&1
 fi
         fi
-	/bin/rm -f conftest conftest.c conftest.o conftest.out conftest.rout
+	rm -f conftest conftest.c conftest.o conftest.out conftest.rout
     done
     #
     # These are non-fatal, but must be run
@@ -13333,7 +13571,7 @@ else
 echo "$ac_t""yes" 1>&1
 fi
         fi
-	/bin/rm -f conftest conftest.c conftest.o conftest.out conftest.rout
+	rm -f conftest conftest.c conftest.o conftest.out conftest.rout
     done
 
     # 
@@ -13389,7 +13627,7 @@ fi
             fi
         fi
 	# set +x
-	/bin/rm -f conftest conftest.co
+	rm -f conftest conftest.co
     done
     # 
     # After everything, see if there are any problems
@@ -13429,9 +13667,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that ranlib works""... $ac_c"
+echo $ac_n "checking whether ranlib works""... $ac_c"
 else
-echo $ac_n "checking that ranlib works""... $ac_c" 1>&1
+echo $ac_n "checking whether ranlib works""... $ac_c" 1>&1
 fi
 broken=0
 cat <<EOF >conftest.c
@@ -13503,7 +13741,7 @@ fi
 	    broken=1
         fi
     fi
-    /bin/rm -f foo.a
+    rm -f foo.a
     if test $broken = 1 ; then
         print_error "RANLIB ($RANLIB) failed!"
         print_error "Assuming that ranlib is a stub returning non-zero"
@@ -13724,7 +13962,7 @@ echo $ac_n "checking for size of $Pac_name""... $ac_c"
 else
 echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
 fi
- /bin/rm -f conftestval
+ rm -f conftestval
  
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -13771,7 +14009,7 @@ EOF
     Pac_CV_NAME=""
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           Pac_CV_NAME=`cat conftestval`
 
@@ -13904,7 +14142,7 @@ echo $ac_n "checking for size of $Pac_name""... $ac_c"
 else
 echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
 fi
- /bin/rm -f conftestval
+ rm -f conftestval
  
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -13951,7 +14189,7 @@ EOF
     Pac_CV_NAME=""
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           Pac_CV_NAME=`cat conftestval`
 
@@ -14025,7 +14263,7 @@ echo $ac_n "checking for size of $Pac_name""... $ac_c"
 else
 echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
 fi
- /bin/rm -f conftestval
+ rm -f conftestval
  
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -14072,7 +14310,7 @@ EOF
     Pac_CV_NAME=""
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           Pac_CV_NAME=`cat conftestval`
 
@@ -14187,7 +14425,7 @@ fi
 # However, in some situations, we may want to use something larger
 # than the size of void*.  By setting MPI_AINT_SIZE, we can bypass the
 # code that computes the size of void *
-if test -z "MPI_AINT_SIZE" ; then
+if test -z "$MPI_AINT_SIZE" ; then
     Pac_name="void *"
  Pac_varname=`echo "$Pac_name" | sed -e 's/ /_/g' -e 's/\*/star/g'`
 eval Pac_testval=\$"${Pac_varname}_len"
@@ -14225,7 +14463,7 @@ echo $ac_n "checking for size of $Pac_name""... $ac_c"
 else
 echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
 fi
- /bin/rm -f conftestval
+ rm -f conftestval
  
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -14272,7 +14510,7 @@ EOF
     Pac_CV_NAME=""
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           Pac_CV_NAME=`cat conftestval`
 
@@ -14380,7 +14618,7 @@ echo $ac_n "checking for size of $Pac_name""... $ac_c"
 else
 echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
 fi
- /bin/rm -f conftestval
+ rm -f conftestval
  
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -14427,7 +14665,7 @@ EOF
     Pac_CV_NAME=""
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           Pac_CV_NAME=`cat conftestval`
 
@@ -14505,7 +14743,7 @@ echo $ac_n "checking for size of $Pac_name""... $ac_c"
 else
 echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
 fi
- /bin/rm -f conftestval
+ rm -f conftestval
  
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -14552,7 +14790,7 @@ EOF
     Pac_CV_NAME=""
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           Pac_CV_NAME=`cat conftestval`
 
@@ -14631,7 +14869,7 @@ echo $ac_n "checking for size of $Pac_name""... $ac_c"
 else
 echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
 fi
- /bin/rm -f conftestval
+ rm -f conftestval
  
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -14678,7 +14916,7 @@ EOF
     Pac_CV_NAME=""
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           Pac_CV_NAME=`cat conftestval`
 
@@ -14757,7 +14995,7 @@ echo $ac_n "checking for size of $Pac_name""... $ac_c"
 else
 echo $ac_n "checking for size of $Pac_name""... $ac_c" 1>&1
 fi
- /bin/rm -f conftestval
+ rm -f conftestval
  
 
 if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
@@ -14804,7 +15042,7 @@ EOF
     Pac_CV_NAME=""
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           Pac_CV_NAME=`cat conftestval`
 
@@ -14940,7 +15178,7 @@ EOF
     has_long_long=0
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           has_long_long=1
 
@@ -14995,9 +15233,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that compiler can handle loops with long long""... $ac_c"
+echo $ac_n "checking whether compiler can handle loops with long long""... $ac_c"
 else
-echo $ac_n "checking that compiler can handle loops with long long""... $ac_c" 1>&1
+echo $ac_n "checking whether compiler can handle loops with long long""... $ac_c" 1>&1
 fi
          
    cat > conftest.c <<EOF
@@ -15204,7 +15442,7 @@ echo "$ac_t""no" 1>&1
 fi
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           
 {
@@ -15284,9 +15522,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking size of double""... $ac_c"
+echo $ac_n "checking for size of double""... $ac_c"
 else
-echo $ac_n "checking size of double""... $ac_c" 1>&1
+echo $ac_n "checking for size of double""... $ac_c" 1>&1
 fi
 
 
@@ -15335,7 +15573,7 @@ EOF
     ac_cv_sizeof_double=0
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           ac_cv_sizeof_double=`cat cftestval`
 
@@ -15405,9 +15643,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking size of long double""... $ac_c"
+echo $ac_n "checking for size of long double""... $ac_c"
 else
-echo $ac_n "checking size of long double""... $ac_c" 1>&1
+echo $ac_n "checking for size of long double""... $ac_c" 1>&1
 fi
 
 
@@ -15456,7 +15694,7 @@ EOF
     ac_cv_sizeof_long_double=0
 
     else
-      /bin/rm -f conftestout
+      rm -f conftestout
       if test -s conftest && (./conftest; exit) 2>conftestout; then
           ac_cv_sizeof_long_double=`cat cftestval`
 
@@ -15910,9 +16148,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that $MPILIBNAME can be used as the library name""... $ac_c"
+echo $ac_n "checking whether $MPILIBNAME can be used as the library name""... $ac_c"
 else
-echo $ac_n "checking that $MPILIBNAME can be used as the library name""... $ac_c" 1>&1
+echo $ac_n "checking whether $MPILIBNAME can be used as the library name""... $ac_c" 1>&1
 fi
 canuse=yes
 cat >conftest.c <<EOF
@@ -16019,6 +16257,7 @@ if test "$NOF77" != 1 ; then
   export CC ;\
   export CFLAGS ;\
   export F77 ;\
+  export FC ;\
   export FFLAGS ;\
   export F90 ;\
   export LDFLAGS ;\
@@ -16172,9 +16411,9 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that compiler allows define a(b) a(b,__LINE__)""... $ac_c"
+echo $ac_n "checking whether compiler allows define a(b) a(b,__LINE__)""... $ac_c"
 else
-echo $ac_n "checking that compiler allows define a(b) a(b,__LINE__)""... $ac_c" 1>&1
+echo $ac_n "checking whether compiler allows define a(b) a(b,__LINE__)""... $ac_c" 1>&1
 fi
 if test ! -f confdefs.h ; then
     if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -16249,15 +16488,15 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
       if test -z "$f_integer_size" -o "$f_integer_size" = "unavailable" ; then
         f_integer_size=4
       fi
-      if test "$OFFSET_KIND" = 8 ; then
-        # F90 has an 8-byte integer kind but F77 doesn't support it
-        # as integer*8.
-	if test "$F90" != "FC" ; then
-          ROMIO_ARGS="$ROMIO_ARGS -longlongsize=int"
-        fi
-      else 	   
-          ROMIO_ARGS="$ROMIO_ARGS -longlongsize=int"
-      fi
+#      if test "$OFFSET_KIND" = 8 ; then
+#        # F90 has an 8-byte integer kind but F77 doesn't support it
+#        # as integer*8.
+#	if test "$F90" != "FC" ; then
+#          ROMIO_ARGS="$ROMIO_ARGS -longlongsize=int"
+#        fi
+#      else 	   
+#          ROMIO_ARGS="$ROMIO_ARGS -longlongsize=int"
+#      fi
     fi
   fi
   if test -z "$FILE_SYSTEM" ; then
@@ -16290,7 +16529,7 @@ if test $ROMIO = 1 -a -d "${top_srcdir}/romio" ; then
   export CROSS_SIZEOF_LONG;\
   export MAKE;\
   export ARCH;\
-  export CC; export F77; export F90; export MPILIBNAME ; \
+  export CC; export F77; export FC; export F90; export MPILIBNAME ; \
   export FROM_MPICH;\
   export int_len ; export void_star_len ; export OFFSET_KIND ; \
   export long_long_len ; \
@@ -16379,7 +16618,7 @@ if test "$NOMPE" = 0 -a -d "${top_srcdir}/mpe" ; then
       MPI_CC=${binbuild_dir}/mpicc ; export MPI_CC ; \
       MPI_F77=${binbuild_dir}/mpif77 ; export MPI_F77 ; \
       CC="${TESTCC}" ; export CC ; \
-      F77="${TESTF77}" ; export F77 ; \
+      F77="${TESTF77}" ; export F77 ; export FC ; \
       export CLINKER ; export FLINKER ; \
       export CROSS_SIZEOF_CHAR ; \
       export CROSS_SIZEOF_SHORT ; \
@@ -16523,7 +16762,7 @@ fi
 #
 # Make sure we remove any configuration file incase there is out-of-date data.
 # We remove the version in include in case this is a vpath build
-/bin/rm -f mpichconf.h "${top_srcdir}/include/mpichconf.h include/mpichconf.h"
+rm -f mpichconf.h "${top_srcdir}/include/mpichconf.h include/mpichconf.h"
 
 # Make the directories that do not contain Makefiles (should they?) but 
 # are needed for the subsequent directories.
@@ -16607,6 +16846,7 @@ sysconfdir='$sysconfdir'
 GXXTRIAL='$GXXTRIAL'
 ARNAME='$ARNAME'
 HAVE_NO_C_CONST='$HAVE_NO_C_CONST'
+EXEEXT='$EXEEXT'
 CPP='$CPP'
 SHARED_LIB_SEARCH_PATH_LEADER='$SHARED_LIB_SEARCH_PATH_LEADER'
 CXXENABLE='$CXXENABLE'
@@ -16777,13 +17017,14 @@ s%@sysconfdir@%$sysconfdir%g
 s%@GXXTRIAL@%$GXXTRIAL%g
 s%@ARNAME@%$ARNAME%g
 s%@HAVE_NO_C_CONST@%$HAVE_NO_C_CONST%g
+s%@EXEEXT@%$EXEEXT%g
 s%@CPP@%$CPP%g
 s%@SHARED_LIB_SEARCH_PATH_LEADER@%$SHARED_LIB_SEARCH_PATH_LEADER%g
 s%@CXXENABLE@%$CXXENABLE%g
 s%@CC_SHARED_OPT@%$CC_SHARED_OPT%g
 s%@CC_SHARED_OPT_FOR_TV@%$CC_SHARED_OPT_FOR_TV%g
-s%@CXXFLAGS_FOR_SHARED@%$CXXFLAGS_FOR_SHARED%g
-s%@SHAREDKIND@%$SHAREDKIND%g" | sed -e "
+s%@CXXFLAGS_FOR_SHARED@%$CXXFLAGS_FOR_SHARED%g" | sed -e "
+s%@SHAREDKIND@%$SHAREDKIND%g
 s%@SHAREDKIND_FOR_TV@%$SHAREDKIND_FOR_TV%g
 s%@MPI_STATUS_SIZE@%$MPI_STATUS_SIZE%g
 s%@HAS_WEAK_SYMBOLS@%$HAS_WEAK_SYMBOLS%g
@@ -16824,8 +17065,8 @@ s%@CPRP@%$CPRP%g
 s%@DEFAULT_MACHINE@%$DEFAULT_MACHINE%g
 s%@DEVCFLAGS@%$DEVCFLAGS%g
 s%@DEVCFILES@%$DEVCFILES%g
-s%@DEVOFILES@%$DEVOFILES%g
-s%@DEV_DEFS@%$DEV_DEFS%g" | sed -e "
+s%@DEVOFILES@%$DEVOFILES%g" | sed -e "
+s%@DEV_DEFS@%$DEV_DEFS%g
 s%@DEVICE@%$DEVICE%g
 s%@DEVICE_MAKE_INCLUDE@%$DEVICE_MAKE_INCLUDE%g
 s%@F77@%$F77%g
@@ -16866,8 +17107,8 @@ s%@NLS_DEFS@%$NLS_DEFS%g
 s%@NEWTESTDIRS@%$NEWTESTDIRS%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@OPTFLAGSC@%$OPTFLAGSC%g
-s%@OPTFLAGSF@%$OPTFLAGSF%g
-s%@P4_ARCH@%$P4_ARCH%g" | sed -e "
+s%@OPTFLAGSF@%$OPTFLAGSF%g" | sed -e "
+s%@P4_ARCH@%$P4_ARCH%g
 s%@P4_DIR@%$P4_DIR%g
 s%@RHS_COMMAND@%$RHS_COMMAND%g
 s%@PREFIX@%$PREFIX%g
@@ -17012,9 +17253,9 @@ CONFIG_FILES=""
 for pac_file in util/mpicc util/mpicxx util/mpiinstall \
 		util/mpirun util/mpichlib.conf util/mpiman \
                 util/chkserv util/chkmachine util/tstmachines ; do 
-    /bin/rm -f .pactmp
+    rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
-    /bin/rm -f $pac_file
+    rm -f $pac_file
     mv .pactmp $pac_file
     chmod a+x  $pac_file
 done
@@ -17029,9 +17270,9 @@ export CONFIG_FILES
 ./config.status
 CONFIG_FILES=""
 for pac_file in include/mpidefs.h ; do 
-    /bin/rm -f .pactmp
+    rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
-    /bin/rm -f $pac_file
+    rm -f $pac_file
     mv .pactmp $pac_file
     chmod a+r $pac_file
 done
@@ -17042,9 +17283,9 @@ export CONFIG_FILES
 ./config.status
 CONFIG_FILES=""
 for pac_file in include/mpif.f90 ; do 
-    /bin/rm -f .pactmp
+    rm -f .pactmp
     sed -e '1d' $pac_file > .pactmp
-    /bin/rm -f $pac_file
+    rm -f $pac_file
     mv .pactmp $pac_file
     chmod a+r $pac_file
 done
@@ -17137,18 +17378,6 @@ fi
 	--with-mpichbuilding --with-mpich=$binbuild_dir \
 	-prefix=$prefix $otherargs )
 
-#if test "$HAS_F77" != "0" ; then
-#    ( cd examples/perftest ; \
-#       $srcdir/examples/perftest/configure -cc="$MPICC" -basecc="$CC" \
-#				-fc="$MPIF77" -basefc="$F77" \
-#				-f77_extra_flag="$F77_EXTRA_FLAG" \
-#				-make="$MAKE" )
-#else
-#    ( cd examples/perftest ; \
-#       $srcdir/examples/perftest/configure -cc="$MPICC" -basecc="$CC" -nof77 \
-#				-make="$MAKE" )
-#fi
-#
 # Configure JUST the correct device file
 CONFIG_FILES="mpid/$DEVICE/Makefile"
 if test -f "$srcdir/mpid/tests/Makefile.in" ; then

@@ -40,6 +40,9 @@ RSHCOMMAND="@RSHCOMMAND@"
 NOMPE=@NOMPE@
 SHAREDLIB_LOCALDIR=@SHAREDLIB_LOCALDIR@
 MPIR_HOME=@MPIR_HOME@
+# EXEEXT is the extension for executable (binary) programs.  Typically
+# null for Unix, .exe for DOS/Windows.
+EXEEXT=@EXEEXT@
 #
 # Default paths (set at configure time)
     exec_prefix=@exec_prefix@
@@ -243,7 +246,7 @@ else
     # We don't delete the file in the event that we are copying the
     # file over itself (we SHOULD check for that separately, by checking 
     # that directories are distinct)
-    #if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
+    #if [ -f $dest ] ; then $Show rm -f $dest ; fi
     $Show $CP $1 $dest
     rc=$?
     if [ $rc != 0 ] ; then
@@ -251,7 +254,7 @@ else
         errs=`expr $errs + 1`
         if [ $failmode = "hard" ] ; then exit $rc ; fi
     else
-	echo "/bin/rm -f $dest" >> $UNINSTALLFILE
+	echo "rm -f $dest" >> $UNINSTALLFILE
     fi
     $Show chmod $mode $dest
     rc=$?
@@ -322,7 +325,7 @@ if [ $replace = 0 -a -f $dest ] ; then
 elif [ -d $1 ] ; then
     echo "$1 is a directory; not copied"
 else
-    if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
+    if [ -f $dest ] ; then $Show rm -f $dest ; fi
     if [ $just_testing = 0 ] ; then
         sed \
  	-e "s%\#datadir\#%$datadir%g" \
@@ -340,7 +343,7 @@ else
             errs=`expr $errs + 1`
             if [ $failmode = "hard" ] ; then exit $rc ; fi
         else
-	    echo "/bin/rm -f $dest" >> $UNINSTALLFILE
+	    echo "rm -f $dest" >> $UNINSTALLFILE
         fi
     else
 	if [ $verbose = 1 ] ; then echo "Fixup $1.in and copy to $dest" ; fi
@@ -375,7 +378,7 @@ if [ $replace = 0 -a -f $dest ] ; then
 elif [ -d $1 ] ; then
     echo "$1 is a directory; not copied"
 else
-    if [ -f $dest ] ; then $Show /bin/rm -f $dest ; fi
+    if [ -f $dest ] ; then $Show rm -f $dest ; fi
     if [ $just_testing = 0 ] ; then
         # The $ forms are for PERL programs
         sed -e "s%^prefix=.*%prefix=$prefix%g" \
@@ -394,7 +397,7 @@ else
             errs=`expr $errs + 1`
             if [ $failmode = "hard" ] ; then exit $rc ; fi
         else
-	    echo "/bin/rm -f $dest" >> $UNINSTALLFILE
+	    echo "rm -f $dest" >> $UNINSTALLFILE
         fi
     else
 	if [ $verbose = 1 ] ; then echo "Fixup $1 and copy to $dest" ; fi
@@ -428,11 +431,11 @@ if [ ! -n "$prefix" ] ; then
   exit 1
 fi
 if [ $verbose = 1 ] ; then 
-    echo "Install into $prefix on the $ARCH with $DEVICE"
+    echo "Install into $DESTDIR$prefix on the $ARCH with $DEVICE"
 fi
 
-if [ -d $prefix ] ; then
-    if [ $verbose = 1 ] ; then echo "using existing directory $prefix" ; fi
+if [ -d "$DESTDIR$prefix" ] ; then
+    if [ $verbose = 1 ] ; then echo "using existing directory $DESTDIR$prefix" ; fi
 else
     MkDir $prefix 
 fi
@@ -468,7 +471,7 @@ if [ -x $UNINSTALLFILE ] ; then
     fi
     mv $UNINSTALLFILE ${UNINSTALLFILE}.old
 fi
-/bin/rm -f $UNINSTALLFILE
+rm -f $UNINSTALLFILE
 cat > $UNINSTALLFILE <<EOF
 #! /bin/sh
 set -x
@@ -488,7 +491,7 @@ if [ -z "$libonly" ] ; then
     CopyFile ${top_srcdir}/util/mpichversion.c ${sysconfdir}
     #
     # mpiman
-    $Show /bin/rm -f $DESTDIR$bindir/mpiman
+    $Show rm -f $DESTDIR$bindir/mpiman
     FixupFile2 bin/mpiman $bindir/mpiman $XMODE
     #
     # mpirun et al.  This would be a good place to identify 
@@ -516,12 +519,12 @@ if [ -z "$libonly" ] ; then
         done
     fi
 
-    #echo "/bin/rm -f $bindir/mpirun" >> $UNINSTALLFILE
+    #echo "rm -f $bindir/mpirun" >> $UNINSTALLFILE
     if [ ! -x $bindir/tarch ] ; then
         CopyFile $top_srcdir/bin/tarch $bindir $XMODE
     fi
     #
-    $Show /bin/rm -f $DESTDIR$bindir/mpireconfig
+    $Show rm -f $DESTDIR$bindir/mpireconfig
     if [ $verbose = 1 ] ; then 
         echo "Creating mpireconfig from util/mpireconfig.in"
     fi
@@ -554,12 +557,12 @@ if [ -z "$libonly" ] ; then
         -e "s%^MPICPLUSPLUS=\([^/ ]*\)/.*\$%MPICPLUSPLUS=$bindir/mpicxx%g" \
 		config.status > ${DESTDIR}${bindir}/mpireconfig.dat
     chmod $XMODE ${DESTDIR}${bindir}/mpireconfig.dat
-    echo "/bin/rm -f ${bindir}/mpireconfig.dat" >> $UNINSTALLFILE
+    echo "rm -f ${bindir}/mpireconfig.dat" >> $UNINSTALLFILE
     else
         echo "Construct new ${bindir}/mpireconfig.dat from config.status"
     fi
 
-    #$Show /bin/rm -f $bindir/execer
+    #$Show rm -f $bindir/execer
     #CopyFile $top_srcdir/util/execer $bindir/execer $XMODE
     #
     # mpicc, mpif77, mpif90
@@ -655,7 +658,7 @@ else
 	    rm -f $includedir/f90base/mpimod.pcl
 	    echo "mpimod.pc" >$includedir/f90base/mpimod.pcl
 	    echo "$includedir/f90base/mpimod.pc" >> $includedir/f90base/mpimod.pcl
-	    echo "/bin/rm -f $includedir/f90base/mpimod.pcl" >> $UNINSTALLFILE
+	    echo "rm -f $includedir/f90base/mpimod.pcl" >> $UNINSTALLFILE
 	fi
     fi
     if [ -d $includebuild_dir/f90choice -a "@NO_F90@" = "0" ] ; then
@@ -670,7 +673,7 @@ else
 	    rm -f $includedir/f90choice/mpimod.pcl
 	    echo "mpimod.pc" >$includedir/f90choice/mpimod.pcl
 	    echo "$includedir/f90choice/mpimod.pc" >> $includedir/f90choice/mpimod.pcl
-	    echo "/bin/rm -f $includedir/f90choice/mpimod.pcl" >> $UNINSTALLFILE
+	    echo "rm -f $includedir/f90choice/mpimod.pcl" >> $UNINSTALLFILE
 	fi
     fi
 fi
@@ -679,9 +682,9 @@ fi
 if [ "$DEVICE" = "ch_p4" ] ; then
     FixupFile2 util/tstmachines $sbindir/tstmachines $XMODE
     # Installs should not do builds
-    if [ -x mpid/server/serv_p4 ] ; then 
-	CopyFile mpid/server/serv_p4 $bindir $XMODE
-	$Show /bin/rm -f util/chp4_servs
+    if [ -x mpid/server/serv_p4$EXEEXT ] ; then 
+	CopyFile mpid/server/serv_p4$EXEEXT $bindir $XMODE
+	$Show rm -f util/chp4_servs
 	FixupFile $top_srcdir/util/chp4_servs.in $sbindir/chp4_servs $XMODE
 	FixupFile2 util/chkserv $sbindir/chkserv $XMODE
     else
@@ -729,7 +732,7 @@ if [ -z "$libonly" ] ; then
 	    rm -f $includedir/f90base/mpimod.pcl
 	    echo "mpimod.pc" >$includedir/f90base/mpimod.pcl
 	    echo "$includedir/f90base/mpimod.pc" >> $includedir/f90base/mpimod.pcl
-	    echo "/bin/rm -f $includedir/f90base/mpimod.pcl" >> $UNINSTALLFILE
+	    echo "rm -f $includedir/f90base/mpimod.pcl" >> $UNINSTALLFILE
 	fi
     fi
     if [ -d $includebuild_dir/f90choice -a "@NO_F90@" = "0" ] ; then
@@ -743,7 +746,7 @@ if [ -z "$libonly" ] ; then
 	    rm -f $includedir/f90choice/mpimod.pcl
 	    echo "mpimod.pc" >$includedir/f90choice/mpimod.pcl
 	    echo "$includedir/f90choice/mpimod.pc" >> $includedir/f90choice/mpimod.pcl
-	    echo "/bin/rm -f $includedir/f90choice/mpimod.pcl" >> $UNINSTALLFILE
+	    echo "rm -f $includedir/f90choice/mpimod.pcl" >> $UNINSTALLFILE
 	fi
     fi
 fi
@@ -811,7 +814,7 @@ for file in $DESTDIR$libdir/libtvmpich.so* ; do
 		  echo "Files in source dir are"
 		  ls -l $libbuild_dir/libtvmpich.so*
              fi
-	     echo "/bin/rm -f $libdir/$filebase" >>$UNINSTALLFILE
+	     echo "rm -f $libdir/$filebase" >>$UNINSTALLFILE
 	 fi
 	 file=$filebase
 	 filebase=`echo $file | sed -e 's%\.[0-9]*$%%'`
@@ -850,7 +853,7 @@ for file in $DESTDIR$sharedlib_dir/*.so* ; do
     while [ $filebase != $file ]; do
 	 if [ ! -h $filebase -a -s $file ] ; then 
 	     $Show ln -sf $file $filebase
-	     echo "/bin/rm -f $sharedlib_dir/$filebase" >>$UNINSTALLFILE
+	     echo "rm -f $sharedlib_dir/$filebase" >>$UNINSTALLFILE
 	 fi
 	 file=$filebase
 	 filebase=`echo $file | sed -e 's%\.[0-9]*$%%'`
@@ -864,7 +867,7 @@ done
 # Handle the case of a weak-symbol profiling library
 if [ ! -s $DESTDIR$libdir/libp@MPILIBNAME@.a ] ; then
     (cd $DESTDIR$libdir ; ln -s lib@MPILIBNAME@.a libp@MPILIBNAME@.a )
-    echo "/bin/rm -f $libdir/libp@MPILIBNAME@.a" >> $UNINSTALLFILE
+    echo "rm -f $libdir/libp@MPILIBNAME@.a" >> $UNINSTALLFILE
 fi
 # Message queue routine for debuggers must be built with the proper prefix.
 # This is a mess; it really should be configured and built like that from the
@@ -894,7 +897,7 @@ if [ -z "$libonly" ] ; then
             if [ -f $messagecat_dir/mpich.En_US.cat ] ; then 
                 $Show ln -s $messagecat_dir/mpich.En_US.cat \
 	   		    $messagecat_dir/mpich.cat
-		echo "/bin/rm -f $messagecat_dir/mpich.cat" >>$UNINSTALLFILE
+		echo "rm -f $messagecat_dir/mpich.cat" >>$UNINSTALLFILE
             fi
         elif [ -s $file ] ; then 
 	    # This will handle the case of no mpich.* matches
@@ -939,7 +942,13 @@ if [ -z "$noman" -a -z "$libonly" ] ; then
     MkDir $htmldir
     if [ -s $top_srcdir/www/index.html ] ; then
         # Some development versions don't include the www directories
-        CopyFile $top_srcdir/www/index.html $htmldir
+        # Be careful of the top-level directory.  Some users may
+        # pick a top-level (e.g., /usr/doc/www) directory, and we
+	# do not want to replace index.html in that directory.  
+	# This is a little more awkward for people who install
+	# into a separate directory, but it is more important not
+	# to overwrite a general index.html file
+        CopyFile $top_srcdir/www/index.html $htmldir/mpich.html
         # No files in www5 (was ADI routines)
         for dir1 in www1 www3 www4 ; do
            MkDir $htmldir/$dir1
@@ -1004,7 +1013,7 @@ Savevar=$prefix
      prefix=$APREFIX
 (cd $DESTDIR$prefix/examples ; $DESTDIR$bindir/mpireconfig Makefile )
 echo "(cd $prefix/examples ; $MAKE clean)" >> $UNINSTALLFILE
-echo "/bin/rm -f $prefix/examples/Makefile" >> $UNINSTALLFILE
+echo "rm -f $prefix/examples/Makefile" >> $UNINSTALLFILE
      prefix=$Savevar
 CopyFile $DESTDIR$prefix/examples/Makefile $datadir/Makefile.sample
 CopyFile $top_srcdir/installtest/cpi.c $prefix/examples
@@ -1024,9 +1033,9 @@ fi
 CopyFile $top_srcdir/installtest/README $prefix/examples
 #
 # Test build the examples
-$Show "(cd $DESTDIR$prefix/examples ; /bin/rm -f mpirun ; \
+$Show "(cd $DESTDIR$prefix/examples ; rm -f mpirun ; \
 	  ln -s ../bin/mpirun mpirun )"
-echo "/bin/rm -f $prefix/examples/mpirun" >> $UNINSTALLFILE
+echo "rm -f $prefix/examples/mpirun" >> $UNINSTALLFILE
 #
 echo "About to run installation test..."
 if [ "x$DESTDIR" = "x" ]; then
@@ -1053,7 +1062,7 @@ if [ -n "$CPP_DIR" -a "$buildcpp" = 1 ] ; then
 #      # to update a few additional fields
 #      (cd $prefix/examples/$CPP_DIR ; $bindir/mpireconfig Makefile )
 #      echo "(cd $prefix/examples/$CPP_DIR ; $MAKE clean)" >> $UNINSTALLFILE
-#      echo "/bin/rm -f $prefix/examples/$CPP_DIR/Makefile" >> $UNINSTALLFILE
+#      echo "rm -f $prefix/examples/$CPP_DIR/Makefile" >> $UNINSTALLFILE
 #      prefix=$Savevar
 #      CopyFile $CPPEXDIR/hello_world.cc $prefix/examples/$CPP_DIR
 #      CopyFile $CPPEXDIR/ring.cc $prefix/examples/$CPP_DIR
@@ -1064,9 +1073,9 @@ if [ -n "$CPP_DIR" -a "$buildcpp" = 1 ] ; then
 #      CopyFile $CPPEXDIR/README $prefix/examples/$CPP_DIR
 #      #
 #      # Test build the C++ examples
-#      $Show "(cd $prefix/examples/$CPP_DIR ; /bin/rm -f mpirun ; \
+#      $Show "(cd $prefix/examples/$CPP_DIR ; rm -f mpirun ; \
 #  	      ln -s ../../bin/mpirun mpirun )"
-#      echo "/bin/rm -f $prefix/examples/$CPP_DIR/mpirun" >> $UNINSTALLFILE
+#      echo "rm -f $prefix/examples/$CPP_DIR/mpirun" >> $UNINSTALLFILE
 #      #
 #      echo "About to run C++ installation test..."
 #      $Show "(cd $prefix/examples/$CPP_DIR; $MAKE ; $MAKE clean)"
@@ -1079,7 +1088,7 @@ if [ -n "$CPP_DIR" -a "$buildcpp" = 1 ] ; then
     #
 fi
 #
-echo "/bin/rm -f $UNINSTALLFILE" >> $UNINSTALLFILE
+echo "rm -f $UNINSTALLFILE" >> $UNINSTALLFILE
 # Add the directory removes to the UNINSTALL file
 for dir in $dirlist ; do
     echo "if [ -d $dir ] ; then rmdir $dir ; fi" >> $UNINSTALLFILE

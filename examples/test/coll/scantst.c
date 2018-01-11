@@ -141,8 +141,10 @@ int main( int argc, char **argv )
     MPI_Op_free( &op_assoc );
     MPI_Op_free( &op_addem );
 
-    if (errors)
-      printf( "[%d] done with ERRORS(%d)!\n", rank, errors );
+    if (errors) {
+	MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+	printf( "[%d] done with ERRORS(%d)!\n", rank, errors );
+    }
 
     Test_Waitforall( );
     MPI_Finalize();

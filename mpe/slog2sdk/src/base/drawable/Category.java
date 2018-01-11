@@ -20,25 +20,28 @@ import base.io.MixedDataOutput;
 
 public class Category
 {
-    private int          index;
-    private String       name;
-    private Topology     topo;         // private Shape    shape;
-    private ColorAlpha   color;
-    private int          width;
-    private String[]     infokeys;     // string infokeys for the infovals
-    private InfoType[]   infotypes;    // % token to represent infoval type
-    private Method[]     methods;
+    private int             index;
+    private String          name;
+    private Topology        topo;         // private Shape    shape;
+    private ColorAlpha      color;
+    private int             width;
+    private String[]        infokeys;     // string infokeys for the infovals
+    private InfoType[]      infotypes;    // % token to represent infoval type
+    private Method[]        methods;
+    private CategorySummary summary;
 
-    private boolean      hasBeenUsed;  // For SLOG-2 Output API, remove unused.
+    private boolean         hasBeenUsed;  // For SLOG-2 Output, remove unused.
 
-    private boolean      isVisible;    // For SLOG-2 Input API, or Jumpshot
-    private boolean      isSearchable; // For SLOG-2 Input API, or Jumpshot
+    private boolean         isVisible;    // For SLOG-2 Input, or Jumpshot
+    private boolean         isSearchable; // For SLOG-2 Input, or Jumpshot
+
 
     public Category()
     {
         infokeys     = null;
         infotypes    = null;
         methods      = null;
+        summary      = new CategorySummary();
         hasBeenUsed  = false;
         isVisible    = true;
         isSearchable = true;
@@ -55,12 +58,13 @@ public class Category
         infokeys     = null;
         infotypes    = null;
         methods      = null;
+        summary      = new CategorySummary();
         hasBeenUsed  = false;
         isVisible    = true;
         isSearchable = true;
     }
 
-    //  For TRACE-API
+    //  For TRACE-API where Category is created through DobjDef class.
     public Category( int obj_idx, String obj_name, int obj_width )
     {
         index        = obj_idx;
@@ -69,6 +73,7 @@ public class Category
         infokeys     = null;
         infotypes    = null;
         methods      = null;
+        summary      = new CategorySummary();
         hasBeenUsed  = false;
         isVisible    = true;
         isSearchable = true;
@@ -213,6 +218,11 @@ public class Category
             methods = null;
     }
 
+    public CategorySummary getSummary()
+    {
+        return this.summary;
+    }
+
     public void writeObject( MixedDataOutput outs )
     throws java.io.IOException
     {
@@ -247,6 +257,8 @@ public class Category
         }
         else
             outs.writeShort( 0 );
+
+        summary.writeObject( outs );
     }
 
     public Category( MixedDataInput ins )
@@ -293,6 +305,8 @@ public class Category
         }
         else
             methods   = null;
+
+        summary.readObject( ins );
     }
 
     public String toString()
@@ -303,6 +317,7 @@ public class Category
                   + ", name=" + name
                   + ", topo=" + topo
                   + ", color=" + color
+                  + ", isUsed=" + hasBeenUsed
                   + ", width=" + width );
         if (    ( infokeys != null && infokeys.length > 0 )
              || ( infotypes != null && infotypes.length > 0 ) ) {
@@ -333,7 +348,47 @@ public class Category
         }
         rep.append( ", vis=" + isVisible );
         rep.append( ", search=" + isSearchable );
+        rep.append( ", " + summary );
         rep.append( " ]" );
         return rep.toString();
+    }
+
+    private static final int     PREVIEW_EVENT_INDEX = -1;
+    private static final int     PREVIEW_ARROW_INDEX = -2;
+    private static final int     PREVIEW_STATE_INDEX = -3;
+
+    public boolean isShadowCategory()
+    {
+        return index < 0;
+    }
+
+    // A static function call, because the returned shadow category
+    // should be the same for for all TRACE formats.
+    public static Category getShadowCategory( final Topology aTopo )
+    {
+        Category   type;
+        if ( aTopo.isEvent() ) {
+            type = new Category( PREVIEW_EVENT_INDEX,
+                                 "Preview_" + aTopo.toString(),
+                                 aTopo, ColorAlpha.WHITE_NEAR_OPAQUE, 5 );
+            // type.setInfoKeys( "num_real_objs=%d\ntime_error=%E\n" );
+            return type;
+        }
+        else if ( aTopo.isArrow() ) {
+            type = new Category( PREVIEW_ARROW_INDEX,
+                                 "Preview_" + aTopo.toString(),
+                                 aTopo, ColorAlpha.YELLOW_OPAQUE, 5 );
+            // type.setInfoKeys( "num_real_objs=%d\ntime_error=%E\n"
+            //                 + "msg_size=%d\n" );
+            return type;
+        }
+        else if ( aTopo.isState() ) {
+            type = new Category( PREVIEW_STATE_INDEX,
+                                 "Preview_" + aTopo.toString(),
+                                 aTopo, ColorAlpha.WHITE_NEAR_OPAQUE, 5 );
+            // type.setInfoKeys( "num_real_objs=%d\ntime_error=%E\n" );
+            return type;
+        }
+        return null;
     }
 }

@@ -83,8 +83,12 @@ dnl
 #
 # Get a test value and flag whether we should remove/replace the 
 # cache_system file (do so unless cache_system_ok is yes)
-cleanargs=`echo "$CC $F77 $CXX $F90 $PATH" | tr '"' ' '`
-# We might want to add CFLAGS and some of the configure parms ($*)
+# FC and F77 should be synonyms.  Save both in case
+# We include the xxxFLAGS in case the user is using the flags to change
+# the language (either input or output) of the compiler.  E.g., 
+# using -xarch=v9 on Solaris to select 64 bit output or using -D_BSD_SOURCE 
+# with gcc to get different header files on input.
+cleanargs=`echo "$CC $F77 $FC $CXX $F90 $CFLAGS $FFLAGS $CXXFLAGS $F90FLAGS $PATH" | tr '"' ' '`
 if uname -srm >/dev/null 2>&1 ; then
     cache_system_text="`uname -srm` $cleanargs"
 else
@@ -134,6 +138,12 @@ if test "X$real_enable_cache" = "Xyes" ; then
 else
   cache_file="/dev/null"
 fi
+# Remember our location and the name of the cachefile
+pac_cv_my_conf_dir=`pwd`
+dnl do not include the cachefile name, since this may contain the process
+dnl number and cause comparisons looking for changes to the cache file
+dnl to detect a change that isn't real.
+dnl pac_cv_my_cachefile=$cachefile
 #
 # Update the cache_system file if necessary
 if test "$cache_system_ok" != yes ; then
@@ -171,6 +181,7 @@ enable_cache="$enableval",enable_cache="notgiven")
 dnl
 
 dnl Clean the cache of extraneous quotes that AC_CACHE_SAVE may add
+dnl
 AC_DEFUN([PAC_CACHE_CLEAN],[
     rm -f confcache
     sed -e "s/'\\\\''//g" -e "s/'\\\\/'/" -e "s/\\\\'/'/" \
@@ -199,7 +210,13 @@ dnl PAC_SUBDIR_CACHE - Create a cache file before ac_output for subdirectory
 dnl configures.
 dnl 
 dnl Synopsis:
-dnl PAC_SUBDIR_CACHE
+dnl PAC_SUBDIR_CACHE(when)
+dnl
+dnl Input Parameter:
+dnl . when - Indicates when the cache should be created (optional)
+dnl          If 'always', create a new cache file.  This option
+dnl          should be used if any of the cache parameters (such as 
+dnl          CFLAGS or LDFLAGS) may have changed.
 dnl
 dnl Output Effects:
 dnl 	
@@ -209,9 +226,12 @@ dnl We can't use OUTPUT_COMMANDS to remove the cache file, because those
 dnl commands are executed *before* the subdir configures.
 dnl
 dnl D*/
-AC_DEFUN(PAC_SUBDIR_CACHE,[
-if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
-    cache_file=$$conf.cache
+AC_DEFUN(PAC_SUBDIR_CACHE,[])
+AC_DEFUN(PAC_SUBDIR_CACHE_OLD,[
+if test "x$1" = "xalways" -o \( "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" \) ; then
+    # Use an absolute directory to help keep the subdir configures from getting
+    # lost
+    cache_file=`pwd`/$$conf.cache
     touch $cache_file
     dnl 
     dnl For Autoconf 2.52+, we should ensure that the environment is set
@@ -233,10 +253,35 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     ac_cv_env_FC_value=$FC
     ac_cv_env_F77_set=${F77+set}
     ac_cv_env_F77_value=$F77
+    ac_cv_env_F90_set=${F90+set}
+    ac_cv_env_F90_value=$F90
     ac_cv_env_FFLAGS_set=${FFLAGS+set}
     ac_cv_env_FFLAGS_value=$FFLAGS
     ac_cv_env_CXX_set=${CXX+set}
     ac_cv_env_CXX_value=$CXX
+
+    ac_env_CC_set=set
+    ac_env_CC_value=$CC
+    ac_env_CFLAGS_set=${CFLAGS+set}
+    ac_env_CFLAGS_value=$CFLAGS
+    ac_env_CPP_set=set
+    ac_env_CPP_value=$CPP
+    ac_env_CPPFLAGS_set=${CPPFLAGS+set}
+    ac_env_CPPFLAGS_value=$CPPFLAGS
+    ac_env_LDFLAGS_set=${LDFLAGS+set}
+    ac_env_LDFLAGS_value=$LDFLAGS
+    ac_env_LIBS_set=${LIBS+set}
+    ac_env_LIBS_value=$LIBS
+    ac_env_FC_set=${FS+set}
+    ac_env_FC_value=$FC
+    ac_env_F77_set=${F77+set}
+    ac_env_F77_value=$F77
+    ac_env_F90_set=${F90+set}
+    ac_env_F90_value=$F90
+    ac_env_FFLAGS_set=${FFLAGS+set}
+    ac_env_FFLAGS_value=$FFLAGS
+    ac_env_CXX_set=${CXX+set}
+    ac_env_CXX_value=$CXX
 
     dnl other parameters are
     dnl build_alias, host_alias, target_alias
@@ -245,6 +290,10 @@ if test "$cache_file" = "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; the
     # with data that contains blanks.  What happens is that the quotes
     # that it adds get quoted and then added again.  To avoid this,
     # we strip off the outer quotes for all cached variables
+    dnl We add pac_cv_my_conf_dir to give the source of this cachefile,
+    dnl and pac_cv_my_cachefile to indicate how it chose the cachefile.
+    pac_cv_my_conf_dir=`pwd`
+    pac_cv_my_cachefile=$cachefile
     AC_CACHE_SAVE
     PAC_CACHE_CLEAN
     ac_configure_args="$ac_configure_args -enable-cache"
@@ -258,13 +307,15 @@ export CPPFLAGS
 export CPP
 export FC
 export F77
+export F90
 export CXX
 export FFLAGS
 export CCFLAGS
 ])
-AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[
+AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP,[])
+AC_DEFUN(PAC_SUBDIR_CACHE_CLEANUP_OLD,[
 if test "$cache_file" != "/dev/null" -a "X$real_enable_cache" = "Xnotgiven" ; then
    rm -f $cache_file
+   cache_file=/dev/null
 fi
 ])
-

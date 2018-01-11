@@ -1,5 +1,5 @@
 /*
- *  $Id: probe.c,v 1.10 2001/11/14 20:10:00 ashton Exp $
+ *  $Id: probe.c,v 1.11 2004/12/07 16:39:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -63,9 +63,11 @@ int MPI_Probe( int source, int tag, MPI_Comm comm, MPI_Status *status )
 #endif
 
     if (source == MPI_PROC_NULL) {
-	status->MPI_SOURCE = MPI_PROC_NULL;
-	status->MPI_TAG	   = MPI_ANY_TAG;
-	MPID_ZERO_STATUS_COUNT(status);
+	if (status) {
+	    status->MPI_SOURCE = MPI_PROC_NULL;
+	    status->MPI_TAG	   = MPI_ANY_TAG;
+	    MPID_ZERO_STATUS_COUNT(status);
+	}
 	return MPI_SUCCESS;
 	}
     MPID_Probe( comm_ptr, tag, comm_ptr->recv_context, source, &mpi_errno, 

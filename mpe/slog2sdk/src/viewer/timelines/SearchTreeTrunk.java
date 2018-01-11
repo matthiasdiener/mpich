@@ -12,7 +12,6 @@ package viewer.timelines;
 import java.util.Iterator;
 import java.util.Map;
 
-import base.drawable.DrawOrderComparator;
 import base.drawable.TimeBoundingBox;
 import base.drawable.Drawable;
 import base.drawable.Shadow;
@@ -23,10 +22,11 @@ import viewer.zoomable.YaxisTree;
 
 public class SearchTreeTrunk
 {
-    private static final boolean              INCRE_STARTTIME_ORDER = true;
-    private static final boolean              IS_NESTABLE           = true;
-    private static final DrawOrderComparator  DRAWING_ORDER
-                                              = new DrawOrderComparator();
+    private static final Drawable.Order       INCRE_STARTTIME_ORDER
+                                              = Drawable.INCRE_STARTTIME_ORDER;
+    private static final Drawable.Order       DECRE_STARTTIME_ORDER
+                                              = Drawable.DECRE_STARTTIME_ORDER;
+    private static final boolean              IS_NESTABLE         = true;
 
     private              TreeTrunk            treetrunk;
     private              boolean              isConnectedComposite;
@@ -52,8 +52,8 @@ public class SearchTreeTrunk
            all drawables in the memory disregarding the treefloor's timebounds
         */
         dobjs = treetrunk.iteratorOfAllDrawables( TimeBoundingBox.ALL_TIMES,
+                                                  DECRE_STARTTIME_ORDER,
                                                   isConnectedComposite,
-                                                  !INCRE_STARTTIME_ORDER,
                                                   IS_NESTABLE );
         criteria.initMatch();
         while ( dobjs.hasNext() ) {
@@ -86,14 +86,14 @@ public class SearchTreeTrunk
            all drawables in the memory disregarding the treefloor's timebounds
         */
         dobjs = treetrunk.iteratorOfAllDrawables( TimeBoundingBox.ALL_TIMES,
+                                                  DECRE_STARTTIME_ORDER,
                                                   isConnectedComposite,
-                                                  !INCRE_STARTTIME_ORDER,
                                                   IS_NESTABLE );
         criteria.initMatch();
         while ( dobjs.hasNext() ) {
             dobj    = (Drawable) dobjs.next();
             if (    dobj.getCategory().isVisiblySearchable()
-                 && DRAWING_ORDER.compare( dobj, last_found_dobj ) < 0
+                 && DECRE_STARTTIME_ORDER.compare( dobj, last_found_dobj ) > 0
                  && dobj.containSearchable()
                  && criteria.isMatched( dobj ) ) {
                 last_found_dobj = dobj;
@@ -114,8 +114,8 @@ public class SearchTreeTrunk
            all drawables in the memory disregarding the treefloor's timebounds
         */
         dobjs = treetrunk.iteratorOfAllDrawables( TimeBoundingBox.ALL_TIMES,
-                                                  isConnectedComposite,
                                                   INCRE_STARTTIME_ORDER,
+                                                  isConnectedComposite,
                                                   IS_NESTABLE );
         criteria.initMatch();
         while ( dobjs.hasNext() ) {
@@ -148,14 +148,14 @@ public class SearchTreeTrunk
            all drawables in the memory disregarding the treefloor's timebounds
         */
         dobjs = treetrunk.iteratorOfAllDrawables( TimeBoundingBox.ALL_TIMES,
-                                                  isConnectedComposite,
                                                   INCRE_STARTTIME_ORDER,
+                                                  isConnectedComposite,
                                                   IS_NESTABLE );
         criteria.initMatch();
         while ( dobjs.hasNext() ) {
             dobj    = (Drawable) dobjs.next();
             if (    dobj.getCategory().isVisiblySearchable()
-                 && DRAWING_ORDER.compare( dobj, last_found_dobj ) > 0
+                 && INCRE_STARTTIME_ORDER.compare( dobj, last_found_dobj ) > 0
                  && dobj.containSearchable()
                  && criteria.isMatched( dobj ) ) {
                 last_found_dobj = dobj;
@@ -192,8 +192,8 @@ public class SearchTreeTrunk
 
         // Merge Nestable Real Drawables
         dobjs = treetrunk.iteratorOfRealDrawables( timebox,
-                                                   isConnectedComposite,
                                                    INCRE_STARTTIME_ORDER,
+                                                   isConnectedComposite,
                                                    IS_NESTABLE );
         while ( dobjs.hasNext() ) {
             dobj = (Drawable) dobjs.next();
@@ -209,8 +209,8 @@ public class SearchTreeTrunk
 
         // Merge Nestless Real Drawables
         dobjs = treetrunk.iteratorOfRealDrawables( timebox,
-                                                   isConnectedComposite,
                                                    INCRE_STARTTIME_ORDER,
+                                                   isConnectedComposite,
                                                    !IS_NESTABLE );
         while ( dobjs.hasNext() ) {
             dobj = (Drawable) dobjs.next();

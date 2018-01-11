@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs2.c,v 1.1 2003/06/24 22:43:43 robl Exp $
+ *   $Id: ad_pvfs2.c,v 1.3 2005/05/23 23:27:44 rross Exp $
  *
  *   Copyright (C) 2003 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -23,14 +23,14 @@ struct ADIOI_Fns_struct ADIO_PVFS2_operations = {
     ADIOI_PVFS2_ReadStrided, /* ReadStrided */
     ADIOI_PVFS2_WriteStrided, /* WriteStrided */
     ADIOI_PVFS2_Close, /* Close */
-    ADIOI_PVFS2_IreadContig, /* IreadContig */
-    ADIOI_PVFS2_IwriteContig, /* IwriteContig */
-    ADIOI_PVFS2_ReadDone, /* ReadDone */
-    ADIOI_PVFS2_WriteDone, /* WriteDone */
-    ADIOI_PVFS2_ReadComplete, /* ReadComplete */
-    ADIOI_PVFS2_WriteComplete, /* WriteComplete */
-    ADIOI_PVFS2_IreadStrided, /* IreadStrided */
-    ADIOI_PVFS2_IwriteStrided, /* IwriteStrided */
+    ADIOI_FAKE_IreadContig, /* IreadContig */
+    ADIOI_FAKE_IwriteContig, /* IwriteContig */
+    ADIOI_FAKE_IODone, /* ReadDone */
+    ADIOI_FAKE_IODone, /* WriteDone */
+    ADIOI_FAKE_IOComplete, /* ReadComplete */
+    ADIOI_FAKE_IOComplete, /* WriteComplete */
+    ADIOI_FAKE_IreadStrided, /* IreadStrided */
+    ADIOI_FAKE_IwriteStrided, /* IwriteStrided */
     ADIOI_PVFS2_Flush, /* Flush */
     ADIOI_PVFS2_Resize, /* Resize */
     ADIOI_PVFS2_Delete, /* Delete */

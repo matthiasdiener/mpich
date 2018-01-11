@@ -543,6 +543,7 @@ void p2p_yield( void )
 		kind = 0;
 	    }
 	}
+	first_call = 0;
     }
     switch (kind) {
     case 0: return;

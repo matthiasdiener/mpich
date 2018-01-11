@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns_new.c,v 1.34 2004/07/07 18:21:16 thakur Exp $
+ *  $Id: intra_fns_new.c,v 1.36 2005/03/31 17:24:56 thakur Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -3104,33 +3104,37 @@ static int intra_Alltoallv (
   rcnt = 0;
   for ( i=0; i<size; i++ ) { 
       dest = (rank+i) % size;
-      if (( mpi_errno=MPI_Irecv(
+      if (recvcnts[dest]) {
+          if (( mpi_errno=MPI_Irecv(
 	                  (void *)((char *)recvbuf+rdispls[dest]*recv_extent), 
                            recvcnts[dest], 
                            recvtype->self,
                            dest,
                            MPIR_ALLTOALLV_TAG,
                            comm->self,
-                           &reqarray[i]))
-          )
-          break;
-      rcnt++;
+                           &reqarray[rcnt]))
+              )
+              break;
+          rcnt++;
+      }
   }
 
   if (!mpi_errno) {
       for ( i=0; i<size; i++ ) { 
           dest = (rank+i) % size;
-          if (( mpi_errno=MPI_Isend(
-                     (void *)((char *)sendbuf+sdispls[dest]*send_extent), 
-                     sendcnts[dest], 
-                     sendtype->self,
-                     dest,
-                     MPIR_ALLTOALLV_TAG,
-                     comm->self,
-                     &reqarray[i+size]))
-           )
-              break;
-          rcnt++;
+          if (sendcnts[dest]) {
+              if (( mpi_errno=MPI_Isend(
+                        (void *)((char *)sendbuf+sdispls[dest]*send_extent), 
+                        sendcnts[dest], 
+                        sendtype->self,
+                        dest,
+                        MPIR_ALLTOALLV_TAG,
+                        comm->self,
+                        &reqarray[rcnt]))
+                  )
+                  break;
+              rcnt++;
+          }
       }
   }
   
@@ -3142,9 +3146,9 @@ static int intra_Alltoallv (
       }
   }
   else {
-      mpi_errno = MPI_Waitall(2*size,reqarray,starray);
+      mpi_errno = MPI_Waitall(rcnt,reqarray,starray);
       if (mpi_errno == MPI_ERR_IN_STATUS) {
-	  for (j=0; j<2*size; j++) {
+	  for (j=0; j<rcnt; j++) {
 	      if (starray[j].MPI_ERROR != MPI_SUCCESS) 
 		  mpi_errno = starray[j].MPI_ERROR;
 	  }

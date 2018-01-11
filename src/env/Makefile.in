@@ -87,14 +87,14 @@ mpich.En_US.cat: ${srcdir}/mpich.En_US.msg
 message_cat: mpich.En_US.cat
 	for file in ${srcdir}/mpich.*.msg ; do \
 	fileroot=`basename $file .msg` ; \
-	/bin/rm -f $fileroot.cat $fileroot.cat.m ; \
+	rm -f $fileroot.cat $fileroot.cat.m ; \
 	@GENCAT@ $fileroot.cat $file > /dev/null 2>&1 ; \
 	if test -s $fileroot.cat ; then \
-	    /bin/rm -f ${libbuild_dir}/$fileroot.cat ; \
+	    rm -f ${libbuild_dir}/$fileroot.cat ; \
 	    cp $fileroot.cat ${libbuild_dir} ; \
 	fi ; \
 	if test -s $fileroot.cat.m ; then \
-	    /bin/rm -f ${libbuild_dir}/$fileroot.cat.m ; \
+	    rm -f ${libbuild_dir}/$fileroot.cat.m ; \
 	    cp $fileroot.cat.m ${libbuild_dir} ; \
 	fi ; \
 	done )
@@ -157,7 +157,7 @@ ${libbuild_dir}/libp${MPILIBNAME}.a: ${MPI_OBJECTS}
 tstmsg:
 	${CC} ${CFLAGS} -DTEST_MSGS @NLS_DEFS@ -c nerrmsg.c
 	${CLINKER} -o nerrmsg nerrmsg.o ${libbuild_dir}/lib${MPILIBNAME}.a
-	/bin/rm -f nerrmsg.o
+	rm -f nerrmsg.o
 
 # We need to clean the srcdir of any .o files because they can confuse the
 # VPATH build process

@@ -444,7 +444,7 @@ int get_proto(struct MPIR_COMMUNICATOR *comm, int src_lrank)
     int rc;
 
     if (src_lrank == MPI_ANY_SOURCE)
-	rc = unknown;
+	rc = (comm->vmpi_only ? mpi : unknown);
     else
     {
 	if (src_lrank >= 0 && src_lrank < comm->np)

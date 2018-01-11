@@ -281,10 +281,9 @@ char **argv;
   return 0;
 }
 
-void ProcessArgsFromFile( graph, winspecs, oldFlags )
-MPE_XGraph graph;
-Winspecs *winspecs;
-Flags *oldFlags;
+/* Read the points to use from a file */
+void ProcessArgsFromFile( MPE_XGraph graph, Winspecs *winspecs, 
+			  Flags *oldFlags ) 
 {
   Flags newFlags;
   char line[1025], *copy, *tok, **argv;
@@ -349,6 +348,8 @@ Flags *oldFlags;
 	doOneMore = 1;
 	MPI_Bcast( &doOneMore, 1, MPI_INT, 0, MPI_COMM_WORLD );
 	GetFlags( &argc, argv, winspecs, &newFlags );
+	newFlags.inf = oldFlags->inf;   /* We use inf to decided what to
+					  do, so we must retain it */
 	DrawImage( graph, winspecs, &newFlags );
 
         ListDestroy(argList);

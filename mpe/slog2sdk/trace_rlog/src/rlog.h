@@ -1,5 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
-/*  $Id: rlog.h,v 1.4 2003/11/14 09:55:53 ashton Exp $
+/*  $Id: rlog.h,v 1.5 2005/02/23 23:31:06 ashton Exp $
  *
  *  (C) 2001 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
@@ -20,14 +20,14 @@ extern "C" {
 #endif
 
 /* definitions */
-#ifndef BOOL
-#define BOOL int
+#ifndef RLOG_BOOL
+#define RLOG_BOOL int
 #endif
-#ifndef TRUE
-#define TRUE 1
+#ifndef RLOG_TRUE
+#define RLOG_TRUE 1
 #endif
-#ifndef FALSE
-#define FALSE 0
+#ifndef RLOG_FALSE
+#define RLOG_FALSE 0
 #endif
 
 #define RLOG_BUFFSIZE           (8*1024*1024)

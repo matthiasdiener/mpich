@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_piofs_read.c,v 1.11 2003/04/18 20:15:00 David Exp $    
+ *   $Id: ad_piofs_read.c,v 1.12 2004/10/04 15:51:00 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -81,14 +81,4 @@ void ADIOI_PIOFS_ReadContig(ADIO_File fd, void *buf, int count,
 #endif
     }
     else *error_code = MPI_SUCCESS;
-}
-
-
-void ADIOI_PIOFS_ReadStrided(ADIO_File fd, void *buf, int count,
-                       MPI_Datatype datatype, int file_ptr_type,
-                       ADIO_Offset offset, ADIO_Status *status, int
-                       *error_code)
-{
-    ADIOI_GEN_ReadStrided(fd, buf, count, datatype, file_ptr_type,
-                        offset, status, error_code);
 }

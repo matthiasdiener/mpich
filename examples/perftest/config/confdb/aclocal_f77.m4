@@ -1,5 +1,4 @@
 dnl
-
 dnl/*D
 dnl PAC_PROG_F77_NAME_MANGLE - Determine how the Fortran compiler mangles
 dnl names 
@@ -17,6 +16,7 @@ dnl   lower -> UPPER                  F77_NAME_UPPER
 dnl   lower_lower -> lower__          F77_NAME_LOWER_2USCORE
 dnl   mixed -> mixed                  F77_NAME_MIXED
 dnl   mixed -> mixed_                 F77_NAME_MIXED_USCORE
+dnl   mixed -> UPPER@STACK_SIZE       F77_NAME_UPPER_STDCALL
 dnl.ve
 dnl If an action is specified, it is executed instead.
 dnl 
@@ -27,7 +27,10 @@ dnl compiling a Fortran program and running strings -a over it.  Depending on
 dnl strings is a bad idea, so instead we try compiling and linking with a 
 dnl C program, since that is why we are doing this anyway.  A similar approach
 dnl is used by FFTW, though without some of the cases we check (specifically, 
-dnl mixed name mangling)
+dnl mixed name mangling).  STD_CALL not only specifies a particular name
+dnl mangling convention (adding the size of the calling stack into the function
+dnl name, but also the stack management convention (callee cleans the stack,
+dnl and arguments are pushed onto the stack from right to left)
 dnl
 dnl D*/
 dnl
@@ -46,7 +49,7 @@ pac_cv_prog_f77_name_mangle,
    # external name format (rs6000 xlf, for example).
    rm -f conftest*
    cat > conftest.f <<EOF
-       subroutine MY_name( a )
+       subroutine MY_name( i )
        return
        end
 EOF
@@ -71,6 +74,9 @@ EOF
      AC_TRY_LINK(,my_name_();,pac_cv_prog_f77_name_mangle="lower underscore")
    fi
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
+     AC_TRY_LINK(void __stdcall MY_NAME(int);,MY_NAME(0);,pac_cv_prog_f77_name_mangle="upper stdcall")
+   fi
+   if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      AC_TRY_LINK(,MY_NAME();,pac_cv_prog_f77_name_mangle="upper")
    fi
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
@@ -90,6 +96,7 @@ EOF
 # Make the actual definition
 pac_namecheck=`echo X$pac_cv_prog_f77_name_mangle | sed 's/ /-/g'`
 ifelse([$1],,[
+pac_cv_test_stdcall=""
 case $pac_namecheck in
     X) AC_MSG_WARN([Cannot determine Fortran naming scheme]) ;;
     Xlower) AC_DEFINE(F77_NAME_LOWER,1,[Define if Fortran names are lowercase]) 
@@ -110,9 +117,18 @@ case $pac_namecheck in
     Xmixed-underscore) AC_DEFINE(F77_NAME_MIXED_USCORE,1,[Define if Fortran names preserve the original case and add a trailing underscore]) 
 	F77_NAME_MANGLE="F77_NAME_MIXED_USCORE"
 	;;
+    Xupper-stdcall) AC_DEFINE(F77_NAME_UPPER,1,[Define if Fortran names are uppercase])
+        F77_NAME_MANGLE="F77_NAME_UPPER_STDCALL"
+        pac_cv_test_stdcall="__stdcall"
+        ;;
     *) AC_MSG_WARN([Unknown Fortran naming scheme]) ;;
 esac
 AC_SUBST(F77_NAME_MANGLE)
+if test "X$pac_cv_test_stdcall" = "X" ; then
+        AC_DEFINE(STDCALL,,[Define calling convention])
+else
+        AC_DEFINE(STDCALL,__stdcall,[Define calling convention])
+fi
 ],[$1])
 ])
 dnl
@@ -150,7 +166,7 @@ define(<<PAC_CV_NAME>>, translit(pac_cv_f77_sizeof_$1, [ *], [__]))dnl
 changequote([, ])dnl
 AC_CACHE_CHECK([for size of Fortran type $1],PAC_CV_NAME,[
 AC_REQUIRE([PAC_PROG_F77_NAME_MANGLE])
-/bin/rm -f conftest*
+rm -f conftest*
 cat <<EOF > conftest.f
       subroutine isize( )
       $1 i(2)
@@ -229,7 +245,7 @@ if test "$cross_compiling" = yes ; then
     ifelse([$2],,[AC_MSG_WARN([No value provided for size of $1 when cross-compiling])]
 ,eval PAC_CV_NAME=$2)
 else
-    /bin/rm -f conftest*
+    rm -f conftest*
     cat <<EOF > conftestc.c
 #include <stdio.h>
 #include "confdefs.h"
@@ -354,7 +370,7 @@ dnl Because this is a long script, we have ensured that you can pass a
 dnl variable containing the option name as the first argument.
 dnl D*/
 AC_DEFUN(PAC_F77_CHECK_COMPILER_OPTION,[
-AC_MSG_CHECKING([that Fortran 77 compiler accepts option $1])
+AC_MSG_CHECKING([whether Fortran 77 compiler accepts option $1])
 ac_result="no"
 save_FFLAGS="$FFLAGS"
 FFLAGS="$1 $FFLAGS"
@@ -376,9 +392,9 @@ if AC_TRY_EVAL(ac_fscompilelink) && test -x conftest ; then
    if AC_TRY_EVAL(ac_fscompilelink2) && test -x conftest ; then
       if diff -b conftest.out conftest.bas >/dev/null 2>&1 ; then
          AC_MSG_RESULT(yes)
-         AC_MSG_CHECKING([that routines compiled with $1 can be linked with ones compiled  without $1])       
-         /bin/rm -f conftest2.out
-         /bin/rm -f conftest.bas
+         AC_MSG_CHECKING([whether routines compiled with $1 can be linked with ones compiled  without $1])       
+         rm -f conftest2.out
+         rm -f conftest.bas
 	 ac_fscompile3='${F77-f77} -c $save_FFLAGS conftest2.f >conftest2.out 2>&1'
 	 ac_fscompilelink4='${F77-f77} $FFLAGS -o conftest conftest2.o conftest.f $LDFLAGS >conftest.bas 2>&1'
          if AC_TRY_EVAL(ac_fscompile3) && test -s conftest2.o ; then
@@ -508,7 +524,7 @@ EOF
     if test -z "$ac_fcompilelink" ; then
         ac_fcompilelink="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $LIBS 1>&AC_FD_CC"
     fi
-    AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with GETARG and IARGC])
+    AC_MSG_CHECKING([whether ${F77-f77} $flags $libs works with GETARG and IARGC])
     if AC_TRY_EVAL(ac_fcompilelink) && test -x conftest ; then
 	# Check that cross != yes so that this works with autoconf 2.52
 	if test "$ac_cv_prog_f77_cross" != "yes" ; then
@@ -631,7 +647,7 @@ $libs"
         end
 EOF
 	    if test -n "$fflag" ; then flagval="with $fflag" ; else flagval="" ; fi
-	    AC_MSG_CHECKING([that Fortran 77 routine names are case-insensitive $flagval])
+	    AC_MSG_CHECKING([whether Fortran 77 routine names are case-insensitive $flagval])
 	    dnl we can use double quotes here because all is already
             dnl evaluated
             ac_fcompilelink_test="${F77-f77} -o conftest $fflag $FFLAGS conftest.f $LDFLAGS $LIBS 1>&AC_FD_CC"
@@ -744,7 +760,7 @@ EOF
 	    if test "$libs" = " " -o "$libs" = "0" ; then libs="" ; fi
             for flags in $trial_FLAGS ; do
 	        if test "$flags" = " " -o "$flags" = "000"; then flags="" ; fi
-                AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with $MSG])
+                AC_MSG_CHECKING([whether ${F77-f77} $flags $libs works with $MSG])
 		IFS="$save_IFS"
 		dnl We need this here because we've fiddled with IFS
 	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LDFLAGS $libs $LIBS 1>&AC_FD_CC"
@@ -982,7 +998,7 @@ dnl Fortran routine MUST be named ftest unless you include code
 dnl to select the appropriate Fortran name.
 dnl 
 AC_DEFUN(PAC_PROG_F77_RUN_PROC_FROM_C,[
-/bin/rm -f conftest*
+rm -f conftest*
 cat <<EOF > conftest.f
 $2
 EOF
@@ -1029,9 +1045,9 @@ dnl by trying to *run* a trivial program.  It only checks for *linking*.
 dnl 
 dnl
 AC_DEFUN(PAC_PROG_F77_IN_C_LIBS,[
-AC_MSG_CHECKING([what Fortran libraries are needed to link C with Fortran])
+AC_MSG_CHECKING([for which Fortran libraries are needed to link C with Fortran])
 F77_IN_C_LIBS="$FLIBS"
-/bin/rm -f conftest*
+rm -f conftest*
 cat <<EOF > conftest.f
         subroutine ftest
         end
@@ -1171,7 +1187,7 @@ AC_TRY_LINK(,[int a;],runs=yes,runs=no)
 LIBS="$save_LIBS"
 AC_MSG_RESULT($runs)
 if test "$runs" = "no" ; then
-    AC_MSG_CHECKING([which libraries can be used])
+    AC_MSG_CHECKING([for which libraries can be used])
     pac_ldirs=""
     pac_libs=""
     pac_other=""

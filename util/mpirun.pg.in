@@ -342,7 +342,10 @@ while [ $curarch -le $narch ] ; do
 		nleft=`expr $nleft - $nprocmachine`
             fi
             if [ $procFound = $np ] ; then break ; fi
-	    if [ "$machineName" = "$MPI_HOST" ] ; then KeepHost=1 ; fi
+	    if [ "$machineName" = "$MPI_HOST" -o \
+	           "$machineNameLeader" = "$MPI_HOSTLeader" ] ; then
+		KeepHost=1
+	    fi
         done
         loopcnt=`expr $loopcnt + 1`
         # After the first time, we may have found no hosts BUT now

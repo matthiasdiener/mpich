@@ -74,7 +74,7 @@ ${libbuild_dir}/libf@MPILIBNAME@.a: ${MPI_WOBJECTS}
 # We need to clean the srcdir of any .o files because they can confuse the
 # VPATH build process
 clean:
-	/bin/rm -f *.o *~ ${srcdir}/*.o
+	rm -f *.o *~ ${srcdir}/*.o
 
 test_inter: test_inter_bcast.o test_inter_reduce.o test_inter_allreduce.o inter_fns.o
 	${CC} -o test_inter_bcast test_inter_bcast.o inter_fns.o ${libbuild_dir}/libmpich.a

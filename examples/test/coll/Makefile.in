@@ -122,11 +122,11 @@ longuser: longuser.o
 
 #mpif.h: $(MPIR_HOME)/include/mpif.h
 #	if test \! -f mpif.h ; then \
-#	    /bin/rm -f mpif.h ; \
+#	    rm -f mpif.h ; \
 #	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
 #	fi
 clean:
-	@-/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff *.trace mpif.h 
+	@-rm -f *.o *~ PI* $(EXECS) core *.out coll.diff *.trace mpif.h 
 	@-rm -f work.pc work.pcl ${srcdir}/*.o *.stdo
 
 .c.o:

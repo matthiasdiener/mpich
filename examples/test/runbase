@@ -79,16 +79,21 @@ OutTime() {
 }
 
 # Do an "on the fly" check for problems.
-# Checkout testname difffile 
+# Checkout testname difffile
 # difffile may be empty, in which case stdout is used.
 # If $writesummaryfile is yes, output the results to $summaryfile.
 # Use XML-style output for the summary file:
 # <MPITEST>
 # <NAME NAME="" STATUS="PASS"|"FAIL">
+# <WORKDIR>directory</WORKDIR>
 # <TESTDIFF>
 #    text from different
 # </TESTDIFF>
 # </MPITEST>
+#
+# We'd also like to support 
+# <NP>$np</NP>
+# but we don't have that information when the
 CheckOutput() {
     bfile=$1
     difffile=$2
@@ -134,11 +139,16 @@ CheckOutput() {
 	    else
 		passed=fail
 	    fi
+	    mydir=`pwd`
 	    cat >>$summaryfile <<EOF
 <MPITEST>
 <NAME>$bfile</NAME>
+<WORKDIR>$mydir</WORKDIR>
 <STATUS>$passed</STATUS>
 EOF
+            if [ -n "$np" ] ; then
+		echo "<NP>$np</NP>" >> $summaryfile
+            fi
 	    if [ $fileok = "no" ] ; then
 	        echo "<TESTDIFF>" >> $summaryfile
 	        if [ ! -s ${bfile}.out ] ; then
@@ -214,6 +224,7 @@ EOF
         CleanExe $pgm
     #ipcs
     fi
+    np=""
 }
 
 #

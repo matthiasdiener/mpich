@@ -1,7 +1,5 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: ad_pvfs2_read.c,v 1.10 2004/06/07 20:48:15 robl Exp $
- *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
@@ -13,13 +11,15 @@
 #include "ad_pvfs2_common.h"
 
 void ADIOI_PVFS2_ReadContig(ADIO_File fd, void *buf, int count, 
-                     MPI_Datatype datatype, int file_ptr_type,
-		     ADIO_Offset offset, ADIO_Status *status, int *error_code)
+			    MPI_Datatype datatype, int file_ptr_type,
+			    ADIO_Offset offset, ADIO_Status *status,
+			    int *error_code)
 {
     int ret, datatype_size, len;
     PVFS_Request file_req, mem_req;
     PVFS_sysresp_io resp_io;
     ADIOI_PVFS2_fs *pvfs_fs;
+    static char myname[] = "ADIOI_PVFS2_READCONTIG";
 
     pvfs_fs = (ADIOI_PVFS2_fs*)fd->fs_ptr;
 
@@ -27,52 +27,66 @@ void ADIOI_PVFS2_ReadContig(ADIO_File fd, void *buf, int count,
     len = datatype_size * count;
 
     ret = PVFS_Request_contiguous(len, PVFS_BYTE, &mem_req);
-    if (ret < 0) {
-	fprintf(stderr, "pvfs_request_contig returns with %d\n", ret);
-	goto error_request;
+    /* --BEGIN ERROR HANDLING-- */
+    if (ret != 0) {
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					   MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__,
+					   ADIOI_PVFS2_error_convert(ret),
+					   "Error in pvfs_request_contig (memory)", 0);
+	return;
     }
+    /* --END ERROR HANDLING-- */
 
     ret = PVFS_Request_contiguous(len, PVFS_BYTE, &file_req);
-    if (ret < 0) {
-	fprintf(stderr, "pvfs_request_contig returns with %d\n", ret);
-	goto error_request;
+    /* --BEGIN ERROR HANDLING-- */
+    if (ret != 0) {
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					   MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__,
+					   ADIOI_PVFS2_error_convert(ret),
+					   "Error in pvfs_request_contig (file)", 0);
+	return;
+    }
+    /* --END ERROR HANDLING-- */
+
+    if (file_ptr_type == ADIO_INDIVIDUAL) {
+	/* copy individual file pointer into offset variable, continue */
+	offset = fd->fp_ind;
     }
 
-    if (file_ptr_type == ADIO_EXPLICIT_OFFSET) {
-	ret = PVFS_sys_read(pvfs_fs->object_ref, file_req, offset, buf, 
-		mem_req, &(pvfs_fs->credentials), &resp_io);
-	if (ret < 0 ) {
-	    fprintf(stderr, "pvfs_sys_read returns with %d\n", ret);
-	    goto error_read;
-	}
-	fd->fp_sys_posn = offset + (int)resp_io.total_completed;
-    } else { 
-	ret = PVFS_sys_read(pvfs_fs->object_ref, file_req, fd->fp_ind, buf, 
-		mem_req, &(pvfs_fs->credentials), &resp_io);
-	if (ret < 0) {
-	    fprintf(stderr, "pvfs_sys_read returns with %d\n", ret);
-	    goto error_read;
-	}
-	fd->fp_ind += (int)resp_io.total_completed;
-	fd->fp_sys_posn = fd->fp_ind;
+    ret = PVFS_sys_read(pvfs_fs->object_ref, file_req, offset, buf, 
+			mem_req, &(pvfs_fs->credentials), &resp_io);
+    /* --BEGIN ERROR HANDLING-- */
+    if (ret != 0 ) {
+	*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					   MPIR_ERR_RECOVERABLE,
+					   myname, __LINE__,
+					   ADIOI_PVFS2_error_convert(ret),
+					   "Error in PVFS_sys_read", 0);
+	return;
     }
+    /* --END ERROR HANDLING-- */
+
+    if (file_ptr_type == ADIO_INDIVIDUAL) {
+	fd->fp_ind += (int) resp_io.total_completed;
+	/* TODO: WHY THE INT CAST? */
+    }
+    fd->fp_sys_posn = offset + (int)resp_io.total_completed;
+
 #ifdef HAVE_STATUS_SET_BYTES
     MPIR_Status_set_bytes(status, datatype, (int)resp_io.total_completed);
 #endif
 
     *error_code = MPI_SUCCESS;
     return;
-
-error_request:
-error_read:
-    ADIOI_PVFS2_pvfs_error_convert(ret, error_code);
 }
 
 
 void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
-                       MPI_Datatype datatype, int file_ptr_type,
-                       ADIO_Offset offset, ADIO_Status *status, int
-                       *error_code)
+			     MPI_Datatype datatype, int file_ptr_type,
+			     ADIO_Offset offset, ADIO_Status *status, int
+			     *error_code)
 {
     /* offset is in units of etype relative to the filetype. */
     ADIOI_Flatlist_node *flat_buf, *flat_file;
@@ -106,12 +120,10 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
     ADIOI_PVFS2_fs * pvfs_fs;
     PVFS_sysresp_io resp_io;
     int err_flag=0;
+    MPI_Offset total_bytes_read = 0;
+    static char myname[] = "ADIOI_PVFS2_ReadStrided";
 
 #define MAX_ARRAY_SIZE 64
-
-#ifndef PRINT_ERR_MESG
-  static char myname[] = "ADIOI_PVFS2_ReadStrided";
-#endif
 
     *error_code = MPI_SUCCESS;  /* changed below if error */
 
@@ -158,6 +170,8 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 	mem_offsets = (PVFS_size*)ADIOI_Malloc(mem_list_count*sizeof(PVFS_size));
 	mem_lengths = (int*)ADIOI_Malloc(mem_list_count*sizeof(int));
 
+	/* TODO: CHECK RESULTS OF MEMORY ALLOCATION */
+
 	j = 0;
 	/* step through each block in memory, filling memory arrays */
 	while (b_blks_read < total_blks_to_read) {
@@ -188,6 +202,17 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 		    err_flag = PVFS_sys_read(pvfs_fs->object_ref, file_req, 
 			    file_offsets, PVFS_BOTTOM, mem_req, 
 			    &(pvfs_fs->credentials), &resp_io);
+		    /* --BEGIN ERROR HANDLING-- */
+		    if (err_flag != 0) {
+			*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+							   MPIR_ERR_RECOVERABLE,
+							   myname, __LINE__,
+							   ADIOI_PVFS2_error_convert(err_flag),
+							   "Error in PVFS_sys_read", 0);
+			goto error_state;
+		    }
+		    total_bytes_read += resp_io.total_completed;
+		    /* --END ERROR HANDLING-- */
 		  
 		    /* in the case of error or the last read list call, 
 		     * leave here */
@@ -202,7 +227,8 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 	ADIOI_Free(mem_offsets);
 	ADIOI_Free(mem_lengths);
 
-        if (file_ptr_type == ADIO_INDIVIDUAL) fd->fp_ind = off;
+        if (file_ptr_type == ADIO_INDIVIDUAL) 
+	    fd->fp_ind += total_bytes_read;
 
 	fd->fp_sys_posn = -1;  /* set it to null. */
 
@@ -250,7 +276,7 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 		}
 	    }
 	} /* while (!flag) */
-    } /* if (file_ptr_type == ADIOI_INDIVIDUAL) */
+    } /* if (file_ptr_type == ADIO_INDIVIDUAL) */
     else {
         n_etypes_in_filetype = filetype_size/etype_size;
 	n_filetypes = (int) (offset / n_etypes_in_filetype);
@@ -272,7 +298,7 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 	/* abs. offset in bytes in the file */
 	offset = disp + (ADIO_Offset) n_filetypes*filetype_extent + 
 	    abs_off_in_filetype;
-    } /* else [file_ptr_type != ADIOI_INDIVIDUAL] */
+    } /* else [file_ptr_type != ADIO_INDIVIDUAL] */
 
     start_off = offset;
     st_frd_size = frd_size;
@@ -350,20 +376,50 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 		}
 	    } /* for (k=0; k<MAX_ARRAY_SIZE; k++) */
 	    err_flag = PVFS_Request_contiguous(mem_lengths, 
-		    PVFS_BYTE, &mem_req);
-	    if (err_flag < 0) 
+					       PVFS_BYTE, &mem_req);
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_Request_contiguous (memory)", 0);
 		goto error_state;
+	    }
+	    /* --END ERROR HANDLING-- */
+
 	    err_flag = PVFS_Request_hindexed(file_list_count, file_lengths, 
-		    file_offsets, PVFS_BYTE, &file_req);
-	    if (err_flag < 0)
+					     file_offsets, PVFS_BYTE,
+					     &file_req);
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_Request_hindexed (file)", 0);
 		goto error_state;
+	    }
+	    /* --END ERROR HANDLING-- */
+
 	    /* PVFS_Request_hindexed already expresses the offsets into the
 	     * file, so we should not pass in an offset if we are using
 	     * hindexed for the file type */
-	    err_flag = PVFS_sys_write(pvfs_fs->object_ref, file_req, 0, 
-		    mem_offsets, mem_req, &(pvfs_fs->credentials), &resp_io);
-	    if (err_flag < 0)
+	    err_flag = PVFS_sys_read(pvfs_fs->object_ref, file_req, 0, 
+				     mem_offsets, mem_req,
+				     &(pvfs_fs->credentials), &resp_io);
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_sys_read", 0);
 		goto error_state;
+	    }
+	    /* --END ERROR HANDING-- */
+	    total_bytes_read += resp_io.total_completed;
+
 	    mem_offsets += mem_lengths;
 	    mem_lengths = 0;
 	} /* for (i=0; i<n_read_lists; i++) */
@@ -392,19 +448,46 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 		    n_filetypes++;
 		}
 	    } /* for (k=0; k<extra_blks; k++) */
-	    err_flag = PVFS_Request_contiguous(mem_lengths, 
-		    PVFS_BYTE, &mem_req);
-	    if (err_flag < 0)
+	    err_flag = PVFS_Request_contiguous(mem_lengths,
+					       PVFS_BYTE, &mem_req);
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_Request_contiguous (memory)", 0);
 		goto error_state;
+	    }
+	    /* --END ERROR HANDLING-- */
+
 	    err_flag = PVFS_Request_hindexed(file_list_count, file_lengths, 
 		    file_offsets, PVFS_BYTE, &file_req);
-	    if (err_flag < 0)
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_Request_hindexed (file)", 0);
 		goto error_state;
-	    /* as above, use 0 for 'offset' when using hindexed file type*/
-	    err_flag = PVFS_sys_write(pvfs_fs->object_ref, file_req, 0, 
+	    }
+	    /* --END ERROR HANDLING-- */
+
+	    /* as above, use 0 for 'offset' when using hindexed file type */
+	    err_flag = PVFS_sys_read(pvfs_fs->object_ref, file_req, 0, 
 		    mem_offsets, mem_req, &(pvfs_fs->credentials), &resp_io);
-	    if (err_flag < 0)
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_sys_read", 0);		
 		goto error_state;
+	    }
+	    /* --END ERROR HANDLING-- */
+	    total_bytes_read += resp_io.total_completed;
 	}
     }
     else {
@@ -572,7 +655,7 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 	        break;
 	} /* while (size_read < bufsize) */
 
-	mem_offsets = (PVFS_size*)ADIOI_Malloc(max_mem_list*sizeof(PVFS_size*));
+	mem_offsets = (PVFS_size*)ADIOI_Malloc(max_mem_list*sizeof(PVFS_size));
 	mem_lengths = (int *)ADIOI_Malloc(max_mem_list*sizeof(int));
 	file_offsets = (int64_t *)ADIOI_Malloc(max_file_list*sizeof(int64_t));
 	file_lengths = (int32_t *)ADIOI_Malloc(max_file_list*sizeof(int32_t));
@@ -743,15 +826,42 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
 	    } /* for (i=0; i<file_list_count; i++) */
 	    err_flag = PVFS_Request_hindexed(mem_list_count, mem_lengths, 
 		    mem_offsets, PVFS_BYTE, &mem_req);
-	    if (err_flag < 0 ) 
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0 ) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_Request_hindexed (memory)", 0);
 		goto error_state;
+	    }
+	    /* -- END ERROR HANDLING-- */
 	    err_flag = PVFS_Request_hindexed(file_list_count, file_lengths, 
 		    file_offsets, PVFS_BYTE, &file_req);
-	    if (err_flag < 0)
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_Request_hindexed (file)", 0);
 		goto error_state;
+	    }
+	    /* --END ERROR HANDLING-- */
+
 	    /* offset will be expressed in memory and file datatypes */
 	    err_flag = PVFS_sys_read(pvfs_fs->object_ref, file_req, 0, 
 		    PVFS_BOTTOM, mem_req, &(pvfs_fs->credentials), &resp_io);
+	    /* --BEGIN ERROR HANDLING-- */
+	    if (err_flag != 0) {
+		*error_code = MPIO_Err_create_code(MPI_SUCCESS,
+						   MPIR_ERR_RECOVERABLE,
+						   myname, __LINE__,
+						   ADIOI_PVFS2_error_convert(err_flag),
+						   "Error in PVFS_sys_read", 0);
+	    }
+	    /* --END ERROR HANDLING-- */
+	    total_bytes_read += resp_io.total_completed;
 	    size_read += new_buffer_read;
 	    start_k = k;
 	    start_j = j;
@@ -762,14 +872,11 @@ void ADIOI_PVFS2_ReadStrided(ADIO_File fd, void *buf, int count,
     ADIOI_Free(file_offsets);
     ADIOI_Free(file_lengths);
     
-    if (file_ptr_type == ADIO_INDIVIDUAL) fd->fp_ind = off;
+    /* Other ADIO routines will convert absolute bytes into counts of datatypes */
+    if (file_ptr_type == ADIO_INDIVIDUAL) fd->fp_ind += total_bytes_read;
+    if (err_flag == 0) *error_code = MPI_SUCCESS;
 
 error_state:
-    if (err_flag) {
-	ADIOI_PVFS2_pvfs_error_convert(err_flag, error_code);
-    }
-    else *error_code = MPI_SUCCESS;
-    
     fd->fp_sys_posn = -1;   /* set it to null. */
 
 #ifdef HAVE_STATUS_SET_BYTES

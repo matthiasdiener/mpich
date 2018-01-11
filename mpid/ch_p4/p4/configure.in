@@ -222,7 +222,7 @@ MAKE=make
 CLINKER=$CC
 FLINKER=$FC
 AR="ar lruv"
-RM=/bin/rm
+RM=rm
 P4_OBJ="\$(P4_COMM_OBJ) \$(P4_SOCK_OBJ) \$(P4_SHMEM_OBJ)"
 
 #
@@ -714,7 +714,7 @@ fi
 
 #
 # dump copy of MDEP_CFLAGS into file for other system to pick up
-/bin/rm -f mpdepcflags
+rm -f mpdepcflags
 echo $MDEP_CFLAGS > mdepcflags
 # evaluate variables for p4_config.h
 if test "$p4alog" = "on"; then
@@ -809,6 +809,7 @@ if test "$has_rpc_rpc" = 1 ; then
     # does it really?
     # (gcc on Solaris 5.6 sometimes fails, particularly when OS was upgraded
     # from 5.5 to 5.6 but gcc was not reinstalled).
+    # Some systems need int64_t defined.
     AC_COMPILE_CHECK([correct headers with rpc/rpc.h],[
 #include <sys/types.h>
 #include <rpc/rpc.h>]
@@ -1085,7 +1086,7 @@ fi
 #
 #
 # Some systems don't include support for xdr.  Check for it.
-# Also, some versions of FreeBSD don't inlude xdr_float (later ones apparently
+# Also, some versions of FreeBSD don't include xdr_float (later ones apparently
 # do).  Check for that as well.
 AC_HAVE_FUNCS(xdrmem_create xdr_float)
 AC_COMPILE_CHECK("XDR includes and functions",[#include <rpc/rpc.h>],[
@@ -1102,8 +1103,11 @@ int a=1;
 # use int64_t unconditionally.  
 #
 if test "$HAS_XDR" = 1 ; then 
+    # Ensure that we include rpc/rpc.h before including xdr.h to 
+    # ensure that any type definitions are included
     AC_COMPILE_CHECK([rpc/xdr.h compiles],[
 #include <sys/types.h>
+#include <rpc/rpc.h>
 #include <rpc/xdr.h>],[return 0;],xdr_compiles=yes,xdr_compiles=no)
     if test "$xdr_compiles" != "yes" ; then
         # See if we need to define int64_t and uint64_t
@@ -1112,11 +1116,12 @@ if test "$HAS_XDR" = 1 ; then
 #include <sys/types.h>
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
-#include <rcp/xdr.h>],[return 0;],xdr_needs_int64=yes,xdr_needs_int64=no)
+#include <rpc/rpc.h>
+#include <rpc/xdr.h>],[return 0;],xdr_needs_int64=yes,xdr_needs_int64=no)
         if test "$xdr_needs_int64" = "yes" ;then
 	    AC_DEFINE(NEEDS_INT64_DEFINITION)
         else
-	    AC_MSG_WARN([Unable to compile header file rcp/xdr.h])
+	    AC_MSG_WARN([Unable to compile header file rpc/xdr.h])
 	    HAS_XDR=0
         fi
     fi

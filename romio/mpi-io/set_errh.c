@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: set_errh.c,v 1.12 2003/12/16 17:32:34 thakur Exp $    
+ *   $Id: set_errh.c,v 1.15 2005/02/18 00:39:10 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -34,33 +34,41 @@ Input Parameters:
 
 .N fortran
 @*/
-int MPI_File_set_errhandler(MPI_File fh, MPI_Errhandler errhandler)
+int MPI_File_set_errhandler(MPI_File mpi_fh, MPI_Errhandler errhandler)
 {
     int error_code = MPI_SUCCESS;
-#if defined(MPICH2) || !defined(PRINT_ERR_MSG)
     static char myname[] = "MPI_FILE_SET_ERRHANDLER";
-#endif
+    ADIO_File fh;
 
-    if ((errhandler != MPI_ERRORS_RETURN) && (errhandler != MPI_ERRORS_ARE_FATAL)) {
-	FPRINTF(stderr, "Only MPI_ERRORS_RETURN and MPI_ERRORS_ARE_FATAL are currently supported for MPI_File_set_errhandler\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
+    MPID_CS_ENTER();
+
+    if (mpi_fh == MPI_FILE_NULL) {
+	ADIOI_DFLT_ERR_HANDLER = errhandler;
+    }
+    else {
+	fh = MPIO_File_resolve(mpi_fh);
+
+	/* --BEGIN ERROR HANDLING-- */
+	MPIO_CHECK_FILE_HANDLE(fh, myname, error_code);
+	/* --END ERROR HANDLING-- */
+
+	if ((errhandler != MPI_ERRORS_RETURN) &&
+	    (errhandler != MPI_ERRORS_ARE_FATAL))
+	{
+	    error_code = MPIO_Err_create_code(MPI_SUCCESS,
+					      MPIR_ERR_RECOVERABLE,
+					      myname, __LINE__,
+					      MPI_ERR_UNSUPPORTED_OPERATION,
+					      "**fileopunsupported",
+					      0);
+	    error_code = MPIO_Err_return_file(fh, error_code);
+	    goto fn_exit;
+	}
+
+	fh->err_handler = errhandler;
     }
 
-    if (fh == MPI_FILE_NULL) ADIOI_DFLT_ERR_HANDLER = errhandler;
-    else if (fh->cookie != ADIOI_FILE_COOKIE) {
-#ifdef MPICH2
-	error_code = MPIR_Err_create_code(MPI_SUCCESS, MPIR_ERR_RECOVERABLE, myname, __LINE__, MPI_ERR_FILE, "**iobadfh", 0);
-	return MPIR_Err_return_file(MPI_FILE_NULL, myname, error_code);
-#elif defined(PRINT_ERR_MSG)
-	FPRINTF(stderr, "MPI_File_close: Invalid file handle\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else /* MPICH-1 */
-	error_code = MPIR_Err_setmsg(MPI_ERR_FILE, MPIR_ERR_FILE_CORRUPT, 
-              myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-    else fh->err_handler = errhandler;
-
+fn_exit:
+    MPID_CS_EXIT();
     return error_code;
 }

@@ -51,6 +51,7 @@ case $arg in
         rshcmd="$1"
 	setrshcmd="yes"
 	shift
+        device_knows_arg=1
 	;;
     -usage | --usage)
 cat <<EOF

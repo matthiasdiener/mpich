@@ -1,6 +1,6 @@
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /* 
- *   $Id: get_amode.c,v 1.10 2003/04/05 07:52:04 David Exp $    
+ *   $Id: get_amode.c,v 1.14 2005/02/18 15:39:46 robl Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -35,22 +35,23 @@ Output Parameters:
 
 .N fortran
 @*/
-int MPI_File_get_amode(MPI_File fh, int *amode)
+int MPI_File_get_amode(MPI_File mpi_fh, int *amode)
 {
-#ifndef PRINT_ERR_MSG
     int error_code;
     static char myname[] = "MPI_FILE_GET_AMODE";
-#endif
+    ADIO_File fh;
+    
+    MPID_CS_ENTER();
 
-#ifdef PRINT_ERR_MSG
-    if ((fh <= (MPI_File) 0) || (fh->cookie != ADIOI_FILE_COOKIE)) {
-	FPRINTF(stderr, "MPI_File_get_amode: Invalid file handle\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-#else
-    ADIOI_TEST_FILE_HANDLE(fh, myname);
-#endif
+    fh = MPIO_File_resolve(mpi_fh);
+
+    /* --BEGIN ERROR HANDLING-- */
+    MPIO_CHECK_FILE_HANDLE(fh, myname, error_code);
+    /* --END ERROR HANDLING-- */
 
     *amode = fh->access_mode;
+
+fn_exit:
+    MPID_CS_EXIT();
     return MPI_SUCCESS;
 }
