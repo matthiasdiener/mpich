@@ -31,8 +31,8 @@ sbindir=@sbindir@
 datadir=@datadir@
 
 # File access mode
-MODE=0664
-XMODE=0775
+MODE=0644
+XMODE=0755
 replace=1
 # set failmode to soft to let failures accumulate
 failmode="hard"
@@ -383,7 +383,8 @@ for pkg in $PKGS ; do
         ( cd $binbuild_dir/../$pkg ; \
           if [ -x ./sbin/install-viewer ] ; then \
               ./sbin/install-viewer -prefix=$datadir/$pkg \
-                                    -uninstall=$UNINSTALLFILE ; \
+                                    -uninstall=$UNINSTALLFILE \
+				    -mode=$MODE -xmode=$XMODE ; \
           fi )
     fi
 done

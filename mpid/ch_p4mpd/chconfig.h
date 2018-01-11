@@ -1,7 +1,8 @@
 #ifndef CHCONFIG
 #define CHCONFIG
 
-#define MPID_HAS_HETERO 
+/* Turn off support for heterogeneity */
+/* #define MPID_HAS_HETERO  */
 
 /* This makes chbrndv.c use memcpy for rendezvous messages to self */
 #define MPID_RNDV_SELF

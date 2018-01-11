@@ -1,5 +1,5 @@
 /*
- *  $Id: shmemdebug.c,v 1.11 2000/08/09 22:29:37 gropp Exp $
+ *  $Id: shmemdebug.c,v 1.13 2001/04/03 19:14:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -22,11 +22,7 @@ FILE *MPID_DEBUG_FILE = 0;
 FILE *MPID_TRACE_FILE = 0;
 int MPID_UseDebugFile = 0;
 
-#ifdef USE_HOLD_LAST_DEBUG
-int MPID_DebugFlag = 1;
-#else
 int MPID_DebugFlag = 0;
-#endif
 
 void MPID_Get_print_pkt ( FILE *, MPID_PKT_T *);
 int MPID_Cancel_print_pkt ( FILE *, MPID_PKT_T *);
@@ -312,6 +308,7 @@ void MPID_SetDebugFlag( f )
 int f;
 {
     MPID_DebugFlag = f;
+    MPID_UseDebugFile = f;
 }
 
 /*

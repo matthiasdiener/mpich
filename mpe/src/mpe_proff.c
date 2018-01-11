@@ -121,21 +121,31 @@ int MPER_Err_setmsg();
 #define MPIR_USE_LOCAL_ARRAY 32
 #endif
 
-#ifndef HAVE_MPI_XXXX_F2C
+#ifndef HAVE_MPI_COMM_F2C
 #define MPI_Comm_c2f(comm) (MPI_Fint)(comm)
 #define MPI_Comm_f2c(comm) (MPI_Comm)(comm)
+#endif
+#ifndef HAVE_MPI_TYPE_F2C
 #define MPI_Type_c2f(datatype) (MPI_Fint)(datatype)
 #define MPI_Type_f2c(datatype) (MPI_Datatype)(datatype)
+#endif
+#ifndef HAVE_MPI_GROUP_F2C
 #define MPI_Group_c2f(group) (MPI_Fint)(group)
 #define MPI_Group_f2c(group) (MPI_Group)(group)
+#endif
+#ifndef HAVE_MPI_REQUEST_F2C
 #define MPI_Request_c2f(request) (MPI_Fint)(request)
 #define MPI_Request_f2c(request) (MPI_Request)(request)
+#endif
+#ifndef HAVE_MPI_OP_F2C
 #define MPI_Op_c2f(op) (MPI_Fint)(op)
 #define MPI_Op_f2c(op) (MPI_Op)(op)
+#endif
+#ifndef HAVE_MPI_ERRHANDLER_F2C
 #define MPI_Errhandler_c2f(errhandler) (MPI_Fint)(errhandler)
 #define MPI_Errhandler_f2c(errhandler) (MPI_Errhandler)(errhandler)
 #endif
-#ifndef HAVE_MPI_STATUS_C2F
+#ifndef HAVE_MPI_STATUS_F2C
 #define MPI_Status_f2c(f_status,c_status) memcpy(c_status,f_status,sizeof(MPI_Status))
 #define MPI_Status_c2f(c_status,f_status) memcpy(f_status,c_status,sizeof(MPI_Status))
 #endif
@@ -353,144 +363,8 @@ int MPER_Err_setmsg();
 #endif
 
 /*
- * Define prototypes to keep the compiler happy
+ * Define prototypes next to the fortran2c wrapper to keep the compiler happy
  */
-void mpi_init_ ( int * );
-void mpi_bsend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		               MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			       MPI_Fint * );
-void mpi_bsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		          MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_buffer_attach_ (void *, int *, int *);
-void mpi_buffer_detach_ (void *, int *, int *);
-void mpi_cancel_ (MPI_Fint *, MPI_Fint *);
-void mpi_request_free_ ( MPI_Fint *, MPI_Fint * );
-void mpi_recv_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
-		              MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			      MPI_Fint * );
-void mpi_send_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
-		              MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			      MPI_Fint * );
-void mpi_get_count_ (MPI_Status *, MPI_Datatype *, int *, int *);
-void mpi_get_elements_ (MPI_Status *, MPI_Datatype *, int *, int *);
-void mpi_ibsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-                           MPI_Fint *, MPI_Fint *, MPI_Fint *,
-                           MPI_Fint * );
-void mpi_iprobe_ (int *, int *, MPI_Comm *, int *, MPI_Status *, 
-			    int *);
-void mpi_irecv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		          MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			  MPI_Fint * );
-void mpi_irsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		           MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			   MPI_Fint * );
-void mpi_isend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		          MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			  MPI_Fint * );
-void mpi_issend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		           MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			   MPI_Fint * );
-void mpi_pack_size_ (int *, MPI_Datatype *, MPI_Comm *, int *, 
-			       int *);
-void mpi_pack_ (void *, int *, MPI_Datatype *, void *, int *, int *,
-			  MPI_Comm *, int *);
-void mpi_probe_ (int *, int *, MPI_Comm *, MPI_Status *, int *);
-void mpi_recv_ ( void *, int *, MPI_Datatype *, int *, int *, 
-			   MPI_Comm *, MPI_Status *, int * );
-void mpi_rsend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		               MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			       MPI_Fint * );
-void mpi_rsend_ (void *, int *, MPI_Datatype *, int *, int *, 
-			   MPI_Comm *, int *);
-void mpi_send_ ( void *, int *, MPI_Datatype *, int *, int *, 
-			   MPI_Comm *, int * );
-void mpi_sendrecv_ ( void *, int *, MPI_Datatype *, int *, int *,
-			       void *, int *, MPI_Datatype *, int *, int *,
-			       MPI_Comm *, MPI_Status *, int * );
-void mpi_sendrecv_replace_ (void *, int *, MPI_Datatype *, int *, 
-				      int *, int *, int *, MPI_Comm *, 
-				      MPI_Status *, int *);
-void mpi_ssend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		               MPI_Fint *, MPI_Fint *, MPI_Fint *,
-			       MPI_Fint * );
-void mpi_ssend_ ( void *, int *, MPI_Datatype *, int *, int *,
-			    MPI_Comm *, int * );
-void mpi_startall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint * );
-void mpi_start_ ( MPI_Fint *, MPI_Fint * );
-void mpi_testall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
-		    MPI_Fint [][MPI_STATUS_SIZE],
-		    MPI_Fint * );
-void mpi_testany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
-		    MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_test_cancelled_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_test_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_testsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
-		     MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE],
-		     MPI_Fint * );
-void mpi_type_commit_ ( MPI_Fint *, MPI_Fint * );
-void mpi_type_contiguous_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		            MPI_Fint * );
-void mpi_type_extent_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_type_free_ ( MPI_Fint *, MPI_Fint * );
-void mpi_type_hindexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [],
-		          MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_type_hvector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		         MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_type_indexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [],
-		         MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_type_lb_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_type_size_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_type_struct_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [],
-		        MPI_Fint [], MPI_Fint *, MPI_Fint * );
-void mpi_type_ub_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_type_vector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
-		        MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_unpack_ (void *, int *, int *, void *, int *, 
-			    MPI_Datatype *, MPI_Comm *, int *);
-void mpi_waitall_ ( MPI_Fint *, MPI_Fint [],
-		    MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
-void mpi_waitany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
-		    MPI_Fint *, MPI_Fint * );
-void mpi_wait_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
-void mpi_waitsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
-		     MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE],
-		     MPI_Fint * );
-void mpi_allgather_ (void *, int *, MPI_Datatype *, void *, int *,
-			       MPI_Datatype *, MPI_Comm *, int *);
-void mpi_allgatherv_ (void *, int *, MPI_Datatype *, void *, int *,
-			       int *, MPI_Datatype *, MPI_Comm *, int *);
-void mpi_allreduce_ ( void *, void *, int *, MPI_Datatype *, 
-				MPI_Op *, MPI_Comm *, int * );
-void mpi_alltoall_ (void *, int *, MPI_Datatype *, void *, int *,
-			      MPI_Datatype *, MPI_Comm *, int *);
-void mpi_alltoallv_ (void *, int *, int *, MPI_Datatype *, void *, 
-			       int *, int *, MPI_Datatype *, MPI_Comm *,
-			       int *);
-void mpi_barrier_ ( MPI_Comm *, int * );
-void mpi_bcast_ ( void *, int *, MPI_Datatype *, int *, 
-			    MPI_Comm *, int * );
-void mpi_gather_ (void *, int *, MPI_Datatype *, void *, int *, 
-			   MPI_Datatype *, int *, MPI_Comm *, int *);
-void mpi_gatherv_ (void *, int *, MPI_Datatype *, void *, int *,  
-			   int *, MPI_Datatype *, int *, MPI_Comm *, int *);
-#ifdef  FORTRAN_SPECIAL_FUNCTION_PTR
-void mpi_op_create_( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
-#else
-void mpi_op_create_( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
-#endif
-void mpi_op_free_ ( MPI_Fint *, MPI_Fint * );
-void mpi_reduce_scatter_ (void *, void *, int *, MPI_Datatype *,
-				    MPI_Op *, MPI_Comm *, int *);
-void mpi_reduce_ ( void *, void *, int *, MPI_Datatype *, MPI_Op *, 
-			     int *, MPI_Comm *, int * );
-void mpi_scan_ (void *, void *, int *, MPI_Datatype *, MPI_Op *,
-			  MPI_Comm *, int *);
-void mpi_scatter_ (void *, int *, MPI_Datatype *, void *, int *,
-			     MPI_Datatype *, int *, MPI_Comm *, int *);
-void mpi_scatterv_ (void *, int *, int *, MPI_Datatype *, void *, 
-			      int *, MPI_Datatype *, int *, MPI_Comm *, 
-			      int *);
-void mpi_finalize_ ( int * );
 
 
 
@@ -522,6 +396,7 @@ va_dcl
 
 /****************************************************************************/
 
+void mpi_init_ ( int * );
 void mpi_init_( int *ierr )
 {
     int Argc;
@@ -567,9 +442,12 @@ void mpi_init_( int *ierr )
     FREE( ArgvSave );
 }
 
+void mpi_bsend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		               MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			           MPI_Fint * );
 void mpi_bsend_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		      MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
-		      MPI_Fint *request, MPI_Fint *__ierr )
+		              MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		              MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Bsend_init( MPIR_F_PTR(buf), (int)*count,
@@ -580,6 +458,8 @@ void mpi_bsend_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
+void mpi_bsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		          MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_bsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype, 
                  MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, 
 		 MPI_Fint *__ierr )
@@ -588,22 +468,23 @@ void mpi_bsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
                          (int)*dest, (int)*tag, MPI_Comm_f2c(*comm) );
 }
 
- void mpi_buffer_attach_( buffer, size, __ierr )
-void *buffer;
-int  *size;
-int  *__ierr;
+void mpi_buffer_attach_ ( void *, MPI_Fint *, MPI_Fint * );
+void mpi_buffer_attach_( void *buffer, MPI_Fint *size, MPI_Fint *__ierr )
 {
-*__ierr = MPI_Buffer_attach(buffer, *size);
+    *__ierr = MPI_Buffer_attach(buffer,(int)*size);
 }
 
-void mpi_buffer_detach_( buffer, size, __ierr )
-void *buffer;
-int  *size;
-int  *__ierr;
+void mpi_buffer_detach_ ( void **, MPI_Fint *, MPI_Fint * );
+void mpi_buffer_detach_( void **buffer, MPI_Fint *size, MPI_Fint *__ierr )
 {
-  *__ierr = MPI_Buffer_detach(buffer,size);
+    void *tmp = (void *)buffer;
+    int lsize;
+
+    *__ierr = MPI_Buffer_detach(&tmp,&lsize);
+    *size = (MPI_Fint)lsize;
 }
 
+void mpi_cancel_ (MPI_Fint *, MPI_Fint *);
 void mpi_cancel_( MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
@@ -612,6 +493,7 @@ void mpi_cancel_( MPI_Fint *request, MPI_Fint *__ierr )
     *__ierr = MPI_Cancel(&lrequest); 
 }
 
+void mpi_request_free_ ( MPI_Fint *, MPI_Fint * );
 void mpi_request_free_( MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest = MPI_Request_f2c(*request);
@@ -619,9 +501,12 @@ void mpi_request_free_( MPI_Fint *request, MPI_Fint *__ierr )
     *request = MPI_Request_c2f(lrequest);
 }
 
+void mpi_recv_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+		              MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			          MPI_Fint * );
 void mpi_recv_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		     MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm,
-		     MPI_Fint *request, MPI_Fint *__ierr )
+		             MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm,
+		             MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Recv_init(MPIR_F_PTR(buf),(int)*count,
@@ -630,9 +515,12 @@ void mpi_recv_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
+void mpi_send_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+		              MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			          MPI_Fint * );
 void mpi_send_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		     MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
-		     MPI_Fint *request, MPI_Fint *__ierr )
+		             MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		             MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Send_init(MPIR_F_PTR(buf),(int)*count,
@@ -641,27 +529,38 @@ void mpi_send_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f( lrequest );
 }
 
-void mpi_get_count_( status, datatype, count, __ierr )
-MPI_Status   *status;
-MPI_Datatype *datatype;
-int          *count;
-int *__ierr;
+void mpi_get_count_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_count_( MPI_Fint *status, MPI_Fint *datatype, MPI_Fint *count,
+		             MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Get_count(status, *datatype, count);
+    int lcount;
+    MPI_Status c_status;
+
+    MPI_Status_f2c(status, &c_status);
+    *__ierr = MPI_Get_count(&c_status, MPI_Type_f2c(*datatype),
+                            &lcount);
+    *count = (MPI_Fint)lcount;
 }
 
-void mpi_get_elements_ ( status, datatype, elements, __ierr )
-MPI_Status   *status;
-MPI_Datatype *datatype;
-int          *elements;
-int *__ierr;
+void mpi_get_elements_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_get_elements_ ( MPI_Fint *status, MPI_Fint *datatype,
+		                 MPI_Fint *elements, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Get_elements(status, *datatype, elements);
+    int lelements;
+    MPI_Status c_status;
+
+    MPI_Status_f2c(status, &c_status);
+    *__ierr = MPI_Get_elements(&c_status,MPI_Type_f2c(*datatype),
+		               &lelements);
+    *elements = (MPI_Fint)lelements;
 }
 
+void mpi_ibsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                           MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                           MPI_Fint * );
 void mpi_ibsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		             MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
-			     MPI_Fint *request, MPI_Fint *__ierr )
+		          MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+			      MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Ibsend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
@@ -670,20 +569,26 @@ void mpi_ibsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
-void mpi_iprobe_( source, tag, comm, flag, status, __ierr )
-int        *source;
-int        *tag;
-MPI_Comm   *comm;
-int        *flag;
-MPI_Status *status;
-int *__ierr;
+void mpi_iprobe_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                   MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_iprobe_( MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm,
+		          MPI_Fint *flag, MPI_Fint *status, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Iprobe(*source, *tag, *comm, flag, status);
+    int lflag;
+    MPI_Status c_status;
+
+    *__ierr = MPI_Iprobe((int)*source,(int)*tag,MPI_Comm_f2c(*comm),
+                         &lflag,&c_status);
+    *flag = MPIR_TO_FLOG(lflag);
+    MPI_Status_c2f(&c_status, status);
 }
 
+void mpi_irecv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		          MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			      MPI_Fint * );
 void mpi_irecv_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		 MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm,
-		 MPI_Fint *request, MPI_Fint *__ierr )
+		         MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm,
+		         MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Irecv(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
@@ -692,9 +597,12 @@ void mpi_irecv_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
+void mpi_irsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		           MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			       MPI_Fint * );
 void mpi_irsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		  MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
-		  MPI_Fint *request, MPI_Fint *__ierr )
+		          MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		          MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Irsend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
@@ -703,9 +611,12 @@ void mpi_irsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
+void mpi_isend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		          MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			      MPI_Fint * );
 void mpi_isend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		 MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
-		 MPI_Fint *request, MPI_Fint *__ierr )
+		         MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		         MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Isend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
@@ -715,9 +626,12 @@ void mpi_isend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
+void mpi_issend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		           MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			       MPI_Fint * );
 void mpi_issend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		  MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
-		  MPI_Fint *request, MPI_Fint *__ierr )
+		          MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		          MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Issend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
@@ -727,57 +641,66 @@ void mpi_issend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
-void mpi_pack_size_ ( incount, datatype, comm, size, __ierr )
-int          *incount;
-MPI_Datatype *datatype;
-MPI_Comm     *comm;
-int          *size;
-int *__ierr;
+void mpi_pack_size_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		              MPI_Fint *, MPI_Fint * );
+void mpi_pack_size_ ( MPI_Fint *incount, MPI_Fint *datatype, MPI_Fint *comm,
+		              MPI_Fint *size, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Pack_size(*incount, *datatype, *comm, size);
+    int lsize;
+
+    *__ierr = MPI_Pack_size((int)*incount, MPI_Type_f2c(*datatype),
+                            MPI_Comm_f2c(*comm), &lsize);
+    *size = (MPI_Fint)lsize;
 }
 
-void mpi_pack_ ( inbuf, incount, type, outbuf, outcount, position, comm, 
-		 __ierr )
-void         *inbuf;
-int          *incount;
-MPI_Datatype *type;
-void         *outbuf;
-int          *outcount;
-int          *position;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_pack_ ( void *, MPI_Fint *, MPI_Fint *, void *,
+		         MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_pack_ ( void *inbuf, MPI_Fint *incount, MPI_Fint *type,
+		         void *outbuf, MPI_Fint *outcount, MPI_Fint *position,
+		         MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Pack(inbuf, *incount, *type, outbuf, *outcount, position,
-                       *comm);
+    int lposition;
+
+    lposition = (int)*position;
+    *__ierr = MPI_Pack(MPIR_F_PTR(inbuf), (int)*incount, MPI_Type_f2c(*type),
+                       outbuf, (int)*outcount, &lposition,
+                       MPI_Comm_f2c(*comm));
+    *position = (MPI_Fint)lposition;
 }
 
-void mpi_probe_( source, tag, comm, status, __ierr )
-int        *source;
-int        *tag;
-MPI_Comm   *comm;
-MPI_Status *status;
-int *__ierr;
+void mpi_probe_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                  MPI_Fint *, MPI_Fint * );
+void mpi_probe_( MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm,
+		         MPI_Fint *status, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Probe(*source, *tag, *comm, status);
+    MPI_Status c_status;
+
+    *__ierr = MPI_Probe((int)*source, (int)*tag, MPI_Comm_f2c(*comm),
+                        &c_status);
+    MPI_Status_c2f(&c_status, status);
 }
 
- void mpi_recv_( buf, count, datatype, source, tag, comm, status, __ierr )
-void         *buf;
-int          *count;
-MPI_Datatype *datatype;
-int          *source;
-int          *tag;
-MPI_Comm     *comm;
-MPI_Status   *status;
-int *__ierr;
+void mpi_recv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                         MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                         MPI_Fint * );
+void mpi_recv_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
+		        MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm,
+		        MPI_Fint *status, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Recv(buf, *count, *datatype, *source, *tag, *comm, status);
+    MPI_Status c_status;
+
+    *__ierr = MPI_Recv(MPIR_F_PTR(buf), (int)*count,MPI_Type_f2c(*datatype),
+                       (int)*source, (int)*tag,
+                       MPI_Comm_f2c(*comm), &c_status);
+    MPI_Status_c2f(&c_status, status);
 }
 
+void mpi_rsend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		               MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			           MPI_Fint * );
 void mpi_rsend_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		      MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
-		      MPI_Fint *request, MPI_Fint *__ierr )
+		              MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		              MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Rsend_init(MPIR_F_PTR(buf), (int)*count,
@@ -787,72 +710,71 @@ void mpi_rsend_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
-void mpi_rsend_( buf, count, datatype, dest, tag, comm, __ierr )
-void         *buf;
-int          *count;
-MPI_Datatype *datatype;
-int          *dest;
-int          *tag;
-MPI_Comm *comm;
-int *__ierr;
+void mpi_rsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                          MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_rsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
+		         MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		         MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Rsend(buf, *count, *datatype, *dest, *tag, *comm);
+    *__ierr = MPI_Rsend(MPIR_F_PTR(buf), (int)*count,MPI_Type_f2c(*datatype),
+                        (int)*dest, (int)*tag, MPI_Comm_f2c(*comm));
 }
 
-void mpi_send_( buf, count, datatype, dest, tag, comm, __ierr )
-void         *buf;
-int          *count;
-MPI_Datatype *datatype;
-int          *dest;
-int          *tag;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_send_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                         MPI_Fint *, MPI_Fint*, MPI_Fint * );
+
+void mpi_send_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
+		        MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		        MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Send(buf, *count, *datatype, *dest, *tag, *comm);
+    *__ierr = MPI_Send(MPIR_F_PTR(buf), (int)*count, MPI_Type_f2c(*datatype),
+                       (int)*dest, (int)*tag, MPI_Comm_f2c(*comm));
 }
 
-void mpi_sendrecv_( sendbuf, sendcount, sendtype, dest, sendtag, 
-                    recvbuf, recvcount, recvtype, source, recvtag, 
-                    comm, status, __ierr )
-void         *sendbuf;
-int          *sendcount;
-MPI_Datatype *sendtype;
-int          *dest;
-int          *sendtag;
-void         *recvbuf;
-int          *recvcount;
-MPI_Datatype *recvtype;
-int          *source;
-int          *recvtag;
-MPI_Comm     *comm;
-MPI_Status   *status;
-int *__ierr;
+void mpi_sendrecv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                     void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                     MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_sendrecv_( void *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
+		            MPI_Fint *dest, MPI_Fint *sendtag,
+		            void *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype,
+		            MPI_Fint *source, MPI_Fint *recvtag,
+		            MPI_Fint *comm, MPI_Fint *status, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Sendrecv(sendbuf, *sendcount, *sendtype,
-		           *dest,*sendtag,recvbuf,*recvcount,
-		           *recvtype,*source,*recvtag,*comm,status);
+    MPI_Status c_status;
+
+    *__ierr = MPI_Sendrecv(MPIR_F_PTR(sendbuf), (int)*sendcount,
+                           MPI_Type_f2c(*sendtype), (int)*dest,
+                           (int)*sendtag, MPIR_F_PTR(recvbuf),
+                           (int)*recvcount, MPI_Type_f2c(*recvtype),
+                           (int)*source, (int)*recvtag,
+                           MPI_Comm_f2c(*comm), &c_status);
+    MPI_Status_c2f(&c_status, status);
 }
 
-void mpi_sendrecv_replace_( buf, count, datatype, dest, sendtag, source, 
-			    recvtag, comm, status, __ierr )
-void         *buf;
-int          *count;
-MPI_Datatype *datatype;
-int          *dest;
-int          *sendtag;
-int          *source;
-int          *recvtag;
-MPI_Comm     *comm;
-MPI_Status   *status;
-int *__ierr;
+void mpi_sendrecv_replace_ ( void *, MPI_Fint *, MPI_Fint *,
+                                     MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                                     MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                                     MPI_Fint * );
+void mpi_sendrecv_replace_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
+		                    MPI_Fint *dest, MPI_Fint *sendtag,
+		                    MPI_Fint *source, MPI_Fint *recvtag,
+			                MPI_Fint *comm, MPI_Fint *status, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Sendrecv_replace(buf, *count, *datatype, *dest, *sendtag,
-				   *source, *recvtag, *comm, status );
+    MPI_Status c_status;
+
+    *__ierr = MPI_Sendrecv_replace(MPIR_F_PTR(buf), (int)*count,
+                                   MPI_Type_f2c(*datatype), (int)*dest,
+                                   (int)*sendtag, (int)*source, (int)*recvtag,
+                                   MPI_Comm_f2c(*comm), &c_status );
+    MPI_Status_c2f(&c_status, status);
 }
 
+void mpi_ssend_init_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		               MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			           MPI_Fint * );
 void mpi_ssend_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
-		      MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
-		      MPI_Fint *request, MPI_Fint *__ierr )
+		              MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		              MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
     *__ierr = MPI_Ssend_init(MPIR_F_PTR(buf), (int)*count,
@@ -861,20 +783,20 @@ void mpi_ssend_init_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *request = MPI_Request_c2f(lrequest);
 }
 
-void mpi_ssend_( buf, count, datatype, dest, tag, comm, __ierr )
-void         *buf;
-int          *count;
-MPI_Datatype *datatype;
-int          *dest;
-int          *tag;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_ssend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                          MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_ssend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
+		         MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm,
+		         MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Ssend(buf, *count, *datatype, *dest, *tag, *comm);
+    *__ierr = MPI_Ssend(MPIR_F_PTR(buf), (int)*count,
+                        MPI_Type_f2c(*datatype), (int)*dest, (int)*tag,
+                        MPI_Comm_f2c(*comm));
 }
 
+void mpi_startall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint * );
 void mpi_startall_( MPI_Fint *count, MPI_Fint array_of_requests[],
-		    MPI_Fint *__ierr )
+		            MPI_Fint *__ierr )
 {
     MPI_Request *lrequest = 0;
     MPI_Request local_lrequest[MPIR_USE_LOCAL_ARRAY];
@@ -906,6 +828,7 @@ void mpi_startall_( MPI_Fint *count, MPI_Fint array_of_requests[],
     }
 }
 
+void mpi_start_ ( MPI_Fint *, MPI_Fint * );
 void mpi_start_( MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest = MPI_Request_f2c(*request );
@@ -913,10 +836,12 @@ void mpi_start_( MPI_Fint *request, MPI_Fint *__ierr )
     *request = MPI_Request_c2f(lrequest);
 }
 
+void mpi_testall_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
+		            MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint * );
 void mpi_testall_( MPI_Fint *count, MPI_Fint array_of_requests[],
                    MPI_Fint *flag,
-		   MPI_Fint array_of_statuses[][MPI_STATUS_SIZE],
-		   MPI_Fint *__ierr )
+		           MPI_Fint array_of_statuses[][MPI_STATUS_SIZE],
+		           MPI_Fint *__ierr )
 {
     int lflag;
     int i;
@@ -968,9 +893,11 @@ void mpi_testall_( MPI_Fint *count, MPI_Fint array_of_requests[],
     }
 }
 
+void mpi_testany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
+		            MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_testany_( MPI_Fint *count, MPI_Fint array_of_requests[],
                    MPI_Fint *index, MPI_Fint *flag, MPI_Fint *status,
-		   MPI_Fint *__ierr )
+		           MPI_Fint *__ierr )
 {
     int lindex;
     int lflag;
@@ -1013,6 +940,7 @@ void mpi_testany_( MPI_Fint *count, MPI_Fint array_of_requests[],
     MPI_Status_c2f(&c_status, status);
 }
 
+void mpi_test_cancelled_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_test_cancelled_(MPI_Fint *status, MPI_Fint *flag, MPI_Fint *__ierr)
 {
     int lflag;
@@ -1023,8 +951,9 @@ void mpi_test_cancelled_(MPI_Fint *status, MPI_Fint *flag, MPI_Fint *__ierr)
     *flag = MPIR_TO_FLOG(lflag);
 }
 
+void mpi_test_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_test_ ( MPI_Fint *request, MPI_Fint *flag, MPI_Fint *status,
-		 MPI_Fint *__ierr )
+		         MPI_Fint *__ierr )
 {
     int        l_flag;
     MPI_Status c_status;
@@ -1038,10 +967,13 @@ void mpi_test_ ( MPI_Fint *request, MPI_Fint *flag, MPI_Fint *status,
         MPI_Status_c2f(&c_status, status);
 }
 
+void mpi_testsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
+		             MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE],
+		             MPI_Fint * );
 void mpi_testsome_( MPI_Fint *incount, MPI_Fint array_of_requests[],
                     MPI_Fint *outcount, MPI_Fint array_of_indices[], 
                     MPI_Fint array_of_statuses[][MPI_STATUS_SIZE],
-		    MPI_Fint *__ierr )
+		            MPI_Fint *__ierr )
 {
     int i,j,found;
     int loutcount;
@@ -1116,6 +1048,7 @@ void mpi_testsome_( MPI_Fint *incount, MPI_Fint array_of_requests[],
 
 }
 
+void mpi_type_commit_ ( MPI_Fint *, MPI_Fint * );
 void mpi_type_commit_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
 {
     MPI_Datatype ldatatype = MPI_Type_f2c(*datatype);
@@ -1123,8 +1056,9 @@ void mpi_type_commit_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
     *datatype = MPI_Type_c2f(ldatatype);
 }
 
+void mpi_type_contiguous_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_contiguous_( MPI_Fint *count, MPI_Fint *old_type,
-		           MPI_Fint *newtype, MPI_Fint *__ierr )
+		                   MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     MPI_Datatype  ldatatype;
 
@@ -1133,6 +1067,7 @@ void mpi_type_contiguous_( MPI_Fint *count, MPI_Fint *old_type,
     *newtype = MPI_Type_c2f(ldatatype);
 }
 
+void mpi_type_extent_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_extent_( MPI_Fint *datatype, MPI_Fint *extent, MPI_Fint *__ierr )
 {
     MPI_Aint c_extent;
@@ -1141,6 +1076,7 @@ void mpi_type_extent_( MPI_Fint *datatype, MPI_Fint *extent, MPI_Fint *__ierr )
     *extent = (MPI_Fint)c_extent;
 }
 
+void mpi_type_free_ ( MPI_Fint *, MPI_Fint * );
 void mpi_type_free_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
 {
     MPI_Datatype ldatatype = MPI_Type_f2c(*datatype);
@@ -1148,9 +1084,11 @@ void mpi_type_free_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
     *datatype = MPI_Type_c2f(ldatatype);
 }
 
+void mpi_type_hindexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [],
+		                  MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_hindexed_( MPI_Fint *count, MPI_Fint blocklens[],
                          MPI_Fint indices[], MPI_Fint *old_type,
-			 MPI_Fint *newtype, MPI_Fint *__ierr )
+			             MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     MPI_Aint     *c_indices;
     MPI_Aint     local_c_indices[MPIR_USE_LOCAL_ARRAY];
@@ -1201,9 +1139,11 @@ void mpi_type_hindexed_( MPI_Fint *count, MPI_Fint blocklens[],
     }
 }
 
+void mpi_type_hvector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		                 MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_hvector_( MPI_Fint *count, MPI_Fint *blocklen, MPI_Fint *stride,
-		        MPI_Fint *old_type, MPI_Fint *newtype,
-			MPI_Fint *__ierr )
+		                MPI_Fint *old_type, MPI_Fint *newtype,
+			            MPI_Fint *__ierr )
 {
     MPI_Aint     c_stride = (MPI_Aint)*stride;
     MPI_Datatype ldatatype;
@@ -1214,9 +1154,11 @@ void mpi_type_hvector_( MPI_Fint *count, MPI_Fint *blocklen, MPI_Fint *stride,
     *newtype = MPI_Type_c2f(ldatatype);
 }
 
+void mpi_type_indexed_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [],
+		                 MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_indexed_( MPI_Fint *count, MPI_Fint blocklens[],
                         MPI_Fint indices[], MPI_Fint *old_type,
-			MPI_Fint *newtype, MPI_Fint *__ierr )
+			            MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     int          i;
     int          *l_blocklens = 0;
@@ -1255,8 +1197,9 @@ void mpi_type_indexed_( MPI_Fint *count, MPI_Fint blocklens[],
     *newtype = MPI_Type_c2f(ldatatype);
 }
 
+void mpi_type_lb_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_lb_ ( MPI_Fint *datatype, MPI_Fint *displacement,
-		    MPI_Fint *__ierr )
+		            MPI_Fint *__ierr )
 {
     MPI_Aint   c_displacement;
 
@@ -1265,6 +1208,7 @@ void mpi_type_lb_ ( MPI_Fint *datatype, MPI_Fint *displacement,
     *displacement = (MPI_Fint)c_displacement;
 }
 
+void mpi_type_size_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_size_ ( MPI_Fint *datatype, MPI_Fint *size, MPI_Fint *__ierr )
 {
     /* MPI_Aint c_size;*/
@@ -1274,9 +1218,11 @@ void mpi_type_size_ ( MPI_Fint *datatype, MPI_Fint *size, MPI_Fint *__ierr )
     *size = (MPI_Fint)c_size;
 }
 
+void mpi_type_struct_ ( MPI_Fint *, MPI_Fint [], MPI_Fint [],
+		                MPI_Fint [], MPI_Fint *, MPI_Fint * );
 void mpi_type_struct_( MPI_Fint *count, MPI_Fint blocklens[],
                        MPI_Fint indices[], MPI_Fint old_types[],
-		       MPI_Fint *newtype, MPI_Fint *__ierr )
+		               MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     MPI_Aint     *c_indices;
     MPI_Aint     local_c_indices[MPIR_USE_LOCAL_ARRAY];
@@ -1340,8 +1286,9 @@ void mpi_type_struct_( MPI_Fint *count, MPI_Fint blocklens[],
 
 }
 
+void mpi_type_ub_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_ub_ ( MPI_Fint *datatype, MPI_Fint *displacement,
-		    MPI_Fint *__ierr )
+                    MPI_Fint *__ierr )
 {
     MPI_Aint c_displacement;
 
@@ -1350,8 +1297,10 @@ void mpi_type_ub_ ( MPI_Fint *datatype, MPI_Fint *displacement,
     *displacement = (MPI_Fint)c_displacement;
 }
 
+void mpi_type_vector_ ( MPI_Fint *, MPI_Fint *, MPI_Fint *,
+		                MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_type_vector_( MPI_Fint *count, MPI_Fint *blocklen, MPI_Fint *stride,
-		       MPI_Fint *old_type, MPI_Fint *newtype, MPI_Fint *__ierr )
+		               MPI_Fint *old_type, MPI_Fint *newtype, MPI_Fint *__ierr )
 {
     MPI_Datatype l_datatype;
 
@@ -1361,24 +1310,27 @@ void mpi_type_vector_( MPI_Fint *count, MPI_Fint *blocklen, MPI_Fint *stride,
     *newtype = MPI_Type_c2f(l_datatype);
 }
 
-void mpi_unpack_ ( inbuf, insize, position, outbuf, outcount, type, comm, 
-		   __ierr )
-void         *inbuf;
-int          *insize;
-int          *position;
-void         *outbuf;
-int          *outcount;
-MPI_Datatype *type;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_unpack_ ( void *, MPI_Fint *, MPI_Fint *, void *,
+                           MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                           MPI_Fint * );
+void mpi_unpack_ ( void *inbuf, MPI_Fint *insize, MPI_Fint *position,
+		           void *outbuf, MPI_Fint *outcount, MPI_Fint *type,
+		           MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Unpack(inbuf, *insize, position, outbuf, *outcount, *type,
-			 *comm);
+    int l_position;
+    l_position = (int)*position;
+
+    *__ierr = MPI_Unpack(inbuf, (int)*insize, &l_position,
+                         MPIR_F_PTR(outbuf), (int)*outcount,
+                         MPI_Type_f2c(*type), MPI_Comm_f2c(*comm) );
+    *position = (MPI_Fint)l_position;
 }
 
+void mpi_waitall_ ( MPI_Fint *, MPI_Fint [],
+		            MPI_Fint [][MPI_STATUS_SIZE], MPI_Fint *);
 void mpi_waitall_( MPI_Fint *count, MPI_Fint array_of_requests[],
                    MPI_Fint array_of_statuses[][MPI_STATUS_SIZE],
-		   MPI_Fint *__ierr )
+		           MPI_Fint *__ierr )
 {
     int i;
     MPI_Request *lrequest = 0;
@@ -1423,6 +1375,8 @@ void mpi_waitall_( MPI_Fint *count, MPI_Fint array_of_requests[],
     }
 }
 
+void mpi_waitany_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
+		            MPI_Fint *, MPI_Fint * );
 void mpi_waitany_( MPI_Fint *count, MPI_Fint array_of_requests[],
                    MPI_Fint *index, MPI_Fint *status, MPI_Fint *__ierr )
 {
@@ -1468,6 +1422,7 @@ void mpi_waitany_( MPI_Fint *count, MPI_Fint array_of_requests[],
     MPI_Status_c2f(&c_status, status);
 }
 
+void mpi_wait_ ( MPI_Fint *, MPI_Fint *, MPI_Fint * );
 void mpi_wait_ ( MPI_Fint *request, MPI_Fint *status, MPI_Fint *__ierr )
 {
     MPI_Request lrequest;
@@ -1480,10 +1435,13 @@ void mpi_wait_ ( MPI_Fint *request, MPI_Fint *status, MPI_Fint *__ierr )
     MPI_Status_c2f(&c_status, status);
 }
 
+void mpi_waitsome_ ( MPI_Fint *, MPI_Fint [], MPI_Fint *,
+		             MPI_Fint [], MPI_Fint [][MPI_STATUS_SIZE],
+		             MPI_Fint * );
 void mpi_waitsome_( MPI_Fint *incount, MPI_Fint array_of_requests[],
                     MPI_Fint *outcount, MPI_Fint array_of_indices[], 
                     MPI_Fint array_of_statuses[][MPI_STATUS_SIZE],
-		    MPI_Fint *__ierr )
+		            MPI_Fint *__ierr )
 {
     int i,j,found;
     int loutcount;
@@ -1561,136 +1519,223 @@ void mpi_waitsome_( MPI_Fint *incount, MPI_Fint array_of_requests[],
     }
 }
 
-void mpi_allgather_ ( sendbuf, sendcount, sendtype, recvbuf, recvcount, 
-		      recvtype, comm, __ierr )
-void         *sendbuf;
-int          *sendcount;
-MPI_Datatype *sendtype;
-void         *recvbuf;
-int          *recvcount;
-MPI_Datatype *recvtype;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_allgather_ ( void *, MPI_Fint *, MPI_Fint *, void *,
+                              MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                              MPI_Fint * );
+void mpi_allgather_ ( void *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
+                      void *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype,
+		              MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Allgather(sendbuf, *sendcount, *sendtype, recvbuf,
-			    *recvcount, *recvtype, *comm);
+    *__ierr = MPI_Allgather(MPIR_F_PTR(sendbuf), (int)*sendcount,
+                            MPI_Type_f2c(*sendtype),
+                            MPIR_F_PTR(recvbuf),
+                            (int)*recvcount,
+                            MPI_Type_f2c(*recvtype),
+                            MPI_Comm_f2c(*comm));
+}
+
+void mpi_allgatherv_ ( void *, MPI_Fint *, MPI_Fint *,
+		               void *, MPI_Fint *, MPI_Fint *,
+		               MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_allgatherv_ ( void *sendbuf, MPI_Fint *sendcount,  MPI_Fint *sendtype,
+		               void *recvbuf, MPI_Fint *recvcounts, MPI_Fint *displs,
+		               MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *__ierr )
+{
+    if (sizeof(MPI_Fint) == sizeof(int))
+        *__ierr = MPI_Allgatherv(MPIR_F_PTR(sendbuf), *sendcount,
+                                 MPI_Type_f2c(*sendtype),
+                                 MPIR_F_PTR(recvbuf), recvcounts,
+                                 displs, MPI_Type_f2c(*recvtype),
+                                 MPI_Comm_f2c(*comm));
+    else {
+        int size;
+        int *l_recvcounts;
+        int *l_displs;
+        int i;
+
+        MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+
+        MPIR_FALLOC(l_recvcounts,(int*)MALLOC(sizeof(int)* size),
+                    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+                    "MPI_Allgatherv");
+        MPIR_FALLOC(l_displs,(int*)MALLOC(sizeof(int)* size),
+                    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+                    "MPI_Allgatherv");
+        for (i=0; i<size; i++) {
+            l_recvcounts[i] = (int)recvcounts[i];
+            l_displs[i] = (int)displs[i];
+        }
+
+        *__ierr = MPI_Allgatherv(MPIR_F_PTR(sendbuf), (int)*sendcount,
+                                 MPI_Type_f2c(*sendtype),
+                                 MPIR_F_PTR(recvbuf), l_recvcounts,
+                                 l_displs, MPI_Type_f2c(*recvtype),
+                                 MPI_Comm_f2c(*comm));
+        FREE( l_recvcounts );
+        FREE( l_displs );
+    }
+}
+
+void mpi_allreduce_ ( void *, void *, MPI_Fint *, MPI_Fint *,
+                      MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_allreduce_ ( void *sendbuf, void *recvbuf, MPI_Fint *count,
+                      MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm,
+                      MPI_Fint *__ierr )
+{
+    *__ierr = MPI_Allreduce(MPIR_F_PTR(sendbuf),MPIR_F_PTR(recvbuf),
+                            (int)*count, MPI_Type_f2c(*datatype),
+                            MPI_Op_f2c(*op), MPI_Comm_f2c(*comm) );
 }
 
 
-void mpi_allgatherv_ ( sendbuf, sendcount,  sendtype, recvbuf, recvcounts, 
-		       displs,   recvtype, comm, __ierr )
-void         *sendbuf;
-int          *sendcount;
-MPI_Datatype *sendtype;
-void         *recvbuf;
-int          *recvcounts;
-int          *displs;
-MPI_Datatype *recvtype;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_alltoall_ ( void *, MPI_Fint *, MPI_Fint *, void *,
+                             MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                             MPI_Fint * );
+void mpi_alltoall_( void *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype,
+                    void *recvbuf, MPI_Fint *recvcnt, MPI_Fint *recvtype,
+                    MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Allgatherv(sendbuf, *sendcount, *sendtype, recvbuf, 
-			     recvcounts, displs, *recvtype, *comm);
+    *__ierr = MPI_Alltoall(MPIR_F_PTR(sendbuf), (int)*sendcount,
+                           MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                           (int)*recvcnt, MPI_Type_f2c(*recvtype),
+                           MPI_Comm_f2c(*comm) );
 }
 
-
-void mpi_allreduce_ ( sendbuf, recvbuf, count, datatype, op, comm, __ierr )
-void         *sendbuf;
-void         *recvbuf;
-int          *count;
-MPI_Datatype *datatype;
-MPI_Op       *op;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_alltoallv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                      void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                      MPI_Fint *, MPI_Fint * );
+void mpi_alltoallv_ ( void *sendbuf, MPI_Fint *sendcnts,
+                      MPI_Fint *sdispls, MPI_Fint *sendtype,
+                      void *recvbuf, MPI_Fint *recvcnts,
+                      MPI_Fint *rdispls, MPI_Fint *recvtype,
+                      MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Allreduce(sendbuf, recvbuf, *count, *datatype, *op, *comm);
+    if (sizeof(MPI_Fint) == sizeof(int))
+    *__ierr = MPI_Alltoallv(MPIR_F_PTR(sendbuf), sendcnts,
+                                sdispls, MPI_Type_f2c(*sendtype),
+                    MPIR_F_PTR(recvbuf), recvcnts,
+                                rdispls, MPI_Type_f2c(*recvtype),
+                    MPI_Comm_f2c(*comm) );
+    else {
+
+        int *l_sendcnts;
+        int *l_sdispls;
+        int *l_recvcnts;
+        int *l_rdispls;
+    int size;
+    int i;
+
+    MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+
+    MPIR_FALLOC(l_sendcnts,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Alltoallv");
+    MPIR_FALLOC(l_sdispls,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Alltoallv");
+    MPIR_FALLOC(l_recvcnts,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Alltoallv");
+    MPIR_FALLOC(l_rdispls,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Alltoallv");
+
+    for (i=0; i<size; i++) {
+        l_sendcnts[i] = (int)sendcnts[i];
+        l_sdispls[i] = (int)sdispls[i];
+        l_recvcnts[i] = (int)recvcnts[i];
+        l_rdispls[i] = (int)rdispls[i];
+    }
+    *__ierr = MPI_Alltoallv(MPIR_F_PTR(sendbuf), l_sendcnts,
+                                l_sdispls, MPI_Type_f2c(*sendtype),
+                    MPIR_F_PTR(recvbuf), l_recvcnts,
+                                l_rdispls, MPI_Type_f2c(*recvtype),
+                    MPI_Comm_f2c(*comm) );
+    FREE( l_sendcnts);
+    FREE( l_sdispls );
+    FREE( l_recvcnts);
+    FREE( l_rdispls );
+    }
 }
 
-
-void mpi_alltoall_( sendbuf, sendcount, sendtype, recvbuf, recvcnt, recvtype, 
-		    comm, __ierr )
-void         *sendbuf;
-int          *sendcount;
-MPI_Datatype *sendtype;
-void         *recvbuf;
-int          *recvcnt;
-MPI_Datatype *recvtype;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_barrier_ ( MPI_Fint *, MPI_Fint * );
+void mpi_barrier_ ( MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Alltoall(sendbuf, *sendcount, *sendtype, recvbuf, *recvcnt,
-			   *recvtype, *comm);
+    *__ierr = MPI_Barrier( MPI_Comm_f2c(*comm) );
 }
 
-
-void mpi_alltoallv_ ( sendbuf, sendcnts, sdispls, sendtype, recvbuf, recvcnts,
-		      rdispls, recvtype, comm, __ierr )
-void         *sendbuf;
-int          *sendcnts;
-int          *sdispls;
-MPI_Datatype *sendtype;
-void         *recvbuf;
-int          *recvcnts;
-int          *rdispls; 
-MPI_Datatype *recvtype;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_bcast_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                          MPI_Fint *, MPI_Fint * );
+void mpi_bcast_ ( void *buffer, MPI_Fint *count, MPI_Fint *datatype,
+		          MPI_Fint *root, MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Alltoallv(sendbuf, sendcnts, sdispls, *sendtype, recvbuf,
-			    recvcnts, rdispls, *recvtype, *comm);
+    *__ierr = MPI_Bcast(MPIR_F_PTR(buffer), (int)*count,
+                        MPI_Type_f2c(*datatype), (int)*root,
+                        MPI_Comm_f2c(*comm));
 }
 
-void mpi_barrier_ ( comm, __ierr )
-MPI_Comm *comm;
-int *__ierr;
+void mpi_gather_ ( void *, MPI_Fint *, MPI_Fint *,
+                   void *, MPI_Fint *, MPI_Fint *,
+                   MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_gather_ ( void *sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype,
+                   void *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype,
+                   MPI_Fint *root, MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Barrier(*comm);
+    *__ierr = MPI_Gather(MPIR_F_PTR(sendbuf), (int)*sendcnt,
+                         MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                         (int)*recvcount, MPI_Type_f2c(*recvtype),
+                         (int)*root, MPI_Comm_f2c(*comm));
 }
 
-void mpi_bcast_ ( buffer, count, datatype, root, comm, __ierr )
-void         *buffer;
-int          *count;
-MPI_Datatype *datatype;
-int          *root;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_gatherv_ ( void *, MPI_Fint *, MPI_Fint *,
+                    void *, MPI_Fint *, MPI_Fint *,
+                    MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_gatherv_ ( void *sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype,
+                    void *recvbuf, MPI_Fint *recvcnts, MPI_Fint *displs,
+                    MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *comm,
+                    MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Bcast(buffer, *count, *datatype, *root, *comm);
+
+    if (sizeof(MPI_Fint) == sizeof(int))
+        *__ierr = MPI_Gatherv(MPIR_F_PTR(sendbuf), *sendcnt,
+                              MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                              recvcnts, displs,
+                              MPI_Type_f2c(*recvtype), *root,
+                              MPI_Comm_f2c(*comm));
+    else {
+    int size;
+        int *l_recvcnts;
+        int *l_displs;
+    int i;
+
+    MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+
+    MPIR_FALLOC(l_recvcnts,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Gatherv");
+    MPIR_FALLOC(l_displs,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Gatherv");
+    for (i=0; i<size; i++) {
+        l_recvcnts[i] = (int)recvcnts[i];
+        l_displs[i] = (int)displs[i];
+    }
+        *__ierr = MPI_Gatherv(MPIR_F_PTR(sendbuf), (int)*sendcnt,
+                              MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                              l_recvcnts, l_displs,
+                              MPI_Type_f2c(*recvtype), (int)*root,
+                              MPI_Comm_f2c(*comm));
+    FREE( l_recvcnts );
+    FREE( l_displs );
+    }
+
 }
 
-void mpi_gather_ ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvtype, 
-		   root, comm, __ierr )
-void         *sendbuf;
-int          *sendcnt;
-MPI_Datatype *sendtype;
-void         *recvbuf;
-int          *recvcount;
-MPI_Datatype *recvtype;
-int          *root;
-MPI_Comm *comm;
-int *__ierr;
-{
-    *__ierr = MPI_Gather(sendbuf, *sendcnt, *sendtype, recvbuf, *recvcount,
-			 *recvtype, *root, *comm);
-}
-
-
-void mpi_gatherv_ ( sendbuf, sendcnt,  sendtype, recvbuf, recvcnts, displs, 
-		    recvtype, root, comm, __ierr )
-void         *sendbuf;
-int          *sendcnt;
-MPI_Datatype *sendtype;
-void         *recvbuf;
-int          *recvcnts;
-int          *displs;
-MPI_Datatype *recvtype;
-int          *root;
-MPI_Comm *comm;
-int *__ierr;
-{
-    *__ierr = MPI_Gatherv(sendbuf, *sendcnt, *sendtype, recvbuf, recvcnts, 
-			  displs, *recvtype, *root, *comm);
-}
+#ifdef  FORTRAN_SPECIAL_FUNCTION_PTR
+void mpi_op_create_( MPI_User_function **, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#else
+void mpi_op_create_( MPI_User_function *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+#endif
 
 void mpi_op_create_(
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
@@ -1717,86 +1762,126 @@ void mpi_op_create_(
     *op = MPI_Op_c2f(l_op);
 }
 
+void mpi_op_free_ ( MPI_Fint *, MPI_Fint * );
 void mpi_op_free_( MPI_Fint *op, MPI_Fint *__ierr )
 {
     MPI_Op l_op = MPI_Op_f2c(*op);
     *__ierr = MPI_Op_free(&l_op);
 }
 
-void mpi_reduce_scatter_ ( sendbuf, recvbuf, recvcnts, datatype, op, comm, 
-			   __ierr )
-void         *sendbuf;
-void         *recvbuf;
-int          *recvcnts;
-MPI_Datatype *datatype;
-MPI_Op       *op;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_reduce_scatter_ ( void *, void *, MPI_Fint *, MPI_Fint *,
+                           MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_reduce_scatter_ ( void *sendbuf, void *recvbuf,
+                           MPI_Fint *recvcnts, MPI_Fint *datatype,
+                           MPI_Fint *op, MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Reduce_scatter(sendbuf, recvbuf, recvcnts, *datatype, *op,
-                                 *comm);
+
+    if (sizeof(MPI_Fint) == sizeof(int))
+        *__ierr = MPI_Reduce_scatter(MPIR_F_PTR(sendbuf),
+                                     MPIR_F_PTR(recvbuf), recvcnts,
+                                     MPI_Type_f2c(*datatype), MPI_Op_f2c(*op),
+                                     MPI_Comm_f2c(*comm));
+    else {
+        int size;
+        int *l_recvcnts;
+    int i;
+
+    MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+
+    MPIR_FALLOC(l_recvcnts,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Reduce_scatter");
+    for (i=0; i<size; i++)
+        l_recvcnts[i] = (int)recvcnts[i];
+
+        *__ierr = MPI_Reduce_scatter(MPIR_F_PTR(sendbuf),
+                                     MPIR_F_PTR(recvbuf), l_recvcnts,
+                                     MPI_Type_f2c(*datatype), MPI_Op_f2c(*op),
+                                     MPI_Comm_f2c(*comm));
+    FREE( l_recvcnts);
+    }
+
 }
 
- void mpi_reduce_ ( sendbuf, recvbuf, count, datatype, op, root, comm, __ierr )
-void         *sendbuf;
-void         *recvbuf;
-int          *count;
-MPI_Datatype *datatype;
-MPI_Op       *op;
-int          *root;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_reduce_ ( void *, void *, MPI_Fint *, MPI_Fint *,
+                   MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_reduce_ ( void *sendbuf, void *recvbuf, MPI_Fint *count,
+                   MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *root,
+		           MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Reduce(sendbuf, recvbuf, *count, *datatype, *op, *root,
-			 *comm);
+    *__ierr = MPI_Reduce(MPIR_F_PTR(sendbuf), MPIR_F_PTR(recvbuf),
+                         (int)*count, MPI_Type_f2c(*datatype),
+                         MPI_Op_f2c(*op), (int)*root,
+                         MPI_Comm_f2c(*comm));
 }
 
-
-void mpi_scan_ ( sendbuf, recvbuf, count, datatype, op, comm, __ierr )
-void         *sendbuf;
-void         *recvbuf;
-int          *count;
-MPI_Datatype *datatype;
-MPI_Op       *op;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_scan_ ( void *, void *, MPI_Fint *, MPI_Fint *,
+                 MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_scan_ ( void *sendbuf, void *recvbuf, MPI_Fint *count,
+                 MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm,
+                 MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Scan(sendbuf, recvbuf, *count, *datatype, *op, *comm);
+    *__ierr = MPI_Scan(MPIR_F_PTR(sendbuf), MPIR_F_PTR(recvbuf),
+                       (int)*count, MPI_Type_f2c(*datatype),
+                       MPI_Op_f2c(*op), MPI_Comm_f2c(*comm));
 }
 
-void mpi_scatter_ ( sendbuf, sendcnt, sendtype, recvbuf, recvcnt, recvtype, 
-                    root, comm, __ierr )
-void         *sendbuf;
-int          *sendcnt;
-MPI_Datatype *sendtype;
-void         *recvbuf;
-int          *recvcnt;
-MPI_Datatype *recvtype;
-int          *root;
-MPI_Comm     *comm;
-int *__ierr;
+void mpi_scatter_ ( void *, MPI_Fint *, MPI_Fint *,
+                    void *, MPI_Fint *, MPI_Fint *,
+                    MPI_Fint *, MPI_Fint *, MPI_Fint * );
+void mpi_scatter_ ( void *sendbuf, MPI_Fint *sendcnt, MPI_Fint *sendtype,
+                    void *recvbuf, MPI_Fint *recvcnt, MPI_Fint *recvtype,
+                    MPI_Fint *root, MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Scatter(sendbuf, *sendcnt, *sendtype, recvbuf, *recvcnt, 
-			  *recvtype, *root, *comm);
+    *__ierr = MPI_Scatter(MPIR_F_PTR(sendbuf), (int)*sendcnt,
+                          MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                          (int)*recvcnt, MPI_Type_f2c(*recvtype),
+                          (int)*root, MPI_Comm_f2c(*comm));
 }
 
-void mpi_scatterv_ ( sendbuf, sendcnts, displs, sendtype, recvbuf, recvcnt,
-		     recvtype, root, comm, __ierr )
-void         *sendbuf;
-int          *sendcnts;
-int          *displs;
-MPI_Datatype *sendtype;
-void         *recvbuf;
-int          *recvcnt;
-MPI_Datatype *recvtype;
-int          *root;
-MPI_Comm *comm;
-int *__ierr;
+void mpi_scatterv_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                     void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                     MPI_Fint *, MPI_Fint * );
+void mpi_scatterv_ ( void *sendbuf, MPI_Fint *sendcnts,
+                     MPI_Fint *displs, MPI_Fint *sendtype,
+                     void *recvbuf, MPI_Fint *recvcnt, 
+                     MPI_Fint *recvtype, MPI_Fint *root,
+                     MPI_Fint *comm, MPI_Fint *__ierr )
 {
-    *__ierr = MPI_Scatterv(sendbuf, sendcnts, displs, *sendtype, recvbuf,
-                           *recvcnt, *recvtype, *root, *comm);
+    if (sizeof(MPI_Fint) == sizeof(int))
+        *__ierr = MPI_Scatterv(MPIR_F_PTR(sendbuf), sendcnts, displs,
+                           MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                           *recvcnt, MPI_Type_f2c(*recvtype),
+                           *root, MPI_Comm_f2c(*comm) );
+    else {
+    int size;
+        int *l_sendcnts;
+        int *l_displs;
+    int i;
+
+    MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+
+    MPIR_FALLOC(l_sendcnts,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Scatterv");
+    MPIR_FALLOC(l_displs,(int*)MALLOC(sizeof(int)* size),
+            MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+            "MPI_Scatterv");
+    for (i=0; i<size; i++) {
+        l_sendcnts[i] = (int)sendcnts[i];
+        l_displs[i] = (int)displs[i];
+    }
+
+        *__ierr = MPI_Scatterv(MPIR_F_PTR(sendbuf), l_sendcnts, l_displs,
+                               MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                               (int)*recvcnt, MPI_Type_f2c(*recvtype),
+                               (int)*root, MPI_Comm_f2c(*comm) );
+        FREE( l_sendcnts);
+        FREE( l_displs);
+    }
 }
 
+void mpi_finalize_ ( int * );
 void mpi_finalize_( ierr )
 int *ierr; 
 {

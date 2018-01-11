@@ -1,5 +1,5 @@
 /* 
- *   $Id: set_viewf.c,v 1.8 2000/08/20 18:00:32 gropp Exp $    
+ *   $Id: set_viewf.c,v 1.9 2000/11/03 20:17:48 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -87,12 +87,12 @@
 #endif
 #endif
 
+#if defined(MPIHP) || defined(MPILAM)
 /* Prototype to keep compiler happy */
-void mpi_file_set_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
-   MPI_Datatype *filetype,char *datarep,MPI_Fint *info, int *ierr,
+void mpi_file_set_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Fint *etype,
+   MPI_Fint *filetype,char *datarep,MPI_Fint *info, int *ierr,
 			int str_len );
 
-#if defined(MPIHP) || defined(MPILAM)
 void mpi_file_set_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Fint *etype,
    MPI_Fint *filetype,char *datarep,MPI_Fint *info, int *ierr,
    int str_len )
@@ -139,6 +139,11 @@ void mpi_file_set_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
    char *datarep = _fcdtocp(datarep_fcd);
    int str_len = _fcdlen(datarep_fcd);
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_set_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
+   MPI_Datatype *filetype,char *datarep,MPI_Fint *info, int *ierr,
+			int str_len );
+
 void mpi_file_set_view_(MPI_Fint *fh,MPI_Offset *disp,MPI_Datatype *etype,
    MPI_Datatype *filetype,char *datarep,MPI_Fint *info, int *ierr,
    int str_len )

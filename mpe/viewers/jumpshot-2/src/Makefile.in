@@ -65,5 +65,5 @@ rmlib:
 	rm -f $(GUI_LIBDIR)/$(MAIN_LIB)
 
 distclean: clean rmlib
-	rm -f *.java.* 
+	rm -f *.java.* *.class
 	-rm -f Makefile

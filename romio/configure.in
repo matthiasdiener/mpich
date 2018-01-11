@@ -248,6 +248,8 @@ case $arg in
      ;;
   -prefix=* | --prefix=*)
      PREFIX=`echo $arg|sed 's/-*prefix=//'`
+     # Use new variable name for prefix
+     prefix=$PREFIX
      ;;
   -f90nag | --f90nag)
      FC=f90
@@ -284,7 +286,7 @@ case $arg in
   -f90=* | --f90=*)
      F90=`echo A$arg|sed 's/A-*f90=//'`
      ;;
-  -echo)
+  -echo | --enable-echo | -enable-echo )
      set -x
      ;;
   -disable-weak-symbols|--disable-weak-symbols)
@@ -326,11 +328,53 @@ if test -z "$ARCH" -a -x $srcdir/util/tarch ; then
     AC_MSG_RESULT($ARCH)
 fi
 #
-# check for valid architecture
-grep _"$ARCH"_ $srcdir/.config_params > /dev/null 2>&1
+# check for valid architecture.  Use __ so that _ALPHA_ does not match
+# LINUX_ALPHA_
+grep __"$ARCH"_ $srcdir/.config_params > /dev/null 2>&1
 if test $? != 0 ; then
    echo "Unknown architecture $arch... proceeding anyway"
 fi
+#
+#
+#
+# Find the home directory if not specified
+if test "X$srcdir" != "X." -a -s $srcdir/mpi-io/Makefile.in ; then 
+    ROMIO_HOME_TRIAL=$srcdir
+else
+    PAC_GETWD(ROMIO_HOME_TRIAL,mpi-io/Makefile.in)
+fi
+echo "ROMIO home directory is $ROMIO_HOME_TRIAL"
+ROMIO_HOME=$ROMIO_HOME_TRIAL
+#
+# Create the "autoconf" style directory names...
+#
+if test -z "$prefix" ; then prefix=$PREFIX ; fi
+if test -z "$prefix" ; then
+    prefix=$ROMIO_HOME
+fi
+AC_SUBST(prefix)
+if test -z "$exec_prefix" ; then exec_prefix='${prefix}' ; fi
+# exec_prefix is the prefix for directories containing machine-specific
+# files such as libraries and executables.  For the USER
+AC_SUBST(exec_prefix)
+includedir="${prefix}/include"
+AC_SUBST(includedir)
+# bindir is for executable programs for the USER
+if test -z "$bindir" ; then bindir='${exec_prefix}/bin' ; fi
+AC_SUBST(bindir)
+# sbindir is for executable programs for the ADMINISTRATOR
+if test -z "$sbindir" ; then sbindir='${exec_prefix}/sbin' ; fi
+AC_SUBST(sbindir)
+# libdir is for libraries for the USER
+if test -z "$libdir" ; then libdir='${exec_prefix}/lib' ; fi
+AC_SUBST(libdir)
+# mandir is the root for the man pages
+if test -z "$mandir" ; then mandir='${prefix}/man' ; fi
+AC_SUBST(mandir)
+if test -z "$docdir" ; then docdir='${prefix}/doc' ; fi
+AC_SUBST(docdir)
+if test -z "$htmldir" ; then htmldir='${prefix}/www' ; fi
+AC_SUBST(htmldir) 
 #
 # check for valid file system
 if test -n "$FILE_SYSTEM" ; then
@@ -549,9 +593,9 @@ if test -n "$arch_tflop" || test -n "$arch_tflops"; then
     fi
 fi
 #
-if test -n "$arch_freebsd" || test -n "$arch_LINUX" || test -n "$arch_LINUX_ALPHA" || test -n "$arch_netbsd" ; then
+if test -n "$arch_freebsd" || test -n "$arch_LINUX" || test -n "$arch_LINUX_ALPHA" || test -n "$arch_netbsd" || test -n "$arch_openbsd" ; then
     CC=${CC:-gcc}
-    if test -n "$arch_freebsd" || test -n "$arch_netbsd" ; then
+    if test -n "$arch_freebsd" || test -n "$arch_netbsd" || test -n "$arch_openbsd"; then
        F77=${FC:-f77}
        CFLAGS="$CFLAGS -DFREEBSD"
        PAC_HAVE_MOUNT_NFS
@@ -677,7 +721,7 @@ struct flock64 fl; int i=F_SETLKW64;],flock64_ok="yes",flock64_ok="no")
     fi
 fi
 #
-if test -n "$arch_alpha" ; then
+if test -n "$arch_alpha" || test -n "$arch_ALPHA" ; then
     CC=${CC:-cc}
     F77=${FC:-f77}
     if test $DEBUG = 1; then
@@ -851,6 +895,8 @@ else
     F77=":"
 fi
 #
+PAC_C_INLINE
+#
 PAC_INT_LT_POINTER()
 #
 PAC_LONG_LONG_64()
@@ -865,12 +911,17 @@ if test -n "$longlongsize"; then
    fi
 fi
 #
-if test "$FORTRAN_MPI_OFFSET" = "integer*8" && test "A$MPI_OFFSET_KIND2" = "A!" && test $NOF77 = 0 ; then
+if test -n "$OFFSET_KIND" -a "A$MPI_OFFSET_KIND1" = "A!" ; then 
+  MPI_OFFSET_KIND1="        INTEGER MPI_OFFSET_KIND"
+  MPI_OFFSET_KIND2="        PARAMETER (MPI_OFFSET_KIND=$OFFSET_KIND)"
+else
+ if test "$FORTRAN_MPI_OFFSET" = "integer*8" && test "A$MPI_OFFSET_KIND2" = "A!" && test $NOF77 = 0 ; then
    PAC_MPI_OFFSET_KIND()
-fi
-#
-if test "$FORTRAN_MPI_OFFSET" = "integer" && test "A$MPI_OFFSET_KIND2" = "A!" && test $NOF77 = 0 ; then
+ fi
+ #
+  if test "$FORTRAN_MPI_OFFSET" = "integer" && test "A$MPI_OFFSET_KIND2" = "A!" && test $NOF77 = 0 ; then
    PAC_MPI_OFFSET_KIND_4BYTE()
+  fi
 fi
 #
 # check if MPI_Info functions are defined in the MPI implementation
@@ -989,10 +1040,14 @@ if test -n "$file_system_xfs"; then
     PAC_GET_XFS_MEMALIGN
 fi
 if test -n "$file_system_pvfs"; then
-    CFLAGS="$CFLAGS -DPVFS"
+   # Use ROMIO_PVFS instead of PVFS because FREEBSD defines PVFS.
+    CFLAGS="$CFLAGS -DROMIO_PVFS"
 fi
 if test -n "$file_system_pfs"; then
     CFLAGS="$CFLAGS -DPFS"
+fi
+if test -n "$file_system_testfs"; then
+    CFLAGS="$CFLAGS -DROMIO_TESTFS"
 fi
 if test -n "$file_system_piofs"; then
     CFLAGS="$CFLAGS -DPIOFS"
@@ -1020,15 +1075,6 @@ if test -n "$mpi_hp"; then
 fi
 #
 PAC_FUNC_STRERROR
-#
-# Find the home directory if not specified
-if test "X$srcdir" != "X." -a -s $srcdir/mpi-io/Makefile.in ; then 
-    ROMIO_HOME_TRIAL=$srcdir
-else
-    PAC_GETWD(ROMIO_HOME_TRIAL,mpi-io/Makefile.in)
-fi
-echo "ROMIO home directory is $ROMIO_HOME_TRIAL"
-ROMIO_HOME=$ROMIO_HOME_TRIAL
 if test -z "$srcdir" -o "$srcdir" = "." ; then srcdir="$ROMIO_HOME" ; fi
 AC_SUBST(srcdir)
 if test -z "$LIBNAME"; then
@@ -1186,6 +1232,9 @@ if test -n "$file_system_sfs"; then
 fi
 if test -n "$file_system_pfs"; then
     CONFIG_FILES="$CONFIG_FILES adio/ad_pfs/Makefile"
+fi
+if test -n "$file_system_testfs"; then
+    CONFIG_FILES="$CONFIG_FILES adio/ad_testfs/Makefile"
 fi
 if test -n "$file_system_pvfs"; then
     CONFIG_FILES="$CONFIG_FILES adio/ad_pvfs/Makefile"

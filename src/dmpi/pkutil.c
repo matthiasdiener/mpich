@@ -1,5 +1,5 @@
 /*
- *  $Id: pkutil.c,v 1.9 1999/10/18 22:17:37 gropp Exp $
+ *  $Id: pkutil.c,v 1.10 2001/02/27 22:41:51 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -125,7 +125,7 @@ int (*unpackcontig) ANSI_ARGS((unsigned char *, int, struct MPIR_DATATYPE*,
 			       void *)) = 0;
 void *unpackctx = 0;
 int err, used_len;
-#ifdef HAS_XDR
+#if defined(MPID_HAS_HETERO) && defined(HAS_XDR)
 XDR xdr_ctx;
 #endif
 
@@ -150,7 +150,7 @@ used_len  = 0;
 err = MPIR_Unpack2( (char *)src, count, dtype_ptr, unpackcontig, unpackctx, 
 		    (char *)dest, srcsize, dest_len, &used_len );
 *act_len = used_len;
-#ifdef HAS_XDR
+#if defined(MPID_HAS_HETERO) && defined(HAS_XDR)
 if (unpackcontig == MPIR_Type_XDR_decode) 
     MPIR_Mem_XDR_Free( &xdr_ctx ); 
 #endif

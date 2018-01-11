@@ -2,32 +2,32 @@ import java.io.*;
 
 public class FrameReadingTask
 {
-    private ViewFrameChooser  frame_chooser  = null;
-    private SLOG_InputStream  slog           = null;
-    private int               frame_idx      = 0;
-    private int               connect_idx    = 0;
-    private int               view_idx       = 0;
+    private ViewFrameChooser       frame_chooser  = null;
+    private SLOG_ProxyInputStream  slog           = null;
+    private int                    frame_idx      = 0;
+    private int                    connect_idx    = 0;
+    private int                    view_idx       = 0;
 
-    private SLOG_Frame        slog_frame     = null;
-    private PlotData          slog_plotdata  = null;
+    private SLOG_Frame             slog_frame     = null;
+    private PlotData               slog_plotdata  = null;
 
-    private SwingWorker       read_worker;
+    private SwingWorker            read_worker;
 
-    private final int         max_prog_idx   = 100;
-    private final int         min_prog_idx   = 0;
-    private int               cur_prog_idx   = min_prog_idx;
+    private final int              max_prog_idx   = 100;
+    private final int              min_prog_idx   = 0;
+    private int                    cur_prog_idx   = min_prog_idx;
 
-    private String            status_str = "";
-    private boolean           plotdata_ready = false;
+    private String                 status_str = "";
+    private boolean                plotdata_ready = false;
 
-    private static int        ONE_SECOND     = 1000;
-    private final  int        refresh_intvl  = ONE_SECOND / 10;
+    private static int             ONE_SECOND     = 1000;
+    private final  int             refresh_intvl  = ONE_SECOND / 10;
 
-    public FrameReadingTask(       ViewFrameChooser in_chooser,
-                             final SLOG_InputStream in_slog,
-                             final int              in_frame_idx,
-                             final int              in_connect_idx,
-                             final int              in_view_idx )
+    public FrameReadingTask(       ViewFrameChooser       in_chooser,
+                             final SLOG_ProxyInputStream  in_slog,
+                             final int                    in_frame_idx,
+                             final int                    in_connect_idx,
+                             final int                    in_view_idx )
     {
         frame_chooser = in_chooser;
         slog          = in_slog;
@@ -38,28 +38,30 @@ public class FrameReadingTask
 
     public void Start()
     {
-            read_worker = new SwingWorker()
+        read_worker = new SwingWorker()
+        {
+            public Object construct()
             {
-                public Object construct()
-                {
-                    plotdata_ready = false;
-                    ReadFrameAndConvert();
-                    return( slog_plotdata );
-                }
-                public void finished()
-                {
-                    slog_plotdata = ( PlotData ) get();
-                    plotdata_ready = true;
-                    frame_chooser.DisplayFrame();
-                }
-            };
+                plotdata_ready = false;
+                ReadFrame();
+                ConvertFrameToPlotData();
+                return( slog_plotdata );
+            }
+            public void finished()
+            {
+                slog_plotdata = ( PlotData ) get();
+                plotdata_ready = true;
+                frame_chooser.DisplayFrame();
+            }
+        };
+        read_worker.start();
     }
 
-    private void ReadFrameAndConvert()
+    private void ReadFrame()
     {
         SetCurProgIdx( min_prog_idx );
 
-        SLOG_DirEntry dir_entry = slog.dir.EntryAt( frame_idx );
+        SLOG_DirEntry dir_entry = slog.GetDir().EntryAt( frame_idx );
         try {
             SetStatusFieldText( "Reading Frame from Logfile" );
             slog_frame = slog.GetFrame( dir_entry.fptr2framehdr );
@@ -70,8 +72,11 @@ public class FrameReadingTask
             System.err.println( err_msg );
             new ErrorDialog( null, err_msg );
         }
+    } 
 
-        SetCurProgIdx( max_prog_idx * 7 / 10 );
+    private void ConvertFrameToPlotData()
+    {
+        SetCurProgIdx( max_prog_idx * 5 / 10 );
 
         //  Artifical code to slow the code segment down
         //  for ( int ii = 0; ii < 100000; ii++ ) System.out.print( "" );

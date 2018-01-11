@@ -48,8 +48,7 @@ P4_SOCK_OBJ	=	p4_rm.o      p4_sock_util.o \
 			p4_sock_sr.o p4_sock_list.o \
 			p4_secure.o
 
-P4_MPD_OBJ      =       ../../../mpd/mpdlib.o ../../../mpd/util.o \
-			../../../mpd/sockets.o ../../../mpd/bnr.o
+P4_MPD_OBJ      =       ../../../mpd/mpdlib.o ../../../mpd/bnr.o
 
 P4_CUBENODE_OBJ	=	$(P4_COMM_OBJ) p4_node_rm.o
 

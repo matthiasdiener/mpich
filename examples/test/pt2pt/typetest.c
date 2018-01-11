@@ -301,9 +301,9 @@ return message.");
 
     if (rank == master_rank) { 	
 	(void)Summarize_Test_Results();
-	Test_Finalize();
 	}
 
+    Test_Finalize();
     MPI_Finalize();
 
 return 0;

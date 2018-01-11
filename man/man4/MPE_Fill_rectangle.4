@@ -1,4 +1,4 @@
-.TH MPE_Fill_rectangle 4 "8/28/2000" " " "MPE"
+.TH MPE_Fill_rectangle 4 "6/19/2001" " " "MPE"
 .SH NAME
 MPE_Fill_rectangle \-  Draws a filled rectangle on an X11 display  
 .SH SYNOPSIS
@@ -73,5 +73,17 @@ are defined.
 .SH NOTES
 This uses the X11 definition of width and height, so you may want to
 add 1 to both of them.
+
+
+.SH NOTES FOR FORTRAN INTERFACE 
+The Fortran interface to this routine is different from its C
+counterpart and it has an additional argument, ierr, at the end
+of the argument list, i.e. the returned function value (the error
+code) in C interface is returned as the additional argument in
+Fortran interface.  The Fortran interface is invoked with the
+CALL statement.
+
+All MPI and MPE objects, MPI_Comm, MPE_XGraph and MPE_Color, are
+of type INTEGER in Fortran.
 .SH LOCATION
 mpe_graphics.c

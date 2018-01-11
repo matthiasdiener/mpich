@@ -114,7 +114,8 @@ EXPORT_MPI_API void mpi_type_indexed_( MPI_Fint *count, MPI_Fint blocklens[], MP
         FREE( l_indices );
         FREE( l_blocklens );
     }
-    *newtype = MPI_Type_c2f(ldatatype);
+    if (*__ierr == MPI_SUCCESS) 
+        *newtype = MPI_Type_c2f(ldatatype);
 }
 
 

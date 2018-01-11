@@ -3505,3 +3505,113 @@ rm -f conftest*
 ])
 dnl
 dnl
+AC_DEFUN(PAC_HEADER_STDARG,[
+AC_CHECK_HEADER(stdarg.h)
+dnl Sets ac_cv_header_stdarg_h
+if test "$ac_cv_header_stdarg_h" = "yes" ; then
+    dnl results are yes,oldstyle,no.
+    AC_CACHE_CHECK([whether stdarg is oldstyle],
+    pac_cv_header_stdarg_oldstyle,[
+PAC_C_TRY_COMPILE_CLEAN([#include <stdio.h>
+#include <stdarg.h>],
+[int func( int a, ... ){
+int b;
+va_list ap;
+va_start( ap );
+b = va_arg(ap, int);
+printf( "%d-%d\n", a, b );
+va_end(ap);
+fflush(stdout);
+return 0;
+}
+int main() { func( 1, 2 ); return 0;}],pac_check_compile)
+case $pac_check_compile in 
+    0)  pac_cv_header_stdarg_oldstyle="yes"
+	;;
+    1)  pac_cv_header_stdarg_oldstyle="may be newstyle"
+	;;
+    2)  pac_cv_header_stdarg_oldstyle="no"   # compile failed
+	;;
+esac
+])
+if test "$pac_cv_header_stdarg_oldstyle" = "yes" ; then
+    ifelse($2,,:,[$2])
+else
+    AC_CACHE_CHECK([whether stdarg works],
+    pac_cv_header_stdarg_works,[
+    PAC_C_TRY_COMPILE_CLEAN([
+#include <stdio.h>
+#include <stdarg.h>],[
+int func( int a, ... ){
+int b;
+va_list ap;
+va_start( ap, a );
+b = va_arg(ap, int);
+printf( "%d-%d\n", a, b );
+va_end(ap);
+fflush(stdout);
+return 0;
+}
+int main() { func( 1, 2 ); return 0;}],pac_check_compile)
+case $pac_check_compile in 
+    0)  pac_cv_header_stdarg_works="yes"
+	;;
+    1)  pac_cv_header_stdarg_works="yes with warnings"
+	;;
+    2)  pac_cv_header_stdarg_works="no"
+	;;
+esac
+])
+fi   # test on oldstyle
+if test "$pac_cv_header_stdarg_works" = "no" ; then
+    ifelse($3,,:,[$3])
+else
+    ifelse($1,,:,[$1])
+fi
+else 
+    ifelse($3,,:,[$3])
+fi  # test on header
+])
+AC_DEFUN(PAC_C_TRY_COMPILE_CLEAN,[
+$3=2
+dnl Get the compiler output to test against
+if test -z "$pac_TRY_COMPLILE_CLEAN" ; then
+    rm -f conftest*
+    echo 'int try(void);int try(void){return 0;}' > conftest.c
+    if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+	if test -s conftest.bas ; then 
+	    pac_TRY_COMPILE_CLEAN_OUT=`cat conftest.bas`
+        fi
+        pac_TRY_COMPILE_CLEAN=1
+    else
+	AC_MSG_WARN([Could not compile simple test program!])
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+    fi
+fi
+dnl
+dnl Create the program that we need to test with
+rm -f conftest*
+cat >conftest.c <<EOF
+#include "confdefs.h"
+[$1]
+[$2]
+EOF
+dnl
+dnl Compile it and test
+if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+    dnl Success.  Is the output the same?
+    if test "$pac_TRY_COMPILE_CLEAN_OUT" = "`cat conftest.bas`" ; then
+	$3=0
+    else
+        cat conftest.c >>config.log
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+        $3=1
+    fi
+else
+    dnl Failure.  Set flag to 2
+    cat conftest.c >>config.log
+    if test -s conftest.bas ; then cat conftest.bas >> config.log ; fi
+    $3=2
+fi
+rm -f conftest*
+])

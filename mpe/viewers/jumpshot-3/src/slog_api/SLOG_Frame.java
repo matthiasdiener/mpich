@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_Frame
+public class SLOG_Frame implements Serializable
 {
     public SLOG_FrameHdr      hdr;     // Header of the frame
     public SLOG_FrameSector   cur;     // Current  Interval records

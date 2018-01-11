@@ -76,18 +76,18 @@ struct list_elemnt {
 /** initializations **/
 
 /*  void checkForBigEndian ANSI_ARGS(( void ));  */
-int  init_state_defs ANSI_ARGS(( double * ));
-int  init_all_mpi_state_defs ANSI_ARGS(( void ));
+int  CLOG_init_state_defs ( double * );
+int  CLOG_init_all_mpi_state_defs( void );
 int  init_SLOG ANSI_ARGS(( long, long, char * ));
 int  init_SLOG_TTAB ANSI_ARGS(( void ));
 int  init_SLOG_PROF_RECDEF ANSI_ARGS(( void ));
 int  init_clog2slog ANSI_ARGS(( char*, char** ));
-void init_essential_values ANSI_ARGS(( long, int ));
+void CLOG_init_essential_values ( long, int );
 
 /** actual logging */
 
-int  makeSLOG ANSI_ARGS(( double * ));
-int  logEvent ANSI_ARGS(( CLOG_HEADER * ,CLOG_RAW * ));
+#ifdef FOO
+int  logEvent ANSI_ARGS(( CLOG_HEADER * ,CLOG_RAW * )); 
 int  writeSLOGInterval ANSI_ARGS(( CLOG_HEADER*, CLOG_RAW*, 
 				   struct list_elemnt ));
 int  handleStartEvent ANSI_ARGS(( int, CLOG_HEADER*, 
@@ -105,14 +105,17 @@ int  addToList ANSI_ARGS(( int ,int ,int ,double ));
 int  find_elemnt ANSI_ARGS(( int ,int ,int ,struct list_elemnt* ));
 int  addToMsgList ANSI_ARGS(( int ,int ,int ,int, double ));
 int  find_msg_elemnt ANSI_ARGS(( int ,int ,int ,int, struct list_elemnt* ));
-void free_resources ANSI_ARGS(( void ));
 void freeList ANSI_ARGS(( void ));
 void freeMsgList ANSI_ARGS(( void ));
 void freeStateInfo ANSI_ARGS(( void ));
 void printEventList ANSI_ARGS(( void ));
 void printMsgEventList ANSI_ARGS(( void ));
-void printHelp ANSI_ARGS(( void ));
-void printStateInfo ANSI_ARGS(( void ));
+#endif
+void CLOG_freeStateInfo(void);
+int  CLOG_makeSLOG ( double * ); 
+void CLOG_free_resources ( void );
+void CLOG_printHelp ( void );
+void CLOG_printStateInfo ( void );
 
 #endif
 

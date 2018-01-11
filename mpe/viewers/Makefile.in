@@ -39,3 +39,5 @@ distclean:
 	          ( cd $$pkg ; $(MAKE) distclean ) ; \
 	      fi ; \
 	  done
+	@- rm -f bin/logviewer sbin/install-viewers
+	@- rm -f config.log config.status Makefile

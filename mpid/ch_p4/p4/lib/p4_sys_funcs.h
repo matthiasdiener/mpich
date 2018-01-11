@@ -55,6 +55,7 @@ P4VOID free_quel ANSI_ARGS((struct p4_queued_msg *));
 P4VOID get_inet_addr ANSI_ARGS((struct in_addr *));
 P4VOID get_inet_addr_str ANSI_ARGS((char *));
 void p4_print_sock_params( int skt );
+void p4_socket_stat( FILE *fp );
 #if !defined(CRAY)
 P4VOID dump_sockaddr ANSI_ARGS(( char *, struct sockaddr_in *));
 P4VOID dump_sockinfo ANSI_ARGS((char *, int));
@@ -65,6 +66,8 @@ int getswport ANSI_ARGS((char *));
 P4VOID handle_connection_interrupt ANSI_ARGS((int));
 P4BOOL shmem_msgs_available ANSI_ARGS((void));
 P4BOOL socket_msgs_available ANSI_ARGS((void));
+int p4_sockets_ready( int, int );
+P4VOID p4_socket_control( char * );
 P4BOOL MD_tcmp_msgs_available ANSI_ARGS((int *, int *));
 P4BOOL MD_i860_msgs_available ANSI_ARGS((void));
 P4BOOL MD_CM5_msgs_available ANSI_ARGS((void));
@@ -104,6 +107,8 @@ int net_create_slave ANSI_ARGS((int, int, char *, char *, char *));
 int net_recv ANSI_ARGS(( int, void *, int))	;
 int net_recv_timeout ANSI_ARGS(( int, void *, int, int))	;
 int net_send ANSI_ARGS(( int, void *, int, int ))	;
+int net_send_w ANSI_ARGS(( int, void *, int, int ))	;
+int net_send2 ANSI_ARGS(( int, void *, int, void *, int, int ))	;
 P4VOID net_setup_anon_listener ANSI_ARGS((int, int *, int *))	;
 P4VOID net_setup_listener ANSI_ARGS((int, int, int *))	;
 /* P4VOID net_setup_named_listener ANSI_ARGS(( ))	; */
@@ -146,6 +151,7 @@ P4VOID waitspin ANSI_ARGS((int));
 P4BOOL sock_msg_avail_on_fd ANSI_ARGS((int));
 int socket_send ANSI_ARGS((int,int,int,char *,int,int,int));
 int socket_close_conn ANSI_ARGS((int));
+void p4_look_for_close( int );
 int start_slave ANSI_ARGS((char *, char *, char *, int, char *, 
 			   char *(*)(char *, char *)));
 int subtree_broadcast_p4 ANSI_ARGS((int, int, void *,int,int));
@@ -162,6 +168,7 @@ P4VOID zap_remote_p4_processes ANSI_ARGS((void));
 struct p4_msg *MD_tcmp_recv ANSI_ARGS((void));
 int MD_tcmp_send ANSI_ARGS((int, int, int, char *, int, int, int));
 struct hostent *gethostbyname_p4 ANSI_ARGS(( char *));
+int gethostname_p4( char *, size_t );
 char *getpw_ss ANSI_ARGS((char *, char * ));
 
 P4VOID p4_dprint_last ANSI_ARGS(( FILE * ));

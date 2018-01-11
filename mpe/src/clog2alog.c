@@ -2,9 +2,11 @@
 
 #include "clogimpl.h"
 #include <stdio.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
 
 /* The header information for an alog file needs to be collected as the file
  * is read.  Therefore we collect it here in memory as we create the main part
@@ -31,11 +33,10 @@ static FILE *atmpfile;			/* temp file for first pass */
 int  clog2alog ( char * );
 void alog_dumpblock ( double *);
 void alog_dumphdr ( void );
-void checkproc ( int );
-void checktype ( int );
+static void checkproc ( int );
+static void checktype ( int );
 
-int clog2alog( execfilename )
-char *execfilename;
+int clog2alog( char *execfilename )
 {
     int n;
     double buf[ CLOG_BLOCK_SIZE / sizeof( double ) ];
@@ -45,7 +46,7 @@ char *execfilename;
 
     strcpy(clogfilename, execfilename);
     strcat(clogfilename, ".clog");
-    if ((clogfd = open(clogfilename, O_RDONLY, 0)) == -1) {
+    if ((clogfd = OPEN(clogfilename, O_RDONLY, 0)) == -1) {
 	fprintf(stderr, "could not open clogfile %s for reading\n",
 		clogfilename);
 	return(-2);
@@ -234,8 +235,7 @@ double *p;
     }
 }
 
-void checkproc( procid )
-int procid;
+static void checkproc( int procid )
 {
     int i, found = 0;
 
@@ -249,8 +249,7 @@ int procid;
 	procsfound[numprocs++] = procid;
 }
 
-void checktype( typeid )
-int typeid;
+static void checktype( int typeid )
 {
     int i, found = 0;
 

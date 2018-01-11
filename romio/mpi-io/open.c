@@ -1,5 +1,5 @@
 /* 
- *   $Id: open.c,v 1.9 2000/08/23 17:47:29 gropp Exp $    
+ *   $Id: open.c,v 1.13 2001/06/07 23:22:53 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -46,9 +46,10 @@ int MPI_File_open(MPI_Comm comm, char *filename, int amode,
 #ifndef PRINT_ERR_MSG
     static char myname[] = "MPI_FILE_OPEN";
 #endif
-    int err, min_code;
     char *tmp;
     MPI_Comm dupcomm, dupcommself;
+    ADIOI_Fns *fsops;
+
 #ifdef MPI_hpux
     int fl_xmpi;
 
@@ -154,154 +155,28 @@ int MPI_File_open(MPI_Comm comm, char *filename, int amode,
 
 
     file_system = -1;
-    tmp = strchr(filename, ':');
-    if (!tmp) {
-	ADIO_FileSysType(filename, &file_system, &err);
-	if (err != MPI_SUCCESS) {
+
+    /* resolve file system type from file name; this is a collective call */
+    ADIO_ResolveFileType(dupcomm, filename, &file_system, &fsops, &error_code);
+    if (error_code != MPI_SUCCESS) {
+	/* ADIO_ResolveFileType() will print as informative a message as it
+	 * possibly can or call MPIR_Err_setmsg.  We just need to propagate 
+	 * the error up.  In the PRINT_ERR_MSG case MPI_Abort has already
+	 * been called as well, so we probably didn't even make it this far.
+	 */
 #ifdef PRINT_ERR_MSG
-	    FPRINTF(stderr, "MPI_File_open: Can't determine the file-system type. Check the filename/path you provided and try again. Otherwise, prefix the filename with a string to indicate the type of file sytem (piofs:, pfs:, nfs:, ufs:, hfs:, xfs:, sfs:, pvfs:).\n");
-	    MPI_Abort(MPI_COMM_WORLD, 1);
+	MPI_Abort(MPI_COMM_WORLD, 1); /* this is mostly here for clarity */
 #else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_FSTYPE,
-				     myname, (char *) 0, (char *) 0);
 	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
 #endif
-	}
-	MPI_Allreduce(&file_system, &min_code, 1, MPI_INT, MPI_MIN, dupcomm);
-	if (min_code == ADIO_NFS) file_system = ADIO_NFS;
     }
 
-
-#ifndef PFS
-    if (!strncmp(filename, "pfs:", 4) || !strncmp(filename, "PFS:", 4) || (file_system == ADIO_PFS)) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_open: ROMIO has not been configured to use the PFS file system\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_PFS,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-#endif
-#ifndef PIOFS
-    if (!strncmp(filename, "piofs:", 6) || !strncmp(filename, "PIOFS:", 6) || (file_system == ADIO_PIOFS)) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_open: ROMIO has not been configured to use the PIOFS file system\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_PIOFS,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-#endif
-#ifndef UFS
-    if (!strncmp(filename, "ufs:", 4) || !strncmp(filename, "UFS:", 4) || (file_system == ADIO_UFS)) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_open: ROMIO has not been configured to use the UFS file system\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_UFS,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-#endif
-#ifndef NFS
-    if (!strncmp(filename, "nfs:", 4) || !strncmp(filename, "NFS:", 4) || (file_system == ADIO_NFS)) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_open: ROMIO has not been configured to use the NFS file system\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_UFS,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-#endif
-#ifndef HFS
-    if (!strncmp(filename, "hfs:", 4) || !strncmp(filename, "HFS:", 4) || (file_system == ADIO_HFS)) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_open: ROMIO has not been configured to use the HFS file system\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_HFS,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-#endif
-#ifndef XFS
-    if (!strncmp(filename, "xfs:", 4) || !strncmp(filename, "XFS:", 4) || (file_system == ADIO_XFS)) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_open: ROMIO has not been configured to use the XFS file system\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_XFS,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-#endif
-#ifndef SFS
-    if (!strncmp(filename, "sfs:", 4) || !strncmp(filename, "SFS:", 4) || (file_system == ADIO_SFS)) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_open: ROMIO has not been configured to use the SFS file system\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_SFS,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-#endif
-#ifndef PVFS
-    if (!strncmp(filename, "pvfs:", 5) || !strncmp(filename, "PVFS:", 5) || (file_system == ADIO_PVFS)) {
-#ifdef PRINT_ERR_MSG
-	FPRINTF(stderr, "MPI_File_open: ROMIO has not been configured to use the PVFS file system\n");
-	MPI_Abort(MPI_COMM_WORLD, 1);
-#else
-	error_code = MPIR_Err_setmsg(MPI_ERR_IO, MPIR_ERR_NO_PVFS,
-				     myname, (char *) 0, (char *) 0);
-	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
-#endif
-    }
-#endif
-
-    if (!strncmp(filename, "pfs:", 4) || !strncmp(filename, "PFS:", 4)) {
-	file_system = ADIO_PFS;
-	filename += 4;
-    }
-    else if (!strncmp(filename, "piofs:", 6) || !strncmp(filename, "PIOFS:", 6)) {
-	file_system = ADIO_PIOFS;
-	filename += 6;
-    }
-    else if (!strncmp(filename, "ufs:", 4) || !strncmp(filename, "UFS:", 4)) {
-	file_system = ADIO_UFS;
-	filename += 4;
-    }
-    else if (!strncmp(filename, "nfs:", 4) || !strncmp(filename, "NFS:", 4)) {
-	file_system = ADIO_NFS;
-	filename += 4;
-    }
-    else if (!strncmp(filename, "hfs:", 4) || !strncmp(filename, "HFS:", 4)) {
-	file_system = ADIO_HFS;
-	filename += 4;
-    }
-    else if (!strncmp(filename, "xfs:", 4) || !strncmp(filename, "XFS:", 4)) {
-	file_system = ADIO_XFS;
-	filename += 4;
-    }
-    else if (!strncmp(filename, "sfs:", 4) || !strncmp(filename, "SFS:", 4)) {
-	file_system = ADIO_SFS;
-	filename += 4;
-    }
-    else if (!strncmp(filename, "pvfs:", 5) || !strncmp(filename, "PVFS:", 5)) {
-	file_system = ADIO_PVFS;
-	filename += 5;
-    }
-
+    /* Test for invalid flags in amode.
+     *
+     * eventually we should allow the ADIO implementations to test for 
+     * invalid flags through some functional interface rather than having
+     *  these tests here. -- Rob, 06/06/2001
+     */
     if (((file_system == ADIO_PIOFS) || (file_system == ADIO_PVFS)) && 
         (amode & MPI_MODE_SEQUENTIAL)) {
 #ifdef PRINT_ERR_MSG
@@ -313,6 +188,10 @@ int MPI_File_open(MPI_Comm comm, char *filename, int amode,
 	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
 #endif
     }
+
+    /* strip off prefix if there is one */
+    tmp = strchr(filename, ':');
+    if (tmp) filename = tmp + 1;
 
     orig_amode = amode;
     MPI_Comm_rank(dupcomm, &rank);

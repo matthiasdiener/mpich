@@ -103,6 +103,7 @@ EXPORT_MPI_API void mpi_startall_( MPI_Fint *count, MPI_Fint array_of_requests[]
     else 
 	*__ierr = MPI_Startall((int)*count,(MPI_Request *)0);
 
+    if (*__ierr != MPI_SUCCESS) return;
     for (i=0; i<(int)*count; i++) {
         array_of_requests[i] = MPI_Request_c2f( lrequest[i]);
     }

@@ -71,7 +71,7 @@ char **argv;
     p4_local  = NULL;
     p4_global = NULL;
 
-    /* Note that for mpd everyone is a master, at least as of Wednesday - RL  */
+    /* Note that for mpd everyone is a master - RL  */
     if (am_slave)
     {
 	rc = rm_start(argc, argv);
@@ -79,7 +79,17 @@ char **argv;
     else
     {
 	rc = bm_start(argc, argv);
+        ALOG_MASTER(0,ALOG_TRUNCATE);
+        ALOG_DEFINE(BEGIN_USER,"beg_user","");
+        ALOG_DEFINE(END_USER,"end_user","");
+        ALOG_DEFINE(BEGIN_SEND,"beg_send","");
+        ALOG_DEFINE(END_SEND,"end_send","");
+        ALOG_DEFINE(BEGIN_RECV,"beg_recv","");
+        ALOG_DEFINE(END_RECV,"end_recv","");
+        ALOG_DEFINE(BEGIN_WAIT,"beg_wait","");
+        ALOG_DEFINE(END_WAIT,"end_wait","");
     }
+    ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
     return (rc);
 }
 
@@ -160,7 +170,7 @@ int *end;
 int p4_get_my_id_from_proc()
 {
     int i, my_unix_id;
-    int n_match, match_id = -1;
+    int n_match, match_id;
     struct proc_info *pi;
     struct hostent *myhp, *pghp;
     struct in_addr myaddr;       /* 8/14/96, llewins@msmail4.hac.com */
@@ -212,8 +222,17 @@ int p4_get_my_id_from_proc()
      * Remaining bugs: if there are multiple matches, we can't resolve which
      * we are if the hostname matching didn't find us (because of different
      * interfaces).
+     *
+     * To fix the test for a match, we need either to rethink this entire 
+     * logic (don't figure out who we are this way) or place the value
+     * of gethostbyname_p4 into the proctable that gets shipped around (
+     * as part of the startup, the started process could ship that back 
+     * with its pid).  This would guarantee that the correct name would 
+     * be used, and could be different from the name used to establish 
+     * connections. - WDG
      */
     n_match = 0;
+    match_id = -1;
     for (pi = p4_global->proctable, i = 0; i < p4_global->num_in_proctable; i++, pi++)
     {
 	p4_dprintfl(88, "pid %d ?= %d\n", pi->unix_id, my_unix_id );
@@ -333,10 +352,11 @@ P4VOID **cluster_shmem;
   Then call xx_shmalloc() and xx_shfree() as usual.
 */
 
+/* IBM AIX 4.3.3 defined ALIGNMENT in sys/socket.h (!) */
 #define LOG_ALIGN 6
-#define ALIGNMENT (1 << LOG_ALIGN)
+#define P4_MEM_ALIGNMENT (1 << LOG_ALIGN)
 
-/* ALIGNMENT is assumed below to be bigger than sizeof(p4_lock_t) +
+/* P4_MEM_ALIGNMENT is assumed below to be bigger than sizeof(p4_lock_t) +
    sizeof(Header *), so do not reduce LOG_ALIGN below 4 */
 
 union header
@@ -346,7 +366,7 @@ union header
 	union header *ptr;	/* next block if on free list */
 	unsigned size;		/* size of this block */
     } s;
-    char align[ALIGNMENT];	/* Align to ALIGNMENT byte boundary */
+    char align[P4_MEM_ALIGNMENT];   /* Align to ALIGNMENT byte boundary */
 };
 
 typedef union header Header;
@@ -367,11 +387,11 @@ unsigned nbytes;
 
     /* Quick check that things are OK */
 
-    if (ALIGNMENT != sizeof(Header) ||
-	ALIGNMENT < (sizeof(Header *) + sizeof(p4_lock_t)))
+    if (P4_MEM_ALIGNMENT != sizeof(Header) ||
+	P4_MEM_ALIGNMENT < (sizeof(Header *) + sizeof(p4_lock_t)))
     {
         p4_dprintfl(00,"%d %d\n",sizeof(Header),sizeof(p4_lock_t));
-	p4_error("xx_init_shmem: Alignment is wrong", ALIGNMENT);
+	p4_error("xx_init_shmem: Alignment is wrong", P4_MEM_ALIGNMENT);
     }
 
     if (!region)
@@ -550,17 +570,17 @@ P4VOID remove_sysv_ipc()
 	   g, since g is inside of the memory */
 	/* shmdt( sysv_shmat[i] ); */
 	/* Remove the ids */
-        shmctl(sysv_shmid[i],IPC_RMID,0);
+        shmctl(sysv_shmid[i],IPC_RMID,(struct shmid_ds *)0);
     }
     if (g == NULL)
         return;
 
     if (sysv_semid0 != -1)
-	semctl(sysv_semid0,0,IPC_RMID,0);  /* delete initial set */
+	semctl(sysv_semid0,0,IPC_RMID,arg);  /* delete initial set */
 
     for (i=1; i < g->sysv_num_semids; i++)  /* delete other sets */
     {
-	semctl(g->sysv_semid[i],0,IPC_RMID,0);
+	semctl(g->sysv_semid[i],0,IPC_RMID,arg);
     }
 }
 #endif
@@ -570,7 +590,7 @@ P4VOID remove_sysv_ipc()
 #ifndef TIMEOUT_VALUE_WAIT 
 #define TIMEOUT_VALUE_WAIT 60
 #endif
-P4VOID p4_accept_wait_timeout ANSI_ARGS((int));
+P4VOID p4_accept_wait_timeout (int);
 P4VOID p4_accept_wait_timeout(sigval)
 int sigval;
 {
@@ -600,6 +620,10 @@ int p4_wait_for_end()
     struct slave_listener_msg msg;
 #endif
     char job_filename[64];
+
+    /* p4_socket_stat is a routine that conditionally prints information
+       about the socket status.  -p4sctrl stat=y must be selected */
+    p4_socket_stat( stdout );
 
     ALOG_LOG(p4_local->my_id,END_USER,0,"");
     ALOG_OUTPUT;
@@ -656,6 +680,10 @@ int p4_wait_for_end()
 #else
     alarm( TIMEOUT_VALUE_WAIT );
 #endif
+    /* Note that we are now in this routine (ignore some errors, such as
+       failure to write on sockets as we are closing them) */
+    p4_local->in_wait_for_exit = 1;
+
     if (p4_local->listener_fd == (-1))
         n_forked_slaves = p4_global->n_forked_pids;
     else
@@ -684,10 +712,17 @@ int p4_wait_for_end()
     {
 	if (p4_local->conntab[i].type == CONN_REMOTE_EST)
 	{
-	    /* socket_close_conn( p4_local->conntab[i].port ); */
-	    /* We could wait for the partner to close; but this should be
-	       enough */
-	    p4_local->conntab[i].type = CONN_REMOTE_CLOSED; 
+	    /* Check the socket for any remaining messages, including socket 
+	       close.  Resets connection type to closed if found */
+	    p4_look_for_close( i );
+	    /* If it is still open, send the close message */
+	    if (p4_local->conntab[i].type == CONN_REMOTE_EST)
+	    {
+		socket_close_conn( p4_local->conntab[i].port );
+		/* We could wait for the partner to close; but this should be
+		   enough */
+		p4_local->conntab[i].type = CONN_REMOTE_CLOSED; 
+	    }
 	}
     }
     /* Tell the listener to die and wait for him to do so (only if it is 
@@ -695,7 +730,7 @@ int p4_wait_for_end()
 #ifndef THREAD_LISTENER
     if (p4_local->listener_fd != (-1))
     {
-	p4_dprintfl(00, "tell listener to die listpid=%d fd=%d\n",
+	p4_dprintfl(90, "tell listener to die listpid=%d fd=%d\n",
 		    p4_global->listener_pid, p4_local->listener_fd);
 	msg.type = p4_i_to_n(DIE);
 	msg.from = p4_i_to_n(p4_get_my_id());
@@ -786,8 +821,6 @@ int fork_p4()
     {
 	/* Parent process */
 	pid_list[n_pids++] = pid;
-	p4_dprintfl(30, "n_pids = %d, pid > 0: %d\n",
-		   n_pids, pid_list[n_pids-1] );
 #if defined(SUN_SOLARIS)
 /*****	{ processorid_t proc = 0;
 	  if(p_online(proc,P_STATUS) != P_ONLINE)
@@ -806,8 +839,6 @@ int fork_p4()
     {
 	/* Child process */
 	pid_list[n_pids++] = getppid();
-	p4_dprintfl(30, "n_pids = %d,pid == 0: ppid %d\n",
-		   n_pids, pid_list[n_pids-1] );
     }
     else
 	p4_error("fork_p4: fork failed", pid);

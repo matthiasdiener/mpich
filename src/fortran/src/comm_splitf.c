@@ -85,5 +85,6 @@ EXPORT_MPI_API void mpi_comm_split_ ( MPI_Fint *comm, MPI_Fint *color, MPI_Fint 
 
     *__ierr = MPI_Comm_split( MPI_Comm_f2c(*comm), (int)*color, (int)*key, 
                               &l_comm_out);
-    *comm_out = MPI_Comm_c2f(l_comm_out);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *comm_out = MPI_Comm_c2f(l_comm_out);
 }

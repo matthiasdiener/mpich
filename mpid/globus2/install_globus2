@@ -6,7 +6,7 @@
 #
 # get Globus2 configuration information
 #
-. ${top_srcdir}/mpid/$DEVICE/mpich-globus2-settings
+. mpid/$DEVICE/mpich-globus2-settings
 
 #
 # Copy device specific compiler scripts
@@ -33,6 +33,7 @@ fi
 for compiler in cc CC f77 f90 ; do
     if test -f ${bindir}/mpi${compiler} ; then
         mv -f ${bindir}/mpi${compiler} ${bindir}/mpi${compiler}.orig
+        echo "rm ${bindir}/mpi${compiler}.orig" >> $UNINSTALLFILE
         sed -e "s!BASE=\" *${binbuild_dir}!BASE=\"${bindir}!" \
 	    ${bindir}/mpi${compiler}.orig > ${bindir}/mpi${compiler}
         chmod $XMODE ${bindir}/mpi${compiler}

@@ -1,8 +1,12 @@
 #include "mpeconf.h"
 
-#include <unistd.h>
-#include <stdlib.h>
 #include <fcntl.h>
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
 
 #include "clog2slog.h"
 #include "clog_merge.h"
@@ -12,7 +16,7 @@
 #include "protofix.h"
 #endif
 
-#if defined(HAVE_STRING_H) || defined(STDC_HEADERS)
+#if defined( HAVE_STRING_H ) || defined( STDC_HEADERS )
 #include <string.h>
 #endif
 
@@ -61,7 +65,7 @@ int logtype;
     CLOG_treesetup(me, nprocs, &parent, &lchild, &rchild);
     /* printf("merging on %d at time %f\n", me, MPI_Wtime()); */
 
-    PMPI_Reduce(&event_count,&total_events,1,
+    PMPI_Reduce(&CLOG_event_count,&total_events,1,
 		MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
 
     if (parent == -1) {		/* open output logfile at root */
@@ -75,11 +79,11 @@ int logtype;
 	if(log_type == SLOG_LOG) {
 	    /* (abhi) getting total number of events.*/
 	    init_clog2slog(logfilename, &slog_file);
-	    init_essential_values(total_events, nprocs-1);
-	    init_all_mpi_state_defs( );
+	    CLOG_init_essential_values(total_events, nprocs-1);
+	    CLOG_init_all_mpi_state_defs( );
 	    init_SLOG(C2S_NUM_FRAMES, C2S_FRAME_BYTE_SIZE, slog_file);
 	}
-	else if ((logfd = open(logfilename, O_CREAT|O_WRONLY|O_TRUNC, 0664)) == -1) {
+	else if ((logfd = OPEN(logfilename, O_CREAT|O_WRONLY|O_TRUNC, 0664)) == -1) {
 
 	    printf("could not open file %s for logging\n",logfilename);
 	    MPI_Abort( MPI_COMM_WORLD, 1 );
@@ -110,28 +114,28 @@ int logtype;
     CLOG_procbuf(mybuf);	/* do postprocessing (procids, lengths) */
     inputs = 1;			/* always have at least own buffer */
 
-    outptr = outbuf = out_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
+    outptr = outbuf = CLOG_out_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
     outend = (void *) ((char *) outptr + CLOG_BLOCK_SIZE);
 
     if (lchild != -1) {
 	inputs++;
-	lptr = lbuf = left_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
+	lptr = lbuf = CLOG_left_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
 	PMPI_Recv(lbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE, 
 		 lchild, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD, &logstatus);
     }
     else {
 	lptr = &maxtime;
-	FREE (left_buffer);
+	FREE (CLOG_left_buffer);
     }
     if (rchild != -1) {
 	inputs++;
-	rptr = rbuf = right_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
+	rptr = rbuf = CLOG_right_buffer; /*(double *) MALLOC ( CLOG_BLOCK_SIZE );*/
 	PMPI_Recv(rbuf, (CLOG_BLOCK_SIZE / sizeof (double)), MPI_DOUBLE, 
 		 rchild, CMERGE_LOGBUFTYPE, MPI_COMM_WORLD, &logstatus);
     }
     else {
 	rptr = &maxtime;
-	FREE (right_buffer);
+	FREE (CLOG_right_buffer);
     }
 
     /* Do the merge.  Abstractly, we do this one record at a time, letting
@@ -248,9 +252,9 @@ void CLOG_mergend()
     }
     else {
       if( log_type == SLOG_LOG) {
-	  if(makeSLOG(outbuf) == C2S_ERROR)
+	  if(CLOG_makeSLOG(outbuf) == C2S_ERROR)
 	      PMPI_Abort(MPI_COMM_WORLD, -1);
-	  free_resources();           /*(abhi)*/
+	  CLOG_free_resources();           /*(abhi)*/
       }
       else {
 	  CLOG_output(outbuf); /* final output of last block at root */
@@ -264,9 +268,9 @@ void CLOG_mergend()
       FREE (buffer_parser);
     }
     if(rchild != -1)
-      FREE (right_buffer);
+      FREE (CLOG_right_buffer);
     if(lchild != -1)
-      FREE (left_buffer);
+      FREE (CLOG_left_buffer);
     close(CLOG_tempFD);
     unlink(CLOG_tmpfilename);
 }
@@ -394,7 +398,7 @@ double **ptr;
 	}
 	else {
 	  if(log_type == SLOG_LOG) {
-	      if(makeSLOG(outbuf) == C2S_ERROR)
+	      if(CLOG_makeSLOG(outbuf) == C2S_ERROR)
 	          PMPI_Abort(MPI_COMM_WORLD, -1);  /*(abhi) final output to 
 						     SLOG */
 	  }

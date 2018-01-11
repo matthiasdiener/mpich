@@ -116,6 +116,8 @@
    stack.
 
    Note that it is the head/tail pointers that are volatile, not the 
+   contents of the pointers (e.g., we want mpid_pkt_t * volatile, not
+   mpid_pkt_t volatile * volatile)
  */
 typedef struct {
     MPID_PKT_T * VOLATILE head;
@@ -148,7 +150,7 @@ typedef struct {
     MPID_SHMEM_Queue    incoming[MPID_MAX_PROCS];     /* Incoming messages */
     MPID_SHMEM_Stack    avail[MPID_MAX_PROCS];        /* Avail pkts */
 
-    VOLATILE MPID_PKT_T pool[MPID_SHMEM_MAX_PKTS];    /* Preallocated pkts */
+    MPID_PKT_T          pool[MPID_SHMEM_MAX_PKTS];    /* Preallocated pkts */
 
     /* We put globid last because it may otherwise upset the cache alignment
        of the arrays */

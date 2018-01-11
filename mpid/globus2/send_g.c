@@ -12,7 +12,6 @@ static int proto_from_valid_send(void *buf,
 				int count, 
 				struct MPIR_DATATYPE *datatype, 
 				int dest_grank);
-
 static int enqueue_cancel_tcp_data(MPIR_SHANDLE *sreq);
 static int write_all_tcp_cancels(struct tcp_miproto_t *tp);
 static int start_tcp_send(struct tcpsendreq *sr);
@@ -23,29 +22,24 @@ static void write_callback(void *arg,
 			    globus_size_t nbytes);
 static void remove_and_continue(struct tcpsendreq *sr);
 static void free_and_mark_sreq(struct tcpsendreq *sr, globus_bool_t data_sent);
-
-static void send_datatype(
-    struct MPIR_COMMUNICATOR *		comm,
-    void *				buf,
-    int					count,
-    struct MPIR_DATATYPE *		datatype,
-    int					src_lrank,
-    int					tag,
-    int					context_id,
-    int					dest_grank,
-    int *				error_code);
-
-static void ssend_datatype(
-    struct MPIR_COMMUNICATOR *		comm,
-    void *				buf,
-    int					count,
-    struct MPIR_DATATYPE *		datatype,
-    int					src_lrank,
-    int					tag,
-    int					context_id,
-    int					dest_grank,
-    int *				error_code);
-
+static void send_datatype(struct MPIR_COMMUNICATOR *comm,
+			    void *buf,
+			    int	count,
+			    struct MPIR_DATATYPE *datatype,
+			    int	src_lrank,
+			    int	tag,
+			    int	context_id,
+			    int	dest_grank,
+			    int *error_code);
+static void ssend_datatype(struct MPIR_COMMUNICATOR *comm,
+			    void *buf,
+			    int count,
+			    struct MPIR_DATATYPE *datatype,
+			    int	src_lrank,
+			    int	tag,
+			    int	context_id,
+			    int	dest_grank,
+			    int *error_code);
 static void get_unique_msg_id(long *sec, long *usec, unsigned long *ctr);
 
 /********************/
@@ -56,7 +50,6 @@ static void get_unique_msg_id(long *sec, long *usec, unsigned long *ctr);
  * access to MpiPostedQueue, TcpOutstandingRecvReqs, and TcpOutstandingSendReqs
  * must all be controlled by MessageQueuesLock
  */
-extern struct channel_t *        CommworldChannels;
 extern globus_mutex_t            MessageQueuesLock;
 extern volatile int	         TcpOutstandingRecvReqs;
 extern globus_size_t             Headerlen;
@@ -64,6 +57,7 @@ extern globus_size_t             Headerlen;
 extern struct mpi_posted_queue   MpiPostedQueue;
 #endif
 volatile int                     TcpOutstandingSendReqs = 0;
+extern struct commworldchannels *CommWorldChannelsTable;
 /* for unique msg id's (used in conjunction with MPID_MyWorldRank) */
 extern struct timeval LastTimeILookedAtMyWatch;
 extern unsigned long NextMsgIdCtr;
@@ -190,7 +184,7 @@ void MPID_SendDatatype(struct MPIR_COMMUNICATOR *comm,
 		      proto));
 #	if DEBUG_CHECK(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE)
 	{
-	    print_channels(MPID_MyWorldSize, CommworldChannels);
+	    print_channels();
 	}
 #	endif
 
@@ -229,6 +223,7 @@ void MPID_IsendDatatype(struct MPIR_COMMUNICATOR *comm,
 		  context_id,
 		  tag));
     
+globus_libc_fprintf(stderr, "NICK: %d enter MPID_IsendDatatype: tag %d context %d dest_grank %d\n", MPID_MyWorldRank, tag, context_id, dest_grank);
     proto = proto_from_valid_send(buf, count, datatype, dest_grank);
     sreq->req_src_proto = proto;
     sreq->is_complete = GLOBUS_FALSE;
@@ -285,9 +280,8 @@ void MPID_IsendDatatype(struct MPIR_COMMUNICATOR *comm,
 #   endif
     else if (proto == tcp)
     {
-	struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-	CommworldChannels[sreq->dest_grank].selected_proto->info;
 	struct tcpsendreq *sr;
+	int row;
 
 	/* NICK: inefficient to init/destroy lock/condvar each time */
 	sreq->cancel_issued  = GLOBUS_FALSE;
@@ -296,6 +290,25 @@ void MPID_IsendDatatype(struct MPIR_COMMUNICATOR *comm,
 	sreq->data_sent      = GLOBUS_FALSE;
 	sreq->dest_grank     = dest_grank;
 	/* unique msg id for potential cancels */
+	if ((row = get_channel_rowidx(MPID_MyWorldRank, 
+				    &(sreq->msg_id_commworld_displ))) == -1)
+	{
+	    DEBUG_PRINTF(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE,
+			 ("ERROR - proc %d got row -1 "
+			  " for my own commworldrank\n",
+			  MPID_MyWorldRank));
+#	    if DEBUG_CHECK(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE)
+	    {
+		print_channels();
+	    }
+#	    endif
+
+	    *error_code = MPI_ERR_INTERN;
+	    goto fn_exit;
+	} /* endif */
+	memcpy(sreq->msg_id_commworld_id, 
+		CommWorldChannelsTable[row].name, 
+		COMMWORLDCHANNELSNAMELEN);
 	get_unique_msg_id(&(sreq->msg_id_sec), 
 			    &(sreq->msg_id_usec), 
 			    &(sreq->msg_id_ctr));
@@ -332,7 +345,7 @@ void MPID_IsendDatatype(struct MPIR_COMMUNICATOR *comm,
 		      proto));
 #	if DEBUG_CHECK(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE)
 	{
-	    print_channels(MPID_MyWorldSize, CommworldChannels);
+	    print_channels();
 	}
 #	endif
 
@@ -465,7 +478,7 @@ void MPID_SsendDatatype(struct MPIR_COMMUNICATOR *comm,
 		      proto));
 #	if DEBUG_CHECK(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE)
 	{
-	    print_channels(MPID_MyWorldSize, CommworldChannels);
+	    print_channels();
 	}
 #	endif
 
@@ -557,9 +570,8 @@ void MPID_IssendDatatype(struct MPIR_COMMUNICATOR *comm,
 #   endif
     else if (proto == tcp)
     {
-	struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-	CommworldChannels[sreq->dest_grank].selected_proto->info;
 	struct tcpsendreq *sr;
+	int row;
 	
 	/* NICK: inefficient to init/destroy lock/condvar each time */
 	sreq->cancel_issued  = GLOBUS_FALSE;
@@ -568,6 +580,25 @@ void MPID_IssendDatatype(struct MPIR_COMMUNICATOR *comm,
 	sreq->data_sent      = GLOBUS_FALSE;
 	sreq->dest_grank     = dest_grank;
 	/* unique msg id for potential cancels */
+	if ((row = get_channel_rowidx(MPID_MyWorldRank, 
+				    &(sreq->msg_id_commworld_displ))) == -1)
+	{
+	    DEBUG_PRINTF(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE,
+			 ("ERROR - proc %d got row -1 "
+			  " for my own commworldrank\n",
+			  MPID_MyWorldRank));
+#	    if DEBUG_CHECK(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE)
+	    {
+		print_channels();
+	    }
+#	    endif
+
+	    *error_code = MPI_ERR_INTERN;
+	    goto fn_exit;
+	} /* endif */
+	memcpy(sreq->msg_id_commworld_id, 
+		CommWorldChannelsTable[row].name, 
+		COMMWORLDCHANNELSNAMELEN);
 	get_unique_msg_id(&(sreq->msg_id_sec), 
 			    &(sreq->msg_id_usec), 
 			    &(sreq->msg_id_ctr));
@@ -592,7 +623,7 @@ void MPID_IssendDatatype(struct MPIR_COMMUNICATOR *comm,
 	else
 	{
 	    *error_code = 0;
-	}
+	} /* endif */
     }
     else
     {
@@ -602,9 +633,9 @@ void MPID_IssendDatatype(struct MPIR_COMMUNICATOR *comm,
 		      MPID_MyWorldRank,
 		      dest_grank,
 		      proto));
-	#if DEBUG_CHECK(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE)
+#	if DEBUG_CHECK(DEBUG_MODULE_SEND, DEBUG_INFO_FAILURE)
 	{
-	    print_channels(MPID_MyWorldSize, CommworldChannels);
+	    print_channels();
 	}
 #	endif
 	
@@ -725,8 +756,6 @@ void MPID_SendCancel(MPI_Request request, int *error_code )
 	globus_mutex_lock(&MessageQueuesLock);
 	{
 	    struct tcpsendreq *sr = sreq->my_sp;
-	    struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-		CommworldChannels[sreq->dest_grank].selected_proto->info;
 
 	    if (!sr || sr->write_started)
 	    {
@@ -742,25 +771,42 @@ void MPID_SendCancel(MPI_Request request, int *error_code )
 	    else
 	    {
 		/* data not sent yet, must remove from queue */
-		(sr->prev)->next = sr->next;
-		if (sr->next)
-		    (sr->next)->prev = sr->prev;
+		struct channel_t *cp;
+
+		if (cp = get_channel(sreq->dest_grank))
+		{
+		    struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
+			(cp->selected_proto)->info;
+
+		    (sr->prev)->next = sr->next;
+		    if (sr->next)
+			(sr->next)->prev = sr->prev;
+		    else
+			tp->send_tail = sr->prev;
+		    TcpOutstandingSendReqs --;
+
+		    if (sr->src != sr->buff)
+			g_free((void *) (sr->src));
+		    MPIR_Type_free(&(sr->datatype));
+		    g_free((void *) sr);
+		    sreq->my_sp = (struct tcpsendreq *) NULL;
+
+		    sreq->is_complete = 
+			sreq->cancel_complete = 
+			sreq->is_cancelled    = GLOBUS_TRUE;
+		    sreq->s.MPI_TAG = MPIR_MSG_CANCELLED;
+
+		    *error_code = 0;
+		}
 		else
-		    tp->send_tail = sr->prev;
-		TcpOutstandingSendReqs --;
-
-		if (sr->src != sr->buff)
-		    g_free((void *) (sr->src));
-		MPIR_Type_free(&(sr->datatype));
-		g_free((void *) sr);
-		sreq->my_sp = (struct tcpsendreq *) NULL;
-
-		sreq->is_complete = 
-		    sreq->cancel_complete = 
-		    sreq->is_cancelled    = GLOBUS_TRUE;
-		sreq->s.MPI_TAG = MPIR_MSG_CANCELLED;
-
-		*error_code = 0;
+		{
+		    globus_libc_fprintf(stderr, 
+			"ERROR: MPID_SendCancel(): failed get_channel() "
+			"for grank %d\n",  
+			sreq->dest_grank);
+		    print_channels();
+		    *error_code = MPI_ERR_INTERN;
+		} /* endif */
 
 	    } /* endif */
 	}
@@ -887,21 +933,31 @@ static int proto_from_valid_send(void *buf,
 				int dest_grank)
 {
     int rc;
+    struct channel_t *cp;
 
      /* Make sure the send is valid */
     if (buf == NULL && count > 0 && datatype->is_contig)
         rc = -1;
-    else if (!(CommworldChannels[dest_grank].selected_proto))
+    else if (!(cp = get_channel(dest_grank)))
+    {
+        globus_libc_fprintf(stderr,
+	    "ERROR: proto_from_valid_send: proc %d: failed get_channel "
+	    "grank %d\n",
+            MPID_MyWorldRank, dest_grank); 
+        print_channels();
+	rc = -1;
+    }
+    else if (!(cp->selected_proto))
     {
         globus_libc_fprintf(stderr,
 	    "ERROR: proto_from_valid_send: proc %d does not have "
 	    "selected proto for dest %d\n",
             MPID_MyWorldRank, dest_grank); 
-        print_channels(MPID_MyWorldSize, CommworldChannels);
+        print_channels();
 	rc = -1;
     } 
     else
-	rc = CommworldChannels[dest_grank].selected_proto->type;
+	rc = (cp->selected_proto)->type;
 
     return rc;
 
@@ -910,38 +966,53 @@ static int proto_from_valid_send(void *buf,
 static int enqueue_cancel_tcp_data(MPIR_SHANDLE *sreq)
 {
     int rc;
-    struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-	CommworldChannels[sreq->dest_grank].selected_proto->info;
-    struct tcpsendreq *sr;
+    struct channel_t *cp;
 
-    g_malloc(sr, struct tcpsendreq *, sizeof(struct tcpsendreq));
-    sr->next = (struct tcpsendreq *) NULL;
-    sr->sreq = sreq;
-
-    globus_mutex_lock(&MessageQueuesLock);
-    if (tp->cancel_tail)
+    if (cp = get_channel(sreq->dest_grank))
     {
-	/* there are other cancels before me */
-	(tp->cancel_tail)->next = sr;
-	sr->prev = tp->cancel_tail;
-	tp->cancel_tail = sr;
-	TcpOutstandingSendReqs ++;
+	struct tcpsendreq *sr;
+	struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
+				    (cp->selected_proto)->info;
+
+	g_malloc(sr, struct tcpsendreq *, sizeof(struct tcpsendreq));
+	sr->next = (struct tcpsendreq *) NULL;
+	sr->sreq = sreq;
+
+	globus_mutex_lock(&MessageQueuesLock);
+	if (tp->cancel_tail)
+	{
+	    /* there are other cancels before me */
+	    (tp->cancel_tail)->next = sr;
+	    sr->prev = tp->cancel_tail;
+	    tp->cancel_tail = sr;
+	    TcpOutstandingSendReqs ++;
+	}
+	else
+	{
+	    /* there were no other cancels before me*/
+	    sr->prev = (struct tcpsendreq *) NULL;
+	    tp->cancel_head = tp->cancel_tail = sr;
+	    TcpOutstandingSendReqs ++;
+
+	    if (tp->send_head)
+		/* there is a data send in progress */
+		rc = 0;
+	    else
+		/* there are no data sends in progress, start cancel now */
+		rc = write_all_tcp_cancels(tp);
+	} /* endif */
+	globus_mutex_unlock(&MessageQueuesLock);
+
     }
     else
     {
-	/* there were no other cancels before me*/
-	sr->prev = (struct tcpsendreq *) NULL;
-	tp->cancel_head = tp->cancel_tail = sr;
-	TcpOutstandingSendReqs ++;
-
-	if (tp->send_head)
-	    /* there is a data send in progress */
-	    rc = 0;
-	else
-	    /* there are no data sends in progress, start cancel now */
-	    rc = write_all_tcp_cancels(tp);
+        globus_libc_fprintf(stderr,
+	    "ERROR: enqueue_cancel_tcp_data: proc %d: failed get_channel "
+	    "grank %d\n",
+            MPID_MyWorldRank, sreq->dest_grank); 
+        print_channels();
+	rc = -1;
     } /* endif */
-    globus_mutex_unlock(&MessageQueuesLock);
 
     return rc;
 
@@ -989,11 +1060,16 @@ static int write_all_tcp_cancels(struct tcp_miproto_t *tp)
 
 	/* packing header =
 	 * type = cancel_send,
-	 *        msgid_src_grank,msgid_sec,msgid_usec,msgid_ctr,
-	 *        liba
+	 *       msgid_src_commworld_id,msgid_src_commworld_displ,
+	 *       msgid_sec,msgid_usec,msgid_ctr,liba
 	 */
 	globus_dc_put_int(&cp,    &type,              1);
-	globus_dc_put_int(&cp,    &MPID_MyWorldRank,  1); /* msgid stuff */
+	globus_dc_put_char(&cp,                           /* msgid stuff */
+			sreq->msg_id_commworld_id,  
+			COMMWORLDCHANNELSNAMELEN); 
+	globus_dc_put_int(&cp,                            /* msgid stuff */
+			&sreq->msg_id_commworld_displ,  
+			1); 
 	globus_dc_put_long(&cp,   &sreq->msg_id_sec,  1); /* msgid stuff */
 	globus_dc_put_long(&cp,   &sreq->msg_id_usec, 1); /* msgid stuff */
 	globus_dc_put_u_long(&cp, &sreq->msg_id_ctr,  1); /* msgid stuff */
@@ -1015,6 +1091,7 @@ static int write_all_tcp_cancels(struct tcp_miproto_t *tp)
 	    TcpOutstandingSendReqs --;
 	    TcpOutstandingRecvReqs ++;
 	} /* endif */
+/* globus_libc_fprintf(stderr, "NICK: %d: write_all_tcp_cancels: after write header cwid %s cwdisp %d msgid_sec %ld msgid_usec %ld msgid_ctr %ld\n", MPID_MyWorldRank, sreq->msg_id_commworld_id, sreq->msg_id_commworld_displ, sreq->msg_id_sec, sreq->msg_id_usec, sreq->msg_id_ctr);  */
 
 	/* removing and continuing */
 	if (tp->cancel_head = sr->next)
@@ -1036,42 +1113,54 @@ static int write_all_tcp_cancels(struct tcp_miproto_t *tp)
  */
 int enqueue_tcp_send(struct tcpsendreq *sr)
 {
-    int dest_grank           = sr->dest_grank;
-    struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-	CommworldChannels[dest_grank].selected_proto->info;
+    struct channel_t *cp;
     int rc;
-    
-    sr->write_started = GLOBUS_FALSE;
-    sr->next          = (struct tcpsendreq *) NULL;
-    sr->src           = (globus_byte_t *) NULL;
-    
-    globus_mutex_lock(&MessageQueuesLock);
-    if (tp->send_tail)
+
+    if (cp = get_channel(sr->dest_grank))
     {
-	/* 
-	 * this tcp channel has prior unfinished sends.  place this
-	 * one at the end of the queue.
-	 */
-	 sr->prev = tp->send_tail;
-	 (tp->send_tail)->next = sr;
-	 tp->send_tail = sr;
-	 rc = 0;
+	struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
+	    (cp->selected_proto)->info;
+
+	sr->write_started = GLOBUS_FALSE;
+	sr->next          = (struct tcpsendreq *) NULL;
+	sr->src           = (globus_byte_t *) NULL;
+	
+	globus_mutex_lock(&MessageQueuesLock);
+	if (tp->send_tail)
+	{
+	    /* 
+	     * this tcp channel has prior unfinished sends.  place this
+	     * one at the end of the queue.
+	     */
+	     sr->prev = tp->send_tail;
+	     (tp->send_tail)->next = sr;
+	     tp->send_tail = sr;
+	     rc = 0;
+	}
+	else
+	{
+	    /* no other tcp sends before me on this channel. */
+	    sr->prev = (struct tcpsendreq *) NULL;
+	    tp->send_head = tp->send_tail = sr;
+	    if (!(tp->cancel_head))
+		/* no other TCP activity going on right now, start the write */
+		rc = start_tcp_send(sr);
+	    else
+		/* there are some cancel requests ahead of us, they must */
+		/* always be processed first                             */
+		rc = 0;
+	} /* endif */
+	TcpOutstandingSendReqs ++;
+	globus_mutex_unlock(&MessageQueuesLock);
     }
     else
     {
-	/* no other tcp sends before me on this channel. */
-	sr->prev = (struct tcpsendreq *) NULL;
-	tp->send_head = tp->send_tail = sr;
-	if (!(tp->cancel_head))
-	    /* no other TCP activity going on right now, start the write */
-	    rc = start_tcp_send(sr);
-	else
-	    /* there are some cancel requests ahead of us, they must */
-	    /* always be processed first                             */
-	    rc = 0;
+        globus_libc_fprintf(stderr,
+	    "ERROR: enqueue_tcp_send: proc %d: failed get_channel grank %d\n",
+            MPID_MyWorldRank, sr->dest_grank); 
+        print_channels();
+	rc = -1;
     } /* endif */
-    TcpOutstandingSendReqs ++;
-    globus_mutex_unlock(&MessageQueuesLock);
 
     return rc;
 
@@ -1091,20 +1180,44 @@ int enqueue_tcp_send(struct tcpsendreq *sr)
  */
 static int start_tcp_send(struct tcpsendreq *sr)
 {
-    MPIR_SHANDLE *sreq       = sr->sreq;
-    int dest_grank           = sr->dest_grank;
-    struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-	CommworldChannels[dest_grank].selected_proto->info;
-    globus_byte_t *cp        = tp->header;
-    enum header_type type    = user_data;
+    MPIR_SHANDLE *sreq    = sr->sreq;
+    int dest_grank        = sr->dest_grank;
+    enum header_type type = user_data;
+    globus_byte_t *cp;
+    struct channel_t *chp;
+    struct tcp_miproto_t *tp;
     int bufflen;
     int ssend_flag;
     int packed_flag;
     globus_size_t nbytes_sent;
     int rc = 0;
 
-
     /* NICK: do i need an RC mutex here to flush volatile value of handlep? */
+    if (!(chp = get_channel(dest_grank)))
+    {
+	globus_libc_fprintf(stderr, 
+	    "ERROR: enqueue_tcp_send: proc %d: failed get_channel grank %d\n",
+	    MPID_MyWorldRank, dest_grank);
+	print_channels();
+	remove_and_continue(sr);
+	if (sr->type == user_data)
+	{
+	    free_and_mark_sreq(sr, GLOBUS_FALSE);
+	}
+	else
+	{
+	    g_free(sr->liba);
+	    g_free(sr);
+	}
+	MPID_Abort(NULL,
+		   0,
+		   "MPICH-G2 (internal error)",
+		   "start_tcp_send()");
+    } /* endif */
+
+    tp = (chp->selected_proto)->info;
+    cp = tp->header;
+
     if (!(tp->whandle))
     {
 	/* should only have to be done once */
@@ -1116,7 +1229,7 @@ static int start_tcp_send(struct tcpsendreq *sr)
 		"ERROR: start_tcp_send: proc %d: dest_grank %d: "
 		"after call to prime_the_line tp->whandle is still NULL\n", 
 		MPID_MyWorldRank, dest_grank);
-	    print_channels(MPID_MyWorldSize, CommworldChannels);
+	    print_channels();
 	    remove_and_continue(sr);
 	    if (sr->type == user_data)
 	    {
@@ -1126,10 +1239,10 @@ static int start_tcp_send(struct tcpsendreq *sr)
 	    {
 		g_free(sr->liba);
 		g_free(sr);
-	    }
-	    MPID_Abort(NULL,
-		       0,
-		       "MPICH-G2 (internal error)",
+	    } /* endif */
+	    MPID_Abort(NULL, 
+			0, 
+			"MPICH-G2 (internal error)",
 		       "start_tcp_send()");
 	} /* endif */
     } /* endif */
@@ -1142,7 +1255,10 @@ static int start_tcp_send(struct tcpsendreq *sr)
 	    
             globus_dc_put_int(&cp,    &sr->type,       1);
             globus_dc_put_int(&cp,    &sr->result,     1);
-            globus_dc_put_int(&cp,    &sr->dest_grank, 1);
+            globus_dc_put_char(&cp,   
+			    sr->msgid_commworld_id, 
+			    COMMWORLDCHANNELSNAMELEN);
+            globus_dc_put_int(&cp,    &sr->msgid_commworld_displ, 1);
             globus_dc_put_long(&cp,   &sr->msgid_sec,  1);
             globus_dc_put_long(&cp,   &sr->msgid_usec, 1);
             globus_dc_put_u_long(&cp, &sr->msgid_ctr,  1);
@@ -1155,6 +1271,7 @@ static int start_tcp_send(struct tcpsendreq *sr)
 		    tp->header, 
 		    Headerlen, 
 		    &nbytes_sent);
+/* globus_libc_fprintf(stderr, "NICK: %d: start_tcp_send: cancel_result: after write header result %d cwid %s cwdisp %d msgid_sec %ld msgid_usec %ld msgid_ctr %ld\n", MPID_MyWorldRank, sr->result, sr->msgid_commworld_id, sr->msgid_commworld_displ, sr->msgid_sec, sr->msgid_usec, sr->msgid_ctr);  */
 	    
 	    remove_and_continue(sr);
 	    g_free(sr->liba);
@@ -1206,7 +1323,8 @@ static int start_tcp_send(struct tcpsendreq *sr)
 	    if ((bufflen = local_size(sr->count, sr->datatype)) < 0)
 	    {
 		globus_libc_fprintf(stderr,
-				    "ERROR: start_tcp_send: rcvd invalid %d from local_size\n", 
+				    "ERROR: start_tcp_send: rcvd "
+				    "invalid %d from local_size\n", 
 				    bufflen);
 		remove_and_continue(sr);
 		free_and_mark_sreq(sr, GLOBUS_FALSE);
@@ -1215,13 +1333,13 @@ static int start_tcp_send(struct tcpsendreq *sr)
 	    } /* endif */
 
 	    /* 
-     * packing header = type==user_data,
-     *       src,tag,contextid,dataoriginbuffsize,ssend_flag,packed_flag,
-     *      msgid_src_grank,msgid_sec,msgid_usec,msgid_ctr,liba
-     *      where (ssend_flag == -1) if sreq->needs_ack=FALSE
-     *      else  (ssend_flag == MPID_MyWorldRank)
+	     * packing header = type==user_data,
+	     *       src,tag,contextid,dataoriginbuffsize,
+	     *       ssend_flag,packed_flag,
+	     *       msgid_src_commworld_id,msgid_src_commworld_displ,
+	     *       msgid_sec,msgid_usec,msgid_ctr,liba
 	     */
-	    ssend_flag = (sreq->needs_ack ? MPID_MyWorldRank : -1);
+	    ssend_flag  = (sreq->needs_ack ? GLOBUS_TRUE : GLOBUS_FALSE);
 	    packed_flag = ((sr->datatype->dte_type == MPIR_PACKED)
 			   ? GLOBUS_TRUE : GLOBUS_FALSE);
 	    globus_dc_put_int(&cp,    &type,              1);
@@ -1231,7 +1349,12 @@ static int start_tcp_send(struct tcpsendreq *sr)
 	    globus_dc_put_int(&cp,    &bufflen,           1);
 	    globus_dc_put_int(&cp,    &ssend_flag,        1);
 	    globus_dc_put_int(&cp,    &packed_flag,       1);
-	    globus_dc_put_int(&cp,    &MPID_MyWorldRank,  1); /* msgid stuff */
+	    globus_dc_put_char(&cp,                           /* msgid stuff */
+			    sreq->msg_id_commworld_id,  
+			    COMMWORLDCHANNELSNAMELEN); 
+	    globus_dc_put_int(&cp,                            /* msgid stuff */
+			    &sreq->msg_id_commworld_displ,  
+			    1); 
 	    globus_dc_put_long(&cp,   &sreq->msg_id_sec,  1); /* msgid stuff */
 	    globus_dc_put_long(&cp,   &sreq->msg_id_usec, 1); /* msgid stuff */
 	    globus_dc_put_u_long(&cp, &sreq->msg_id_ctr,  1); /* msgid stuff */
@@ -1255,6 +1378,7 @@ static int start_tcp_send(struct tcpsendreq *sr)
 		rc = -1;
 		goto fn_exit;
 	    } /* endif */
+globus_libc_fprintf(stderr, "NICK: %d: start_tcp_send: user_data: after write header (%d bytes) src_lrank %d tag %d context %d cwid %s cwdisp %d msgid_sec %ld msgid_usec %ld msgid_ctr %ld\n", MPID_MyWorldRank, Headerlen, sr->src_lrank, sr->tag, sr->context_id, sreq->msg_id_commworld_id, sreq->msg_id_commworld_displ, sreq->msg_id_sec, sreq->msg_id_usec, sreq->msg_id_ctr); 
     
 	    sr->write_started = GLOBUS_TRUE;
 
@@ -1407,9 +1531,21 @@ static void write_callback(void *arg,
  */
 static void remove_and_continue(struct tcpsendreq *sr)
 {
-    struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-	CommworldChannels[sr->dest_grank].selected_proto->info;
+    struct channel_t *cp;
+    struct tcp_miproto_t *tp;
     
+    if (!(cp = get_channel(sr->dest_grank)))
+    {
+	globus_libc_fprintf(stderr, 
+	    "ERROR: remove_and_continue: proc %d: failed "
+	    "get_channel grank %d\n",
+	    MPID_MyWorldRank, sr->dest_grank);
+	print_channels();
+	MPI_Abort(MPI_COMM_WORLD, 1);
+    } /* endif */
+
+    tp = (struct tcp_miproto_t *) (cp->selected_proto)->info;
+
     /* 
      * removing this sr from tp's list (better be at the head of the list)
      * and if there are others, starting the next one.
@@ -1441,8 +1577,7 @@ static void remove_and_continue(struct tcpsendreq *sr)
 
     if (tp->send_head)
 	start_tcp_send(tp->send_head);
-}
-/* end remove_and_continue() */
+} /* end remove_and_continue() */
 
 static void free_and_mark_sreq(struct tcpsendreq *sr, globus_bool_t data_sent)
 {

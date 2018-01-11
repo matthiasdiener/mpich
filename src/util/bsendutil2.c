@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil2.c,v 1.10 1999/08/20 02:28:06 ashton Exp $
+ *  $Id: bsendutil2.c,v 1.12 2001/03/21 22:18:06 gropp Exp $
  *
  *  (C) 1993, 1996 by Argonne National Laboratory and 
  *      Mississipi State University.
@@ -100,7 +100,19 @@ typedef struct _bsenddata {
 static BSendData *Bsend = 0;
 static int BsendSize = 0;
 
-BSendData *MPIR_MergeBlock ANSI_ARGS(( BSendData *));
+static BSendData *MPIR_MergeBlock ANSI_ARGS(( BSendData *));
+static int MPIR_BsendAlloc ANSI_ARGS((int, BSendData **));
+static void MPIR_BsendCopyData ANSI_ARGS((BSendData *,
+					 struct MPIR_COMMUNICATOR *,
+					 void *, 
+					 int,
+					 struct MPIR_DATATYPE *,
+					 void **,
+					 int *));
+#ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
+static int MPIR_BsendBufferPrint( );
+#endif                 /* #DEBUG_BSEND_END# */
+
 
 /*
  * The algorithm and the routines.
@@ -110,16 +122,16 @@ BSendData *MPIR_MergeBlock ANSI_ARGS(( BSendData *));
  *    MPIR_BsendInitBuffer( )  - to initialize bsend buffer
  *    MPIR_BsendRelease( ) - to release bsend buffer (first completing
  *                           all communication).
- *    MPIR_BsendAlloc( ) - to allocate space for the bsend buffer for a 
- *             Ibsend/Bsend_init, as well as the request that will
- *             be used internally.
- *    MPIR_BsendFree( )  - to release space 
- *    MPIR_BsendStart( ) - to begin a send (copy data and start send)
+ *    MPIR_IbsendDatatype( ) - to buffer a message and begin sending it
  *
  * Internal routines for buffer management are
  *    MPIR_TestBufferPtr - Tests that bsend arena pointer is ok
  *    MPIR_BsendBufferPrint - prints out the state of the buffer
- *    MPIR_BsendCopyData    - Copies data from user area into previously
+ *    MPIR_BsendAlloc( ) - to allocate space for the bsend buffer for a 
+ *             Ibsend/Bsend_init, as well as the request that will
+ *             be used internally.  this routine also frees up buffers
+ *             once the send has completed.
+ *    MPIR_BsendCopyData( ) - Copies data from user area into previously
  *                            allocated bsend area.
  */
 
@@ -218,7 +230,7 @@ int MPIR_BsendRelease(
    Merge b with any previous or next empty blocks.  Return the block to use
    next 
 */
-BSendData *MPIR_MergeBlock( BSendData *b )
+static BSendData *MPIR_MergeBlock( BSendData *b )
 {
     BSendData *tp, *nextb;
     int mpi_errno;
@@ -283,10 +295,9 @@ BSendData *MPIR_MergeBlock( BSendData *b )
    incoming request are set.  This routine will modify the request
    by marking it as completed.
  */
-int MPIR_BsendAlloc( 
+static int MPIR_BsendAlloc( 
 	int size, 
-	MPI_Request rq, 
-	void **bufp )
+	BSendData ** bp )
 {
     BSendData  *b, *new;
     int        flag;
@@ -309,13 +320,14 @@ int MPIR_BsendAlloc(
 	    }
 	    /* Note that since the request in the bsend data is private, we can
 	       always execute this test */
-	    if (b->req != MPI_REQUEST_NULL/* && !b->req->shandle.is_complete*/) {
+	    if (b->req != MPI_REQUEST_NULL)
+	    {
 		/* Test for completion; merge if necessary.  If the request
 		   is not active, we don't do the test. */
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 		if (DebugBsend)
-		    FPRINTF( stderr, "Testing for completion of block at %lx\n",
-			     (long)b );
+		    FPRINTF(stderr, "Testing for completion of block at %lx\n",
+			    (long)b );
 #endif                 /* #DEBUG_BSEND_END# */
 		MPI_Test( &b->req, &flag, &status );
 		/* If completed and not persistant, remove */
@@ -340,17 +352,18 @@ int MPIR_BsendAlloc(
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 		    if (DebugBsend)
 			FPRINTF( stderr, 
-				 "Found large block of size %d (need %d) at %lx\n",
+				 "Found large block of size %d "
+				 "(need %d) at %lx\n",
 				 b->len, size, (long)b );
 #endif                 /* #DEBUG_BSEND_END# */
 		    new	  = (BSendData *)(((char *)b) + 
 					  sizeof(BSendData) + size);
 		    new->next = b->next;
 		    if (b->next) b->next->prev = new;
-		    new->prev	= b;
+		    new->prev		= b;
 		    b->next		= new;
-		    new->len	= b->len - size - sizeof(BSendData);
-		    new->req	= MPI_REQUEST_NULL;
+		    new->len		= b->len - size - sizeof(BSendData);
+		    new->req		= MPI_REQUEST_NULL;
 		    new->HeadCookie	= BSEND_HEAD_COOKIE;
 		    new->TailCookie	= BSEND_TAIL_COOKIE;
 		    b->len		= size;
@@ -361,24 +374,18 @@ int MPIR_BsendAlloc(
 			     "Creating bsend block at %lx of size %d\n", 
 			     (long)b, size );
 #endif                 /* #DEBUG_BSEND_END# */
-		*bufp			 = (void *)(b+1);
 		/* Create a local request to use */
 		/* BUG - This should be allocated in place */
 		MPID_SendAlloc(shandle);
 		if (!shandle) return MPI_ERR_EXHAUSTED;
 		b->req = (MPI_Request)shandle;
 		MPID_Request_init( shandle, MPIR_SEND );
-/*
-  MEMCPY( b->req, rq, sizeof(MPIR_SHANDLE) );
-  */
+		
 		/* Save the buffer address */
-		b->buf = *bufp;
+		b->buf = (void *)(b+1);
 
-		/* Mark in the request (user's) where the corresponding bsend 
-		   area is */
-		rq->shandle.bsend	 = (void *)b;
-		/* Also remember in the bsend request */
-		b->req->shandle.bsend	 = (void *)b;
+		/* return the location of the new buffer */
+		*bp = b;
 
 		DEBUG_PRINT("Exiting MPIR_BsendAlloc");
 		return MPI_SUCCESS;
@@ -404,8 +411,8 @@ int MPIR_BsendAlloc(
    internal buffer.  A bsend area must already exist for it, and be
    marked by bine set in the rq->bsend field (see the MPIR_SHANDLE structure).
  */
-void MPIR_BsendCopyData( 
-	MPIR_SHANDLE *shandle, 
+static void MPIR_BsendCopyData( 
+	BSendData * b, 
 	struct MPIR_COMMUNICATOR *comm_ptr, 
 	void *buf, 
 	int count, 
@@ -413,13 +420,10 @@ void MPIR_BsendCopyData(
 	void **bsend_buf, 
 	int *bsend_len )
 {
-    BSendData    *b;
     int          outcount, position = 0;
     int          mpi_errno;
-/*    MPIR_SHANDLE *brq; */
 
     DEBUG_PRINT("Entering MPIR_BsendCopyData");
-    b = (BSendData *)(shandle->bsend);
     if (!b) {
 	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_BSEND_DATA,
 				     (char *)0, "Error in BSEND data",
@@ -435,14 +439,6 @@ void MPIR_BsendCopyData(
 	MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, (char *)0 );
 	return;
     }
-#ifdef FOO
-/* This really should be the same as rq now... */
-    brq = (MPIR_SHANDLE *)b->req;
-    if (shandle != brq) {
-	MPIR _ ERROR( MPIR_COMM_WORLD, MPI_ERR_INTERN,
-		    "Error in BSEND data; requests do not match" );
-    }
-#endif
     outcount   = b->len;
     MPI_Pack( buf, count, dtype_ptr->self, b->buf, outcount, &position, 
 	      comm_ptr->self );
@@ -471,64 +467,11 @@ void MPIR_BsendCopyData(
     DEBUG_PRINT("Exiting MPIR_PrepareBuffer");
 }
 
-/* 
-   Set the persistant flag for a request
- */
-void MPIR_BsendPersistent( 
-	MPI_Request request,
-	int         flag)
-{
-    BSendData *b;
-
-    b   = (BSendData *)request->shandle.bsend;
-    if (flag) 
-	b->req->handle_type = MPIR_PERSISTENT_SEND;
-    else
-	b->req->handle_type = MPIR_SEND;
-}
-
-/* 
-   Mark a request as free in the Buffer code 
-   This is called only in MPI_Request_free (commreq_free.c)
-
-   Note that we never want a USER call to free an INTERNAL buffer request.
-   We do this by marking the request used by these routines as a regular
-   send (MPIR_SEND) which it is.
-
-   We may actually not need this routine, since we handle the case internally
-   in the get/merge code.
- */
-void MPIR_BsendFreeReq( 
-	MPIR_SHANDLE *rq)
-{
-    BSendData *b;
-    int       mpi_errno;
-
-    DEBUG_PRINT("Entering MPIR_BsendFreeReq");
-#ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
-    if (DebugBsend)
-	FPRINTF( stderr, 
-		 "Nulling Bsend request at %lx\n", (long) b );
-#endif                 /* #DEBUG_BSEND_END# */
-    if (!rq->bsend) return;
-    b      = (BSendData *)(rq->bsend);
-    if (MPIR_TestBufferPtr(b)) {
-	/* Error in pointer */
-	mpi_errno = MPIR_Err_setmsg( MPI_ERR_INTERN, MPIR_ERR_BSEND_CORRUPT,
-				     (char *)0, (char *)0, (char *)0, 
-				     "FreeBuffer" );
-	MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, (char *)0 );
-	return;
-    }
-    b->req = MPI_REQUEST_NULL;
-    DEBUG_PRINT("Exiting MPIR_BsendFreeReq");
-}
-
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
 /* 
  * This is a debugging routine 
  */
-int MPIR_BsendBufferPrint( )
+static int MPIR_BsendBufferPrint( )
 {
     BSendData *b;
     int       mpi_errno;
@@ -567,10 +510,11 @@ void MPIR_IbsendDatatype(
 	MPI_Request request, 
 	int *error_code )
 {
-    MPI_Request bsend_request;
     int         bsend_len;
     void        *bsend_buf;
+    int		psize;
     int         mpi_errno = MPI_SUCCESS;
+    BSendData * b;
 
     /* Trivial case first */
     if (dest_grank == MPI_PROC_NULL) {
@@ -579,19 +523,28 @@ void MPIR_IbsendDatatype(
 	return;
     }
 
-    /* init request */
-    bsend_request = ((BSendData *)(request->shandle.bsend))->req;
-    MPID_Request_init( (&(bsend_request)->shandle), MPIR_SEND );
+    /* Allocate space in buffer */
+    MPI_Pack_size( count, dtype_ptr->self, comm_ptr->self, &psize );
+    mpi_errno = MPIR_BsendAlloc( psize, &b );
+    if (mpi_errno)
+    {
+	*error_code = MPIR_ERROR( comm_ptr, mpi_errno, (char *)0 );
+	goto fn_exit;
+    }
+
     /* Pack data as necessary into buffer */
-    MPIR_BsendCopyData( &request->shandle, comm_ptr, buf, count, dtype_ptr,
+    MPIR_BsendCopyData( b, comm_ptr, buf, count, dtype_ptr,
 			&bsend_buf, &bsend_len );
 
-    /* use ISendContig to send the message */
+    /* use ISendContig to send the message - note: request was already
+       initialized in MPIR_BsendAlloc() */
     MPID_IsendDatatype( comm_ptr, bsend_buf, bsend_len, MPIR_PACKED_PTR, 
 			src_lrank, tag, context_id, dest_grank, 
-			bsend_request, &mpi_errno );
+			b->req, &mpi_errno );
     if (mpi_errno) {
 	*error_code = MPIR_ERROR( comm_ptr, mpi_errno, (char *)0 );
     }
+
+  fn_exit:
     request->shandle.is_complete = 1;
 }

@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pfs.h,v 1.4 2000/07/19 22:37:47 thakur Exp $    
+ *   $Id: ad_pfs.h,v 1.5 2000/11/03 20:17:42 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -20,6 +20,7 @@
 
 #ifdef tflops
 #define lseek eseek
+#define _gopen(n,m,i,p) open(n,m,p)
 #endif
 
 #endif

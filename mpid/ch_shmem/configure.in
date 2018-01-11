@@ -74,7 +74,7 @@ fi
 # where they belong).  Thus, if mutex_init IS found, we need to 
 # check for -lthread.   (Which we should have done above)
 #
-AC_CHECK_FUNCS(mutex_init strerror shmat semop mmap)
+AC_CHECK_FUNCS(mutex_init strerror shmat semop mmap sem_post)
 
 # atexit registers a function to be called at normal process termination
 # This allows us to add a function to release resources if the user
@@ -169,8 +169,8 @@ MMAP=1,
 AC_MSG_RESULT(no)
 if test -s mconftest1.out ; then 
     cat mconftest1.out >>config.log 
-    echo "Reason: "
-    cat mconftest1.out
+    #echo "Reason: "
+    #cat mconftest1.out
 fi
 AC_MSG_WARN([mmap does not work with MAP_SHARED and MAP_ANONYMOUS
 Some systems (e.g., LINUX) only allow MAP_PRIVATE
@@ -219,6 +219,21 @@ if test "$usesysv" = 1 ; then
     AC_DEFINE(USE_SEMOP)
     # we must undefine any other USE_xxx chosen
 fi
+#
+# At this point, we should be able to select some locks.  Make sure we
+# can.  We include p2p_special because some values are set there that
+# p2p_locks uses (e.g., MPID_CACHE_LINE_SIZE)
+AC_MSG_CHECKING([that usable shared memory locks were found])
+AC_TRY_LINK([
+#include "$srcdir/p2p_special.h"
+#include "$srcdir/p2p_locks.h"
+],
+[int i;],
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no)
+AC_MSG_ERROR([Cannot build ch_shmem without shared memory locks])
+)
+#
 # Look for sigaction routine (instead of signal)
 AC_CHECK_HEADERS(signal.h)
 AC_CHECK_FUNCS(sigaction)

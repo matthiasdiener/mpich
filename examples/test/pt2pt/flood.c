@@ -238,6 +238,7 @@ MPI_Status *s;
     for (i=0; i<n; i++) {
 	if (rbuf[i] != i) {
 	    printf( "rbuf[%d] is %d, should be %d\n", i, rbuf[i], i );
+	    printf( "rbuf[%d] is 0x%x, should be 0x%x\n", i, rbuf[i], i );
 	    return 1;
 	}
     }

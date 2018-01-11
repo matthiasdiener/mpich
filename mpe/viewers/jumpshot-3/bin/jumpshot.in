@@ -53,4 +53,4 @@ else
 fi
 export CLASSPATH
 
-${JVM} -ms64m -mx512m jumpshot "$@"
+${JVM} -ms64m -mx512m MainFrame "$@"

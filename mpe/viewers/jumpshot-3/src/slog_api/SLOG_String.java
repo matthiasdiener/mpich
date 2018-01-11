@@ -1,8 +1,8 @@
 import java.io.*;
 
-public class SLOG_String
+public class SLOG_String implements Serializable
 {
-    String str;
+    private String str;
 
     public SLOG_String()
     {

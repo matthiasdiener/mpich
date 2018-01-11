@@ -74,7 +74,7 @@
 #endif
 
 #ifdef MPID_INT8 
-typedef int MPID_Aint
+typedef int MPID_Aint;
 #define MPID_AINT_SET(a,b) a = (MPID_Aint)(b)
 #define MPID_AINT_GET(a,b) a = (void*)(b)
 #define MPID_AINT_CMP(a,b) (a) == (b)
@@ -201,6 +201,9 @@ extern struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD;
  */
 #ifndef MPID_ZERO_STATUS_COUNT
 #define MPID_ZERO_STATUS_COUNT(status) (status)->count = 0
+#endif
+#ifndef MPID_STATUS_SET_BYTES
+#define MPID_STATUS_SET_BYTES(status,bytes) (status)->count = bytes
 #endif
 /*
  * A device can also define how to set the status for an arbitrary value.

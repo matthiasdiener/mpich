@@ -26,9 +26,7 @@ static int dest = 1;
 /* Prototypes for picky compilers */
 void Generate_Data ( int *, int );
 
-void Generate_Data(buffer, buff_size)
-int *buffer;
-int buff_size;
+void Generate_Data( int *buffer, int buff_size)
 {
     int i;
 

@@ -59,11 +59,11 @@ p4:
 p4inmpi: 
 	@echo making p4 on architecture=$(P4ARCH)
 	@$(MAKE) $(MFLAGS) p4links P4ARCH=$(P4ARCH)
-	(cd lib;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
+	@(cd lib;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
 		MPILIBNAME=$(MPILIBNAME) p4inmpi)
-	(cd alog; $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
+	@(cd alog; $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
 		MPILIBNAME=$(MPILIBNAME) p4inmpi)
-	(cd usc;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
+	@(cd usc;  $(MAKE) $(MFLAGS) MPIARCH=$(MPIARCH) \
 		MPILIBNAME=$(MPILIBNAME) p4inmpi)
 
 p4links:

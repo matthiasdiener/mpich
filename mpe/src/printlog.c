@@ -1,7 +1,9 @@
 #include "mpeconf.h"
 #include "clogimpl.h"
-#include <unistd.h>
 #include <fcntl.h>
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
 
 
 int main( int argc, char *argv[] )
@@ -15,7 +17,7 @@ int main( int argc, char *argv[] )
 	exit(-1);
     }
 
-    if ((logfd = open(argv[1], O_RDONLY, 0)) == -1)
+    if ((logfd = OPEN(argv[1], O_RDONLY, 0)) == -1)
     {
 	printf("could not open file %s for reading\n",argv[1]);
 	exit(-2);

@@ -1,0 +1,66 @@
+#! /bin/sh
+
+JAR="@JAR@"
+MKDIR="mkdir"
+RM="/bin/rm"
+CP="cp"
+CD="cd"
+
+if [ "X@SWING_LIBS@" = "X" ] ; then
+    IsJAVA2="yes"
+else
+    IsJAVA2="no"
+fi
+
+exejar="jumpshot3.jar"
+manifest="js3manifest"
+tmpdir="tmp4jar"
+setupfiles="etc/jumpshot.conf share/jumpshot.colors doc/jumpshot.def doc/html"
+jarfiles="lib/jumpshot.jar lib/preview.jar lib/statsviewer.jar lib/images.jar lib/slog.jar"
+
+# Setup the Manifest for the executable jar file
+if [ "$IsJAVA2" = "yes" ] ; then
+    $RM -f $manifest
+    echo "Main-Class: MainFrame" > $manifest
+fi
+
+# Set the current working directory
+curdir=`pwd`
+
+# Initialization
+$RM -f $exejar
+$RM -rf $tmpdir
+$MKDIR $tmpdir
+
+# Extraction
+$CD $tmpdir
+for jarfile in $jarfiles ; do
+    echo "Extracting $curdir/$jarfile"
+    $JAR xvf $curdir/$jarfile
+    $RM -rf META-INF
+done
+
+# Reassembly
+echo "Reassembling $exejar"
+if [ "$IsJAVA2" = "yes" ] ; then
+    $CD $curdir
+    $JAR cvfm $exejar $manifest -C $tmpdir .
+    $JAR uvfm $exejar $manifest $setupfiles
+#   only JDK-1.3 or newer has i option
+    $JAR i $exejar 2>/dev/null
+else
+    $CD $curdir
+    $JAR cvf $exejar $setupfiles
+
+    $CD $tmpdir
+    $JAR xf $curdir/$exejar
+    $RM -rf META-INF
+    $RM -f $curdir/$exejar
+    $JAR cvf $curdir/$exejar *
+
+    $CD $curdir
+fi
+
+# cleanup
+$RM -f $manifest
+$RM -rf $tmpdir

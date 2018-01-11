@@ -8,6 +8,7 @@
 #endif
 #endif
 
+#include "mpi2.h"
 #include "datatype.h"
 #include <globus_common.h> /* needed for globus_mutex_t */
 
@@ -87,6 +88,8 @@ struct _MPIR_SHANDLE {
     int            dest_grank;
     /* start msg id stuff for cancelling TCP messages */
     globus_bool_t cancel_issued;
+    char msg_id_commworld_id[COMMWORLDCHANNELSNAMELEN];
+    int msg_id_commworld_displ;
     long msg_id_sec;
     long msg_id_usec;
     unsigned long msg_id_ctr;
@@ -121,9 +124,6 @@ struct _MPIR_SHANDLE {
     int (*wait)   ANSI_ARGS((MPIR_SHANDLE *));
     int (*cancel) ANSI_ARGS((MPIR_SHANDLE *));
     int (*finish) ANSI_ARGS((MPIR_SHANDLE *));
-
-    void *bsend;                /* Pointer to structure managed for 
-				   buffered sends */
 };
 
 /* 
@@ -152,6 +152,7 @@ struct _MPIR_RHANDLE {
     globus_mutex_t lock;
     int            src_format;
     int		   packed_flag;
+    int            needs_ack;
     int            req_src_proto;
     int            req_count;
     int            libasize;
@@ -165,6 +166,8 @@ struct _MPIR_RHANDLE {
     /* start msg id stuff for cancelling TCP messages, */
     /* values all come from message origination side   */
     int msg_id_src_grank; /* src rank w.r.t. MPI_COMM_WORLD */
+    char msg_id_commworld_id[COMMWORLDCHANNELSNAMELEN];
+    int msg_id_commworld_displ;
     long msg_id_sec;
     long msg_id_usec;
     unsigned long msg_id_ctr;

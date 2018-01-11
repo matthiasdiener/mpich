@@ -36,7 +36,7 @@ size_t byte2char( const size_t bytesize )
 
 
 #if ! defined( WORDS_BIGENDIAN )
-void byteswap( const bswp_uint32_t   Nelem, 
+void bswp_byteswap( const bswp_uint32_t   Nelem, 
                const bswp_uint32_t   elem_sz, 
                      char           *bytes )
 {
@@ -77,7 +77,7 @@ bswp_uint32_t bswp_fwrite( const void           *src,
     if ( buf == NULL ) return 0;
         
     memcpy( buf, src, byte2char( total_bytesize ) );
-    byteswap( Nelem, elem_sz, buf );
+    bswp_byteswap( Nelem, elem_sz, buf );
     count = fwrite( buf, elem_sz, Nelem, outfd );
 #if ! defined( HAVE_ALLOCA )
     free( buf ); 
@@ -105,7 +105,7 @@ bswp_uint32_t bswp_fread(       void           *dest,
     if ( buf == NULL ) return 0;
         
     count = fread( buf, elem_sz, Nelem, infd );
-    byteswap( Nelem, elem_sz, buf );
+    bswp_byteswap( Nelem, elem_sz, buf );
     memcpy( dest, buf, byte2char( total_bytesize ) );
 #if ! defined( HAVE_ALLOCA )
     free( buf ); 

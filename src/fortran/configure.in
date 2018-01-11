@@ -1,8 +1,11 @@
 AC_INIT(Makefile.in)
+dnl
 AC_PREREQ(2.13) dnl needed for SHELL, added in 2.13
 rm -f ${srcdir}/mpi_fortconf.h mpi_fortconf.h
 AC_CONFIG_HEADER(mpi_fortconf.h)
-
+dnl We need install.sh, config.guess, etc. for the code that
+dnl finds the Fortran libraries
+AC_CONFIG_AUX_DIR(config)
 dnl
 dnl Allow device to supply a mpid_fortdefs.h header file
 dnl
@@ -39,6 +42,12 @@ enable_f90=$enableval,enable_f90="yes")
 AC_ARG_ENABLE(f90modules,
 [--enable-f90modules - Build an MPI module for use with Fortran 90],
 do_f90_modules=$enableval,do_f90_modules="yes")
+
+AC_ARG_ENABLE(use-pointer,
+[--enable-use-pointer - Use the common pointer extension for MPI_BOTTOM and
+    related special values],
+    use_pointer_in_f77=$enableval,use_pointer_in_f77="no")
+dnl Change the default to yes soon
 
 dnl
 dnl The default is the usual MPICH library
@@ -182,8 +191,12 @@ AC_SUBST(FLINKER)
 # We need F90 to get the OFFSET_KIND and ADDRESS_KIND values.
 if test "$enable_f90" != "no" ; then
     PAC_PROG_F90
-    if test -z "$F90LINKER" ; then
-        F90LINKER="$F90"
+    if test -z "$F90" ; then
+        enable_f90=no
+    else
+        if test -z "$F90LINKER" ; then
+            F90LINKER="$F90"
+        fi
     fi
     AC_SUBST(F90LINKER)
 fi
@@ -192,6 +205,15 @@ PAC_ARG_MPI_TYPES
 dnl
 dnl Checks for programs
 PAC_PROG_MAKE
+# archive program
+# In some cases, the AR definition in the MPICH configure is exported.
+# Define our own AR here, just in case
+if test -n "$ARCMD" ; then
+    AR="$ARCMD"
+else
+    AR=ar
+fi
+AC_SUBST(AR)
 # allow for a different linker for Fortran programs
 AC_SUBST(F77LINKER)
 if test -z "$F77LINKER" ; then
@@ -233,6 +255,7 @@ if test "$pac_lib_mpi_is_building" = "yes" ; then
     AC_SUBST(SHARED_LIB_SEARCH_PATH_LEADER)
     AC_SUBST(SHARED_LIB_LOCALDIR)
     AC_SUBST(sharedlibbuild_dir)
+    AC_SUBST(sharedlib_dir)
     MPI2_OBJECTS='${MPI2_OBJECTS}'
     AC_SUBST(MPI2_OBJECTS)
 fi
@@ -248,12 +271,24 @@ if test "$DEBUG_DUMP" = "yes" ; then
     set >>config.env
     echo "End of env" >> config.env
 fi
-
+dnl
+dnl Why is this here?  Please explain why -lg2c must be excluded when
+dnl using the NAG compilers.  
+dnl The reason is that when it is included, codes fail in exit.  The
+dnl problem was tracked down to the fact that the nag fortran routines
+dnl do not initialize the argument values in the way that g2c expects.
+dnl So, g2c is discovered, but it won't work.
+dnl
+if test "$f90nag" = "1" -o "$f95nag" = "1" ; then
+    NOG2C=yes
+else
+    NOG2C=no
+fi
 if test "$pac_lib_mpi_is_building" = "yes" ; then
     dnl This must occur before the test for name mangling
     PAC_PROG_F77_CMDARGS
     if test -z "$pac_cv_F77_IARGC" ; then 
-        AC_MSG_ERROR([Command line accsss is required for MPICH])
+        AC_MSG_ERROR([Command line access is required for MPICH])
     fi
     dnl We also need to check that Fortran 90 is compatible with this
     dnl selection.  If not, turn off Fortran 90
@@ -272,7 +307,11 @@ if test "$pac_lib_mpi_is_building" = "yes" ; then
        end              
 EOF
 	MSG="$pac_cv_prog_f77_cmdarg"
-	trial_LIBS="0 -lU77 -lg2c"
+	if test "$NOG2C" = "yes" ; then
+            trial_LIBS="0 -lU77"
+	else
+	    trial_LIBS="0 -lU77 -lg2c"
+	fi
 	trial_FLAGS="0 -YEXT_NAMES=UCS -YEXT_NAMES=LCS -YCFRL=1 +U77"
         for libs in $trial_LIBS ; do
             if test -n "$pac_cv_prog_f90_cmdarg" ; then break ; fi
@@ -309,7 +348,16 @@ EOF
     # We need to update the saved Fortran name
     pac_save_F77="$F77"    
 fi
+dnl
+dnl This option requires the config.guess etc.
+AC_F77_LIBRARY_LDFLAGS
+dnl
+PAC_PROG_F77_LINKER_WITH_C
+dnl For name mangle, we need the library flags
 PAC_PROG_F77_NAME_MANGLE
+dnl Once we have name mangle, we can try to limit the number of needed libs
+PAC_PROG_F77_IN_C_LIBS
+AC_SUBST(F77_IN_C_LIBS)
 AC_LANG_FORTRAN77
 PAC_PROG_F77_EXCLAIM_COMMENTS(has_exclaim="yes",has_exclaim="no")
 dnl PAC_F77_CHECK_COMPILER_OPTION(-g)
@@ -337,7 +385,32 @@ else
 fi
 dnl If Fortran has a pointer extension, we can create a null pointer 
 dnl instead of using the hack of checking for a specific address.
-dnl PAC_PROG_F77_HAS_POINTER
+PAC_PROG_F77_HAS_POINTER(f77_has_pointer=yes,f77_has_pointer=no)
+rm -f include/mpif_bottom.h
+if test "$f77_has_pointer" = "yes" -a "$use_pointer_in_f77" = "yes" ; then
+    cat >>include/mpif_bottom.h <<EOF
+        pointer (MPI_BOTTOM_PTR,MPI_BOTTOM)
+	pointer (MPI_STATUS_IG_PTR,MPI_STATUS_IGNORE)
+	pointer (MPI_STATUSES_IG_PTR,MPI_STATUSES_IGNORE)
+        data MPI_BOTTOM_PTR/0/, MPI_STATUS_IG_PTR/0/
+	data MPI_STATUSES_IG_PTR/0/
+EOF
+    AC_DEFINE(USE_POINTER_FOR_BOTTOM)
+    dnl Note that with this, we do not need the call to mpir_init_fcm
+    dnl in initfcmn.f .
+else
+    cat >>include/mpif_bottom.h <<EOF
+      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE      
+C
+C     Without this save, some Fortran implementations may make the common
+C     dynamic!
+C    
+C     For a Fortran90 module, we might replace /MPIPRIV/ with a simple
+C     SAVE MPI_BOTTOM
+C
+      SAVE /MPIPRIV/
+EOF
+fi
 
 dnl Up to size checking code in master configure.in (where it tries to 
 dnl find the matching C sizes) as part of defining mpi_integer8 etc.
@@ -437,7 +510,7 @@ for len in 1 2 4 8 16 ; do
     AC_MSG_CHECKING([for C type matching Fortran integer*$len])
     for c_type in char short int long "long_long" ; do
 	eval ctypelen=\$"ac_cv_sizeof_$c_type"
-	if test "$testval" = "$ctypelen" ; then
+	if test "$testval" = "$ctypelen" -a "$ctypelen" -gt 0 ; then
 	    AC_MSG_RESULT($c_type)
 	    eval F77_INT$len=\$"${c_type}_mpi"
 	    noval="no"
@@ -460,7 +533,7 @@ for len in 4 8 16 ; do
     AC_MSG_CHECKING([for C type matching Fortran real*$len])
     for c_type in float double "long_double" ; do
 	eval ctypelen=\$"ac_cv_sizeof_$c_type"
-	if test "$testval" = "$ctypelen" ; then
+	if test "$testval" = "$ctypelen" -a "$ctypelen" -gt 0 ; then
 	    AC_MSG_RESULT($c_type)
 	    eval F77_REAL$len=\$"${c_type}_mpi"
 	    eval F77_COMPLEX$len2=\$"${c_type}_cplx_mpi"
@@ -488,7 +561,8 @@ noval="yes"
 AC_MSG_CHECKING([for C type matching Fortran integer])
 for c_type in char short int long "long_long" ; do
     eval ctypelen=\$"ac_cv_sizeof_$c_type"
-    if test "$pac_cv_f77_sizeof_integer" = "$ctypelen" ; then
+    if test "$pac_cv_f77_sizeof_integer" = "$ctypelen" -a \
+       "$ctypelen" -gt 0 ; then
 	c_type=`echo $c_type | sed -e 's/_/ /g'`
 	AC_MSG_RESULT($c_type)
 	MPI_FINT_TYPE=$c_type
@@ -502,6 +576,11 @@ if test "$noval" = "yes" ; then
     AC_MSG_RESULT([unavailable])
 fi
 AC_SUBST(MPI_FINT_TYPE)
+dnl
+dnl Include a defined value for Fint is int
+if test "$MPI_FINT_TYPE" = "int" ; then
+    AC_DEFINE(FINT_IS_INT)
+fi
 
 PAC_PROG_C_UNALIGNED_DOUBLES(,
 [AC_MSG_WARN(Your C compiler $CC does not support unaligned accesses
@@ -688,6 +767,11 @@ if test -n "$F90" -a "$enable_f90" != "no" ; then
 	    F90INC=`$MAKE -f ../../f90modules/Makefile f90incflag`
         fi
     fi
+else 
+     # Remove the f90modules/Makefile since this is the only way
+     # to tell the top-level makefile not to build the f90 modules.
+     # (We need a better way)
+     rm -f ../../f90modules/Makefile
 fi
 AC_SUBST(F90_SUFFIX)
 f90includedir='${includedir}'
@@ -705,6 +789,16 @@ if test -z "$F90_LIBDIR_LEADER" ; then
 fi
 AC_SUBST(F90_LIBDIR_LEADER)
 
+dnl
+dnl If both C and Fortran are gnu, define the following to simplify 
+dnl shared library support.  
+AC_MSG_CHECKING([whether using gcc and g77 together])
+if test "$ac_cv_prog_gcc" = "yes" -a "$ac_cv_prog_g77" = "yes" ; then
+    AC_DEFINE(USE_GCC_G77_DECLS,1,[Define if using gcc and g77 together])
+    AC_MSG_RESULT(yes)
+else 
+    AC_MSG_RESULT(no)
+fi
 dnl In the MPICH case, make a copy of the definitions file available to the
 dnl mpi.h file.
 dnl Despite the fact that this appears *before* AC_OUTPUT, these actions 
@@ -715,18 +809,21 @@ dnl 	[includebuild_dir=$includebuild_dir] )
 dnl AC_OUTPUT_COMMANDS([chmod a+x mpif77 ; \
 dnl     if test -n "$binbuild_dir" ; then cp mpif77 $binbuild_dir/mpif77 ; fi], 
 dnl         [binbuild_dir=$binbuild_dir] )
-#
-# add ROMIO part of mpif.h if it exists
+dnl
+dnl First, ensure that echo works within the config.status 
+AC_OUTPUT_COMMANDS([if test "$enable_echo" ; then set -x ; fi ])
+dnl add ROMIO part of mpif.h if it exists
 AC_OUTPUT_COMMANDS([if test -f ../../romio/include/mpiof.h -a "$ROMIO" = 1 ; then \
   sed -e '/MPI_OFFSET_KIND/d' ../../romio/include/mpiof.h | \
   cat include/mpif.h - > mpif-tmp.h ; \
   rm -f $includebuild_dir/mpif.h ; \
   mv mpif-tmp.h include/mpif.h ; fi])
 
-dnl
-dnl This option requires the config.guess etc.
-dnl AC_F77_LIBRARY_LDFLAGS
-
+dnl This must be run before converting C to !
+AC_OUTPUT_COMMANDS([rm -f .tmp ; 
+cat include/mpif.h include/mpif_bottom.h > .tmp ;
+rm -f include/mpif.h ; mv .tmp include/mpif.h
+])
 dnl By modifying mpif.h to use ! for comments, it can work with many f90 
 dnl compilers without creating a separate version.  
 dnl Note that this is run AFTER the AC_OUTPUT actions
@@ -734,13 +831,14 @@ AC_OUTPUT_COMMANDS([if test "$has_exclaim" = "yes" ; then
     rm -f .tmp
     cp include/mpif.h .tmp
     sed -e 's/^C/\!/g' .tmp > include/mpif.h
+    rm -f .tmp
 fi
 ],[has_exclaim=$has_exclaim])
 AC_OUTPUT_COMMANDS([chmod a+x src/mpif77])
 AC_OUTPUT_COMMANDS([chmod a+x src/mpif90])
 AC_OUTPUT(Makefile src/Makefile src/farg.f \
 	  include/mpif.h include/mpi_fortdefs.h src/mpif77 src/mpif77.conf \
-	  src/mpif90 src/mpif90.conf )
+	  src/mpif90 src/mpif90.conf src/initfcmn.f )
 exit 0
 dnl
 dnl Add the following to the output step after the AC_OUTPUT

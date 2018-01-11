@@ -6,18 +6,21 @@ dnl Just having Kerberos directories doesn't mean you can build applications
 dnl with it....
 AC_DEFUN(AC_CHECK_KERBEROS,
 [AC_MSG_CHECKING(for Kerberos (/usr/kerberos))
+    used_cache=yes
     AC_CACHE_VAL(ac_cv_sys_kerberos, [dnl
         ac_cv_sys_kerberos="no"
+        used_cache=no
 	if test -d /usr/kerberos ; then
+	    AC_MSG_RESULT(yes)
 	    AC_CHECK_FUNC(ka_UserAuthenticateGeneral,ac_cv_sys_kerberos="yes")
-	else
-	    ac_cv_sys_kerberos="no"
 	fi
     ])
     if test "$ac_cv_sys_kerberos" = "yes"; then
 	AC_DEFINE(HAVE_KERBEROS)
     fi
-    AC_MSG_RESULT($ac_cv_sys_kerberos)
+    if test "$used_cache" = "yes" ; then
+        AC_MSG_RESULT($ac_cv_sys_kerberos)
+    fi
 ])
 
 dnl

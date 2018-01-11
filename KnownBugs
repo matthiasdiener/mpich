@@ -1,7 +1,7 @@
 This is a partial list of the known problems in MPICH. 
 
 
-Current as of Release 1.2.1
+Current as of Release 1.2.2
 
 General:
 ========
@@ -31,6 +31,7 @@ You may need to edit these files to fit the behavior of your debugger
 
 5. MPICH is not thread-safe.  A thread-safe version is in our plans.  More
 precisely, MPICH supports the MPI_THREAD_FUNNELED level of thread support.
+This is usually adequate for OpenMP loop-parallelism.
 
 6. The choice of default struct alignment is fixed and may not match your
 compiler.  The best fix is to use an MPI_UB when using MPI_Type_struct to
@@ -214,7 +215,7 @@ to MPIR_FROM_FLOG.
 LINUX:
 
 1. System include files in 2.1 before 2.1.128 have errors than can keep MPICH
-from compiling.  Update your version of LINUX to fix these problems.
+from compiling.  Update your version of Linux to fix these problems.
 
 FreeBSD:
 

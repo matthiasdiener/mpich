@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_Irec_assocs
+public class SLOG_Irec_assocs implements Serializable
 {
     public iarray  elems;
 

@@ -116,7 +116,8 @@ EXPORT_MPI_API void mpi_testall_( MPI_Fint *count, MPI_Fint array_of_requests[],
     }
     else
 	*__ierr = MPI_Testall((int)*count,(MPI_Request *)0,&lflag,c_status);
-    
+   
+    if (*__ierr != MPI_SUCCESS) return;
     *flag = MPIR_TO_FLOG(lflag);
     /* We must only copy for those elements that corresponded to non-null
        requests, and only if there is a change */

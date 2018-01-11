@@ -2,7 +2,7 @@ import java.util.*;
 import java.io.*;
 
 
-public class SLOG_ThreadInfos
+public class SLOG_ThreadInfos implements Serializable
 {
     private Vector threads;
 

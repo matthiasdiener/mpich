@@ -84,10 +84,17 @@ typedef struct {
 #define MPE_KIND_ATTR 0x80
 #define MPE_KIND_GROUP 0x100
 #define MPE_KIND_MSG_INIT 0x200
+#define MPE_KIND_FILE 0x400
+
 /* More as needed */
 
 /* Number of MPI routines; increase to allow user extensions */
+#ifdef HAVE_MPI_IO
+#define MPE_MAX_STATES 180
+void MPE_Init_MPIIO(void);
+#else
 #define MPE_MAX_STATES 128
+#endif
 static MPE_State states[MPE_MAX_STATES];
 /* Global trace control */
 static int trace_on = 0;
@@ -1703,6 +1710,10 @@ char *** argv;
 
   /* By default, log only message-passing (pt-to-pt and collective) */
   allow_mask = MPE_KIND_MSG | MPE_KIND_COLL;
+  /* And file operations, if included */
+#ifdef HAVE_MPI_IO
+  allow_mask |= MPE_KIND_FILE;
+#endif
   /* Should check environment and command-line for changes to allow_mask */
   
   /* We COULD read these definitions from a file, but accessing the file
@@ -2235,6 +2246,10 @@ char *** argv;
   state = &states[MPE_RECV_IDLE_ID];
   state->kind_mask = MPE_KIND_MSG;
   state->name = "RECV_IDLE";
+
+#ifdef HAVE_MPI_IO
+  MPE_Init_MPIIO();
+#endif
 
   /* Set default logfilename */  
 /*  sprintf( logFileName_0, "%s_profile.log", (*argv)[0] ); */
@@ -4213,3 +4228,7 @@ int MPI_Pcontrol(const int level, ...)
     trace_on = level;
     return MPI_SUCCESS;
 }
+
+#ifdef HAVE_MPI_IO
+#include "log_wrapio.c"
+#endif

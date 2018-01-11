@@ -7,15 +7,29 @@
 #endif
 
 #include "mpid_time.h"
+#if defined(HAVE_GETTIMEOFDAY) || defined(USE_WIERDGETTIMEOFDAY) || \
+    defined(HAVE_BSDGETTIMEOFDAY)
+/* do nothing */
+#elif defined(HAVE_CLOCK_GETRES) && defined(HAVE_CLOCK_GETTIME) &&\
+      !defined(MPID_CH_Wtime)
+#define USING_POSIX_CLOCK
+#include <time.h>
+#endif
 /* 
    This returns a value that is correct but not the best value that
    could be returned.
    It makes several separate stabs at computing the tickvalue.
 */
-void MPID_CH_Wtick( tick )
-double *tick;
+void MPID_CH_Wtick( double *tick )
 {
     static double tickval = -1.0;
+#if defined(USING_POSIX_CLOCK)
+    struct timespec tp;
+    if (tickval < 0.0) {
+	clock_getres( CLOCK_REALTIME, &tp );
+	tickval = (double)(tp.tv_sec) + 1.0e-9 * (double)(tp.tv_nsec);
+    }
+#else
     double t1, t2;
     int    cnt;
     int    icnt;
@@ -33,5 +47,6 @@ double *tick;
 		tickval = t2 - t1;
 	}
     }
+#endif
     *tick = tickval;
 }

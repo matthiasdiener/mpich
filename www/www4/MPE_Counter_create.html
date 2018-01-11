@@ -9,9 +9,19 @@
 create and initialize shared counter (process) 
 <H2>Synopsis</H2>
 <PRE>
-
 int MPE_Counter_create( oldcomm, smaller_comm, counter_comm )
 MPI_Comm  oldcomm,  *smaller_comm,  *counter_comm;
 </PRE>
+<H2>Input Parameter</H2>
+<DL><DT><B>oldcomm </B> <DD> Communicator to 
+</DL>
+<P>
+<H2>Output Parameters</H2>
+<TABLE BORDER=0>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>smaller_comm </B></TD><TD VALIGN=TOP>
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>counter_comm </B></TD><TD VALIGN=TOP>Duplicate of <TT>oldcomm
+</TT><BR></TD></TR></TABLE>
+<P>
 <P><B>Location:</B>mpe_counter.c<P>
 </BODY></HTML>

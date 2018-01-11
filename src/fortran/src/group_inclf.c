@@ -103,6 +103,6 @@ EXPORT_MPI_API void mpi_group_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fint *ra
 	
 	FREE( l_ranks );
     }
-
-    *group_out = MPI_Group_c2f(l_group_out);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *group_out = MPI_Group_c2f(l_group_out);
 }

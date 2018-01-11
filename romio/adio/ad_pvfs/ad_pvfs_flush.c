@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pvfs_flush.c,v 1.3 2000/02/09 21:29:56 thakur Exp $    
+ *   $Id: ad_pvfs_flush.c,v 1.4 2000/11/03 20:17:43 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,6 +10,9 @@
 void ADIOI_PVFS_Flush(ADIO_File fd, int *error_code)
 {
     int err;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_PVFS_FLUSH";
+#endif
 
     err = pvfs_fsync(fd->fd_sys);
 

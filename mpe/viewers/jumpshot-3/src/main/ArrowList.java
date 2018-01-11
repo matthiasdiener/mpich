@@ -30,7 +30,7 @@ public class ArrowList extends Vector
         String            entry_classtype;
         String            entry_description;
 
-        Enumeration profile = slog_profile.entries.elements();
+        Enumeration profile = slog_profile.GetEnumerationOfEntries();
         while (    profile.hasMoreElements()
                 && (    itype4_forward_arrow  == invalid_itype
                      || itype4_backward_arrow == invalid_itype  ) ) {

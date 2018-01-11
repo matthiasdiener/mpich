@@ -72,6 +72,8 @@ void MPID_IrecvDatatype ( struct MPIR_COMMUNICATOR *, void *, int,
 			  struct MPIR_DATATYPE *, 
 			  int, int, int, MPI_Request, int * );
 
+void MPID_Status_set_bytes( MPI_Status *, int );
+
 /* Pack and unpack support */
 void MPID_Msg_rep ( struct MPIR_COMMUNICATOR *, int, 
 		    struct MPIR_DATATYPE *, MPID_Msgrep_t *, 

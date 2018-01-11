@@ -1,6 +1,6 @@
 #include "mpdman.h"
 #include "mpd.h"
-#include "bnr.h"
+#include "bnr.h"		/* for info length parameters only, temporarily */
 
 struct fdentry fdtable[MAXFDENTRIES];
 extern int fdtable_high_water_mark;
@@ -28,8 +28,8 @@ int jobdeadcntr = -1;
 int parent_in_tree_port = -1;
 int man_client_msgs_fds[2];
 int allexit_received = 0;
-int prebuild_print_tree = 0, line_labels = 0;
-int stdintarget = 0;
+int prebuild_print_tree = 0, gdb = 0, tvdebug = 0;
+int line_labels = 0, whole_lines = 0, stdintarget = 0;
 char parent_in_tree_hostname[MAXHOSTNMLEN];
 char myhostname[MAXHOSTNMLEN];
 double timestamp_begin_execution, timestamp_jobgo_rcvd;
@@ -38,11 +38,19 @@ int debug;
 char myid[IDSIZE];
 
 int client_signal_status = NOT_ACCEPTING_SIGNALS;
+static char client_pgm_name[MAXLINE];
 
-BNR_gid grp[1024];
-char attrs[1024][BNR_MAXATTRLEN];
-char vals[1024][BNR_MAXVALLEN];
-int av_idx = 0;
+struct av_pairs_by_group
+{
+    int  group;			
+    char attr[BNR_MAXATTRLEN];
+    char val[BNR_MAXVALLEN];
+}  av_pairs[1024];
+int  av_idx = 0;
+
+int  temp_group;
+char temp_attr[BNR_MAXATTRLEN];
+char temp_val[BNR_MAXATTRLEN];
 
 int client_fenced_in = 0;
 int bnr_fence_in_msg_here = 0, bnr_fence_cnt = 0;
@@ -55,7 +63,6 @@ int main( int argc, char *argv[], char *envp[] )
     struct timeval tv;
     fd_set readfds, writefds;
     char buf[MAXLINE];
-    char client_pgm_name[MAXLINE];
     int  listener_fd, listener_idx, conport;
     int  mpd_man_fd;
     char conhost[MAXHOSTNMLEN];
@@ -64,7 +71,10 @@ int main( int argc, char *argv[], char *envp[] )
     char *client_env[50];
     char  env_man_client_listener[MAXLINE];
     char  env_client_listener_fd[MAXLINE];
-    char  env_path_for_exec[MAXLINE];
+    char  env_path_for_exec[MAXLINE], env_tvdebug[MAXLINE];
+    char  gmpi_shmem_file[MAXLINE]="GMPI_SHMEM_FILE=/tmp/mpi-gm_smp.tmp";
+    char  gmpi_opts[MAXLINE];
+    int   myrinet_job = 0;
     char  pwd_for_exec[MAXLINE];
 #ifdef NEED_PWENT
     struct passwd *pwent;
@@ -74,12 +84,17 @@ int main( int argc, char *argv[], char *envp[] )
     char cmd[MAXLINE];
     int optval = 1;
     char *shmemkey, *shmemgrpsize, *shmemgrprank;
+    char *myrinet_port_number;
+    int version;
 
     sprintf( myid, "man_%s", getenv( "MPD_JRANK" ) );
-    mpdprintf( 000, "manager starting\n" );
+
+    mpdprintf( 0, "manager starting; pid=%d\n",getpid() );
 
     myrank = atoi( getenv( "MPD_JRANK" ) );
     jobsize = atoi( getenv( "MPD_JSIZE" ) );
+
+    gethostname( myhostname, MAXHOSTNMLEN );
 
     if ( myrank == 0 )
 	timestamp_begin_execution = mpd_timestamp();
@@ -101,24 +116,34 @@ int main( int argc, char *argv[], char *envp[] )
     strcpy( conhost, getenv( "MAN_CONHOST" ) );
     conport = atoi( getenv( "MAN_CONPORT" ) );
     prebuild_print_tree = atoi( getenv( "MAN_PREBUILD_PRINT_TREE" ) );
+    gdb = atoi( getenv( "MAN_GDB" ) );
+    tvdebug = atoi( getenv( "MAN_TVDEBUG" ) );
     line_labels = atoi( getenv( "MAN_LINE_LABELS" ) );
+    whole_lines = atoi( getenv( "MAN_WHOLE_LINES" ) );
     debug = atoi( getenv( "MAN_DEBUG" ) );
     /* debug = 1; */
     
-    /* plant shmemkey, shmemgrpsize, and shmemgrprank, if they exit, in BNR database */
+    /* plant shmemkey, shmemgrpsize, and shmemgrprank, if they exist, in BNR database */
     if ( ( shmemkey = getenv( "MPD_SHMEMKEY" ) ) != NULL ) {
-	strcpy( attrs[av_idx], "SHMEMKEY" );
-	strcpy( vals[av_idx],  shmemkey );
+	strcpy( av_pairs[av_idx].attr, "SHMEMKEY" );
+	strcpy( av_pairs[av_idx].val,  shmemkey );
 	av_idx++;
     }
     if ( ( shmemgrpsize = getenv( "MPD_SHMEMGRPSIZE" ) ) != NULL ) {
-	strcpy( attrs[av_idx], "SHMEMGRPSIZE" );
-	strcpy( vals[av_idx],  shmemgrpsize );
+	strcpy( av_pairs[av_idx].attr, "SHMEMGRPSIZE" );
+	strcpy( av_pairs[av_idx].val,  shmemgrpsize );
 	av_idx++;
     }
     if ( ( shmemgrprank = getenv( "MPD_SHMEMGRPRANK" ) ) != NULL ) {
-	strcpy( attrs[av_idx], "SHMEMGRPRANK" );
-	strcpy( vals[av_idx],  shmemgrprank );
+	strcpy( av_pairs[av_idx].attr, "SHMEMGRPRANK" );
+	strcpy( av_pairs[av_idx].val,  shmemgrprank );
+	av_idx++;
+    }
+    /* plant rank-host-port, if they exist, in BNR database, for use by myrinet jobs */
+    if ( ( myrinet_port_number = getenv( "MPD_MYRINET_PORT" ) ) != NULL ) { 
+	myrinet_job = 1;
+	sprintf( av_pairs[av_idx].attr, "MYRINET_INFO_%d", myrank );
+	sprintf( av_pairs[av_idx].val, "%s__%s", myhostname, myrinet_port_number );
 	av_idx++;
     }
 
@@ -132,7 +157,6 @@ int main( int argc, char *argv[], char *envp[] )
     init_fdtable();
     init_proctable();
 
-    gethostname( myhostname, MAXHOSTNMLEN );
 
     /* Set up listener port.  The fd has been acquired by the mpd before the manager is
        created, and comes in as the first command-line argument. This will be an 
@@ -311,7 +335,8 @@ int main( int argc, char *argv[], char *envp[] )
 	my_listener_port = 0;
 	listener_fd = setup_network_socket( &my_listener_port );  
 	strcpy( fdtable[listener_idx].name, "listener" );
-	mpdprintf( debug, "setup listener socket for client on port=%d\n", my_listener_port);
+	mpdprintf( debug, "setup listener socket for client on port=%d\n",
+		   my_listener_port);
         sprintf( env_client_listener_fd, "CLIENT_LISTENER_FD=%d", listener_fd );
 	client_env[j++] = env_client_listener_fd;
 	client_env[j]   = NULL;
@@ -321,30 +346,109 @@ int main( int argc, char *argv[], char *envp[] )
 	client_env[j++] = env_path_for_exec;
 	client_env[j]   = NULL;
 
+	if ( tvdebug ) {
+	    sprintf( env_tvdebug, "MPD_TVDEBUG=%s", getenv( "MAN_TVDEBUG" ) );
+	    client_env[j++] = env_tvdebug;
+	    client_env[j]   = NULL;
+	}
+
+	/* Here is where we add environment vars for myrinet mpi jobs */
+	/* This should probably be protected with "if myrinet_job" but
+	   doesn't cause much harm as it is */
+	sprintf(gmpi_opts,"GMPI_OPTS=m%d,n%d", myrank, jobsize);
+	client_env[j++] = gmpi_opts;
+	client_env[j]   = NULL;
+	client_env[j++] = gmpi_shmem_file;
+	client_env[j]   = NULL;
+
 	for ( i=0; client_env[i]; i++ ) {
 	    putenv( client_env[i] );
+	    mpdprintf( debug, "client env: %s\n", client_env[i] );
 	}
 
 	sprintf( buf, "cmd=alive port=%d\n", my_listener_port );
 	send_msg( man_client_msgs_fds[1], buf, strlen( buf ) );
 	rc = read_line( man_client_msgs_fds[1], buf, 256 );
-	mpdprintf( 0, "GO from parent=:%s:, rc=%d\n", buf, rc );
-	parse_keyvals( buf );
-	getval( "cmd", cmd );
+	mpdprintf( debug, "got msg from parent=:%s:, rc=%d\n", buf, rc );
+	mpd_parse_keyvals( buf );
+	mpd_getval( "cmd", cmd );
 	if ( strcmp( cmd, "cligo" ) != 0 ) {
 	    mpdprintf( 1, "OOPS: recvd %s when expecting cligo\n",cmd);
 	    exit(-1);
 	}
-	mpdprintf( debug, "execvp-ing program %s\n", client_pgm_name );
-	argv[0] = client_pgm_name;
-	
+
+	/* Prepare to execute myrinet job by collecting rank-host-myrport
+	   info from other managers and writing a file for use by MPICH-GM
+	   Note we have just essentially fenced with the other clients, by
+	   waiting for the cligo message, so we can do gets */
+	if ( myrinet_job ) {
+	    /* get pointer unique file name */
+	    char *p, *myr_filename = tmpnam( NULL );
+	    FILE *fp = fopen( myr_filename, "w" );
+	    char val[MAXHOSTNMLEN+8];
+	    if ( !fp ) {
+		mpdprintf( 1, "cli_before_exec:  could not open myrinet host file\n" );
+		exit( -1 );
+	    }
+	    fprintf( fp, "%d\n", jobsize );
+	    /* get myrinet host and port information for each rank and write into file */ 
+	    for (i=0; i < jobsize; i++) {
+		sprintf( buf, "cmd=client_bnr_get gid=%d attr=MYRINET_INFO_%d\n", 0, i );
+
+		write( man_client_msgs_fds[1], buf, strlen(buf) );
+		if ( read_line( man_client_msgs_fds[1], buf, MAXLINE ) <= 0 ) {
+		    mpdprintf( 1, "cli_before_exec: read for myrinet port info failed\n" );
+		    exit( -1 );
+		}
+		mpdprintf( debug, "from simulated BNR_Get :%s:\n", buf );
+		mpd_parse_keyvals( buf );
+		mpd_getval( "cmd", buf );
+		if ( strcmp( "client_bnr_get_output", buf ) == 0 ) {
+		    if ( ! mpd_getval( "val", val ) )
+			exit( -1 );
+		}
+		else if ( strcmp( "client_bnr_get_failed", buf ) == 0 ) {
+		    mpdprintf( 1, "client_bnr_get failed\n", buf );
+		    exit( -1 );  
+		}
+		else {
+		    mpdprintf( 1, "expecting client_bnr_get_output; got :%s:\n", buf );
+		    exit( -1 );  
+		}
+		p = strrchr( val, '_' ); /* find the '__' between host and port */
+		*(p - 1) = ' ';
+		*(p)     = ' ';	         /* replace underscores with blanks */
+		fprintf( fp, "%s\n", val );
+	    }
+	    fclose( fp );
+	    sprintf( buf, "GMPI_CONF=%s", myr_filename );
+	    putenv( buf );
+	}
+
+	version = atoi( getenv( "MPD_VERSION" ) );
+	if ( version != MPD_VERSION ) {
+	    mpdprintf( 1, "version mismatch:  mpd's version is %d, manager's is %d\n",
+		       version, MPD_VERSION );
+	    exit( -1 );
+	}
+
 	strcpy( pwd_for_exec, getenv( "PWD" ) );
 	mpdprintf( debug, "pwdforexec=:%s:\n", pwd_for_exec );
 	rc = chdir( pwd_for_exec );
+        if (rc < 0)
+	    chdir( getenv( "HOME" ) );
 	
 	client_signal_status = NOT_ACCEPTING_SIGNALS;
+	mpdprintf( debug, "execvp-ing program %s\n", client_pgm_name );
+	argv[0] = client_pgm_name;
 	rc = execvp( client_pgm_name, argv );
-	error_check( rc, "execvp" );
+	sprintf( buf, 
+		 "cmd=abort_job job=%s rank=%d abort_code=0 "
+		 "by=mpdman reason=execvp_failed info=%s\n",
+		 getenv( "MPD_JID" ), myrank, client_pgm_name );
+	write_line( rhs_idx, buf );
+	dclose( fdtable[rhs_idx].fd );
+	exit(-1);
     }
     else {			/* parent (manager) process */
 	client_pid = pid;
@@ -399,14 +503,16 @@ int main( int argc, char *argv[], char *envp[] )
 	for ( i = 0; i <= fdtable_high_water_mark; i++ )
             if ( fdtable[i].active ) 
                 if ( FD_ISSET( fdtable[i].fd, &readfds ) )
-                    handle_input_fd( i );
+                    man_handle_input_fd( i );
     }
+    sprintf( buf, "cmd=terminating jobid=%s\n", getenv( "MPD_JID" ) );
+    write_line( parent_mpd_idx, buf );
     man_cleanup();
     mpdprintf( debug, "manager exiting\n");
     return(0);
 }
 
-void handle_input_fd( idx )
+void man_handle_input_fd( idx )
 int idx;
 {
     if ( fdtable[idx].handler == NOTSET )
@@ -448,7 +554,7 @@ void handle_listen_input( int idx )
     tmp_idx = allocate_fdentry();
     fdtable[tmp_idx].fd      = accept_connection( fdtable[idx].fd );
     fdtable[tmp_idx].read    = 1;
-    if ( (length = read_line(fdtable[tmp_idx].fd, message, MAXLINE ) ) != 0 )
+    if ( (length = read_line(fdtable[tmp_idx].fd, message, MAXLINE ) ) > 0 )
         mpdprintf( debug, "handle_listen_input: message from tmp_idx to handle = :%s: (read %d)\n",
 		   message, length );
     else {
@@ -456,8 +562,8 @@ void handle_listen_input( int idx )
 	return;
     }
     strcpy( tmpbuf, message );             
-    parse_keyvals( tmpbuf );
-    getval( "cmd", cmd );
+    mpd_parse_keyvals( tmpbuf );
+    mpd_getval( "cmd", cmd );
     if ( strcmp( cmd, "new_man_lhs" ) == 0 ) {
         lhs_idx = tmp_idx;
 	fdtable[lhs_idx].handler = LHS_MSGS;
@@ -506,7 +612,7 @@ void handle_con_stdin_input( int idx )
 
 	/* forward if it is for a specific other process */
 	if ( stdintarget != myrank ) {
-	    stuff_arg( message, stuffed );
+	    mpd_stuff_arg( message, stuffed );
 	    mpdprintf( debug, "handle_con_stdin_input: sending :%s:\n", stuffed );
 	    sprintf( fwdbuf, "cmd=stdin torank=%d message=%s",  /* nl already on message */
 		     stdintarget, stuffed );
@@ -514,7 +620,8 @@ void handle_con_stdin_input( int idx )
 	}
 	/* send it to our client's stdin if it is for us or for all */
 	if ( stdintarget == myrank || stdintarget == -1 ) {
-	    mpdprintf( debug, "sending length %d to client :%s:\n", length, message );
+	    mpdprintf( 000, "sending length %d to client fd=%d msg=:%s:\n", 
+		       length, stdin_pipe_fds[1], message );
 	    send_msg( stdin_pipe_fds[1], message, length );
 	}
     }
@@ -542,15 +649,15 @@ void handle_parent_mpd_input( int idx )
         mpdprintf( debug, "from parent mpd, length=%d, msg=:%s:\n", length, buf );
 
 	strcpy( message, buf );   /* copy into message for forwarding */
-	parse_keyvals( buf );
-	getval( "cmd", cmdval );
+	mpd_parse_keyvals( buf );
+	mpd_getval( "cmd", cmdval );
         if ( strlen(cmdval) == 0 ) {
             mpdprintf( 1, "no command specified in msg from parent mpd :%s:\n", buf );
 	}
 	else if ( strcmp( cmdval, "mandump" ) == 0 ) {
 	    mpdprintf( 000, "handle_parent_mpd_input: cmd=mandump\n" );
 	    /* formulate the dump output and send it up as cmd=mandump_output */
-	    getval( "what", what );
+	    mpd_getval( "what", what );
 	    if ( strcmp( what, "all" ) != 0 ) 
 		mpdprintf( 1, "mandump:  don't know how to dump %s\n", what );
 	    else {
@@ -562,7 +669,7 @@ void handle_parent_mpd_input( int idx )
 	    }
 	}
 	else if ( strcmp( cmdval, "signaljob" ) == 0 )  {
-	    getval( "signo", signo );
+	    mpd_getval( "signo", signo );
 	    signum = map_signo( signo );
 	    mpdprintf( debug, "signalling %s (%d) to client process %d\n",
 		       signo, signum, client_pid );
@@ -586,7 +693,7 @@ void handle_parent_mpd_input( int idx )
 
 void handle_con_cntl_input( int idx )
 {
-    int length, stdinval;
+    int  i, length, stdinval;
     char message[MAXLINE], buf[MAXLINE];
     char cmdval[MAXLINE], signo[MAXLINE];
     char stdinstr[8];
@@ -596,8 +703,8 @@ void handle_con_cntl_input( int idx )
         mpdprintf( debug, "from cntl, length=%d, msg=:%s:\n", length, message );
 
 	strcpy( buf, message );             
-	parse_keyvals( message );
-	getval( "cmd", cmdval );
+	mpd_parse_keyvals( message );
+	mpd_getval( "cmd", cmdval );
         if ( strlen(cmdval) == 0 ) {
             mpdprintf( 1, "no command specified in msg from console :%s:\n", buf );
 	}
@@ -605,7 +712,7 @@ void handle_con_cntl_input( int idx )
 	    write_line( rhs_idx, buf );
 	}
 	else if ( strcmp( cmdval, "set" ) == 0 ) {
-	    if ( getval( "stdin", stdinstr ) ) {
+	    if ( mpd_getval( "stdin", stdinstr ) ) {
 		if ( strcmp( stdinstr, "all" ) == 0 )
 		    stdinval = -1;
 		else
@@ -620,17 +727,31 @@ void handle_con_cntl_input( int idx )
 	    }
 	}
 	else if ( strcmp( cmdval, "con_bnr_put" ) == 0 ) {
-	    getval( "attr", attrs[av_idx] );
-	    getval( "val", vals[av_idx] );
-	    grp[av_idx] = atoi( getval( "gid", buf ) );
-	    mpdprintf( debug, "manager got con_bnr_put command, attr=%s val=%s gid=%d\n",
-	               attrs[av_idx], vals[av_idx], grp[av_idx] );
-	    av_idx++;
+	    mpd_getval( "attr", temp_attr );
+	    mpd_getval( "val", temp_val );
+	    temp_group = atoi( mpd_getval( "gid", buf ) );
+	    for ( i=0; i < av_idx; i++ )
+	    {
+	        if ( temp_group == av_pairs[i].group  &&
+		     strcmp( temp_attr, av_pairs[i].attr ) == 0 )
+		{
+		    strcpy( av_pairs[i].val, temp_val );
+		    break;
+		}
+	    }
+	    if ( i >= av_idx )
+	    {
+		av_pairs[av_idx].group = temp_group;
+	        strcpy( av_pairs[av_idx].attr, temp_attr );
+	        strcpy( av_pairs[av_idx].val, temp_val );
+		av_idx++;
+	    }
 	}
 	else if ( strcmp( cmdval, "signal" ) == 0 ) {
-	    getval( "signo", signo );
+	    mpd_getval( "signo", signo );
 	    mpdprintf( debug, "manager got signal command, signal=%s\n", signo );
 	    sig_all( signo );
+	    /* tell mpd to kill job (for insurance) */
 	    if ( strcmp( signo, "SIGINT" ) == 0 ) {
 		sprintf( buf, "cmd=killjob jobid=%s\n", getenv( "MPD_JID" ) );
 		write_line( parent_mpd_idx, buf );
@@ -649,6 +770,11 @@ void handle_con_cntl_input( int idx )
 	    else {
 		allexit_received = 1;
 	    }
+	}
+	else if ( strcmp( cmdval, "client_release" ) == 0 ) {
+	    mpdprintf( debug, "handle_con_cntl_input: handling client_release\n" );
+	    sprintf( buf, "cmd=client_release\n" );
+	    write_line( rhs_idx, buf );
 	}
 	else 
 	    mpdprintf( 1, "unrecognized command :%s: from console on cntl\n", cmdval );
@@ -675,7 +801,11 @@ void handle_tree_stdout_input( int idx )
     if ( myrank != 0  && parent_in_tree_port == -1 )  /* no parent info yet */
 	return;
     mpdprintf( debug, "handling tree stdout input in manager\n" );
-    if ( ( n = read( fdtable[idx].fd, buf, STREAMBUFSIZE ) ) > 0 ) {
+    if ( whole_lines )
+	n = read_line( fdtable[idx].fd, buf, STREAMBUFSIZE );
+    else
+        n = read( fdtable[idx].fd, buf, STREAMBUFSIZE );
+    if ( n > 0 ) {
 	if ( debug )
 	    buf[n] = '\0';  /* for debug printing */
 	if ( con_stdout_idx == -1 ) {
@@ -741,7 +871,11 @@ void handle_client_stdout_input( int idx )
 	else if ( myrank < 1000 ) offset = 1;
 	else offset = 0;
 
-	if ( ( n = read( fdtable[idx].fd, readinto, readsize ) ) > 0 ) {
+        if ( whole_lines )
+	    n = read_line( fdtable[idx].fd, readinto, readsize );
+	else
+	    n = read( fdtable[idx].fd, readinto, readsize );
+	if ( n > 0 ) {
 	    if ( con_stdout_idx == -1 ) {
 		mpdprintf( debug, "setting up stdout upwards in tree\n" );
 		con_stdout_idx       = allocate_fdentry();
@@ -794,7 +928,7 @@ void handle_client_stdout_input( int idx )
 
 		/* special code to handle prompts */
 		if ( strncmp( buf + 6, ">>> ", 4 ) == 0 ||    /* for testing w/itest */
-		     strncmp( buf + 6, "(gdb)", 5 ) == 0 )
+		    strncmp( buf + 6, "(gdb)", 5 ) == 0 )
 		    neednum = 1;
 	    }
 	    else
@@ -802,7 +936,11 @@ void handle_client_stdout_input( int idx )
 	}
     }
     else {
-	if ( ( n = read( fdtable[idx].fd, buf, STREAMBUFSIZE ) ) > 0 ) {
+        if ( whole_lines )
+	    n = read_line( fdtable[idx].fd, buf, STREAMBUFSIZE );
+	else
+	    n = read( fdtable[idx].fd, buf, STREAMBUFSIZE );
+	if ( n > 0 ) {
 	    if ( con_stdout_idx == -1 ) {
 		mpdprintf( debug, "setting up stdout upwards in tree\n" );
 		con_stdout_idx       = allocate_fdentry();
@@ -844,13 +982,18 @@ void handle_client_stdout_input( int idx )
 void handle_tree_stderr_input( int idx )
 {
     int n;
-    char buf[STREAMBUFSIZE];
+    char buf[STREAMBUFSIZE], tmpbuf[STREAMBUFSIZE];
     
     /* in general, this goes to a stderr port up in tree, console for rank 0*/
     if ( myrank != 0  && parent_in_tree_port == -1 )  /* no parent info yet */
 	return;
     mpdprintf( debug, "handling tree stderr input in manager\n" );
-    if ( ( n = read( fdtable[idx].fd, buf, STREAMBUFSIZE ) ) > 0 ) {
+    if ( whole_lines )
+	n = read_line( fdtable[idx].fd, buf, STREAMBUFSIZE );
+    else
+        n = read( fdtable[idx].fd, buf, STREAMBUFSIZE );
+    mpdprintf( debug, "handling tree stderr input in manager len=%d buf=:%s:\n", n, buf );
+    if ( n > 0 ) {
 	if ( debug )
 	    buf[n] = '\0';  /* for debug printing */
 	if ( con_stderr_idx == -1 ) {
@@ -861,16 +1004,16 @@ void handle_tree_stderr_input( int idx )
 	    fdtable[con_stderr_idx].write   = 1;
 	    fdtable[con_stderr_idx].portnum = parent_in_tree_port;
 	    strcpy(fdtable[con_stderr_idx].name, "con_stderr" );
-	    sprintf( buf, "cmd=new_stderr_stream\n" );
-	    write_line( con_stderr_idx, buf );
+	    sprintf( tmpbuf, "cmd=new_stderr_stream\n" );
+	    write_line( con_stderr_idx, tmpbuf );
 	    if ( jobdeadcntr >= 0 ) {
-	        sprintf( buf, "cmd=jobdeadcntr cntr=0 dest=anyone\n" );
-	        write_line( rhs_idx, buf );
+	        sprintf( tmpbuf, "cmd=jobdeadcntr cntr=0 dest=anyone\n" );
+	        write_line( rhs_idx, tmpbuf );
 		jobdeadcntr = -1;
 	    }
 	}
-	mpdprintf( 0,
-		   "handle_tree_stdout_input: FORWARDING stdout"
+	mpdprintf( debug,
+		   "handle_tree_stderr_input: FORWARDING stderr"
 		   " n=%d fromidx=%d handler=%s toidx=%d tofd=%d buf=|%s|\n",
 		   n, idx, phandler(fdtable[idx].handler), con_stdout_idx, 
 		   fdtable[con_stdout_idx].fd, buf);
@@ -893,7 +1036,7 @@ void handle_tree_stderr_input( int idx )
 void handle_client_stderr_input( int idx )
 {
     int n, readsize, writesize, offset;
-    char buf[STREAMBUFSIZE];
+    char buf[STREAMBUFSIZE], tmpbuf[STREAMBUFSIZE];
     char *writefrom, *readinto;
     static int neednum = 1;	/* flag to say whether the next buffer passed through here
 				   needs a line label, if we are handling line labels */
@@ -914,7 +1057,11 @@ void handle_client_stderr_input( int idx )
 	else if ( myrank < 1000 ) offset = 1;
 	else offset = 0;
 
-	if ( ( n = read( fdtable[idx].fd, readinto, readsize ) ) > 0 ) {
+        if ( whole_lines )
+	    n = read_line( fdtable[idx].fd, readinto, readsize );
+        else
+            n = read( fdtable[idx].fd, readinto, readsize );
+	if ( n > 0 ) {
 	    if ( con_stderr_idx == -1 ) {
 		con_stderr_idx       = allocate_fdentry();
 		fdtable[con_stderr_idx].fd = 
@@ -923,11 +1070,11 @@ void handle_client_stderr_input( int idx )
 		fdtable[con_stderr_idx].write   = 1;
 		fdtable[con_stderr_idx].portnum = parent_in_tree_port;
 		strcpy(fdtable[con_stderr_idx].name, "con_stderr" );
-		sprintf( buf, "cmd=new_stderr_stream\n" );
-		write_line( con_stderr_idx, buf );
+		sprintf( tmpbuf, "cmd=new_stderr_stream\n" );
+		write_line( con_stderr_idx, tmpbuf );
 	        if ( jobdeadcntr >= 0 ) {
-	            sprintf( buf, "cmd=jobdeadcntr cntr=0 dest=anyone\n" );
-	            write_line( rhs_idx, buf );
+	            sprintf( tmpbuf, "cmd=jobdeadcntr cntr=0 dest=anyone\n" );
+	            write_line( rhs_idx, tmpbuf );
 		    jobdeadcntr = -1;
 	        }
 	    }
@@ -964,7 +1111,7 @@ void handle_client_stderr_input( int idx )
 
 		/* special code to handle prompts */
 		if ( strncmp( buf + 6, ">>> ", 4 ) == 0 ||    /* for testing w/itest */
-		     strncmp( buf + 6, "(gdb)", 5 ) == 0 )
+		    strncmp( buf + 6, "(gdb)", 5 ) == 0 )
 		    neednum = 1;
 	    }
 	    else
@@ -972,7 +1119,11 @@ void handle_client_stderr_input( int idx )
 	}
     }
     else {
-	if ( ( n = read( fdtable[idx].fd, buf, STREAMBUFSIZE ) ) > 0 ) {
+        if ( whole_lines )
+	    n = read_line( fdtable[idx].fd, buf, STREAMBUFSIZE );
+        else
+            n = read( fdtable[idx].fd, buf, STREAMBUFSIZE );
+	if ( n > 0 ) {
 	    if ( con_stderr_idx == -1 ) {
 		con_stderr_idx       = allocate_fdentry();
 		fdtable[con_stderr_idx].fd = 
@@ -981,11 +1132,11 @@ void handle_client_stderr_input( int idx )
 		fdtable[con_stderr_idx].write   = 1;
 		fdtable[con_stderr_idx].portnum = parent_in_tree_port;
 		strcpy(fdtable[con_stderr_idx].name, "con_stderr" );
-		sprintf( buf, "cmd=new_stderr_stream\n" );
-		write_line( con_stderr_idx, buf );
+		sprintf( tmpbuf, "cmd=new_stderr_stream\n" );
+		write_line( con_stderr_idx, tmpbuf );
 	        if ( jobdeadcntr >= 0 ) {
-	            sprintf( buf, "cmd=jobdeadcntr cntr=0 dest=anyone\n" );
-	            write_line( rhs_idx, buf );
+	            sprintf( tmpbuf, "cmd=jobdeadcntr cntr=0 dest=anyone\n" );
+	            write_line( rhs_idx, tmpbuf );
 		    jobdeadcntr = -1;
 	        }
 	    }
@@ -1012,14 +1163,17 @@ void handle_client_stderr_input( int idx )
 void handle_client_msgs_input( int idx )
 {
     char buf[MAXLINE];
+    int rc;
 
     mpdprintf( debug, "manager handling client_msgs input\n" );
-    if ( read_line( fdtable[idx].fd, buf, MAXLINE ) != 0 ) {
+    if ( ( rc = read_line( fdtable[idx].fd, buf, MAXLINE ) ) > 0 ) {
         mpdprintf( debug, "manager received :%s: from client\n", buf );
-	parse_keyvals( buf );
-	getval( "cmd", buf );
+	mpd_parse_keyvals( buf );
+	mpd_getval( "cmd", buf );
 	if ( strcmp( buf, "alive" ) == 0 )
 	    man_cli_alive( fdtable[idx].fd );
+	else if ( strcmp( buf, "client_ready" ) == 0 )
+	    man_cli_client_ready( fdtable[idx].fd );
 	else if ( strcmp( buf, "accepting_signals" ) == 0 )
 	    man_cli_accepting_signals( fdtable[idx].fd );
 	else if ( strcmp( buf, "abort_job" ) == 0 )
@@ -1036,11 +1190,29 @@ void handle_client_msgs_input( int idx )
 	    man_cli_bnr_fence_in( fdtable[idx].fd );
     }
     else {                        /* client gone away */
-        mpdprintf( debug, "manager lost contact with client\n" );
+        mpdprintf( debug, "manager read from client returned %d\n", rc );
         dclose( fdtable[idx].fd ); 
         deallocate_fdentry( idx );
 	client_state = CLDEAD;	  /* mark client as dead */
 	waitpid( client_pid, &client_stat, 0 );
+	if ( !WIFEXITED(client_stat) ) {
+	    char sigdesc[MAXLINE];
+
+	    mpdprintf( 1, "application program exited abnormally with status %d\n",
+		       WEXITSTATUS(client_stat) );
+	    if ( WIFSIGNALED(client_stat) ) {
+#if defined(HAVE_STRSIGNAL)
+		sprintf( sigdesc, ": %s", strsignal(WTERMSIG(client_stat)) );
+#else
+		sigdesc[0] = '\0';
+#endif
+		mpdprintf( 1, "application program signaled with signal %d%s\n",
+			   WTERMSIG(client_stat), sigdesc);
+	    }
+	    /* behave as if received abort message from client */
+	    sprintf( buf, "cmd=killjob jobid=%s\n", getenv( "MPD_JID" ) );
+	    write_line( parent_mpd_idx, buf );
+	}
 	if ( myrank == 0 ) {
 	    /* force it to 0 while I handle my child's final I/O */
 	    sprintf( buf, "cmd=jobdeadcntr cntr=0 dest=anyone\n" );
@@ -1063,8 +1235,8 @@ void handle_client_msgs_input( int idx )
 
 void handle_lhs_msgs_input( int idx )
 {
-    int length, destrank, rank;
-    char message[MAXLINE], fwdbuf[MAXLINE], buf[MAXLINE];
+    int  i,length, destrank, rank;
+    char message[MAXLINE], fwdbuf[MAXLINE], buf[MAXLINE], tmpbuf[MAXLINE];
     char cmdval[MAXLINE], dest[MAXLINE];
     int optval = 1;
 
@@ -1073,8 +1245,8 @@ void handle_lhs_msgs_input( int idx )
         mpdprintf( debug, "msg from lhs :%s:\n", message );
 
 	strcpy( fwdbuf, message );             
-	parse_keyvals( message );
-	getval( "cmd", cmdval );
+	mpd_parse_keyvals( message );
+	mpd_getval( "cmd", cmdval );
         if ( strlen(cmdval) == 0 ) {
             mpdprintf( 1, "no command specified in msg from lhs :%s:\n", fwdbuf );
 	}
@@ -1125,7 +1297,7 @@ void handle_lhs_msgs_input( int idx )
 	}
 	else if ( strcmp( cmdval, "jobdeadcntr" ) == 0 )
 	{
-	    jobdeadcntr = atoi( getval( "cntr", buf ) );
+	    jobdeadcntr = atoi( mpd_getval( "cntr", buf ) );
 	    mpdprintf( debug, "received jobdeadcntr=%d\n", jobdeadcntr );
 	    if ( jobdeadcntr == jobsize ) {
 		if ( myrank == 0 ) {
@@ -1210,8 +1382,8 @@ void handle_lhs_msgs_input( int idx )
 		fdtable[con_stderr_idx].write   = 1;
 		fdtable[con_stderr_idx].portnum = parent_in_tree_port;
 		strcpy(fdtable[con_stderr_idx].name, "con_stderr" );
-		sprintf( buf, "cmd=new_stderr_stream\n" );
-		write_line( con_stderr_idx, buf );
+		sprintf( tmpbuf, "cmd=new_stderr_stream\n" );
+		write_line( con_stderr_idx, tmpbuf );
 	    }
 
 	    if ( myrank != 0 )
@@ -1222,10 +1394,10 @@ void handle_lhs_msgs_input( int idx )
 	}
 	else if ( strcmp( cmdval, "id_of_parent_in_tree" ) == 0 )
 	{
-	    destrank = atoi( getval( "destrank", buf ) );
+	    destrank = atoi( mpd_getval( "destrank", buf ) );
 	    if ( destrank == myrank ) {
-	        getval( "srchost", parent_in_tree_hostname );
-	        parent_in_tree_port = atoi( getval( "srcport", buf ) );
+	        mpd_getval( "srchost", parent_in_tree_hostname );
+	        parent_in_tree_port = atoi( mpd_getval( "srcport", buf ) );
 	        mpdprintf( debug, "got id_of_parent, host=%s port=%d\n",
 		           parent_in_tree_hostname, parent_in_tree_port );
 	    }
@@ -1236,8 +1408,8 @@ void handle_lhs_msgs_input( int idx )
 	    int signum;
 	    char signo[16], source[IDSIZE];
 	    
-	    getval( "src", source );
-	    getval( "signo", signo );
+	    mpd_getval( "src", source );
+	    mpd_getval( "signo", signo );
 	    if ( strcmp( source, myid ) != 0 ) {
 		/* here forward the message to the next manager */
 		sprintf( buf, "src=%s cmd=sigall signo=%s\n", source, signo );
@@ -1263,14 +1435,25 @@ void handle_lhs_msgs_input( int idx )
 	    }
 	}
 	else if ( strcmp( cmdval, "abort_job" ) == 0 ) {
+	    int jobid, abort_code, rank;
+	    char tmpbuf1[MAXLINE], tmpbuf2[MAXLINE];
+
 	    if ( myrank != 0 )
 		write_line( rhs_idx, fwdbuf );
 	    else {
 		sig_all( "SIGINT" );
-		sprintf( buf, "cmd=jobaborted job=%d code=%d rank=%d\n",
-			 atoi( getval( "job", buf ) ),
-			 atoi( getval( "abort_code", buf ) ),
-			 atoi( getval( "rank", buf ) ) );
+		jobid = atoi( mpd_getval( "job", tmpbuf1 ) );
+		abort_code = atoi( mpd_getval( "abort_code", tmpbuf1 ) );
+		rank= atoi( mpd_getval( "rank", tmpbuf1 ) );
+		sprintf( buf, "cmd=jobaborted job=%d code=%d rank=%d by=%s reason=%s ",
+			 jobid, abort_code, rank,
+			 mpd_getval( "by", tmpbuf1 ),
+			 mpd_getval( "reason", tmpbuf2 ) );
+		if ( strcmp( tmpbuf1, "mpdman" ) == 0 ) {
+		     strcat( buf, "info=" );
+		     strcat( buf, mpd_getval( "info", tmpbuf2 ) );
+		}
+		strcat( buf, "\n" );
 		write_line( con_cntl_idx, buf );
 		sprintf( buf, "cmd=allexit\n" );
 		write_line( rhs_idx, buf );
@@ -1278,8 +1461,8 @@ void handle_lhs_msgs_input( int idx )
 	}
 	else if ( strcmp( cmdval, "findclient" ) == 0 )
 	{
-	    strcpy( dest, getval( "dest", buf ) );
-	    rank = atoi( getval( "rank", buf ) );
+	    strcpy( dest, mpd_getval( "dest", buf ) );
+	    rank = atoi( mpd_getval( "rank", buf ) );
 	    if ( rank == myrank ) {
 		mpdprintf( debug, "handle_lhs_msgs_input: sending foundclient\n" );
 		sprintf( buf, "cmd=foundclient dest=%s host=%s port=%d pid=%d\n",
@@ -1300,7 +1483,7 @@ void handle_lhs_msgs_input( int idx )
 	}
 	else if ( strcmp( cmdval, "foundclient" ) == 0 )
 	{
-	    strcpy( dest,getval( "dest", buf ) );
+	    strcpy( dest,mpd_getval( "dest", buf ) );
 	    if ( strcmp( dest, myid ) == 0 ) {
 		mpdprintf( debug, "handle_lhs_msgs_input: got foundclient\n" );
 		write_line( client_idx, fwdbuf );
@@ -1310,15 +1493,24 @@ void handle_lhs_msgs_input( int idx )
 	}
 	else if ( strcmp( cmdval, "interrupt_peer_with_msg" ) == 0 )
 	{
-	    strcpy( dest, getval( "dest", buf ) );
-	    rank = atoi( getval( "torank", buf ) );
+	    strcpy( dest, mpd_getval( "dest", buf ) );
+	    rank = atoi( mpd_getval( "torank", buf ) );
 	    if ( rank == myrank ) {
-		mpdprintf( 000,"handle_lhs_msgs_input: poking client: state=%d idx=%d fd=%d\n",
+		mpdprintf( debug,"handle_lhs_msgs_input: poking client: state=%d idx=%d fd=%d\n",
 			   client_state, client_idx, fdtable[idx].fd );
-		getval( "msg", buf );
+		mpd_getval( "msg", buf );
 		strcat( buf, "\n" );
-		if (client_state != CLDEAD)
-		    write_line( client_idx, buf );  /* send on to client */
+		if (client_state != CLDEAD) {
+                    if ( write_line( client_idx, buf ) < 0 ) { 
+                        if ( strncmp(buf,"connect_to_me",13) != 0 ) {
+                            sprintf( buf, 
+                                     "cmd=abort_job job=%s rank=%d abort_code=0 "
+                                     "by=mpdman reason=probable_brokenpipe_to_client info=x\n",
+                                     getenv( "MPD_JID" ), myrank );
+                            write_line( rhs_idx, buf );
+                        }
+                    }
+		}
 		if (client_signal_status == ACCEPTING_SIGNALS)
 		    kill( client_pid, SIGUSR1 );
 		else
@@ -1345,35 +1537,34 @@ void handle_lhs_msgs_input( int idx )
 
 	    if ( myrank == 0 )
 		return;		/* manager 0 has already handled stdin */
-	    torank = atoi( getval( "torank", torankstr ) );
+	    torank = atoi( mpd_getval( "torank", torankstr ) );
 	    if ( myrank != torank ) 
 		write_line( rhs_idx, fwdbuf );
 	    if ( myrank == torank || torank == -1 ) {
-		getval( "message", stuffed );
-		destuff_arg( stuffed, unstuffed );
+		mpd_getval( "message", stuffed );
+		mpd_destuff_arg( stuffed, unstuffed );
 		strcat( unstuffed, "\n" );
 		send_msg( stdin_pipe_fds[1], unstuffed, strlen( unstuffed ) );
 	    }
 	}
 	else if ( strcmp( cmdval, "bnr_get" ) == 0 )
 	{
-	    int i, found, gid;
-	    char attr[BNR_MAXATTRLEN];
-
-	    strcpy( dest, getval( "dest", buf ) );
-	    strcpy( attr, getval( "attr", attr ) );
-	    gid = atoi( getval( "gid", buf ) );
-	    for (i=0,found=0; i < av_idx && !found; i++)
+	    strcpy( dest, mpd_getval( "dest", buf ) );
+	    strcpy( temp_attr, mpd_getval( "attr", buf ) );
+	    temp_group = atoi( mpd_getval( "gid", buf ) );
+	    for (i=0; i < av_idx; i++)
 	    {
-		if (grp[i] == gid  &&  strcmp(attrs[i],attr) == 0)
+		if (av_pairs[i].group == temp_group  &&
+		    strcmp(av_pairs[i].attr,temp_attr) == 0)
 		{
-		    found = 1;
+		    break;
 		}
 	    }
-	    if ( found ) {
-		mpdprintf(debug,"handle_lhs_msgs: found :%s: with val=:%s:\n",attr,vals[i-1]);
+	    if ( i < av_idx ) {
+		mpdprintf(debug,"handle_lhs_msgs: found :%s: with val=:%s:\n",
+			  temp_attr,av_pairs[i].val);
 		sprintf(buf,"cmd=bnr_get_output dest=%s attr=%s val=%s\n",
-			dest,attr,vals[i-1] );
+			dest,temp_attr,av_pairs[i].val );
 		write_line( rhs_idx, buf );
 	    }
 	    else {
@@ -1390,14 +1581,12 @@ void handle_lhs_msgs_input( int idx )
 	}
 	else if ( strcmp( cmdval, "bnr_get_output" ) == 0 )
 	{
-	    char val[BNR_MAXVALLEN];
-
-	    strcpy( dest, getval( "dest", buf ) );
-	    strcpy( val, getval( "val", buf ) );
+	    strcpy( dest, mpd_getval( "dest", buf ) );
+	    strcpy( temp_val, mpd_getval( "val", buf ) );
 	    if ( strcmp( dest, myid ) == 0 ) {
 		mpdprintf( debug, "handle_lhs_msgs_input: bnr_get_output: buf=:%s:\n",
 			   fwdbuf );
-		sprintf( buf, "cmd=client_bnr_get_output val=%s\n", val );
+		sprintf( buf, "cmd=client_bnr_get_output val=%s\n", temp_val );
 		write_line( client_idx, buf );
 	    }
 	    else {
@@ -1407,11 +1596,15 @@ void handle_lhs_msgs_input( int idx )
 	else if ( strcmp( cmdval, "bnr_fence_in" ) == 0 )
 	{
 	    mpdprintf( debug, "handle_lhs_msgs: rcvd bnr_fence_in\n" );
-	    strcpy( bnr_fence_in_src, getval( "dest", buf ) );
-	    bnr_fence_cnt = atoi( getval( "cnt", buf ) );
+	    strcpy( bnr_fence_in_src, mpd_getval( "dest", buf ) );
+	    bnr_fence_cnt = atoi( mpd_getval( "cnt", buf ) );
 	    if ( strcmp( myid,bnr_fence_in_src ) == 0 ) {
 		sprintf( buf,"cmd=client_bnr_fence_out\n" );
 		write_line( client_idx, buf );
+		if (client_signal_status == ACCEPTING_SIGNALS)
+		    kill( client_pid, SIGUSR1 );
+		else
+		    client_signal_status = SIGNALS_TO_BE_SENT;
 		sprintf( buf,"cmd=bnr_fence_out dest=%s\n", myid );
 		write_line( rhs_idx, buf );
 	    }
@@ -1429,14 +1622,33 @@ void handle_lhs_msgs_input( int idx )
 	else if ( strcmp( cmdval, "bnr_fence_out" ) == 0 )
 	{
 	    mpdprintf( debug, "handle_lhs_msgs: rcvd bnr_fence_out\n" );
-	    strcpy( bnr_fence_out_src, getval( "dest", buf ) );
+	    strcpy( bnr_fence_out_src, mpd_getval( "dest", buf ) );
 	    if ( strcmp( myid, bnr_fence_out_src ) != 0 ) {
 		sprintf( buf,"cmd=client_bnr_fence_out\n" );
 		write_line( client_idx, buf );
+		if (client_signal_status == ACCEPTING_SIGNALS)
+		    kill( client_pid, SIGUSR1 );
+		else
+		    client_signal_status = SIGNALS_TO_BE_SENT;
 	        sprintf( buf,"cmd=bnr_fence_out dest=%s\n", bnr_fence_out_src );
 	        write_line( rhs_idx, buf );
 		client_fenced_in = 0; /* reset fence in case of future fences */
 	    }
+	}
+	else if ( strcmp( cmdval, "client_info" ) == 0 ) {
+	    int target_direction = myrank == 0 ? con_cntl_idx : rhs_idx;
+	    mpdprintf( debug, "handle_lhs_msgs: recvd client_info\n" );
+	    write_line( target_direction, fwdbuf );
+	}
+	else if ( strcmp( cmdval, "client_release" ) == 0 ) { 
+	    mpdprintf( debug, "handle_lhs_msgs: recvd client_release\n" );
+	    if (myrank != 0) /* Forward to everyone else */
+		write_line( rhs_idx, fwdbuf );
+	    write_line( client_idx, "cmd=tvdebugsynch\n" ); /* release client */
+	    if (client_signal_status == ACCEPTING_SIGNALS)
+		kill( client_pid, SIGUSR1 );
+	    else
+		client_signal_status = SIGNALS_TO_BE_SENT;
 	}
 	else
 	    mpdprintf( 1, "unrecognized command :%s: on lhs_msgs\n", cmdval );
@@ -1468,7 +1680,7 @@ int fd;
     char buf[MAXLINE];
 
     mpdprintf( debug, "handling cli_alive in manager\n" );
-    getval("port",buf);
+    mpd_getval("port",buf);
     client_listener_port = atoi(buf);
  
     client_fd = fd;
@@ -1485,30 +1697,51 @@ int fd;
     }
 }
 
-void man_cli_abort_job( fd )
-int fd;
+void man_cli_abort_job( int fd )
 {
-    char buf[MAXLINE], buf2[MAXLINE];
+    char buf[MAXLINE];
 
     mpdprintf( debug, "handling cli_abort_job in manager\n" );
-    sprintf( buf, "cmd=abort_job job=%d rank=%d abort_code=%d\n",
-	     atoi( getval( "job", buf2 ) ),
-	     atoi( getval( "rank", buf2 ) ),
-	     atoi( getval( "abort_code", buf2 ) ) );
+    sprintf( buf, "cmd=killjob jobid=%s\n", getenv( "MPD_JID" ) );
+    write_line( parent_mpd_idx, buf );
+}
+
+void man_cli_client_ready( int fd )
+{
+    char buf[MAXLINE];
+    char client_execname[MAXLINE];
+    int version;
+
+    mpdprintf( debug, "handling client_ready in manager\n" );
+
+    /* tell the console enough to allow a debugger to attach to our client */
+    client_pid = atoi( mpd_getval( "pid", buf ) );
+    mpd_getval( "execname", client_execname );
+    version = atoi( mpd_getval( "version", buf ) );
+
+    /* If the client can't work out its image name, assume
+     * it is the image we started. */
+    if ( strcmp( client_execname, "" ) == 0 )
+	strcpy( client_execname, client_pgm_name );
+    sprintf( buf, "cmd=client_info dest=0 rank=%d host=%s execname=%s pid=%d version=%d\n",
+	     myrank, myhostname, client_execname, client_pid, version );
     write_line( rhs_idx, buf );
 }
 
-void man_cli_accepting_signals( fd )
-int fd;
+void man_cli_accepting_signals( int fd )
 {
-    char buf[16];
+    char buf[MAXLINE];
 
     mpdprintf( debug, "handling accepting_signals in manager\n" );
-    client_pid = atoi( getval( "pid", buf ) );
+
+    client_pid = atoi( mpd_getval( "pid", buf ) ); /* since client's pid might differ
+						  from that of the immediate child;
+						  we are overwriting that one.  */
     if (client_signal_status == SIGNALS_TO_BE_SENT)
 	kill( client_pid, SIGUSR1 );
     client_signal_status = ACCEPTING_SIGNALS;
 }
+
 
 void man_cli_findclient(client_fd)
 int client_fd;
@@ -1517,9 +1750,9 @@ int client_fd;
     int  rank, job;
 
     mpdprintf( debug, "handling cli_findclient in manager\n" );
-    getval("job",buf);
+    mpd_getval("job",buf);
     job = atoi(buf);
-    getval("rank",buf);
+    mpd_getval("rank",buf);
     rank = atoi(buf);
     sprintf(buf,"src=%s dest=%s bcast=true cmd=findclient job=%d rank=%d\n",
 	    myid, myid, job, rank);
@@ -1531,19 +1764,19 @@ void man_cli_interrupt_peer_with_msg(client_fd)
 int client_fd;
 {    
     char buf[MAXLINE], msg[MAXLINE];
-    int  torank, fromrank, job;
+    int  torank, fromrank, grp;
 
     mpdprintf( debug, "handling man_cli_interrupt_peer_with_msg in manager\n" );
-    getval("job",buf);
-    job = atoi(buf);
-    getval("torank",buf);
+    mpd_getval("grp",buf);
+    grp = atoi(buf);
+    mpd_getval("torank",buf);
     torank = atoi(buf);
-    getval("fromrank",buf);
+    mpd_getval("fromrank",buf);
     fromrank = atoi(buf);
-    getval("msg",msg);
+    mpd_getval("msg",msg);
     sprintf(buf,"src=%s dest=%s bcast=true cmd=interrupt_peer_with_msg "
-		"job=%d torank=%d fromrank=%d msg=%s\n",
-	    myid, myid, job, torank, fromrank, msg );
+		"grp=%d torank=%d fromrank=%d msg=%s\n",
+	    myid, myid, grp, torank, fromrank, msg );
     write_line( rhs_idx, buf );
     return;
 }
@@ -1610,42 +1843,55 @@ int captured_io_sockets_closed( void )
 
 void man_cli_bnr_put( int fd )
 {
+    int i;
     char buf[MAXLINE];
 
-    getval( "attr", buf );
-    strcpy( attrs[av_idx],buf );
-    mpdprintf(00,"man_cli_bnr_put: putting attr=:%s:\n",attrs[av_idx]);
-    getval( "val", buf );
-    strcpy( vals[av_idx],buf );
-    getval( "gid", buf );
-    grp[av_idx] = atoi( buf );
-    av_idx++;
+    mpd_getval( "attr", temp_attr );
+    mpd_getval( "val", temp_val );
+    temp_group = atoi( mpd_getval( "gid", buf ) );
+    for ( i=0; i < av_idx; i++ )
+    {
+	if ( temp_group == av_pairs[i].group  &&
+	     strcmp( temp_attr, av_pairs[i].attr ) == 0 )
+	{
+	    strcpy( av_pairs[i].val, temp_val );
+	    break;
+	}
+    }
+    if ( i >= av_idx )
+    {
+	av_pairs[av_idx].group = temp_group;
+	strcpy( av_pairs[av_idx].attr, temp_attr );
+	strcpy( av_pairs[av_idx].val, temp_val );
+	av_idx++;
+    }
 }
 
 void man_cli_bnr_get( int fd )
 {
-    int i, found, gid;
-    char attr[BNR_MAXATTRLEN], buf[MAXLINE];
+    int  i, found, gid;
+    char buf[MAXLINE];
 
-    getval( "attr", attr );
-    getval( "gid", buf );
+    mpd_getval( "attr", temp_attr );
+    mpd_getval( "gid", buf );
     gid = atoi(buf);
-    mpdprintf(00,"man_cli_bnr_get: searching for :%s:\n",attr);
+    mpdprintf(00,"man_cli_bnr_get: searching for :%s:\n",temp_attr);
     for (i=0,found=0; i < av_idx && !found; i++)
     {
-        if (grp[i] == gid  &&  strcmp(attrs[i],attr) == 0)
+        if (av_pairs[i].group == gid  &&
+	    strcmp(av_pairs[i].attr,temp_attr) == 0)
 	{
-	    mpdprintf(00,"man_cli_bnr_get: found :%s:\n",attr);
+	    mpdprintf(00,"man_cli_bnr_get: found :%s:\n",temp_attr);
 	    found = 1;
-	    sprintf(buf,"cmd=client_bnr_get_output val=%s\n",vals[i]);
+	    sprintf(buf,"cmd=client_bnr_get_output val=%s\n",av_pairs[i].val);
             send_msg( fd, buf, strlen( buf ) );
 	}
     }
     if (!found)
     {
-	mpdprintf( debug, "man_cli_bnr_get: did not find :%s:\n", attr );
+	mpdprintf( debug, "man_cli_bnr_get: did not find :%s:\n", temp_attr );
 	sprintf(buf,"cmd=bnr_get src=%s dest=%s bcast=true attr=%s gid=%d\n",
-		myid, myid, attr, gid);
+		myid, myid, temp_attr, gid);
 	write_line( rhs_idx, buf );
     }
 }
@@ -1656,15 +1902,16 @@ void man_cli_bnr_fence_in( int fd )
     char buf[MAXLINE];
 
     client_fenced_in = 1;
-    gid   = atoi( getval( "gid", buf ) );
-    grank = atoi( getval( "grank", buf ) );
-    gsize = atoi( getval( "gsize", buf ) );
+    gid   = atoi( mpd_getval( "gid", buf ) );
+    grank = atoi( mpd_getval( "grank", buf ) );
+    gsize = atoi( mpd_getval( "gsize", buf ) );
     mpdprintf( debug ,"man_cli_bnr_fence_in: gid=%d grank=%d gsize=%d flag=%d\n",
               gid, grank, gsize, bnr_fence_in_msg_here );
     if ( grank == 0 )
     {
 	sprintf( buf,"cmd=bnr_fence_in dest=%s cnt=%d\n", myid, gsize-1 );
 	write_line( rhs_idx, buf );
+	mpdprintf(debug,"man_cli_bnr_fence_in: sending fence_in\n");
     }
     else
     {
@@ -1675,7 +1922,7 @@ void man_cli_bnr_fence_in( int fd )
 		     bnr_fence_in_src, bnr_fence_cnt );
 	    bnr_fence_in_msg_here = 0;
 	    write_line( rhs_idx, buf );
-	    mpdprintf(000,"man_cli_bnr_fence_in: sending fence_out\n");
+	    mpdprintf(debug,"man_cli_bnr_fence_in: sending fence_out\n");
 	}
     }
 }

@@ -148,6 +148,9 @@
 #undef USE_HOLD_LAST_DEBUG
 #undef USE_PRINT_LAST_ON_ERROR
 
+/* Define if there is a routine to print tracebacks */
+#undef HAVE_PRINT_BACKTRACE
+
 /* Define if you have catclose.  */
 #undef HAVE_CATCLOSE
 
@@ -157,8 +160,17 @@
 /* Define if you have catopen.  */
 #undef HAVE_CATOPEN
 
+/* Define if you have clock_getres.  */
+#undef HAVE_CLOCK_GETRES
+
+/* Define if you have clock_gettime.  */
+#undef HAVE_CLOCK_GETTIME
+
 /* Define if you have gethostname.  */
 #undef HAVE_GETHOSTNAME
+
+/* Define if you have gethrtime.  */
+#undef HAVE_GETHRTIME
 
 /* Define if you have mmap.  */
 #undef HAVE_MMAP
@@ -168,6 +180,9 @@
 
 /* Define if you have sigaction.  */
 #undef HAVE_SIGACTION
+
+/* Define if you have strdup.  */
+#undef HAVE_STRDUP
 
 /* Define if you have sysinfo.  */
 #undef HAVE_SYSINFO
@@ -192,6 +207,12 @@
 
 /* Define if you have the <string.h> header file.  */
 #undef HAVE_STRING_H
+
+/* Define if you have the <sys/ioctl.h> header file.  */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define if you have the <sys/sockio.h> header file.  */
+#undef HAVE_SYS_SOCKIO_H
 
 /* Define if you have the <sys/systeminfo.h> header file.  */
 #undef HAVE_SYS_SYSTEMINFO_H

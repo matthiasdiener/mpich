@@ -440,8 +440,8 @@ typedef int MD_lock_t;
 #        define CAN_DO_SHMEM_MSGS
 #        define USE_XX_SHMALLOC
 #        define P4_MAX_MSG_QUEUES 8
-#        define P4_MAX_SYSV_SHMIDS  16
-#        define P4_MAX_SYSV_SEMIDS  16
+#        define P4_MAX_SYSV_SHMIDS  256
+#        define P4_MAX_SYSV_SEMIDS  256
 	 typedef struct { int semid;  int semnum; }   MD_lock_t;
 #        include <sys/ipc.h>
 #        include <sys/shm.h>
@@ -762,10 +762,10 @@ typedef pthread_t p4_thread_t;
 typedef unsigned long p4_usc_time_t;
 
 /* Bill says take this out, 12/22/94
-extern P4VOID exit ANSI_ARGS((int));
+extern P4VOID exit (int);
 */
 
-#define P4_MAXPROCS 256
+#define P4_MAXPROCS 1024
 
 /* For sysinfo */
 #if defined(SUN_SOLARIS) || defined(MEIKO_CS2)
@@ -780,7 +780,9 @@ extern P4VOID exit ANSI_ARGS((int));
 
 #ifndef LINT
 #define  P4_INCLUDED
-#include "mpisys.h"
+/* For this include to work, the include path must include the ch_p4mpd
+   directory */
+#include "tr2.h"
 #define p4_malloc(size) MALLOC(size)
 #define p4_free(p) FREE(p)
 #define p4_clock MD_clock

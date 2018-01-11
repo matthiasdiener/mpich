@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pvfs_open.c,v 1.8 2000/03/27 23:02:21 thakur Exp $    
+ *   $Id: ad_pvfs_open.c,v 1.9 2001/02/22 17:14:01 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -12,7 +12,7 @@ void ADIOI_PVFS_Open(ADIO_File fd, int *error_code)
 {
     int perm, amode, old_mask, flag;
     char *value;
-    struct pvfs_stat pstat = {-1,-1,-1,0,0};
+    struct pvfs_filestat pstat = {-1,-1,-1,0,0};
 #ifndef PRINT_ERR_MSG
     static char myname[] = "ADIOI_PVFS_OPEN";
 #endif

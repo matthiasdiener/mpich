@@ -118,8 +118,9 @@ EXPORT_MPI_API void mpi_waitall_(MPI_Fint *count, MPI_Fint array_of_requests[], 
     else 
 	*__ierr = MPI_Waitall((int)*count,(MPI_Request *)0, c_status );
 
-    for (i=0; i<(int)*count; i++) 
-	MPI_Status_c2f(&(c_status[i]), &(array_of_statuses[i][0]) );
+    if (*__ierr == MPI_SUCCESS) 
+        for (i=0; i<(int)*count; i++) 
+            MPI_Status_c2f(&(c_status[i]), &(array_of_statuses[i][0]) );
     
     if ((int)*count > MPIR_USE_LOCAL_ARRAY) {
         FREE( lrequest );

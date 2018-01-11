@@ -2,8 +2,6 @@
 
 #if defined(VMPI)
 
-extern struct channel_t * CommworldChannels;
-
 int vmpi_error_to_mpich_error(
     int					vmpi_error)
 {
@@ -101,15 +99,23 @@ int vmpi_grank_to_mpich_grank(
     struct channel_t *			channel;
     struct mpi_miproto_t *		mpi_miproto;
 
-    channel = &(CommworldChannels[MPID_MyWorldRank]);
-
-    if (!(channel->selected_proto))
+    if (!(channel = get_channel(MPID_MyWorldRank)))
+    {
+	globus_libc_fprintf(stderr, 
+	    "ERROR: vmpi_grank_to_mpich_grank: failed get_channel channel to "
+	    "myself (%d)", 
+	    MPID_MyWorldRank);
+	print_channels();
+	MPID_Abort(NULL, 0, "MPICH-G2", "");
+	return -1;
+    }
+    else if (!(channel->selected_proto))
     {
 	globus_libc_fprintf(stderr, 
 	    "ERROR: vmpi_grank_to_mpich_grank: discovered channel to "
 	    "myself (%d) does has NULL selected_proto", 
 	    MPID_MyWorldRank);
-	print_channels(MPID_MyWorldSize, CommworldChannels);
+	print_channels();
 	MPID_Abort(NULL, 0, "MPICH-G2", "");
 	return -1;
     }

@@ -115,5 +115,6 @@ EXPORT_MPI_API void mpi_errhandler_create_(
 #else
     *__ierr = MPI_Errhandler_create( function, &l_errhandler );
 #endif
-    *errhandler = MPI_Errhandler_c2f(l_errhandler);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *errhandler = MPI_Errhandler_c2f(l_errhandler);
 }

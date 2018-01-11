@@ -115,7 +115,7 @@ message_cat: mpich.En_US.cat
 # We use PREFIX instead of MPIR_HOME so that the result of installing
 # the MPI libraries will work
 msgqdllloc.o: ${top_srcdir}/src/env/msgqdllloc.c
-	if test -n "@SHAREDKIND_FOR_TV@" -a "@SHAREDKIND_FOR_TV@" != "ignore" ; then \
+	@if test -n "@SHAREDKIND_FOR_TV@" -a "@SHAREDKIND_FOR_TV@" != "ignore" ; then \
 	  ${CC} ${DEFS} ${CFLAGS} -c @CC_SHARED_OPT_FOR_TV@ \
 	  -DMPICH_INFODLL_LOC='"@libdir@/libtvmpich.so"' ${top_srcdir}/src/env/msgqdllloc.c ; \
 	else \
@@ -133,14 +133,16 @@ debugutil.o: ${srcdir}/debugutil.c
 	${CC} -g ${DEFS} ${INCLUDES} ${CFLAGS} ${INCLUDE_DIR} ${MPIPROFILE} -c 		${srcdir}/debugutil.c
 
 # GETNAME_DEFS are needed by mpehname.c; these need mpe includes
-mpehname.o: ${top_srcdir}/mpe/mpehname.c
-	${CC} ${DEFS} ${CFLAGS} @GETNAME_DEFS@ -c -I${top_srcdir}/mpe \
-		${top_srcdir}/mpe/mpehname.c 
+mpehname.o: ${top_srcdir}/mpe/src/mpehname.c
+	${CC} ${DEFS} ${CFLAGS} @GETNAME_DEFS@ -c -I${top_srcdir}/mpe/include \
+		${top_srcdir}/mpe/src/mpehname.c 
 # Note that we remove the link after we use it.
-dbxerr.o: ${top_srcdir}/mpe/dbxerr.c
-	${CC} ${DEFS} ${CFLAGS} @GETNAME_DEFS@ -c -I${top_srcdir}/mpe \
-		${top_srcdir}/mpe/dbxerr.c 
-	rm -f dbxerr.c
+# It is tempting to put ${top_srcdir}/mpe/src/dbxerr.c as prerequisite here.
+# But there is only dbxerr.c.in in ${top_srcdir}/mpe/src, dbxerr.c is created
+# in ${mpich_build_dir}/mpe/src by configure.
+dbxerr.o: ../../mpe/src/dbxerr.c
+	${CC} ${DEFS} ${CFLAGS} @GETNAME_DEFS@ -c -I${top_srcdir}/mpe/include \
+		../../mpe/src/dbxerr.c 
 # errmsg needs to know about NLS definitions.
 nerrmsg.o: ${srcdir}/nerrmsg.c mpierrstrings.h
 	${CC} ${DEFS} ${CFLAGS} @NLS_DEFS@ -c ${srcdir}/nerrmsg.c
@@ -160,4 +162,4 @@ tstmsg:
 # We need to clean the srcdir of any .o files because they can confuse the
 # VPATH build process
 clean:
-	/bin/rm -f *.o *~ ${srcdir}/*.o
+	rm -f *.o *~ ${srcdir}/*.o

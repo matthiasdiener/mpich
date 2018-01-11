@@ -44,6 +44,10 @@ int main( int argc, char **argv )
    send( count = 10)                          test (expected/err trunc)
  */
    
+    if (size < 2) {
+	fprintf( stderr, "This test requires at least 2 processes\n" );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
     if (rank == 0) {
 	/* Only return on the RECEIVERS side */
 	MPI_Errhandler_set( comm, MPI_ERRORS_RETURN );

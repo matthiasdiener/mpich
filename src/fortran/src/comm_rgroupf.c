@@ -85,5 +85,6 @@ EXPORT_MPI_API void mpi_comm_remote_group_ ( MPI_Fint *comm, MPI_Fint *group, MP
 
     *__ierr = MPI_Comm_remote_group( MPI_Comm_f2c(*comm), 
                                      &l_group);
-    *group = l_group;
+    if (*__ierr == MPI_SUCCESS) 		     
+        *group = MPI_Group_c2f( l_group );
 }

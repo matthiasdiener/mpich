@@ -1,5 +1,4 @@
 /* where timestamps come from */
-#include "mpi.h"
 
 #ifdef ANSI_ARGS
 #undef ANSI_ARGS

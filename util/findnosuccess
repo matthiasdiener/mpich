@@ -43,7 +43,7 @@ egrep -v '^checking|^rm |^/bin/rm|^creating|^cleaning|^Creating|^cp ' | \
 egrep -v '^[ 	]rm -rf |^[ 	]rm -f ' | \
 egrep -v '^cc |^gcc |^Copying |^chmod |^cat |^U |^Making |^for file' | \
 egrep -v '^[ 	]*cc|^[ 	] *gcc|^Configuring |^setting |^ar |^ranlib |^ *if \[' | \
-egrep -v '^[ 	]*xlc |^[ 	] *xlC |^[ 	]*(pg)?f77|^[ 	]*(pg)?f90|^[ 	]*g77 ' > .tmp 2>&1
+egrep -v '^[ 	]*xlc |^[ 	] *xlC |^[ 	]*(pg)?f77|^[ 	]*(pg)?f9[05]|^[ 	]*g77 ' > .tmp 2>&1
 if [ -n "$MPICH_WARNING_SEP" ] ; then
     /bin/rm -f .tmp2
     sed -e '/>'"$MPICH_WARNING_SEP"/,'/<'"$MPICH_WARNING_SEP"/d .tmp > .tmp2
@@ -146,6 +146,8 @@ rm -f .tmp
 
 egrep -v '^.*CreateModuleSrc -exc|libm\.so is not used' .tmp2 |\
 egrep -v '^.*CreateChoiceSrc -kind|^FORTRAN 77 Compiler.*Copyright' |\
+egrep -v '^[/A-Za-z0-9]*\.f:[ 	]*$' |\
+egrep -v '^[ 	]*mpi_constants\.o[ 	]*$' |\
 egrep -v 'Nothing to be done for' > .tmp
 
 rm -f .tmp2

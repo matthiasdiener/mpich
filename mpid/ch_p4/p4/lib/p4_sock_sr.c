@@ -24,6 +24,8 @@ int type, from, to, len, data_type, ack_req;
 #if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI) || \
     defined(USE_U_INT_FOR_XDR)
     u_int xdr_len;
+#elif defined(USE_UNSIGNED_INT_FOR_XDR)
+    unsigned int xdr_len;
 #else
     int xdr_len;
 #endif
@@ -148,27 +150,9 @@ char *msg;
     nmsg.data_type = p4_i_to_n(data_type);
     p4_dprintfl(30,"setting imm_from: to = %d, from = %d, imm_from = %d, p4_i_to_n(imm_from) =%d in socket_send\n", to, from, p4_local->my_id, p4_i_to_n(p4_local->my_id));
     flag = (from < to) ? P4_TRUE : P4_FALSE;
-    net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), flag);
-    p4_dprintfl(20, "sent hdr for type %d from %d to %d via socket\n",type,from,to);
+    n = net_send2( fd, &nmsg, sizeof(struct p4_net_msg_hdr), msg, len, flag );
+    sent += n;
 
-#ifdef OLD_SEND_CODE
-    while (sent < len)
-    {
-	int nleft;
-	if ((len - sent) > SOCK_BUFF_SIZE)
-	    nleft = SOCK_BUFF_SIZE;
-	else
-	    nleft = len - sent;
-	n = net_send(fd, ((char *) msg) + sent, nleft, flag);
-	sent += n;
-    }
-#else
-        /* Net_send now has backoff code for sending smaller blocks;
-	   this puts the "SOCK_BUFF_SIZE" dependencies into the net_send
-	   code, where they belong - WDG */
-	n = net_send(fd, (char *) msg, len, flag);
-        sent += n;
-#endif
     if (ack_req & P4_ACK_REQ_MASK)
     {
 	wait_for_ack(fd);
@@ -178,11 +162,16 @@ char *msg;
     return (sent);
 }
 
-int socket_close_conn( fd )
-int fd;
+/* Send a message to close a socket connection.  Note that the partner may 
+   also have closed the socket; in that case, the write will fail but because 
+   we have set p4_local->in_wait_for_exit, no error message or action will 
+   occur */
+int socket_close_conn( int fd )
 {
     struct p4_net_msg_hdr nmsg;
 
+    p4_dprintfl( 10, "Closing socket on fd %d\n", fd );
+    p4_dprintfl( 40, "Sending close socket message\n" );
     /* Most of this is ignored */
     nmsg.msg_type  = p4_i_to_n(0);
     nmsg.to	   = p4_i_to_n(0);
@@ -194,9 +183,15 @@ int fd;
     nmsg.ack_req   = p4_i_to_n(P4_CLOSE_MASK);
     nmsg.data_type = p4_i_to_n(0);
 
+    /* This may fail if our partner has already closed the socket.  
+       In that case, we don't care. */
     net_send(fd, &nmsg, sizeof(struct p4_net_msg_hdr), P4_FALSE );
 
+    /* Instead of close, consider using shutdown( fd, SHUT_WR ) if
+       we want to allow the other side to send us data (e.g., for a clean
+       handshake on the close connection) */
     close( fd );
+    p4_dprintfl( 40, "Socket on fd %d closed\n", fd );
 
     return 0;
 }
@@ -213,7 +208,7 @@ int is_blocking;
 #ifdef THREAD_LISTENER
     struct slave_listener_msg msg;
 #endif
-    int    i, fd, nfds;
+    int    i, fd, nfds, max_fd;
     struct p4_msg *tmsg = NULL;
     P4BOOL found = P4_FALSE;
     struct timeval tv;
@@ -222,15 +217,21 @@ int is_blocking;
     int    found_cmd = 0;
     int    timeout_sec = 9;
 
+    /* If timeout_sec is not set to zero in the non-blocking case,
+       the -comm=shared case can cause *huge* delays because this call
+       should be polled but would otherwise block for 9 seconds */
+    if (!is_blocking) timeout_sec = 0;
     while (!found)
     {
 	tv.tv_sec = timeout_sec;
 	tv.tv_usec = 0;  /* RMB */
 	FD_ZERO(&read_fds);
+	max_fd = -1;
 #ifdef THREAD_LISTENER
 	p4_dprintfl(70,"socket_recv: p4_local->listener_fd is %d\n",
 		    p4_local->listener_fd);
 	FD_SET(p4_local->listener_fd, &read_fds);
+	max_fd = p4_local->listener_fd;
 #endif
 	nactive = 0;
 	for (i = 0; !tmsg && i < p4_global->num_in_proctable; i++)
@@ -239,6 +240,7 @@ int is_blocking;
 	    {
 		fd = p4_local->conntab[i].port;
 		FD_SET(fd, &read_fds);
+		if (fd > max_fd) max_fd = fd;
 		nactive++;
 	    }
 	}
@@ -248,6 +250,7 @@ int is_blocking;
 	   little communication between them, since the connections
 	   are established dynamically? 
 	 */
+#ifndef P4_WITH_MPD
 	if (!nactive && p4_global->num_in_proctable > 1)
 	{
 	    /* If we read a "close" and there are no connections left, 
@@ -262,10 +265,11 @@ int is_blocking;
             p4_wait_for_end();
 	    exit(0);
 	}
+#endif
 	/* Run select; if interrupted, get read_fds (in case a connection
 	   has occurred) and restart the connection */
-	nfds = select(p4_global->max_connections, &read_fds, 0, 0, &tv);
-	timeout_sec = 9;
+	nfds = select(max_fd + 1, &read_fds, 0, 0, &tv);
+	if (is_blocking) timeout_sec = 9;
 	if (nfds == -1 && errno == EINTR) continue;
 
 	if (nfds)
@@ -284,7 +288,13 @@ int is_blocking;
 		if (p4_local->conntab[i].type == CONN_REMOTE_EST)
 		{
 		    fd = p4_local->conntab[i].port;
-		    if (FD_ISSET(fd,&read_fds)  &&  sock_msg_avail_on_fd(fd))
+		    /* sock_msg_avail does *another* select and then
+		       a recv MSG_PEEK to make sure that there is
+		       really data.  The net_recv in socket_recv_on_fd
+		       should do be sufficient; if not, the recv(MSG_PEAK)
+		       should be used, not sock_msg_avail_on_fd */
+		    if (FD_ISSET(fd,&read_fds)
+			/*&&  sock_msg_avail_on_fd(fd)*/)
 		    {
 			tmsg = socket_recv_on_fd(fd);
 			found = P4_TRUE;
@@ -389,7 +399,10 @@ int fd;
     return (tmsg);
 }
 
-P4BOOL socket_msgs_available()
+/* This routine is scalable but the implementation isn't.  See
+   p4_sockets_ready
+ */
+P4BOOL socket_msgs_available( void )
 {
     int i, fd;
     int ndown = 0;
@@ -413,8 +426,7 @@ P4BOOL socket_msgs_available()
     return (P4_FALSE);
 }
 
-P4BOOL sock_msg_avail_on_fd(fd)
-int fd;
+P4BOOL sock_msg_avail_on_fd(int fd)
 {
     int i, rc, nfds;
     struct timeval tv;
@@ -426,7 +438,7 @@ int fd;
     tv.tv_usec = 0;
     FD_ZERO(&read_fds);
     FD_SET(fd, &read_fds);
-    SYSCALL_P4(nfds, select(p4_global->max_connections, &read_fds, 0, 0, &tv));
+    SYSCALL_P4(nfds, select(fd+1, &read_fds, 0, 0, &tv));
 
     if (nfds == -1)
     {
@@ -478,6 +490,8 @@ struct p4_msg *rmsg;
 #if defined(SUN_SOLARIS) || defined(CRAY) || defined(SGI) || \
     defined(USE_U_INT_FOR_XDR)
     u_int xdr_len;
+#elif defined(USE_UNSIGNED_INT_FOR_XDR)
+    unsigned int xdr_len;
 #else
     int xdr_len;
 #endif
@@ -619,7 +633,141 @@ P4VOID shutdown_p4_socks()
     for (i = 0; i < p4_num_total_ids(); i++)
 	if (p4_local->conntab[i].type == CONN_REMOTE_EST)
 	{
-	    (P4VOID) shutdown(p4_local->conntab[i].port, 2);
+#ifndef SHUT_RDWR
+/* Posix 1g defines SHUT_RDWR */
+#define SHUT_RDWR 2
+#endif
+	    (P4VOID) shutdown(p4_local->conntab[i].port, SHUT_RDWR);
+	    /* Do we really want to do a close here ? */
 	    (P4VOID) close(p4_local->conntab[i].port);
 	}
+}
+
+/*
+ * Modified socket messages available.  This looks for the important case
+ * of either read on ANY or write on one specified socket.  
+ * Return value is the fd of an available socket, with priority given to 
+ * the write fd.  (i.e., if can write, return that fd first).  Return
+ * -2 if no socket is ready (only if q_block is false)
+ * 
+ * Since the sockets are bi-directional, return -1 for the write_fd ready.
+ *
+ * If q_block is true, block until some fd is ready.  
+ */
+int p4_sockets_ready( int write_fd, int q_block )
+{
+    int i, fd, nfds;
+    int ndown = 0;
+    int max_fd;
+    struct timeval tv, *tv_p;
+    fd_set read_fds;
+    fd_set write_fds;
+
+    /* The while loop is necessary in case an EINTR causes the available
+       connections to change.  Note that this may need more changes
+       for use with the threaded listener */
+
+    do {
+	FD_ZERO(&read_fds);
+	FD_ZERO(&write_fds);
+	FD_SET(write_fd,&write_fds);
+	max_fd = write_fd;
+
+	for (i = 0; i < p4_global->num_in_proctable; i++)
+	{
+	    if (p4_local->conntab[i].type == CONN_REMOTE_EST)
+	    {
+		fd = p4_local->conntab[i].port;
+		FD_SET(fd,&read_fds);
+		if (fd > max_fd) max_fd = fd;
+	    }
+	    else if (p4_local->conntab[i].type == CONN_REMOTE_DYING) {
+		/* We need to detect that some are down... */
+		ndown++;
+		/* Now, what to do ? */
+	    }
+	}
+	/* Now we have found the fds to wait on */
+	if (q_block) {
+	    /* Block forever */
+	    tv_p = 0;
+	}
+	else {
+	    /* don't block at all */
+	    tv.tv_sec = 0;
+	    tv.tv_usec = 0;
+	    tv_p = &tv;
+	}
+	nfds = select(max_fd + 1, &read_fds, &write_fds, 0, tv_p);
+    } while (nfds == -1 && 
+	     (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR));
+    if (nfds == -1)
+    {
+	p4_dprintfl(20,"p4_sockets_ready selected on %d\n", write_fd);
+	p4_error("p4_sockets_ready select", nfds);
+    }
+
+    /* First, check the write fd */
+    if (FD_ISSET(write_fd,&write_fds)) { return -1; }
+
+    /* Otherwise, find an fd and make sure that we can really read on it.
+       nfds is the number of available fds */
+    if (nfds == 0) return -2;
+
+    for (i = 0; i < p4_global->num_in_proctable; i++)
+    {
+	if (p4_local->conntab[i].type == CONN_REMOTE_EST)
+	{
+	    fd = p4_local->conntab[i].port;
+	    if (FD_ISSET(fd,&read_fds)) { 
+		char tempbuf[2];
+		int  rc;
+		/* see if data is on the socket or merely an eof condition */
+		/* this should not loop long because the select succeeded */
+		while ((rc = recv(fd, tempbuf, 1, MSG_PEEK)) == -1) {
+		    /* Should collect a count of the times this occurs */
+		    ;	
+		}
+		if (rc == 0)	/* if eof */
+		{
+		    /* eof; a process has closed its socket; may have died */
+		    for (i = 0; i < p4_global->num_in_proctable; i++)
+			if (p4_local->conntab[i].port == fd)
+			{
+			    p4_local->conntab[i].type = CONN_REMOTE_DYING;
+			    /*
+			      p4_error("tried to read from dead process",-1);
+			    */
+			}
+		}
+		else
+		    return fd;
+	    }
+	}
+    }
+    return -2;
+}
+
+/* Look for a "close this connection for connection i.  This 
+   reads only a header if there is any data; since we are closing the 
+   connection, any other messages would be an error */
+void p4_look_for_close( int i )
+{
+    struct p4_net_msg_hdr nmsg;
+    int           fd, n;
+
+    fd = p4_local->conntab[i].port;
+    p4_dprintfl( 90, "Looking for close message for conn %d (fd %d)\n", i, fd );
+    if ( sock_msg_avail_on_fd( fd ) ) {
+	/* Read just a header */
+	n = net_recv(fd, &nmsg, sizeof(struct p4_net_msg_hdr));
+	if (p4_n_to_i(nmsg.ack_req) & P4_CLOSE_MASK) 
+	{
+	    p4_dprintfl(20,"Received close connection on %d\n",	i );
+	    p4_local->conntab[i].type = CONN_REMOTE_CLOSED;
+	}
+	else {
+	    p4_dprintfl(90, "Unexpected message seen while closing socket\n" );
+	}
+    }
 }

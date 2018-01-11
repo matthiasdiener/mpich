@@ -46,7 +46,7 @@ extern int __P4FROM, __P4LEN, __P4TYPE, __P4GLOBALTYPE;
 #define PIiFinish MPID_P4_End
 #define SYexitall(msg,code) p4_error(msg,code)
 
-void MPID_P4_Init ANSI_ARGS(( int *, char *** ));
-void MPID_P4_End  ANSI_ARGS((void));
+void MPID_P4_Init ( int *, char *** );
+void MPID_P4_End  (void);
 
 #endif

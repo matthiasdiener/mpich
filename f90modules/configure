@@ -1115,10 +1115,11 @@ testname="conftest"
 modcase="lower"
 if $F90 -c conftest.f > conftest.out 2>&1 ; then
     MOD=`ls conftest* | grep -v conftest.f | grep -v conftest.o`
-    MOD=`echo $MOD | sed -e 's/conftest\.//g'`
+    MOD=`echo "$MOD" | sed -e 's/conftest\.//g'`
     if test -z "$MOD" ; then
-	MOD=`ls CONFTEST* | grep -v CONFTEST.f | grep -v CONFTEST.o`
-        MOD=`echo $MOD | sed -e 's/CONFTEST\.//g'`
+	MOD=`ls CONFTEST* 2>/dev/null \
+		| grep -v CONFTEST.f | grep -v CONFTEST.o`
+        MOD=`echo "$MOD" | sed -e 's/CONFTEST\.//g'`
 	if test -n "$MOD" ; then
 	    testname="CONFTEST"
 	    modcase="upper"
@@ -1126,6 +1127,8 @@ if $F90 -c conftest.f > conftest.out 2>&1 ; then
     fi
     if test -z "$MOD" ; then 
         echo "$ac_t""unknown" 1>&6
+	# Use mod if we can't figure it out
+	MOD="mod"   
     else
         echo "$ac_t""$MOD" 1>&6
     fi
@@ -1134,7 +1137,7 @@ else
 fi
 
 echo $ac_n "checking for case of module names""... $ac_c" 1>&6
-echo "configure:1138: checking for case of module names" >&5
+echo "configure:1141: checking for case of module names" >&5
 if test "$modcase" = "lower" ; then
     echo "$ac_t""lower" 1>&6
     MPIMOD="mpi"
@@ -1151,7 +1154,7 @@ fi
 # (absoft) use -p).
 # Use the module made above
 echo $ac_n "checking for module directory path flag""... $ac_c" 1>&6
-echo "configure:1155: checking for module directory path flag" >&5
+echo "configure:1158: checking for module directory path flag" >&5
 madedir=0
 if test ! -d conf ; then mkdir conf ; madedir=1; fi
 cp $testname.$MOD conf
@@ -1182,7 +1185,7 @@ if test $mpif_ok != 1 ; then
     # This is set if we are building with MPICH; the mpif file may not
     # be ready yet.
     echo $ac_n "checking for mpif.h exists and contains KIND values""... $ac_c" 1>&6
-echo "configure:1186: checking for mpif.h exists and contains KIND values" >&5
+echo "configure:1189: checking for mpif.h exists and contains KIND values" >&5
     rm -f conftest*
     cat >conftest.f <<EOF
         program main
@@ -1204,7 +1207,7 @@ fi
 
 # Check for Fortran suffix
 echo $ac_n "checking that the compiler $F90 accepts .f90 suffix""... $ac_c" 1>&6
-echo "configure:1208: checking that the compiler $F90 accepts .f90 suffix" >&5
+echo "configure:1211: checking that the compiler $F90 accepts .f90 suffix" >&5
 rm -f conftest*
 cat >conftest.f90 <<EOF
           program main
@@ -1217,7 +1220,7 @@ else
     F90SUFFIX="f"
     echo "$ac_t""no" 1>&6
 fi
-rm conftest*
+rm -f conftest*
 
 
 

@@ -11,16 +11,39 @@ Duplicates an existing communicator with all its cached information
 <PRE>
 #include "mpi.h"
 int MPI_Comm_dup ( 
- MPI_Comm comm, 
- MPI_Comm *comm_out )
+        MPI_Comm comm, 
+        MPI_Comm *comm_out )
 </PRE>
 <H2>Input Parameter</H2>
 <DL><DT><B>comm </B> <DD> communicator (handle) 
 </DL>
 <P>
 <H2>Output Parameter</H2>
-<DL><DT><B>newcomm </B> <DD> copy of <TT>comm</TT> (handle) 
+<DL><DT><B>newcomm </B> <DD> A new communicator over the same group as <TT>comm</TT> but with a new
+context. See notes.  (handle) 
 </DL>
+<P>
+<H2>Notes</H2>
+This routine is used to create a new communicator that has a new
+communication context but contains the same group of processes as
+the input communicator.  Since all MPI communication is performed
+within a communicator (specifies as the group of processes <EM>plus
+</EM>the context), this routine provides an effective way to create a
+private communicator for use by a software module or library.  In
+particular, no library routine should use <TT>MPI_COMM_WORLD</TT> as the
+communicator; instead, a duplicate of a user-specified communicator
+should always be used.  For more information, see Using MPI, 2nd
+edition.
+<P>
+Because this routine essentially produces a copy of a communicator,
+it also copies any attributes that have been defined on the input
+communicator, using the attribute copy function specified by the
+<TT>copy_function</TT> argument to <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node119.html#node119">MPI_Keyval_create</A></TT>.  This is
+particularly useful for (a) attributes that describe some property
+of the group associated with the communicator, such as its
+interconnection topology and (b) communicators that are given back
+to the user; the attibutes in this case can track subsequent
+<TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node102.html#node102">MPI_Comm_dup</A></TT> operations on this communicator.
 <P>
 <H2>Notes for Fortran</H2>
 All MPI routines in Fortran (except for <TT>MPI_WTIME</TT> and <TT>MPI_WTICK</TT>) have
@@ -53,6 +76,8 @@ implementation is unable to acquire memory.
 </DL>
 <P>
 <H2>See Also</H2>
- <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node103.html#node103">MPI_Comm_free</A>
-<BR><P><B>Location:</B>comm_dup.c<P>
+ <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node103.html#node103">MPI_Comm_free</A>, <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node119.html#node119">MPI_Keyval_create</A>, MPI_Attr_set, <A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node119.html#node119">MPI_Attr_delete</A>
+<BR>
+<P>
+<P><B>Location:</B>comm_dup.c<P>
 </BODY></HTML>

@@ -55,11 +55,12 @@ Statistical Preview</A>
 <BR>
 <BR>
 
+
 <P></P>
-<DIV ALIGN="CENTER"><A NAME="fig:_preview"></A><A NAME="180"></A>
+<DIV ALIGN="CENTER"><A NAME="fig:_preview"></A><A NAME="283"></A>
 <TABLE>
-<CAPTION ALIGN="BOTTOM"><STRONG>Figure 2:</STRONG>
-The Preview : View &amp; Frame Selector Window.</CAPTION>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
+The Preview: View &amp; Frame Selector Window.</CAPTION>
 <TR><TD>
 <DIV ALIGN="CENTER"><!-- MATH
  $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview.ps}}$
@@ -81,30 +82,31 @@ The Preview : View &amp; Frame Selector Window.</CAPTION>
 <BR>
 
 <P>
-The goal of the Statistical Preview is to help a user select a frame for viewing
-prupose. It consists of two windows. The major window is titled ``View &amp; Frame
-Selector'' window, which is usually called ``Preview'' contains a graphical
-representation of all the activities going on during the run of the program
-sppm. It is shown in Figure <A HREF="node3.html#fig:_preview">2</A>. Activities in ``Preview''
-are computed in the following way: the whole duration of the job sppm is divided
-into 512 time bins. For each time bin, there are counters for each states and
-arrows occured in the time bin. The counter of each state/arrow will be incremented
-by the statistical weight which equals to the ratio of the duration of state/arrow
-to the width of time bin that the state/arrow is in. Because of this definition
-of the statistical weight for each state/arrow, very short duration states or
-arrows become statistically insignificant and will not contribute much to the
-accumulative activities of all the states and arrows. The visual consequence
-is that states/arrows with very short duration are not noticeable in the ``Preview''.
-The graphical representation of the activities of the logfiles is, by default,
-in accumulative histogram mode which can be turned on/off through the button
-selection sequence, <I>Graph-&gt;Type-&gt;Bar</I>. The other mode is the non-accumulative
-curve mode which can be enabled by the button selection sequence, <I>Graph-&gt;Type-&gt;Line</I>.
-It is shown in the Figure <A HREF="node3.html#fig:_preview_mode_line">3</A>. Since it is non-accumulative
-as in histogram mode, it distinguishes the relative importance of various states.
+The goal of the Statistical Preview is to help users select a frame for viewing.
+It consists of two windows. The major window shown in Figure <A HREF="node3.html#fig:_preview"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>,
+is titled ``View &amp; Frame Selector'', but is usually called ``Preview''.
+It contains a graphical representation of all the activities going on during
+the run of the program sppm. Activities in ``Preview'' are computed in
+the following way. The whole duration of the job sppm is divided into 512 time
+bins. For each time bin, there are counters for each state and arrow that occur
+in the time bin. The counter of each state/arrow will be incremented by a statistical
+weight that equals the ratio of the duration of state/arrow to the width of
+time bin that the state/arrow is in. Because of this definition of the statistical
+weight for each state/arrow, very short duration states or arrows become statistically
+insignificant and will not contribute much to the accumulative activities of
+all the states and arrows. The visual consequence is that states/arrows with
+very short duration are not noticeable in ``Preview''. The graphical representation
+of the activities of the logfiles is, by default, in accumulative histogram
+mode, which can be turned on/off through the button selection sequence <I>Graph-&gt;Type-&gt;Bar</I>.
+The other mode is the noncumulative curve mode which can be enabled by the button
+selection sequence <I>Graph-&gt;Type-&gt;Line</I>. It is shown in Figure <A HREF="node3.html#fig:_preview_mode_line"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>.
+Since it is noncumulative, as in histogram mode, it distinguishes the relative
+importance of various states.
+
 <P></P>
-<DIV ALIGN="CENTER"><A NAME="fig:_preview_mode_line"></A><A NAME="182"></A>
+<DIV ALIGN="CENTER"><A NAME="fig:_preview_mode_line"></A><A NAME="285"></A>
 <TABLE>
-<CAPTION ALIGN="BOTTOM"><STRONG>Figure 3:</STRONG>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
 Preview in non-accumulative curve mode.</CAPTION>
 <TR><TD>
 <DIV ALIGN="CENTER"><!-- MATH
@@ -120,39 +122,39 @@ Preview in non-accumulative curve mode.</CAPTION>
 <P></TD></TR>
 </TABLE>
 </DIV><P></P>
-In the lower left hand corner of the ``Preview'', there is a ``Frame Information''
-panel which lists the number of frames in the logfile, <I>N</I>. In this case,
-there are only 3 frames in the file. One may wonder how big is each frame and
-how it is determined? The frame size is determined by the program that generates
-the slog files<A NAME="tex2html7"
-  HREF="footnode.html#foot64"><SUP>4</SUP></A>. In generally, the smaller the frame, the better the performance of Jumpshot-3
+In the lower left-hand corner of ``Preview'', there is a ``Frame Information''
+panel, which lists the number of frames in the logfile, <I>N</I>. In this case,
+there are only 3 frames in the file. The frame size is determined by the program
+that generates the slog files<A NAME="tex2html7"
+  HREF="footnode.html#foot80"><SUP>4</SUP></A>. In general, the smaller the frame, the better the performance of Jumpshot-3
 will be in refreshing the screen. But if an overly small frame size is used,
 it will be increasingly difficult to navigate to the frame that is being selected.
-And each frame will contain too little data for user to form a coherent overall
-picture of the code. Next to the label <I>Current Frame</I>, there is a dialog
-box which shows the current frame index which starts from <I>0</I> to the last
-frame of the file, <I>N-1</I>, and is initialized to <I>0</I> when the GUI starts.
-User can change the frame index by typing in the dialog box or through buttons
-in the ``Frame Operations'', where <I>Previous</I> and <I>Next</I> buttons
-decrements and increments the frame index respectively. But user is also allowed
-to click on the graphical display to select a frame of interest. A red line
-will then show up in the graph to highlight the frame selected. Currently the
-red line is located in the middle of the frame, so the red line is moved non-uniformly
-along the X-axis. The redundancy in frame selection operations allows the end
-user to fine tune which frame to view when the logfile contains a lot of frames.
-For MPI program running in a multihreaded environment as in AIX SMP box, the
-logfile may contain various threads information. In that case, the ``Connectivity
-Options'' and ``View Options'' panels become very useful. User is allowed
-to choose different combinations of these options to see how threads are dispatched
-and used in a MPI Program. More details will be in the next section.
+And each frame will contain too little data for the user to form a coherent
+overall picture of the code. Next to the label <I>Current Frame</I>, there is
+a dialog box that shows the current frame index, which proceeds from <I>0</I>
+to the last frame of the file, <I>N-1</I>, and is initialized to <I>0</I> when
+the GUI starts. The user can change the frame index by typing in the dialog
+box or through buttons in the ``Frame Operations'', where <I>Previous</I>
+and <I>Next</I> buttons decrement and increment the frame index, respectively.
+But the user is also allowed to click on the graphical display to select a frame
+of interest. A red line will then show up in the graph to highlight the frame
+selected. Currently the red line is located in the middle of the frame, so the
+red line is moved nonuniformly along the x-axis. The redundancy in frame selection
+operations allows the end user to fine tune which frame to view when the logfile
+contains a lot of frames. For an MPI program running in a multithreaded environment
+as in the AIX SMP box, the logfile may contain information about threads. In
+that case, the ``Connectivity Options'' and ``View Options'' panels
+become very useful. The user can choose different combinations of these options
+to see how threads are dispatched and used in an MPI Program. More details will
+be in the next section.
 
 <P>
 
 <P></P>
-<DIV ALIGN="CENTER"><A NAME="fig:_preview_s_legends"></A><A NAME="184"></A>
+<DIV ALIGN="CENTER"><A NAME="fig:_preview_s_legends"></A><A NAME="287"></A>
 <TABLE>
-<CAPTION ALIGN="BOTTOM"><STRONG>Figure 4:</STRONG>
-The Legends of the Preview</CAPTION>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
+The Legends of Preview</CAPTION>
 <TR><TD>
 <DIV ALIGN="CENTER"><!-- MATH
  $\resizebox*{0.3\textwidth}{!}{\includegraphics{pic/preview_legends.ps}}$
@@ -167,45 +169,45 @@ The Legends of the Preview</CAPTION>
 <P></TD></TR>
 </TABLE>
 </DIV><P></P>
-Next to the ``Preview'', there is a smaller window titled ``Legend'' which
-contains a set of radio buttons with different colors. They are tagged with
-the names of the MPI and user defined calls made in the code sppm. An illustration
-of ``Legend'' is shown in the Figure <A HREF="node3.html#fig:_preview_s_legends">4</A>. Below
-the list of radio buttons, there are <I>Select/Deselect</I>, <I>All</I>, <I>None</I>
+Next to the ``Preview'' there is a smaller window titled ``Legend'',
+which contains a set of radio buttons with different colors. They are tagged
+with the names of the MPI and user-defined calls made in the code sppm. An illustration
+of ``Legend'' is shown in Figure <A HREF="node3.html#fig:_preview_s_legends"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>. Below
+the list of radio buttons there are <I>Select/Deselect</I>, <I>All</I>, <I>None,</I>
 and <I>Change Color</I> buttons. 
 
 <P>
-``Preview'' together with its corresponding ``Legend'' windows are meant
-to be used side by side to help the end users to select frames which are of
-interest to them. If some of the states displayed in the ``Preview'' seems
-useless and confusing, like operating system generated state ``Running''.
-In this case, the ``Running'' state is the one that messes up the overall
-picture of the code, it can be easily removed by first highlight the state through
-clicking on the name ``Running'' in the ``Legend''. Then click on <I>Select/Deselect</I>
-button will remove ``Running'' from the ``Preview''. In Figure <A HREF="node3.html#fig:_preview_deselected_few_states">5</A>,
-all MPI and system related states are deselected in the ``Preview'' to highlight
-the user defined states ``layout'', ``setup'', ``bdrys'' and ``glbl''.
-It becomes apparent that all the communications between the user MPI Processes
-are done in regular interval. Also all communications, i.e. arrows, are within
-the user defined state ``bdrys''. Assume one is interested in the behaviour
-of the program between the last two instances of MPI_Allreduce, one can simply
-click on <I>None</I> to deselect all the states and arrows, highlight MPI_Allreduce,
-then click <I>Select/Deselect</I> to display only MPI_Allreduce in the ``Preview''.
-Now click on any region between the last two MPI_Allreduce's in the ``Preview''.
-Then the frame index is changed from 0 to 2, and a red line is positioned in
-the middle of the frame 2 and is also in between the last two instances of MPI_Allreduce.
-Now it is time to select the properties of the frame to be viewed. Most end
-users who are interested in the performance of the code sppm should select <I>Connected
-States</I> option with either <I>MPI-Process</I> or <I>Thread</I> view. If you
-are intereted in how the operating system dispatches threads among CPUs allocated
-for the job, you may want to select <I>Disconnected States</I> in <I>Processor</I>
+``Preview'' and its corresponding ``Legend'' windows meant to be
+used side by side to help you select frames that are of interest. If some of
+the states displayed in the ``Preview'' seem useless or confusing, it
+can be easily removed. First highlight the state through click on the name in
+the ``Legend''; then click on <I>Select/Deselect</I> button to remove
+them from ``Preview''. In Figure <A HREF="node3.html#fig:_preview_deselected_few_states"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>,
+all MPI and system-related states are deselected in ``Preview'' to highlight
+the user-defined states ``layout'', ``setup'', ``bdrys'' and
+``glbl''. It becomes apparent that all the communications between the
+user MPI processes are done in regular interval. Also, all communications(i.e.
+arrows) are within the user-defined state ``bdrys''. Assume you are interested
+in the behavior of the program between the last two instances of MPI_Allreduce.
+Then you can simply click on <I>None</I> to deselect all the states and arrows,
+highlight MPI_Allreduce, then click <I>Select/Deselect</I> to display only
+MPI_Allreduce in the ``Preview''. Now click on any region between the
+last two MPI_Allreduce's in the ``Preview''. Then the frame index is
+changed from 0 to 2, and a red line is positioned in the middle of the frame
+2 and is also between the last two instances of MPI_Allreduce. Now select the
+properties of the frame to be viewed. Most end users who are interested in the
+performance of the code sppm should select the <I>Connected States</I> option
+with either <I>MPI-Process</I> or <I>Thread</I> view. If you are interested
+in how the operating system dispatches threads among CPUs allocated for the
+job, you may want to select the <I>Disconnected States</I> option in the <I>Processor</I>
 view.
+
 <P></P>
-<DIV ALIGN="CENTER"><A NAME="fig:_preview_deselected_few_states"></A><A NAME="187"></A>
+<DIV ALIGN="CENTER"><A NAME="fig:_preview_deselected_few_states"></A><A NAME="290"></A>
 <TABLE>
-<CAPTION ALIGN="BOTTOM"><STRONG>Figure 5:</STRONG>
-All MPI and OS related states are
-deselected in the ``Preview'' and ``Legend'' to highlight the user defined
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
+All MPI and OS-related states are
+deselected in the ``Preview'' and ``Legend'' to highlight the user-defined
 states and the communication among the processes.</CAPTION>
 <TR><TD>
 <DIV ALIGN="CENTER"><!-- MATH

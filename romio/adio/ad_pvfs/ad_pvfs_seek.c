@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pvfs_seek.c,v 1.5 2000/07/19 22:38:06 thakur Exp $    
+ *   $Id: ad_pvfs_seek.c,v 1.6 2001/06/05 21:06:09 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -43,7 +43,7 @@ ADIO_Offset ADIOI_PVFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 	MPI_Type_size(fd->filetype, &filetype_size);
 	if ( ! filetype_size ) {
 	    *error_code = MPI_SUCCESS; 
-	    return;
+	    return 0;
 	}
 
 	n_etypes_in_filetype = filetype_size/etype_size;

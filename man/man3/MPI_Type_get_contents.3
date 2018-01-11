@@ -5,13 +5,13 @@ MPI_Type_get_contents \-  Retrieves the actual arguments used in the creation ca
 .nf
 #include "mpi.h"
 int MPI_Type_get_contents(
- MPI_Datatype datatype, 
- int max_integers, 
- int max_addresses, 
- int max_datatypes, 
- int *array_of_integers, 
- MPI_Aint *array_of_addresses, 
- MPI_Datatype *array_of_datatypes)
+        MPI_Datatype datatype, 
+        int max_integers, 
+        int max_addresses, 
+        int max_datatypes, 
+        int *array_of_integers, 
+        MPI_Aint *array_of_addresses, 
+        MPI_Datatype *array_of_datatypes)
 .fi
 .SH INPUT PARAMETERS
 .PD 0

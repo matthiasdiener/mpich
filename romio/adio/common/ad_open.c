@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_open.c,v 1.5 2000/02/09 21:30:05 thakur Exp $    
+ *   $Id: ad_open.c,v 1.6 2001/07/12 00:22:19 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -47,7 +47,7 @@ ADIO_File ADIO_Open(MPI_Comm comm, char *filename, int file_system,
     ADIOI_SetFunctions(fd);
 
 /* create and initialize info object */
-    fd->info = NULL;
+    fd->info = MPI_INFO_NULL;
     ADIO_SetInfo(fd, info, &err);
 
 /* For writing with data sieving, a read-modify-write is needed. If 

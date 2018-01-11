@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_Irec
+public class SLOG_Irec implements Serializable
 {
     public SLOG_Irec_min      fix;
     public SLOG_Irec_assocs   assocs;

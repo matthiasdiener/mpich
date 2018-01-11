@@ -1,5 +1,5 @@
 /* 
- *   $Id: status_setb.c,v 1.1 2000/02/09 21:30:08 thakur Exp $    
+ *   $Id: status_setb.c,v 1.3 2001/03/06 00:02:41 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -9,10 +9,14 @@
 
 #include "mpi.h"
 
+void MPID_Status_set_bytes(MPI_Status *status, int nbytes);
+int MPIR_Status_set_bytes(MPI_Status *status, MPI_Datatype datatype, 
+			  int nbytes);
+
 int MPIR_Status_set_bytes(MPI_Status *status, MPI_Datatype datatype, 
 			  int nbytes)
 {
-    status->count = nbytes;
+    MPID_Status_set_bytes(status, nbytes);
     return MPI_SUCCESS;
 }
 

@@ -99,6 +99,9 @@ case $machine in
     p4|ch_p4|sgi_mp)
 	mpirun_version=$MPIRUN_HOME/mpirun.ch_p4
 	;;
+    gm|ch_gm|myrinet)
+        mpirun_version=$MPIRUN_HOME/mpirun.ch_gm
+	;;
     execer)
 	mpirun_version=$MPIRUN_HOME/mpirun.execer
 	;;

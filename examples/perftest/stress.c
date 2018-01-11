@@ -18,12 +18,11 @@ int __NUMNODES, __MYPROCID  ;
 
 #include "mpi.h"
 extern int __NUMNODES, __MYPROCID;
-static int _MPILEN;
 
 /* Prototypes */
 void SetBuffer( unsigned long *, int, int );
 void PrintHelp( char ** );
-int ErrTest( int from, int partner, int actsize, int bufsize, 
+int ErrTest( MPI_Status *status, int partner, int bufsize, 
 	     unsigned long *buffer, int pattern );
 int CheckBuffer( unsigned long *buf, int size, int pattern );
 
@@ -110,11 +109,13 @@ int main( int argc, char *argv[] )
 	endtime.tv_sec = SYhhmmtoSec( ttime ) + currenttime.tv_sec;
     }
 
+    /* Options for output control */
     if (SYArgHasName( &argc, argv, 1, "-needsnewline" ))
 	needs_newline = 1;
     BeVerbose = SYArgHasName( &argc, argv, 1, "-verbose" );
     Quiet     = SYArgHasName( &argc, argv, 1, "-quiet" );
 
+    /* Determine the test */
     f        = EachToAll;
     switch( protocol ) {
     case NonBlocking:
@@ -239,7 +240,8 @@ int EachToAll( int pattern, int size )
     unsigned long *buffer;
     MPI_Status status;
 
-    buffer = (unsigned long *)malloc((unsigned)(size * sizeof(long) ));  if (!buffer)return 0;;
+    buffer = (unsigned long *)malloc((unsigned)(size * sizeof(long) ));  
+    if (!buffer)return 0;;
     bufsize = size * sizeof(long);
     for (sender=0; sender < __NUMNODES; sender++) {
 	tag = sender;
@@ -254,8 +256,9 @@ int EachToAll( int pattern, int size )
 	}
 	else {
 	    bufmsize = bufsize;
-	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&status);
-	    err += ErrTest( status.MPI_SOURCE, sender, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
+	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,
+		     MPI_COMM_WORLD,&status);
+	    err += ErrTest( &status, sender, bufsize, buffer, pattern );
 	}
     }
     free(buffer );
@@ -295,6 +298,7 @@ int EachToAllNB( int pattern, int size )
 	SetBuffer( sbuffer+dest*size, size, pattern );
 	MPI_Isend( sbuffer+dest*size, bufsize, MPI_BYTE,
 		   dest, myrank, MPI_COMM_WORLD, &sid[dest] );
+	bytes_sent += bufsize;
     }
     /* Receive from everyone */
     rid[myrank] = MPI_REQUEST_NULL;
@@ -305,12 +309,12 @@ int EachToAllNB( int pattern, int size )
     }
 
     /* Complete all communication */
+    /* This should be changed to use an MPI_Waitall */
     for (i=0; i<mysize; i++) {
 	if (rid[i]) {
 	    MPI_Wait(&(rid[i] ),&status);
-	    MPI_Get_count( &status, MPI_BYTE, &recvlen);
 	    /* i should = tag, since tag == sender in above loop */
-	    err += ErrTest( status.MPI_SOURCE, i, recvlen, 
+	    err += ErrTest( &status, i,
 			    bufsize, rbuffer + status.MPI_TAG*size, 
 			    pattern );
 	}
@@ -351,8 +355,10 @@ int AllToAll( int pattern, int size )
 	tag = sender;
 	if (__MYPROCID != sender) {
 	    bufmsize = bufsize;
-	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&status);
-	    err += ErrTest( status.MPI_SOURCE, sender, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
+	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,
+		     MPI_COMM_WORLD,&status);
+	    err += ErrTest( &status, sender,
+			    bufsize, buffer, pattern );
 	}
     }
     free(buffer );
@@ -377,7 +383,8 @@ int AllToAllNB( int pattern, int size )
     for (sender = 0; sender < __NUMNODES; sender++) {
 	if (sender != __MYPROCID) {
 	    tag = sender;
-	    MPI_Irecv(buffer+sender*size,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,MPI_COMM_WORLD,&(rc[sender] ));
+	    MPI_Irecv(buffer+sender*size,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,tag,
+		      MPI_COMM_WORLD,&(rc[sender] ));
 	}
     }
     tag     = __MYPROCID;
@@ -393,7 +400,7 @@ int AllToAllNB( int pattern, int size )
 	if (__MYPROCID != sender) {
 	    bufmsize = bufsize;
 	    MPI_Wait(&(rc[sender] ),&status);
-	    err += ErrTest( status.MPI_SOURCE, sender, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, pattern );
+	    err += ErrTest( &status, sender, bufsize, buffer, pattern );
 	}
     }
     free(buffer );
@@ -417,7 +424,8 @@ int AllToAllPhased( int pattern, int size )
     if (np & 0x1) np--;
     if (mytid >= np) return 0;
 
-    buffer  = (unsigned long *)malloc((unsigned)(size * sizeof(long) ));  if (!buffer)return 0;;
+    buffer  = (unsigned long *)malloc((unsigned)(size * sizeof(long) ));  
+    if (!buffer)return 0;;
     bufsize = size * sizeof(long);
 
 
@@ -427,31 +435,31 @@ int AllToAllPhased( int pattern, int size )
 	from = (mytid + np - d) % np;
 	if (idx & 0x1) {
 	    bufmsize = bufsize;
-	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,from,MPI_COMM_WORLD,&status);
-	    err += ErrTest( status.MPI_SOURCE, from, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
-			    pattern );
+	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,from,
+		     MPI_COMM_WORLD,&status);
+	    err += ErrTest( &status, from, bufsize, buffer, pattern );
 	    SetBuffer( buffer, size, pattern );
 	    MPI_Send(buffer,bufsize,MPI_BYTE,to,mytid,MPI_COMM_WORLD);
 	    bytes_sent += bufsize;
 	    MPI_Send(buffer,bufsize,MPI_BYTE,from,mytid,MPI_COMM_WORLD);
 	    bytes_sent += bufsize;
 	    bufmsize = bufsize;
-	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,to,MPI_COMM_WORLD,&status);
-	    err += ErrTest( status.MPI_SOURCE, to, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
-			    pattern );
+	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,to,
+		     MPI_COMM_WORLD,&status);
+	    err += ErrTest( &status, to, bufsize, buffer, pattern );
 	}
 	else {
 	    SetBuffer( buffer, size, pattern );
 	    MPI_Send(buffer,bufsize,MPI_BYTE,to,mytid,MPI_COMM_WORLD);
 	    bytes_sent += bufsize;
 	    bufmsize = bufsize;
-	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,from,MPI_COMM_WORLD,&status);
-	    err += ErrTest( status.MPI_SOURCE, from, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
-			    pattern );
+	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,from,
+		     MPI_COMM_WORLD,&status);
+	    err += ErrTest( &status, from, bufsize, buffer, pattern );
 	    bufmsize = bufsize;
-	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,to,MPI_COMM_WORLD,&status);
-	    err += ErrTest( status.MPI_SOURCE, to, (MPI_Get_count(&status,MPI_BYTE,&_MPILEN),_MPILEN), bufsize, buffer, 
-			    pattern );
+	    MPI_Recv(buffer,bufmsize,MPI_BYTE,MPI_ANY_SOURCE,to,
+		     MPI_COMM_WORLD,&status);
+	    err += ErrTest( &status, to, bufsize, buffer, pattern );
 	    SetBuffer( buffer, size, pattern );
 	    MPI_Send(buffer,bufsize,MPI_BYTE,from,mytid,MPI_COMM_WORLD);
 	    bytes_sent += bufsize;
@@ -502,10 +510,15 @@ int CheckBuffer( unsigned long *buf, int size, int pattern )
 }
 
 
-int ErrTest( int from, int partner, int actsize, int bufsize, 
+int ErrTest( MPI_Status *status, int partner, int bufsize, 
 	     unsigned long *buffer, int pattern ) 
 {
     int err = 0;
+    int actsize;
+    int from;
+    
+    from = status->MPI_SOURCE;
+    MPI_Get_count( status, MPI_BYTE, &actsize );
 
     if (from != partner) {
 	fprintf( stderr, 
@@ -535,7 +548,8 @@ combinations of\n\
   Protocol: \n\
   -sync        Blocking sends/receives    (default)\n\
   -async       NonBlocking sends/receives\n\
-  -all         AllToAll instead of EachToAll (requires significant buffering)\n\
+  -all         AllToAll instead of EachToAll (requires significant buffering\n\
+               and should only be used with -async)\n\
   -phased      Use ordered sends/receives for systems will little buffering\n\
 \n" );
     fprintf( stderr, 
@@ -548,6 +562,14 @@ combinations of\n\
   -ttime hh:mm Total time to run test (for AT LEAST this long)\n\
       (use 0:01 for 1 minute)\n\
 \n" );
+    fprintf( stderr, "\
+  Output control\n\
+  -needsnewline Output a new line after each output (needed for systems\n\
+               that do not flush output written to stdout)\n\
+  -verbose     Describe test for each pattern\n\
+  -quiet       Turn off most output\n" );
+    fprintf( stderr, "\
+  -help        This information\n" );
     fprintf( stderr, "\
 %s should be run with an even number of processes; use all available\n\
 processes for the most extensive testing\n", argv[0] ? argv[0] : "stress" );

@@ -172,6 +172,16 @@ fi
 if test -n "$P4_OPTS" ; then
     otherargs="$otherargs $P4_OPTS"
 fi
+if test "$COMM" = "bproc" ; then
+    # Here would go bproc options, such as
+    #LIBS="$LIBS -lbproc -Wl,--undefined=beowulf_sched_shim,--undefined=get_beowulf_job_map  -lbeomap -lbeostat -ldl
+    # Note that we have to make sure that this is exported back up to the MPICH
+    # configure
+    # Do define the remote shell and copy commands
+    RSHCOMMAND="/usr/bin/bpsh"
+    # Note that RCPCOMMAND is not yet exported to mpirun.ch_p4.in
+    RCPCOMMAND="${RCPCOMMAND-/usr/bin/bpcp}"
+fi
 #
 # Run configure in the device directory
 # What is this here for?  It is:
@@ -182,8 +192,15 @@ RSHCOMMAND="${RSHCOMMAND-$rshcommand}"
 export CC ; export RSHCOMMAND 
 # Remove the configuration file if present
 rm -f $top_srcdir/mpid/ch_p4/mpich-mpid.h mpid/ch_p4/mpich-mpid.h
-(cd mpid/ch_p4 ; $top_srcdir/mpid/ch_p4/configure) # --srcdir=$srcdir)
+# Export ARCH so that the machines file will get made in the right place
+(cd mpid/ch_p4 ; export ARCH ; \
+$top_srcdir/mpid/ch_p4/configure) # --srcdir=$srcdir)
 # Variable assignments from configure are in localdefs
+if [ ! -f mpid/ch_p4/localdefs ] ; then
+    echo "Failed to build file of local definitions"
+    echo "configure in mpid/ch_p4 failed."
+    exit 1
+fi
 . mpid/ch_p4/localdefs
 #
 if test -n "$rshcommand" ; then
@@ -260,4 +277,5 @@ if test $? != 0 ; then
     print_error "used to speedup process startup."
     # No exit, because we want to be able to continue
 fi
+#
 echo "Finished configuring the p4 secure server"

@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_tasklabel
+public class SLOG_tasklabel implements Serializable
 {
     public short       node;
     public byte        cpu;

@@ -95,6 +95,7 @@ EXPORT_MPI_API void mpi_type_get_envelope_(MPI_Fint *datatype, MPI_Fint *num_int
 				&l_num_addresses, &l_num_datatypes,
 				&l_combiner);
 
+    if (*__ierr != MPI_SUCCESS) return;
     *num_integers = l_num_integers;
     *num_addresses = l_num_addresses;
     *num_datatypes = l_num_datatypes;

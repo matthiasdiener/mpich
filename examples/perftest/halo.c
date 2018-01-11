@@ -130,7 +130,7 @@ double halo_put( int reps, int len, HaloData *ctx )
     char    *sbuffer, *rbuffer;
     MPI_Win win;
     MPI_Aint offset;
-
+    int      alloc_len;
 
     alloc_len = len * ctx->n_partners;
     if (alloc_len == 0) alloc_len = sizeof(double);
@@ -148,6 +148,8 @@ double halo_put( int reps, int len, HaloData *ctx )
     }
     MPI_Win_create( rbuffer, alloc_len, 1, MPI_INFO_NULL, MPI_COMM_WORLD, 
 		    &win );
+    memset( sbuffer, 0, alloc_len );
+    memset( rbuffer, 0, alloc_len );
 
     elapsed_time = 0;
     n_partners   = ctx->n_partners;
@@ -158,8 +160,11 @@ double halo_put( int reps, int len, HaloData *ctx )
 	/*printf( "rep %d\n", i ); fflush(stdout);  */
 	offset = 0;
 	for (j=0; j<n_partners; j++) {
-	    MPI_Put( sbuffer+offset, len, MPI_BYTE, ctx->partners[j], 
-		     offset, len, MPI_BYTE, win );
+	    if (ctx->partners[j] != MPI_PROC_NULL) {
+		/* Fix for broken MPI implementations */
+		MPI_Put( sbuffer+offset, len, MPI_BYTE, ctx->partners[j], 
+			 offset, len, MPI_BYTE, win );
+	    }
 	    offset += len;
 	}
 	MPI_Win_fence( 0, win );
@@ -179,6 +184,7 @@ double halo_put( int reps, int len, HaloData *ctx )
     free(sbuffer );
     free(rbuffer );
 #endif
+    MPI_Win_free( &win );
     return(elapsed_time);
 }
 #endif
@@ -207,10 +213,15 @@ TimeFunction GetHaloFunction( int *argc_p, char *argv[], void *MsgCtx,
   new->kind = WAITALL;
   if (SYArgHasName( argc_p, argv, 1, "-waitany" )) {
       new->kind = WAITANY;
-      strcpy( title, "halo exchange - waitany" );
+      sprintf( title, "halo exchange (%d) - waitany", new->n_partners );
   }
+#ifdef HAVE_MPI_PUT
+  else if (SYArgHasName( argc_p, argv, 0, "-put"  )) {
+      sprintf( title, "halo exchange (%d) - put/fence", new->n_partners );
+  }
+#endif
   else {
-      strcpy( title, "halo exchange - waitall" );
+      sprintf( title, "halo exchange (%d) - waitall", new->n_partners );
   }
 
   /* Compute partners.  We assume only exchanges here.  We use a simple rule

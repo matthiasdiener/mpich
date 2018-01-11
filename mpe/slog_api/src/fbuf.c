@@ -36,7 +36,7 @@ size_t byte2char( const size_t bytesize )
 
 
 
-fbuf_uint32_t byte2fbufunit( const fbuf_uint32_t bytesize )
+static fbuf_uint32_t byte2fbufunit( const fbuf_uint32_t bytesize )
 {
     return ( bytesize % base_fbufunit == 0 ?
              bytesize / base_fbufunit : bytesize / base_fbufunit + 1 );
@@ -163,7 +163,7 @@ fbuf_uint32_t fbuf_deposit( const void           *src,
 #  endif
         if ( buf == NULL ) return (fbuf_uint32_t) 0;
         memcpy( buf, src, byte2char( total_bytesize ) );
-        byteswap( Nelem, elem_sz, buf );
+        bswp_byteswap( Nelem, elem_sz, buf );
         memcpy( fbuf->ptr, buf, byte2char( total_bytesize ) );
 #  if ! defined( HAVE_ALLOCA )
         free( buf );
@@ -229,7 +229,7 @@ fbuf_uint32_t fbuf_withdraw(       void           *dest,
 #  endif
         if ( buf == NULL ) return (fbuf_uint32_t) 0;
         memcpy( buf, fbuf->ptr, byte2char( total_bytesize ) );
-        byteswap( Nelem, elem_sz, buf );
+        bswp_byteswap( Nelem, elem_sz, buf );
         memcpy( dest, buf, byte2char( total_bytesize ) );
 #  if ! defined( HAVE_ALLOCA )
         free( buf );

@@ -38,10 +38,10 @@ public class ViewFrameChooser extends JFrame
 
     private JButton          close_btn;
 
-            Mainwin          init_win;
-            SLOG_InputStream slog = null;
-            SLOG_Frame       slog_frame = null;
-            PlotData         slog_plotdata = null;
+            Mainwin                 init_win;
+            SLOG_ProxyInputStream   slog = null;
+            SLOG_Frame              slog_frame = null;
+            PlotData                slog_plotdata = null;
 
     private FrameDisplay     frame_display = null;
     // private ProgressMonitor  progress_mntr = null;
@@ -50,13 +50,18 @@ public class ViewFrameChooser extends JFrame
     private Timer            timer = null;
 
 
-    public ViewFrameChooser( final SLOG_InputStream  in_slog,
-                             final String[]          in_view_names )
+    public ViewFrameChooser( final SLOG_ProxyInputStream  in_slog,
+                             final String[]               in_view_names )
     {
         super();
 
         slog = in_slog;
-        int  in_Nframe = slog.dir.NumOfFrames();
+
+        SLOG_Statistics  slog_statistics = slog.GetStatistics();
+        SLOG_Profile     slog_profile    = slog.GetProfile();
+        SLOG_Dir         slog_dir        = slog.GetDir();
+
+        int  in_Nframe = slog_dir.NumOfFrames();
 
         if ( in_Nframe > 0 ) {
             Nframe    = in_Nframe;
@@ -75,21 +80,21 @@ public class ViewFrameChooser extends JFrame
         else
             return;
 
-        Npreview = slog.statistics.Nbin;
-        Nset     = slog.statistics.Nset;
+        Npreview = slog_statistics.GetNumOfBins();
+        Nset     = slog_statistics.GetNumOfSets();
         String pview_legends[] = new String[ Nset ];
         Color  pview_colors[]  = new Color[ Nset ];
         double pview_vals[][]  = new double[ Nset ][ Npreview ];
 
-        Enumeration  statsets = slog.statistics.sets.elements();
-        Enumeration  profile  = slog.profile.entries.elements();
+        Enumeration  statsets = slog_statistics.GetEnumerationOfSets();
+        Enumeration  profile  = slog_profile.GetEnumerationOfEntries();
         SLOG_StatSet statset;
         String       color_name;
         int          idx = 0;
         while ( statsets.hasMoreElements() ) {
             statset = ( SLOG_StatSet ) statsets.nextElement();
             pview_legends[ idx ] = new String( statset.label );
-            color_name           = slog.profile.GetColor( statset.intvltype );
+            color_name           = slog_profile.GetColor( statset.intvltype );
             pview_colors[ idx ]  = ColorUtil.getColor( color_name );
             for ( int ii = 0; ii < Npreview; ii++ )
                 pview_vals[ idx ][ ii ] = statset.bins[ ii ]; 
@@ -115,8 +120,8 @@ public class ViewFrameChooser extends JFrame
             stat_preview = new Graph_Pane( this, "Event Count vs Time",
                                            pview_vals,
                                            pview_legends, pview_colors,
-                                           slog.dir.StartTime(),
-                                           slog.dir.EndTime() );
+                                           slog_dir.StartTime(),
+                                           slog_dir.EndTime() );
         
             constraint.fill  = GridBagConstraints.NONE;
             constraint.gridwidth = 1; constraint.gridheight = 1;
@@ -210,8 +215,7 @@ public class ViewFrameChooser extends JFrame
         URL       icon_URL;
 
             ImageIcon back_arrow_icon = null;
-            icon_URL = ClassLoader.getSystemResource( "images/"
-                                                    + "prev_arrow.gif" );
+            icon_URL = getURL( "images/prev_arrow.gif" );
             if ( icon_URL != null )
                 back_arrow_icon = new ImageIcon( icon_URL );
             prev_btn = new JButton( "Previous", back_arrow_icon );
@@ -224,8 +228,7 @@ public class ViewFrameChooser extends JFrame
             btn_panel.add( prev_btn ); 
 
             ImageIcon load_arrow_icon = null;
-            icon_URL = ClassLoader.getSystemResource( "images/"
-                                                    + "load_arrow.gif" );
+            icon_URL = getURL( "images/load_arrow.gif" );
             if ( icon_URL != null )
                 load_arrow_icon = new ImageIcon( icon_URL );
             display_btn = new JButton( "Display", load_arrow_icon );
@@ -240,8 +243,7 @@ public class ViewFrameChooser extends JFrame
             btn_panel.add( display_btn );
 
             ImageIcon next_arrow_icon = null;
-            icon_URL = ClassLoader.getSystemResource( "images/"
-                                                    + "next_arrow.gif" );
+            icon_URL = getURL( "images/next_arrow.gif" );
             if ( icon_URL != null )
                 next_arrow_icon = new ImageIcon( icon_URL );
             next_btn = new JButton( "Next", next_arrow_icon );
@@ -289,10 +291,7 @@ public class ViewFrameChooser extends JFrame
                                {
                                    public void windowClosing( WindowEvent e )
                                    { 
-                                       init_win.enableRead();
-                                       init_win.slog = null;
-                                       init_win.frame_chooser = null;
-                                       free();
+                                       closePreview();
                                    }
                                }
                          );
@@ -446,6 +445,7 @@ public class ViewFrameChooser extends JFrame
 /*
         if ( event.getSource() == close_btn ) {
             init_win.enableRead();
+            init_win.slog.Close();
             init_win.slog = null;
             init_win.frame_chooser = null;
             free();
@@ -464,7 +464,7 @@ public class ViewFrameChooser extends JFrame
 
         if ( frame_idx >= 0 ) {
             display_btn.setEnabled( false );
-            SLOG_DirEntry dir_entry = slog.dir.EntryAt( frame_idx );
+            SLOG_DirEntry dir_entry = slog.GetDir().EntryAt( frame_idx );
             try { slog_frame = slog.GetFrame( dir_entry.fptr2framehdr ); }
             catch ( IOException ioerr )
                 { System.err.println( "ReadLogFrame() has IO error" ); }
@@ -592,7 +592,7 @@ public class ViewFrameChooser extends JFrame
                 title_str.append( view_names[ view_idx ] + " view " );
                 title_str.append( "at frame index = " + frame_idx );
 
-            SLOG_DirEntry slog_dir_entry = slog.dir.EntryAt( frame_idx );
+            SLOG_DirEntry slog_dir_entry = slog.GetDir().EntryAt( frame_idx );
 
             frame_display = new FrameDisplay( init_win, this, slog_plotdata,
                                               slog_dir_entry.starttime,
@@ -647,7 +647,7 @@ public class ViewFrameChooser extends JFrame
         init_win = in_initwin;
     }
 
-    public void SetLogFileHdr( SLOG_InputStream in_slog )
+    public void SetLogFileHdr( SLOG_ProxyInputStream in_slog )
     {
         slog = in_slog;
     }
@@ -672,8 +672,9 @@ public class ViewFrameChooser extends JFrame
     {
         SLOG_DirEntry   dir_entry;
 
+        SLOG_Dir  slog_dir = slog.GetDir();
         for ( int idx = 0; idx < Nframe; idx++ ) {
-            dir_entry = slog.dir.EntryAt( idx );
+            dir_entry = slog_dir.EntryAt( idx );
             if ( time >= dir_entry.starttime && time < dir_entry.endtime ) {
                 frame_idx = idx;
                 frame_idx_fld.setText( Integer.toString( frame_idx ) );
@@ -686,6 +687,19 @@ public class ViewFrameChooser extends JFrame
     public void closePreview()
     {
         init_win.enableRead();
+        if ( init_win.slog != null ) {
+            try {
+                init_win.slog.Close();
+            }
+            catch( java.rmi.RemoteException err ) {
+                System.err.println( "ViewFrameChooser.closePreview(): "
+                                  + err.getMessage() );
+            }
+            catch( IOException err ) {
+                System.err.println( "ViewFrameChooser.closePreview(): "
+                                  + err.getMessage() );
+            }
+        }
         init_win.slog = null;
         init_win.frame_chooser = null;
         free();
@@ -696,7 +710,7 @@ public class ViewFrameChooser extends JFrame
     private void UpdateGraphTimeMarker()
     {
         if ( frame_idx < Nframe ) {
-            SLOG_DirEntry dir_entry = slog.dir.EntryAt( frame_idx );
+            SLOG_DirEntry dir_entry = slog.GetDir().EntryAt( frame_idx );
             double frame_time_marker = ( dir_entry.starttime
                                        + dir_entry.endtime ) / 2.0;
             stat_preview.moveMarkerTo( frame_time_marker );
@@ -717,5 +731,28 @@ public class ViewFrameChooser extends JFrame
     void waitCursor()
     {
         ROUTINES.makeCursor( this, new Cursor( Cursor.WAIT_CURSOR ) );
+    }
+
+    private URL getURL(String filename)
+    {
+        URL url = null;
+
+        /*
+        if ( isApplet ) {
+            URL codeBase = ( (JApplet) init_win.parent ).getCodeBase();
+            try {
+                url = new URL( codeBase, filename );
+            } catch ( java.net.MalformedURLException e ) {
+                System.out.println("badly specified URL");
+                return null;
+            }
+        }
+        else
+           url = ClassLoader.getSystemResource( filename );
+        */
+
+        url = getClass().getResource( filename );
+
+        return url;
     }
 }

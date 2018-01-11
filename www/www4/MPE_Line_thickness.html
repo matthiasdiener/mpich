@@ -21,5 +21,16 @@ int thickness;
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>thickness </B></TD><TD VALIGN=TOP>integer specifying how many pixels wide lines should be
 <BR></TD></TR></TABLE>
 <P>
+<P>
+<H2>Notes For Fortran Interface </H2>
+The Fortran interface to this routine is different from its C
+counterpart and it has an additional argument, ierr, at the end
+of the argument list, i.e. the returned function value (the error
+code) in C interface is returned as the additional argument in
+Fortran interface.  The Fortran interface is invoked with the
+CALL statement.
+<P>
+All MPI and MPE objects, MPI_Comm, MPE_XGraph and MPE_Color, are
+of type INTEGER in Fortran.
 <P><B>Location:</B>mpe_graphics.c<P>
 </BODY></HTML>

@@ -82,4 +82,6 @@ EXPORT_MPI_API void mpi_op_free_( MPI_Fint *op, MPI_Fint *__ierr )
 {
     MPI_Op l_op = MPI_Op_f2c(*op);
     *__ierr = MPI_Op_free(&l_op);
+    if (*__ierr == MPI_SUCCESS) 
+        *op = MPI_Op_c2f( l_op );
 }

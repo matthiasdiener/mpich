@@ -13,7 +13,7 @@
 #include "protofix.h"
 #endif
 
-void Paus( double );
+void Pause( double );
 
 void Pause( double sec )
 {

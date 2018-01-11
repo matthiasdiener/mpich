@@ -1,14 +1,15 @@
 
 		      Portable MPI Model Implementation
 
-			 Version 1.2.1, September, 2000
+			 Version 1.2.2, August, 2001
 
                                  David Ashton
                                  Anthony Chan
 				  Bill Gropp
 				  Rusty Lusk
-                                 Debbie Swider
+                                   Robb Ross
                                  Rajeev Thakur
+                                 Brian Toonen
 
 		  Mathematics and Computer Science Division
 			 Argonne National Laboratory
@@ -24,12 +25,11 @@ doc/guide.ps.gz respectively.  Man pages for each MPI routine, along with
 commands for compiling and running MPI programs, are provided in the
 directories man (Unix man format) and www (HTML).
 
-Version 1.2.1 is primarily a bug-fix and improved-portability release,
-particularly in the area of Fortran support.  A single version of MPICH can
-now be built to use several different Fortran compilers; see the installation
-manual (in doc/install.ps.gz) for details.  Using a C compiler for MPI programs
-that use MPICH that is different from the one that MPICH was built with is
-also easier now; see the installation manual.
+Version 1.2.2 is primarily a bug-fix and improved-portability release,
+particularly in the area of Linux support.  
+
+There are a number of improvements to the ch_p4 device that improve both
+performance and reliability, particularly on Linux platforms. 
 
 Significant upgrades have been made to the MPD system of daemons that provide
 fast startup of MPICH jobs, management of stdio, and a crude parallel debugger
@@ -42,15 +42,7 @@ for information on how to use the MPD system with MPICH.
 
 The NT version of MPICH has been further enhanced and is
 available separately; see the MPICH download page
-http://www.mcs.anl/gov/mpi/mpich/download.html 
-
-The MPE library for logging and program visualization has been much
-improved.  See the file mpe/README for more details.
-
-A new version of ROMIO, 1.0.3, is included. See romio/README for details.
-
-A new version of the C++ interface from the University of Notre Dame is also
-included.  
+http://www.mcs.anl.gov/mpi/mpich/download.html 
 
 Known problems and bugs with this release are documented in the file
 mpich/KnownBugs .
@@ -60,7 +52,7 @@ you get "permission denied", "connection reset by peer", or "poll: protocol
 failure in circuit setup" when trying to run MPICH. 
 
 A change log for all changes from the previous release is available from
-http://www.mcs.anl.gov/mpi/mpich/r1_2_1changes.html .  
+http://www.mcs.anl.gov/mpi/mpich/r1_2_2changes.html .  
 
 There is a paper on jumpshot available at
 ftp://ftp.mcs.anl.gov/pub/mpi/jumpshot.ps.gz .

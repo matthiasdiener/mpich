@@ -89,5 +89,6 @@ EXPORT_MPI_API void mpi_intercomm_create_ ( MPI_Fint *local_comm, MPI_Fint *loca
                                     MPI_Comm_f2c(*peer_comm), 
                                     (int)*remote_leader, (int)*tag,
 				    &l_comm_out);
-    *comm_out = MPI_Comm_c2f(l_comm_out);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *comm_out = MPI_Comm_c2f(l_comm_out);
 }

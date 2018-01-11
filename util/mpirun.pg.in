@@ -2,7 +2,7 @@
 #
 # This file is used to generate a p4-style procgroup file
 #
-# This should be used only for pg and execer runs.  It gnerates a list from
+# This should be used only for pg and execer runs.  It generates a list from
 # the machines.$arch file
 #
 # The original csh code made extensive use of csh arrays, which are quite
@@ -18,10 +18,18 @@
 # I have a note to make mpirun handle hostnames with and without domainnames
 # This may have been fixed below; I'm leaving this marker here in case it
 # comes up again.
+#
+#
+external_allocate_cmd=""
 # 
 #
 if [ "$argsset" = "" ] ; then
-   . mpirun.args
+   mpirundir=`echo $0 | sed 's%/[^/][^/]*$%%'`
+   if [ -d "$mpirundir" ] ; then
+       . $mpirundir/mpirun.args
+   else
+       . mpirun.args
+   fi
 fi
 #
 # Get the defaults (this is in preparation for multi-architecture versions)
@@ -50,6 +58,32 @@ nprocuselist=""
 curarch=1
 nolocalsave=$nolocal
 archlocal=$arch1
+#
+# The following is from Rick Niles of Scyld, and adds the ability to 
+# use an external process allocator
+if [ -n "$external_allocate_cmd" ] ; then
+    BEOWULF_JOB_MAP=`$external_allocate_cmd`
+fi
+
+if [ -n "$BEOWULF_JOB_MAP" ]; then
+    machinelist=`echo $BEOWULF_JOB_MAP | sed -e 's/:/ /g'`
+    machinehead=`echo $machinelist | cut -f 1 -d" "`
+    if [ "$machinehead" = "$MPI_HOST" ] ; then 
+	multiple_args=`echo $machinelist | grep " "`
+	if [ "$multiple_args" ] ; then
+	    machinelist=`echo $machinelist | cut -d" " -f 2-`
+	else
+	    machinelist=""
+	fi
+    else
+	nolocal=1 
+    fi
+    for i in $machinelist; do
+	archuselist="$archuselist $arch"
+	nprocuselist="$nprocuselist 1"
+    done
+    return;
+fi
 #
 # The first time through the loop, we use the default machinefile, unless
 # one has been specified.
@@ -85,7 +119,9 @@ while [ $curarch -le $narch ] ; do
     #
     if [ -z "$machineFile" -o ! -s "$machineFile" -o \
 	! -r "$machineFile" ] ; then
-        if [ $nolocal != 0 -o $np != 1 ] ; then
+        if [ -z "$external_allocate_cmd" \
+            -a \( $nolocal != 0 -o $np != 1 \) ] ; then
+        #   if [ $nolocal != 0 -o $np != 1 ] ; then
             echo Cannot read $machineFile.  
 	    echo Looked for files with extension $archlist in 
 	    echo directory $datadir .
@@ -142,6 +178,10 @@ while [ $curarch -le $narch ] ; do
 	    fi
 	fi
     fi
+    # A bug in the GNU head causes "head -08 filename" to generate a bogus
+    # error message (it interprets 0xxx as octal).  Add 0 to the number
+    # as an easy way to eliminate any leading zeros.
+    np=`expr $np + 0`
     if [ $nolocal = 0 -o $curarch -gt 1 ] ; then
         machineavail=`cat $machineFile | \
 		sed -e '/^#/d' -e 's/#.*^//g' | head -${np} | \
@@ -151,12 +191,45 @@ while [ $curarch -le $narch ] ; do
             # Remove host from the list of available machines....
 	    # Thanks to Bjarne Herland for modification to 
 	    # remove EXACTLY the host machine (eg., bar and not bark)
-	    machineavail=`cat $machineFile | sed -e '/^#/d' -e 's/#.*^//g' | \
-		grep -v "^$MPI_HOST\([ -\.:]\)" | head -${np} | tr '\012' ' '`
+#	    machineavail=`cat $machineFile | sed -e '/^#/d' -e 's/#.*$//g' | \
+#		grep -v "^$MPI_HOST\([ -\.:]\)" | head -${np} | tr '\012' ' '`
+	    machineavail=`cat $machineFile | \
+		sed -e '/^#/d' -e 's/#.*$//g' -e "/^$MPI_HOST:/d" \
+		    -e "/^$MPI_HOST *\$/d" | head -${np} | tr '\012' ' '`
 	else
 	    machineavail=""
         fi
     fi
+    #
+    # The following enhancement thanks to Rick Niles of Scyld
+    # Remove exclude machines from list
+    if [ -n "$EXCLUDE" ] ; then
+	excludelist=`echo $EXCLUDE | sed 's/:/ /g'`
+	for exclude in $excludelist; do
+          newlist=""
+          for machine in $machineavail; do
+	    if [ "$machine" != "$exclude" ]; then 
+		newlist="$newlist $machine"
+	    fi
+          done
+	  machineavail=$newlist
+       done
+    fi
+
+    # Check for ALL_CPUS
+    if [ -n "$ALL_CPUS" ]; then
+        np=0
+	for machine in $machineavail; do
+	    smpcntpresent=`echo $machine | grep :`
+	    if [ -n "$smpcntpresent" ] ; then
+		num=`echo $machine | cut -f 2 -d:`
+ 		np=`expr $np + $num`
+	    else
+		np=`expr $np + 1`
+	    fi
+	done
+    fi
+    
     #
     # One final refinement.  We could make each job start with
     # different processors with code like
@@ -189,9 +262,9 @@ while [ $curarch -le $narch ] ; do
 	    if [ -z "$mtest" ] ; then mtest=$machineName ; fi
 	    machineName=$mtest
 	    machineNameLeader=`expr $machineName : '\([^\.]*\).*'`
-	    if [ $machineName = $MPI_HOST -o \
-	         \( $machineName != $machineNameLeader -a \
-	           $machineNameLeader = "$MPI_HOSTLeader" \) ] ; then
+	    if [ "$machineName" = "$MPI_HOST" -o \
+	         \( "$machineName" != "$machineNameLeader" -a \
+	           "$machineNameLeader" = "$MPI_HOSTLeader" \) ] ; then
 		nprocmachine=1
  	        # Some systems return empty for no match; others return 0.  
 		# Empty is what they should use (0 is ambiguous), but we 
@@ -223,6 +296,7 @@ while [ $curarch -le $narch ] ; do
 	    # Some systems return empty for no match; others return 0.  Empty 
 	    # is what they should use (0 is ambiguous), but we have to be 
 	    # prepared for either.
+	    if [ "$ALL_LOCAL" = 1 ] ; then machineName="$MPI_HOST"; fi
 	    ntest=`expr $machineName : '.*:\([0-9]*\)'`
 	    if [ -n "$ntest" -a "$ntest" != "0" ] ; then
 		nprocmachine=$ntest
@@ -238,8 +312,8 @@ while [ $curarch -le $narch ] ; do
 	    # the first time around, we don't accept the local host.
 	    machineNameLeader=`expr $machineName : '\([^\.]*\).*'`
             if [ $nolocal = 1 -o $KeepHost = 1 -o \
-		 \( $machineName != "$MPI_HOST" -a \
-		    $machineNameLeader != "$MPI_HOSTLeader" \
+		 \( "$machineName" != "$MPI_HOST" -a \
+		    "$machineNameLeader" != "$MPI_HOSTLeader" \
 	       \) ] ; then
 		# Should we convert this the ${machineName}:$nprocmachine
                 # (with a care taken for nprocmachine > np - procFound).
@@ -256,7 +330,7 @@ while [ $curarch -le $narch ] ; do
 		nleft=`expr $nleft - $nprocmachine`
             fi
             if [ $procFound = $np ] ; then break ; fi
-	    if [ $machineName = "$MPI_HOST" ] ; then KeepHost=1 ; fi
+	    if [ "$machineName" = "$MPI_HOST" ] ; then KeepHost=1 ; fi
         done
         loopcnt=`expr $loopcnt + 1`
         # After the first time, we may have found no hosts BUT now
@@ -276,6 +350,7 @@ nolocal=$nolocalsave
 if [ "$argsset" != "1" ] ; then 
     echo $machinelist
     echo $archuselist
+    #echo $nprocuselist
     machinehead=""
 else
     for machinehead in $machinelist ; do 

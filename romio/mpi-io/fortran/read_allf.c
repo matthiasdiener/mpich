@@ -1,5 +1,5 @@
 /* 
- *   $Id: read_allf.c,v 1.9 2000/08/22 21:19:37 gropp Exp $    
+ *   $Id: read_allf.c,v 1.10 2000/11/03 20:17:46 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -84,15 +84,11 @@
 #endif
 #endif
 
-/* Prototype to keep compiler happy */
-void mpi_file_read_all_(MPI_Fint *fh,void *buf,int *count,
-			MPI_Datatype *datatype,MPI_Status *status, int *ierr );
-
-/* Prototype to keep compiler happy */
-void mpi_file_read_all_(MPI_Fint *fh,void *buf,int *count,
-			MPI_Datatype *datatype,MPI_Status *status, int *ierr );
-
 #if defined(MPIHP) || defined(MPILAM)
+/* Prototype to keep compiler happy */
+void mpi_file_read_all_(MPI_Fint *fh,void *buf,int *count,
+			MPI_Fint *datatype,MPI_Status *status, int *ierr );
+
 void mpi_file_read_all_(MPI_Fint *fh,void *buf,int *count,
                       MPI_Fint *datatype,MPI_Status *status, int *ierr )
 {
@@ -105,6 +101,10 @@ void mpi_file_read_all_(MPI_Fint *fh,void *buf,int *count,
     *ierr = MPI_File_read_all(fh_c,buf,*count,datatype_c,status);
 }
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_read_all_(MPI_Fint *fh,void *buf,int *count,
+			MPI_Datatype *datatype,MPI_Status *status, int *ierr );
+
 void mpi_file_read_all_(MPI_Fint *fh,void *buf,int *count,
                       MPI_Datatype *datatype,MPI_Status *status, int *ierr ){
     MPI_File fh_c;

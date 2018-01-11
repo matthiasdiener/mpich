@@ -2,18 +2,18 @@ import java.util.*;
 import java.io.*;
 
 
-public class SLOG_RecDefs
+public class SLOG_RecDefs implements Serializable
 {
     private Vector defs;            //  Vector of SLOG_RecDef
 
     public SLOG_RecDefs()
     {
-	defs = new Vector();
+        defs = new Vector();
     }
 
     public SLOG_RecDefs( int Nelem )
     {
-	defs = new Vector( Nelem );
+        defs = new Vector( Nelem );
     }
 
     public SLOG_RecDefs( RandomAccessFile file_stm )

@@ -27,3 +27,8 @@
 #undef USE_STDARG
 
 #undef USE_OLDSTYLE_STDARG
+
+/* Define if MPI_Fint is the same as a C int */
+#undef FINT_IS_INT
+
+#undef USE_POINTER_FOR_BOTTOM

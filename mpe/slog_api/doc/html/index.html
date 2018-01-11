@@ -1,0 +1,301 @@
+<HTML>
+
+  <HEAD>
+    <TITLE>API for slog-1</TITLE>
+  </HEAD>
+<!-- Background white, links blue (unvisited), navy (visited), red (active) -->
+
+  <BODY
+    BGCOLOR="#FFFFFF"
+    TEXT="#000000"
+    LINK="#0000FF"
+    VLINK="#000080"
+    ALINK="#FF0000"
+  >
+
+         <H1>API for SLOG-1</H1>
+
+<TABLE border cellspacing=4 cellpadding=2>
+<!--
+<TR>
+  <TD colspan=2 rowspan=2></TD>
+  <TH colspan=2>SLOG-1 API</TH>
+</TR>
+-->
+<TR>
+  <TD colspan=1 rowspan=1></TD>
+  <TH>Input API</TH>  <TH>Output API</TH>
+</TR>
+<TR>
+  <!--  <TH rowspan=35></TH>   -->
+  <TH rowspan=2>SLOG-1 Handle</TH>
+  <TD>
+    <A HREF="SLOG_OpenInputStream.html">SLOG_OpenInputStream</A>
+  </TD>
+  <TD>
+    <A HREF="SLOG_OpenOutputStream.html">SLOG_OpenOutputStream</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+    <A HREF="SLOG_CloseInputStream.html">SLOG_CloseInputStream</A>
+  </TD>
+  <TD>
+    <A HREF="SLOG_CloseOutputStream.html">SLOG_CloseOutputStream</A>
+  </TD>
+</TR>
+<TR>
+  <TH rowspan=7>General Properties</TH>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_SetFrameByteSize.html">SLOG_SetFrameByteSize</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_SetFrameReservedSpace.html">SLOG_SetFrameReservedSpace</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_SetIncreasingEndtimeOrder.html">SLOG_SetIncreasingEndtimeOrder</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_SetIncreasingStarttimeOrder.html">SLOG_SetIncreasingStarttimeOrder</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_SetMaxNumOfFramesPerDir.html">SLOG_SetMaxNumOfFramesPerDir</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_SetPreviewName.html">SLOG_SetPreviewName</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_SetPreviewStatisticsSize.html">SLOG_SetPreviewStatisticsSize</A>
+  </TD>
+</TR>
+<TR>
+  <TH rowspan=3>Property: Thread Table</TH>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_TTAB_Open.html">SLOG_TTAB_Open</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_TTAB_AddThreadInfo.html">SLOG_TTAB_AddThreadInfo</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_TTAB_Close.html">SLOG_TTAB_Close</A>
+  </TD>
+</TR>
+<TR>
+  <TH rowspan=6>Property: Display Profile Table</TH>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_PROF_Open.html">SLOG_PROF_Open</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_PROF_AddIntvlInfo.html">SLOG_PROF_AddIntvlInfo</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_PROF_AddIntvlInfoWithArray.html">SLOG_PROF_AddIntvlInfoWithArray</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_PROF_SetExtraNumOfIntvlInfos.html">SLOG_PROF_SetExtraNumOfIntvlInfos</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_PROF_AddExtraIntvlInfo.html">SLOG_PROF_AddExtraIntvlInfo</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_PROF_Close.html">SLOG_PROF_Close</A>
+  </TD>
+</TR>
+<TR>
+  <TH rowspan=5>Property: Record Definition Table</TH>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_RDEF_Open.html">SLOG_RDEF_Open</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_RDEF_AddRecDef.html">SLOG_RDEF_AddRecDef</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_RDEF_SetExtraNumOfRecDefs.html">SLOG_RDEF_SetExtraNumOfRecDefs</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_RDEF_AddExtraRecDef.html">SLOG_RDEF_AddExtraRecDef</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_RDEF_Close.html">SLOG_RDEF_Close</A>
+  </TD>
+</TR>
+<TR>
+  <TH rowspan=12>Manipulation of Interval Record</TH>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_Irec_ReserveSpace.html">SLOG_Irec_ReserveSpace</A>
+  </TD>
+</TR>
+<TR>
+  <TD colspan=2 align=center>
+    <A HREF="SLOG_Irec_Create.html">SLOG_Irec_Create</A>
+  </TD>
+</TR>
+<TR>
+  <TD colspan=2 align=center>
+    <A HREF="SLOG_Irec_Free.html">SLOG_Irec_Free</A>
+  </TD>
+</TR>
+<TR>
+  <TD colspan=2 align=center>
+    <A HREF="SLOG_Irec_Copy.html">SLOG_Irec_Copy</A>
+  </TD>
+</TR>
+<TR>
+  <TD colspan=2 align=center>
+    <A HREF="SLOG_Irec_IsConsistent.html">SLOG_Irec_IsConsistent</A>
+  </TD>
+</TR>
+<TR>
+  <TD colspan=2 align=center>
+    <A HREF="SLOG_Irec_IsEmpty.html">SLOG_Irec_IsEmpty</A>
+  </TD>
+</TR>
+<TR>
+  <TD colspan=2 align=center>
+    <A HREF="SLOG_Irec_Print.html">SLOG_Irec_Print</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+    <A HREF="SLOG_Irec_FromInputStream.html">SLOG_Irec_FromInputStream</A>
+  </TD>
+  <TD>
+    <A HREF="SLOG_Irec_ToOutputStream.html">SLOG_Irec_ToOutputStream</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+    <A HREF="SLOG_Irec_GetMinRec.html">SLOG_Irec_GetMinRec</A>
+  </TD>
+  <TD>
+    <A HREF="SLOG_Irec_SetMinRec.html">SLOG_Irec_SetMinRec</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+    <A HREF="SLOG_Irec_GetArgs.html">SLOG_Irec_GetArgs</A>
+  </TD>
+  <TD>
+    <A HREF="SLOG_Irec_SetArgs.html">SLOG_Irec_SetArgs</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+    <A HREF="SLOG_Irec_GetAssocs.html">SLOG_Irec_GetAssocs</A>
+  </TD>
+  <TD>
+    <A HREF="SLOG_Irec_SetAssocs.html">SLOG_Irec_SetAssocs</A>
+  </TD>
+</TR>
+<TR>
+  <TD>
+  none
+  </TD>
+  <TD>
+    <A HREF="SLOG_Irec_SetDestTaskLabel.html">SLOG_Irec_SetDestTaskLabel</A>
+  </TD>
+</TR>
+</TABLE>
+
+  </BODY>
+</HTML>

@@ -1168,9 +1168,15 @@ int SLOG_Irec_SetMinRec(       SLOG_intvlrec_t  *intvlrec,
 
     if ( SLOG_global_IsOffDiagRec( intvlrec->rectype ) ) {
         va_start( ap, instr_addr );
+#if defined( GCC296_VA_ARG_FIX )
+        dest_node_id      = va_arg( ap, SLOG_uint32 );
+        dest_cpu_id       = va_arg( ap, SLOG_uint32 );
+        dest_thread_id    = va_arg( ap, SLOG_uint32 );
+#else
         dest_node_id      = va_arg( ap, SLOG_nodeID_t );
         dest_cpu_id       = va_arg( ap, SLOG_cpuID_t );
         dest_thread_id    = va_arg( ap, SLOG_threadID_t );
+#endif
         va_end( ap );
         SLOG_TaskID_Assign( &( intvlrec->destID ),
                             dest_node_id, dest_cpu_id, dest_thread_id );

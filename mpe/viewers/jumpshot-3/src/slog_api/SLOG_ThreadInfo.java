@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_ThreadInfo
+public class SLOG_ThreadInfo implements Serializable
 {
     public short       node_id;
     public int         thread_id;

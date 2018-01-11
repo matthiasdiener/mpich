@@ -1,5 +1,5 @@
 /* 
- *   $Id: get_groupf.c,v 1.9 2000/08/20 18:00:29 gropp Exp $    
+ *   $Id: get_groupf.c,v 1.10 2000/11/03 20:17:44 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -84,10 +84,10 @@
 #endif
 #endif
 
-/* Prototype to keep compiler happy */
-void mpi_file_get_group_(MPI_Fint *fh,MPI_Group *group, int *ierr );
-
 #if defined(MPIHP) || defined(MPILAM)
+/* Prototype to keep compiler happy */
+void mpi_file_get_group_(MPI_Fint *fh,MPI_Fint *group, int *ierr );
+
 void mpi_file_get_group_(MPI_Fint *fh,MPI_Fint *group, int *ierr )
 {
     MPI_File fh_c;
@@ -98,6 +98,9 @@ void mpi_file_get_group_(MPI_Fint *fh,MPI_Fint *group, int *ierr )
     *group = MPI_Group_c2f(group_c);
 }
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_get_group_(MPI_Fint *fh,MPI_Group *group, int *ierr );
+
 void mpi_file_get_group_(MPI_Fint *fh,MPI_Group *group, int *ierr )
 {
     MPI_File fh_c;

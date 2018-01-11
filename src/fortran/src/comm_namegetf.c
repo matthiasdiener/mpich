@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_namegetf.c,v 1.1 2000/05/26 21:29:13 gropp Exp $
+ *  $Id: comm_namegetf.c,v 1.2 2001/04/19 20:50:44 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -117,6 +117,7 @@ EXPORT_MPI_API void mpi_comm_get_name_( MPI_Fint *comm, char *string, MPI_Fint *
   int l_reslen;
 
   *__ierr = MPI_Comm_get_name(MPI_Comm_f2c(*comm), cres, &l_reslen);
+  if (*__ierr != MPI_SUCCESS) return;
   *reslen = l_reslen;
 
   if (*reslen > (long)d)

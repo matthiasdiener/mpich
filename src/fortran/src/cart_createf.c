@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_createf.c,v 1.1 2000/05/26 21:29:10 gropp Exp $
+ *  $Id: cart_createf.c,v 1.2 2001/04/19 20:50:43 gropp Exp $
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  * Custom Fortran wrapper
@@ -121,5 +121,6 @@ EXPORT_MPI_API void mpi_cart_create_ (MPI_Fint *comm_old, MPI_Fint *ndims, MPI_F
 			     lperiods, MPIR_FROM_FLOG(*reorder), 
 			     &l_comm_cart);
 #endif
-    *comm_cart = MPI_Comm_c2f(l_comm_cart);
+    if (*ierr == MPI_SUCCESS) 		     
+        *comm_cart = MPI_Comm_c2f(l_comm_cart);
 }

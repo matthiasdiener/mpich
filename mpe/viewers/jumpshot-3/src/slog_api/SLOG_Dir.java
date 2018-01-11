@@ -2,7 +2,7 @@ import java.util.*;
 import java.io.*;
 
 
-public class SLOG_Dir
+public class SLOG_Dir implements Serializable
 {
     private  SLOG_DirHdr        hdr;
     private  Vector             entries;  // Vector of SLOG_DirEntry

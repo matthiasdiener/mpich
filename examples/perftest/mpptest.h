@@ -38,7 +38,14 @@ double (*GetGOPFunction( int*, char *[], char *, char *))(int, int, void *);
 double (*GetHaloFunction( int *, char *[], void *, char * ))(int, int, void *);
 int GetHaloPartners( void * );
 void PrintHaloHelp( void );
+
+/* copy.c : memcpy test */
 double memcpy_rate( int, int, void *);
+double memcpy_rate_int( int, int, void *);
+double memcpy_rate_double( int, int, void *);
+double memcpy_rate_long_long( int, int, void *);
+double memcpy_rate_double_vector( int, int, void *);
+double memcpy_rate_long_long_vector( int, int, void *);
 
 /* Overlap testing */
 typedef struct {
@@ -67,6 +74,7 @@ void RateoutputGraph( GraphData ctx, double sumlen, double sumtime,
 		      double sumlentime, double sumlen2, double sumtime2, 
 		      int ntest, double *S, double *R );
 void EndPageGraph( GraphData ctx );
+void EndGraph( GraphData ctx );
 void DataoutGraph( GraphData ctx, int proc1, int proc2, int distance, 
 		   int len, double t, double mean_time, double rate,
 		   double tmean, double tmax );

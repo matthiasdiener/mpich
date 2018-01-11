@@ -24,7 +24,6 @@ P4VOID listener()
 	if (nfds == 0)
 	    p4_dprintfl(70, "select timeout\n");
 
-	p4_dprintfl(70, "listener out of select, nfds = %d\n", nfds);
 	fd = 0;
 	for (i = 0; i < nfds && !done; i++)
 	{
@@ -38,7 +37,7 @@ P4VOID listener()
 		fd++;
 	    }
 
-	    p4_dprintfl(00, "got fd=%d listening_fd=%d slave_fd=%d\n",
+	    p4_dprintfl(70, "got fd=%d listening_fd=%d slave_fd=%d\n",
 			fd, l->listening_fd, l->slave_fd);
 
 	    /* We use |= to insure that after the loop, we haven't lost
@@ -101,8 +100,7 @@ int fd;
 	to_pid = p4_n_to_i(msg.to_pid);
 	to = p4_n_to_i(msg.to);
 	lport = p4_n_to_i(msg.lport);
-	p4_dprintfl(70,
-		    "connection_request2: poking slave: from=%d lport=%d to_pid=%d to=%d\n",
+	p4_dprintfl(70, "connection_request2: poking slave: from=%d lport=%d to_pid=%d to=%d\n",
 		    from, lport, to_pid, to);
 
 	slave_fd = listener_info->slave_fd;
@@ -120,7 +118,7 @@ int fd;
 	 * completed this one, i.e. do not want to interrupt it until it has
 	 * handled this interrupt
 	 */
-	p4_dprintfl(00, "waiting for slave to handle interrupt\n");
+	p4_dprintfl(70, "waiting for slave to handle interrupt\n");
 	net_recv(slave_fd, &msg, sizeof(msg));
 	/* Check that we get a valid message; for now (see p4_sock_conn/
 	   handle_connection_interrupt) this is just IGNORE_THIS */
@@ -130,7 +128,7 @@ int fd;
 	    p4_error("slave_listener_msg: broken handshake", 
 		     p4_i_to_n(msg.type));
 	    }
-	p4_dprintfl(00, "back from slave handling interrupt\n");
+	p4_dprintfl(70, "back from slave handling interrupt\n");
 	break;
 
       default:
@@ -161,7 +159,7 @@ int fd;
     switch (type)
     {
       case DIE:
-	p4_dprintfl(00, "received die msg from %d\n", from);
+	p4_dprintfl(70, "received die msg from %d\n", from);
 	rc = P4_TRUE;
 	break;
 

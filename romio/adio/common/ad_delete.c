@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_delete.c,v 1.4 2000/02/09 21:30:04 thakur Exp $    
+ *   $Id: ad_delete.c,v 1.6 2001/03/07 16:58:18 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -7,13 +7,12 @@
 
 #include "adio.h"
 
-void ADIO_Delete(char *filename, int *error_code)
+void ADIOI_GEN_Delete(char *filename, int *error_code)
 {
     int err;
 #ifndef PRINT_ERR_MSG
-    static char myname[] = "ADIO_DELETE";
+    static char myname[] = "ADIOI_GEN_DELETE";
 #endif
-
     err = unlink(filename);
 #ifdef PRINT_ERR_MSG
     *error_code = (err == 0) ? MPI_SUCCESS : MPI_ERR_UNKNOWN;

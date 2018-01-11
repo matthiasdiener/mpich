@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_create.c,v 1.12 2000/08/10 22:15:34 toonen Exp $
+ *  $Id: ic_create.c,v 1.13 2001/08/14 14:43:42 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -258,9 +258,9 @@ EXPORT_MPI_API int MPI_Intercomm_create ( MPI_Comm local_comm, int local_leader,
   new_comm->send_context   = send_context;
   new_comm->recv_context   = context;
   new_comm->comm_name      = 0;
+  (void) MPIR_Attr_create_tree ( new_comm );
   if ((mpi_errno = MPID_CommInit( local_comm_ptr, new_comm )) )
       return mpi_errno;
-  (void) MPIR_Attr_create_tree ( new_comm );
 
   /* Build the collective inter-communicator */
   MPIR_Comm_make_coll( new_comm, MPIR_INTER );

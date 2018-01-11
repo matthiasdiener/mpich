@@ -107,6 +107,7 @@ EXPORT_MPI_API void mpi_error_string_( MPI_Fint *errorcode, char *string, MPI_Fi
 
   *__ierr = MPI_Error_string((int)*errorcode, cres, &l_resultlen);
 
+  if (*__ierr != MPI_SUCCESS) return;
   /* Assign the result to the Fortran string doing blank padding as required */
   MPIR_cstr2fstr(string, (int)d, cres);
   *resultlen = LOCAL_MIN((MPI_Fint)l_resultlen, (int)d);

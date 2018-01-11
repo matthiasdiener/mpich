@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_delval.c,v 1.8 1999/08/30 15:42:39 swider Exp $
+ *  $Id: attr_delval.c,v 1.9 2001/04/20 19:38:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -67,15 +67,18 @@ EXPORT_MPI_API int MPI_Attr_delete ( MPI_Comm comm, int keyval )
   MPIR_HBT_lookup(comm_ptr->attr_cache, keyval, &attr);
   if (attr != (MPIR_HBT_node *)0) {
 	if ( attr_key->delete_fn.c_delete_fn ) {
+#ifndef MPID_NO_FORTRAN
 	    if (attr_key->FortranCalling) {
-		MPI_Aint  invall = (MPI_Aint)attr->value;
-		int inval = (int)invall;
-		(*attr_key->delete_fn.f77_delete_fn)(comm, 
+		MPI_Aint invall = (MPI_Aint)attr->value;
+		MPI_Fint inval = (int)invall;
+		MPI_Fint fcomm = MPI_Comm_c2f(comm);
+		(*attr_key->delete_fn.f77_delete_fn)(&fcomm, 
 					   &keyval, &inval,
 					   attr_key->extra_state, &mpi_errno );
 		attr->value = (void *)(MPI_Aint)inval;
 	    }
 	    else
+#endif
 		mpi_errno = (*attr_key->delete_fn.c_delete_fn)(comm, 
 					    keyval, attr->value,
 					    attr_key->extra_state );

@@ -1,5 +1,5 @@
 /*
- *  $Id: chdebug.c,v 1.15 2000/08/11 13:58:17 gropp Exp $
+ *  $Id: chdebug.c,v 1.19 2001/07/16 22:22:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -37,21 +37,25 @@ int MPID_Rndv_print_pkt( fp, pkt )
 FILE       *fp;
 MPID_PKT_T *pkt;
 {
-    /* A "send_id" is a 64bit item on heterogeneous systems.  On 
-       systems without 64bit longs, we need special code to print these.
+    /* A "send_id" is a 8byte item on heterogeneous systems.  On 
+       systems without 8byte longs, we need special code to print these.
        To help keep the output "nearly" atomic, we first convert the
-       send_id to a string, and then print that
+       send_id to a string, and then print that.  %x format uses 2 characters
+       for each byte; we allow a few extra for the null.
        */
-#if defined MPID_AINT_IS_STRUCT && defined(POINTER_64_BITS)
-    char sendid[64], recvid[64];
-#else
-    char sendid[40], recvid[40];
-#endif
+    char sendid[20], recvid[20];
 
     MPID_Aint send_id, recv_id;
 
-    if (pkt->head.mode == MPID_PKT_REQUEST_SEND) 
+    if (pkt->head.mode == MPID_PKT_REQUEST_SEND) {
 	send_id = pkt->request_pkt.send_id;
+#ifdef MPID_AINT_IS_STRUCT
+	recv_id.high = 0;
+	recv_id.low  = 0;
+#else
+	recv_id = (MPID_Aint)(0);
+#endif
+    }
     else {
 	send_id = pkt->sendok_pkt.send_id;
 	recv_id = pkt->sendok_pkt.recv_id;
@@ -139,9 +143,7 @@ MPID_PKT_T *pkt;
     return MPI_SUCCESS;
 }
 
-int MPID_Print_packet( fp, pkt )
-FILE        *fp;
-MPID_PKT_T  *pkt;
+int MPID_Print_packet( FILE *fp, MPID_PKT_T *pkt )
 {
     FPRINTF( fp, "[%d] PKT =\n", MPID_MyWorldRank );
     switch (pkt->head.mode) {
@@ -185,6 +187,18 @@ MPID_PKT_T  *pkt;
 	FPRINTF( fp, "\n" );
     }
     MPID_Print_mode( fp, pkt );
+    if (pkt->head.mode == MPID_PKT_SHORT) {
+	int i, max_i;
+	MPID_PKT_SHORT_T *lpkt = (MPID_PKT_SHORT_T*)pkt;
+	/* Special case to print data and location for short messages */
+	FPRINTF( fp, "\n[%d] PKTdata = (offset %ld)",  MPID_MyWorldRank, 
+		 (unsigned long) (&lpkt->buffer[0] - (char *)pkt) );
+	max_i = (lpkt->len > 32) ? 32 : lpkt->len;
+	for (i=0; i<max_i; i++) {
+	    FPRINTF( fp, "%2.2x", (unsigned int)(lpkt->buffer[i]) );
+	}
+    }
+
 #ifdef MPID_HAS_HETERO
     if ( (pkt->head.mode != MPID_PKT_FLOW) &&
 	 (pkt->head.mode != MPID_PKT_OK_TO_SEND) &&
@@ -421,4 +435,18 @@ MPIR_SHANDLE *shandle;
 	     (long)shandle->start,
 	     shandle->bytes_as_contig
  );
+}
+
+void MPID_Print_Short_data( MPID_PKT_SHORT_T *pkt )
+{
+    int i, max_i;
+    FILE *fp = MPID_DEBUG_FILE;
+    /* Special case to print data and location for short messages */
+    FPRINTF( fp, "\n[%d] PKTdata = (offset %ld)",  MPID_MyWorldRank, 
+	     (unsigned long) (&pkt->buffer[0] - (char *)pkt) );
+    max_i = (pkt->len > 32) ? 32 : pkt->len;
+    for (i=0; i<max_i; i++) {
+	FPRINTF( fp, "%2.2x", (unsigned int)(pkt->buffer[i]) );
+    }
+    FPRINTF( fp, "\n" );
 }

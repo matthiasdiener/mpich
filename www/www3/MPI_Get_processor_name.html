@@ -11,12 +11,13 @@ Gets the name of the processor
 <PRE>
 #include "mpi.h"
 int MPI_Get_processor_name( 
- char *name,
- int *resultlen)
+        char *name,
+        int *resultlen)
 </PRE>
 <H2>Output Parameters</H2>
 <TABLE BORDER=0>
-<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>name </B></TD><TD VALIGN=TOP>A unique specifier for the actual (as opposed to virtual) node. 
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>name </B></TD><TD VALIGN=TOP>A unique specifier for the actual (as opposed to virtual) node. This
+must be an array of size at least <TT>MPI_MAX_PROCESSOR_NAME</TT>.
 <BR></TD></TR>
 <TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>resultlen </B></TD><TD VALIGN=TOP>Length (in characters) of the name 
 <BR></TD></TR></TABLE>

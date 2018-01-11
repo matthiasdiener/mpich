@@ -12,15 +12,29 @@
     defined(HAVE_BSDGETTIMEOFDAY)
 #include <sys/types.h>
 #include <sys/time.h>
+#elif defined(HAVE_CLOCK_GETTIME)
+#include <time.h>
+#elif defined(HAVE_GETHWTIME)
+#include <sys/time.h>
 #endif
 
 void MPID_CH_Wtime( double *seconds )
 {
-
-#if defined(USE_ALPHA_CYCLE_COUNTER)
+#if defined(HAVE_GETHWTIME)
+    /* Solaris high resolution timer */
+    static hrtime_t basetime = 0;
+    static int      basetime_needs_set = 1;
+    if (basetime_needs_set) {
+	basetime_needs_set = 0;
+	basetime = gethwtime();
+    }
+    /* Return a difference from the first call to make time values
+       easier on users.  We could just return 1.0e-9 * gethwtime() */
+    return 1.0e-9 * (double)( gethwtime() - basetime );
+#elif defined(USE_ALPHA_CYCLE_COUNTER)
 /* Code from LinuxJournal #42 (Oct-97), p50; 
    thanks to Dave Covey dnc@gi.alaska.edu
-   Untested; we don't have a Linux alpha
+   Untested
  */
     unsigned long cc
     asm volatile( "rpcc %0" : "=r"(cc) : : "memory" );
@@ -46,6 +60,11 @@ void MPID_CH_Wtime( double *seconds )
 
     gettimeofday(&tp,&tzp);
     *seconds = ((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#elif defined(HAVE_CLOCK_GETTIME)
+    /* POSIX timer (14.2.1, page 311) */
+    struct timespec tp;
+    clock_gettime( CLOCK_REALTIME, &tp );
+    *seconds = ((double) tp.tv_sec + 1.0e-9 * (double) tp.tv_nsec);
 #else
     /* Other timers to consider are clock_gettime (Solaris -lrt), 
        gethrtime (Solaris), 

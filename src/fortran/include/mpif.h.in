@@ -155,17 +155,19 @@ C
       PARAMETER (MPI_COMPLEX8=@F77_COMPLEX8@)
       PARAMETER (MPI_COMPLEX16=@F77_COMPLEX16@)
       PARAMETER (MPI_COMPLEX32=@F77_COMPLEX32@)
-
-      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE      
 C
-C     Without this save, some Fortran implementations may make the common
-C     dynamic!
-C    
-C     For a Fortran90 module, we might replace /MPIPRIV/ with a simple
-C     SAVE MPI_BOTTOM
+C    This is now handled with either the "pointer" extension or this same
+C    code, appended at the end.
+C      COMMON /MPIPRIV/ MPI_BOTTOM,MPI_STATUS_IGNORE,MPI_STATUSES_IGNORE      
+CC
+CC     Without this save, some Fortran implementations may make the common
+CC     dynamic!
+CC    
+CC     For a Fortran90 module, we might replace /MPIPRIV/ with a simple
+CC     SAVE MPI_BOTTOM
+CC
+C      SAVE /MPIPRIV/
 C
-      SAVE /MPIPRIV/
-
       PARAMETER (MPI_MAX=100,MPI_MIN=101,MPI_SUM=102,MPI_PROD=103)
       PARAMETER (MPI_LAND=104,MPI_BAND=105,MPI_LOR=106,MPI_BOR=107)
       PARAMETER (MPI_LXOR=108,MPI_BXOR=109,MPI_MINLOC=110)

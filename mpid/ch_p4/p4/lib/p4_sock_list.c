@@ -2,12 +2,13 @@
 #include "p4_sys.h"
 
 #ifndef THREAD_LISTENER
-P4VOID listener()
+P4VOID listener( void )
 {
     struct listener_data *l = listener_info;
     P4BOOL done = P4_FALSE;
     fd_set read_fds;
     int i, nfds, fd;
+    int max_fd;
 
     p4_dprintfl(70, "enter listener \n");
     dump_listener(70);
@@ -17,50 +18,42 @@ P4VOID listener()
 	FD_ZERO(&read_fds);
 	FD_SET(l->listening_fd, &read_fds);
 	FD_SET(l->slave_fd, &read_fds);
+	max_fd = l->listening_fd;
+	if (l->slave_fd > max_fd) max_fd = l->slave_fd;
 
-	SYSCALL_P4(nfds, select(p4_global->max_connections, &read_fds, 0, 0, 0));
-	if (nfds < 0)
+	SYSCALL_P4(nfds, select(max_fd + 1, &read_fds, 0, 0, 0));
+	/* SYSCALL_P4 retries on EINTR; other errors are fatal */
+	if (nfds < 0) {
 	    p4_error("listener select", nfds);
-	if (nfds == 0)
+	}
+	if (nfds == 0) {
 	    p4_dprintfl(70, "select timeout\n");
+	    continue;
+	}
 
-	fd = 0;
-	for (i = 0; i < nfds && !done; i++)
-	{
-	    while (fd < p4_global->max_connections)
-	    {
-		if (FD_ISSET(fd, &read_fds))
-		{
-		    if (fd == l->listening_fd || fd == l->slave_fd)
-			break;
-		}
-		fd++;
-	    }
-
-	    p4_dprintfl(70, "got fd=%d listening_fd=%d slave_fd=%d\n",
-			fd, l->listening_fd, l->slave_fd);
-
-	    /* We use |= to insure that after the loop, we haven't lost
-	       any "done" messages. 
-	       There really are some nasty race conditions here, and all
-	       this does is cause us to NOT lose a "DIE" message
-	     */
-	    if (fd == l->listening_fd)
-		done |= process_connect_request(fd);
-	    else if (fd == l->slave_fd) 
-		done |= process_slave_message(fd);
-	    fd++;
+	/* We use |= to insure that after the loop, we haven't lost
+	   any "done" messages. 
+	   There really are some nasty race conditions here, and all
+	   this does is cause us to NOT lose a "DIE" message
+	*/
+	if (FD_ISSET(l->listening_fd,&read_fds)) {
+	    p4_dprintfl(70, "input on listening_fd=%d\n", l->listening_fd);
+	    done |= process_connect_request(l->listening_fd);
+	}
+	if (FD_ISSET(l->slave_fd,&read_fds)) {
+	    p4_dprintfl(70, "input on slave_fd=%d\n", l->slave_fd);
+	    done |= process_slave_message(l->slave_fd);
 	}
     }
 
     close( l->listening_fd );
+    close( l->slave_fd );
 
     p4_dprintfl(70, "exit listener\n");
     exit(0);
 }
 
-P4BOOL process_connect_request(fd)
-int fd;
+P4BOOL process_connect_request(int fd)
 {
     struct slave_listener_msg msg;
     int type, msglen;
@@ -102,6 +95,8 @@ int fd;
 	break;
 
       case KILL_SLAVE:
+	  /* A KILL_SLAVE message is very strong and causes nearly immediate 
+	     exit by the slave.  */
 	from = p4_n_to_i(msg.from);
 	to_pid = p4_n_to_i(msg.to_pid);
 	p4_dprintfl(99, "received kill_slave %d msg from remote %d\n", to_pid, from);
@@ -248,7 +243,7 @@ int fd;
  *   connections as part of the initial distribution tree are also from low
  *   to high rank.  This reduces the number of connections that are made.
  */
-P4VOID thread_listener()
+P4VOID thread_listener( void )
 {
     struct slave_listener_msg msg;
     int type;
@@ -373,7 +368,7 @@ P4VOID thread_listener()
 	      break;
 	  }
       }
-      else if (FD_ISSET(listener_info->slave_fd, &read_fds)) {
+      if (FD_ISSET(listener_info->slave_fd, &read_fds)) {
 	  p4_dprintfl( 70, "TL: connection request from slave\n" );
 	  /* Read this message */
 	  net_recv( listener_info->slave_fd, &msg, sizeof(msg) );
@@ -540,10 +535,7 @@ int dest_id;
 
 /* This is net_recv, except simplified for short messages and with an 
    explicit timeout */
-int net_recv_timeout(fd, in_buf, size, secs)
-int fd;
-P4VOID *in_buf;
-int size, secs;
+int net_recv_timeout(int fd, P4VOID *in_buf, int size, int secs)
 {
     int recvd = 0;
     int n;
@@ -564,6 +556,7 @@ int size, secs;
 
 	cur_time = time( (time_t) 0 );
 	if (cur_time - start_time >= secs) {
+	    if (n > 0) recvd += n;
 	    return recvd;
 	}
 
@@ -608,6 +601,7 @@ int size, secs;
 #else
 	{
 	    /* Except on SYSV, n == 0 is EOF */
+	    /* Should we ignore EOFs during shutdown? */
 	    p4_error("net_recv_timeout read:  probable EOF on socket", read_counter);
         }
 #endif

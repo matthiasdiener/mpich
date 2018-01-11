@@ -25,3 +25,6 @@
 
 /* COMPRESSION    : Turn on various header compression code                   */
 #undef COMPRESSION
+
+/* GCC296_VA_ARG_FIX : Turn on the workaround for the va_arg bug in gcc-2.96  */
+#undef GCC296_VA_ARG_FIX

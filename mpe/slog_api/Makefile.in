@@ -114,6 +114,6 @@ distclean: rmlinks
 	@-$(RM) -f sbin/install-slog sbin/uninstall-slog
 	@-$(RM) -f Makefile slog_config.h config.log config.status
 
-configure: configure.in 
+configure: configure.in aclocal.m4
 	autoheader
 	autoconf

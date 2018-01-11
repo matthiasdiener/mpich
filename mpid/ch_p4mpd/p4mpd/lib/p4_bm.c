@@ -1,18 +1,16 @@
 #include "p4.h"
 #include "p4_sys.h"
-#include "bnr.h"
 
 /* extern struct fdentry fdtable[MAXFDENTRIES]; */
 
-void peer_msg_handler(char *);
+void p4_peer_msg_handler(char *);
 
-int bm_start(argc, argv)
-int *argc;
-char **argv;
+int bm_start(int *argc, char **argv)
 {
     int bm_switch_port;
     char *s, pgmname[P4_MAX_PGM_LEN];
-    int rc, mygroupid, myjsize, myrank;
+    int rc, myjsize, myrank;
+    BNR_Group mygroup;
 
     setbuf( stdout, NULL );  /* turn off buffering for clients */
 
@@ -21,18 +19,23 @@ char **argv;
     p4_local = alloc_local_bm();
     if (p4_local == NULL)
 	p4_error("p4_initenv: alloc_local_bm failed\n", 0);
-    setup_conntab();
 
-    rc = BNR_Pre_init( peer_msg_handler );  /* specific to mpich-1 */
-    rc = BNR_Init( &mygroupid );
-    rc = BNR_Rank( mygroupid, &myrank );
-    rc = BNR_Size( mygroupid, &myjsize );
+    rc = BNR_Pre_init( p4_peer_msg_handler );  /* specific to mpich-1 */
+    rc = BNR_Init( );
+    rc = BNR_Get_group( &mygroup );
+    rc = BNR_Get_rank( mygroup, &myrank );
+    rc = BNR_Get_size( mygroup, &myjsize );
+
+    p4_dprintfl(10,"IGNORING SIGPIPE\n");
+    SIGNAL_P4(SIGPIPE,SIG_IGN);
     
     sprintf(whoami_p4, "p%d_%d", myrank, (int)getpid());
     p4_global->num_in_proctable = myjsize; /* there really isn't any proctable  */
 
     p4_local->my_id	    = myrank;
-    p4_local->my_job	    = mygroupid;    /* default jobid for now */
+    p4_local->my_job	    = BNR_Get_group_id( mygroup );  /* default jobid for now */
+
+    setup_conntab();
 
     /* get fd for talking to the manager from the environment, where he put it after
        acquiring it. */
@@ -76,25 +79,28 @@ char **argv;
 
     /* big master installing himself */
     install_in_proctable(0, (-1), getpid(), p4_global->my_host_name, 
+			 p4_global->my_host_name, 
 			 0, P4_MACHINE_TYPE, bm_switch_port);
 
+    BNR_Fence( mygroup ); /* to make sure p4 data structures are set before interrupts
+			     can occur */
     return (0);
 }
 
-void peer_msg_handler( msg )
+void p4_peer_msg_handler( msg )
 char *msg;
 {
     char cmd[32] /*, tohostname[MAXLINE]*/;
     char c_torank[32],c_toport[32],c_toipaddr[32];
-    int torank,toport,connection_fd,num_tries,rc,connected,optval;
+    int flags,torank,toport,connection_fd,num_tries,rc,connected,optval;
     int myid = p4_get_my_id();
     unsigned int toipaddr;
     struct sockaddr_in sa;
 
-    p4_dprintfl(077,"peer_msg_handler entered with msg :%s:\n",msg );
+    p4_dprintfl(077,"p4_peer_msg_handler entered with msg :%s:\n",msg );
     if (strncmp(msg,"connect_to_me-",14) != 0)
     {
-	p4_dprintfl(077,"invalid msg in peer_msg_handler :%s:\n",msg);
+	p4_dprintf("invalid msg in p4_peer_msg_handler :%s:\n",msg);
 	return;
     }
     sscanf(msg,"%[^-]-%[^-]-%[^-]-%s",cmd,c_torank,c_toipaddr,c_toport);
@@ -108,21 +114,36 @@ char *msg;
 
     if (p4_local->conntab[torank].type == CONN_REMOTE_EST)
     {
-	p4_dprintfl(077, "peer_msg_handler: already conn'd to %d\n", torank);
+	p4_dprintfl(077, "p4_peer_msg_handler: already conn'd to %d\n", torank);
 	return;
     }
     if (p4_global->dest_id[myid] == torank)  /* already connecting */
     {
 	if (myid > torank)
 	{
-	    p4_dprintfl(077, "peer_msg_handler: already making conn to %d\n", torank);
+	    p4_dprintfl(077, "p4_peer_msg_handler: already making conn to %d\n", torank);
 	    return;
 	}
     }
 
     SYSCALL_P4(connection_fd, socket(AF_INET, SOCK_STREAM, 0));
     if (connection_fd < 0)
-	p4_error("peer_msg_handler socket", connection_fd);
+	p4_error("p4_peer_msg_handler socket", connection_fd);
+    flags = fcntl(connection_fd, F_GETFL, 0);
+    if (flags < 0)
+        p4_error("p4_bm fcntl1", flags); 
+#   if defined(HP)
+    flags |= O_NONBLOCK;
+#   else
+    flags |= O_NDELAY;
+    p4_dprintfl(90, "p4_bm: setting ndelay for %d\n",connection_fd);
+#   endif   
+#   if defined(RS6000)
+    flags |= O_NONBLOCK;
+#   endif   
+    flags = fcntl(connection_fd, F_SETFL, flags); 
+    if (flags < 0)
+        p4_error("p4_bm fcntl2", flags); 
     optval = 1;
     SYSCALL_P4(rc, setsockopt(connection_fd,IPPROTO_TCP,TCP_NODELAY,(char *) &optval,sizeof(optval)));
     connected = 0;
@@ -135,14 +156,14 @@ char *msg;
 	    p4_dprintfl( 077, "Connect failed; closed socket %d\n", connection_fd );
 	    if (--num_tries)
 	    {
-		p4_dprintfl(077,"peer_msg_handler: connect to %s failed; will try %d more times \n",c_toipaddr,num_tries);
+		p4_dprintfl(077,"p4_peer_msg_handler: connect to %s failed; will try %d more times \n",c_toipaddr,num_tries);
 		sleep(1);
 	    }
 	}
 	else
 	{
 	    connected = 1;
-	    p4_dprintfl(077,"peer_msg_handler: connected to %s\n",c_toipaddr);
+	    p4_dprintfl(077,"p4_peer_msg_handler: connected to %s\n",c_toipaddr);
 	}
 
     }
@@ -150,15 +171,15 @@ char *msg;
     p4_local->conntab[torank].type = CONN_REMOTE_EST;
     p4_local->conntab[torank].port = connection_fd;
     p4_local->conntab[torank].same_data_rep = P4_TRUE;
-/*    p4_dprintfl(077, "peer_msg_handler: connected after %d tries, connection_fd=%d host = %s\n",
+/*    p4_dprintfl(077, "p4_peer_msg_handler: connected after %d tries, connection_fd=%d host = %s\n",
       num_tries, connection_fd, tohostname); */
-    p4_dprintfl(077, "peer_msg_handler: connected after %d tries, connection_fd=%d\n",
+    p4_dprintfl(077, "p4_peer_msg_handler: connected after %d tries, connection_fd=%d\n",
 		num_tries, connection_fd);
 
     /* We're connected, so we can add this connection to the table */
     p4_dprintfl(077, "marked as established fd=%d torank=%d\n",
 		connection_fd, torank);
-    p4_dprintfl(077,"peer_msg_handler done\n" );
+    p4_dprintfl(077,"p4_peer_msg_handler done\n" );
 }
 
 
@@ -403,6 +424,7 @@ struct p4_procgroup *pg;
 	switch_port = p4_n_to_i(bm_msg.switch_port);
 	/* big master installing local slaves */
 	install_in_proctable(0, port, slave_pid, bm_msg.host_name, 
+			     bm_msg.local_name, 
 			     slave_idx, P4_MACHINE_TYPE, switch_port);
 	p4_global->local_slave_count++;
     }
@@ -503,6 +525,7 @@ struct p4_procgroup *pg;
 
 	/* master installing local slaves */
 	install_in_proctable(0, p4_global->listener_port, slave_pid,
+			     p4_global->my_host_name, 
 			     p4_global->my_host_name, 
 			     slave_idx, P4_MACHINE_TYPE,
 			     p4_global->proctable[0].switch_port);

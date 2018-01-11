@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_name_put.c,v 1.5 1999/08/20 02:26:28 ashton Exp $
+ *  $Id: comm_name_put.c,v 1.6 2001/06/20 16:08:40 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,13 +12,41 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-static int MPIR_Name_put ANSI_ARGS((struct MPIR_COMMUNICATOR *, char *));
+#ifdef HAVE_WEAK_SYMBOLS
 
-/*+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_set_name = PMPI_Comm_set_name
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_set_name  MPI_Comm_set_name
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_set_name as PMPI_Comm_set_name
+/* end of weak pragmas */
+#endif
 
-MPI_Comm_set_name - give a print name to the communicator
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
 
-+*/
+static int MPIR_Name_put (struct MPIR_COMMUNICATOR *, char *);
+
+/*@
+
+  MPI_Comm_set_name - give a print name to the communicator
+
+  Input Parameters:
++ com - Communicator to name (handle)
+- name - Name for communicator
+
+.N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+@*/
 EXPORT_MPI_API int MPI_Comm_set_name( MPI_Comm com, char *name )
 {
     int mpi_errno;

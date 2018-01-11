@@ -54,7 +54,7 @@ hasMPE="@hasMPE@"
 SHAREDKIND="@SHAREDKIND@"
 SHARED_LIB_SEARCH_PATH_LEADER='@SHARED_LIB_SEARCH_PATH_LEADER@'
 SHARED_LIB_LOCALDIR="@SHARED_LIB_LOCALDIR@"
-sharedlibdir=@sharedlibbuild_dir@
+sharedlibdir=@sharedlib_dir@
 #
 # Override the compilers using environment variables
 F77LINKER="${MPICH_FLINKER-$FLINKERBASE}"
@@ -181,6 +181,7 @@ for arg in "$@" ; do
 	;;
 	-v)
 	verbose=1
+	echo "mpif77 for $MPIVERSION"
 	compileargs="$compileargs -v"
 	linkargs="$linkargs -v"
 	;;
@@ -190,33 +191,34 @@ for arg in "$@" ; do
 	allargs="$allargs $arg"
 	;;
 	-help)
-	echo "This is a program to compile or link MPI programs"
-	echo "In addition, the following special options are supported"
-	echo "    -mpilog    - Build version that generate MPE log files"
-	echo "    -mpitrace  - Build version that generates traces"
-	echo "    -mpianim   - Build version that generates real-time"
-	echo "                 animation"
-	echo "    -fc=pgm    - Change the program to use to compile and link"
-        echo "                 MPI programs.  WARNING! The program that you"
-        echo "                 choose MUST be compatible with the MPICH "
-        echo "                 libraries.  If you have trouble, you should"
-        echo "                 reconfigure and rebuild MPICH, selecting"
-        echo "                 this compiler."
-	echo "    -show      - Show the commands that would be used without"
-	echo "                 runnning them"
-	echo "    -compile_info - Show how to compile a program"
-	echo "    -link_info - Show how to link a program"
-	echo "    -help      - Give this help"
-	echo "    -echo      - Show exactly what this program is doing."
-	echo "                 This option should normally not be used."
-	echo "This should be used just like the usual Fortran compiler"
-	echo "For example,"
-	echo "   $0 -c foo.f "
-	echo "and"
-	echo "   $0 -o foo foo.o"
-	echo "Combining compilation and linking in a single command"
-	echo "   $0 -o foo foo.f"
-	echo "may not work on some systems, and is not recommended."
+cat <<EOF
+This is a program to compile or link MPI programs
+In addition, the following special options are supported
+    -mpilog    - Build version that generate MPE log files
+    -mpitrace  - Build version that generates traces
+    -mpianim   - Build version that generates real-time animation
+    -fc=pgm    - Change the program to use to compile and link
+                 MPI programs.  WARNING! The program that you
+                 choose MUST be compatible with the MPICH 
+                 libraries.  If you have trouble, you should
+                 reconfigure and rebuild MPICH, selecting
+                 this compiler.
+    -show      - Show the commands that would be used without
+                 runnning them
+    -compile_info - Show how to compile a program
+    -link_info - Show how to link a program
+    -help      - Give this help
+    -echo      - Show exactly what this program is doing.
+                 This option should normally not be used.
+This should be used just like the usual Fortran compiler
+For example,
+   $0 -c foo.f 
+and
+   $0 -o foo foo.o
+Combining compilation and linking in a single command
+   $0 -o foo foo.f
+may not work on some systems, and is not recommended.
+EOF
 	exit 1
 	;;
         #*\"*) 
@@ -339,7 +341,13 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
 	fi
 	mpilibs="-l${FLIBNAME}farg $mpilibs" 
     fi
-    $Show $F77LINKER $F77_LDFLAGS $BASE_FFLAGS $flibpath ${FLIB_PATH_LEADER}${FLIB_PATH} $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $FLIB_LIST
+    # The last F77_LDFLAGS is used in case there are Fortran libraries that 
+    # need to be added to the link line (in the case where we use the C 
+    # compiler to link programs)
+    if [ "$F77LINKER" != "$F77" ] ; then
+        F77_LAST_LDFLAGS="$F77_LDFLAGS"
+    fi
+    $Show $F77LINKER $F77_LDFLAGS $BASE_FFLAGS $flibpath ${FLIB_PATH_LEADER}${FLIB_PATH} $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $FLIB_LIST $F77_LAST_LDFLAGS
     status=$?
 fi
 #

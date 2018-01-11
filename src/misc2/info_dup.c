@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_dup.c,v 1.9 2000/07/20 16:14:07 gropp Exp $    
+ *   $Id: info_dup.c,v 1.10 2001/02/27 22:39:38 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -30,6 +30,14 @@
 #ifdef HAVE_STRING_H
 /* For strdup */
 #include <string.h> 
+#ifndef HAVE_STRDUP
+static char *strdup(const char *s1)
+{
+    char *s2;
+    if ( (s2=malloc(strlen(s1)+1)) == NULL ) return NULL;
+    return (strcpy(s2,s1));
+}
+#endif
 #endif
 
 /*@

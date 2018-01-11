@@ -1,12 +1,44 @@
 /* mpe_graphics.c */
 /* Custom Fortran interface file */
 #include <stdio.h>
+#include <string.h>
 #include "mpeconf.h"
+#ifdef POINTER_64_BITS
+#define MPE_INTERNAL
+#endif
 #include "mpe.h"
 
 #include "mpetools.h"
 #include "basex11.h"
 #include "mpe.h"
+
+#ifndef HAVE_MPI_COMM_F2C
+#define MPI_Comm_c2f(comm) (MPI_Fint)(comm)
+#define MPI_Comm_f2c(comm) (MPI_Comm)(comm)
+#endif
+
+typedef MPI_Fint MPE_Fint;
+
+#ifdef POINTER_64_BITS
+/* Assume Fortran ints are 32 bits */
+#define MPE_XGraph_c2f(xgraph)    (MPE_Fint)(xgraph->fort_index)
+extern MPE_XGraph MPE_fort_head;
+MPE_XGraph MPE_XGraph_f2c( MPE_Fint xgraph ) 
+{
+    MPE_XGraph p = MPE_fort_head;
+    while (p && p->fort_index != xgraph ) p = p->next;
+    return p;
+}
+#else
+#define MPE_XGraph_c2f(xgraph)    (MPE_Fint)(xgraph)
+#define MPE_XGraph_f2c(xgraph)    (MPE_XGraph)(xgraph)
+#endif
+
+#define MPE_Color_c2f(color)      (MPE_Fint)(color)
+#define MPE_Color_f2c(color)      (MPE_Color)(color)
+
+/* In order to suppress warnings about prototypes, each routine is prototyped 
+   right before the definition */
 #ifdef MPI_BUILD_PROFILING
 #ifdef F77_NAME_UPPER
 #define mpe_open_graphics_ PMPE_OPEN_GRAPHICS
@@ -27,34 +59,41 @@
 #endif
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
-/* In order to suppress warnings about prototypes, each routine is prototyped 
-   right before the definition */
-void mpe_open_graphics_ ( MPE_XGraph *, MPI_Comm *, char *, int *, 
-				    int *, int *, int *, int *, int * );
-
-void mpe_open_graphics_( handle, comm, display, x, y, w, h, is_collective, __ierr )
-MPE_XGraph *handle;
-MPI_Comm   *comm;
-char       display[];
-int*x,*y;
-int*w,*h;
-int*is_collective;
-int *__ierr;
+void mpe_open_graphics_( MPE_Fint *, MPE_Fint *, char *,
+                         MPE_Fint *, MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                         MPE_Fint *, MPE_Fint *,
+                         MPE_Fint );
+void mpe_open_graphics_( MPE_Fint *graph, MPE_Fint *comm, char *display,
+                         MPE_Fint *x, MPE_Fint *y, MPE_Fint *w, MPE_Fint *h,
+                         MPE_Fint *is_collective, MPE_Fint *__ierr,
+                         MPE_Fint display_len )
 {
-MPE_XGraph lhandle;
-*__ierr = MPE_Open_graphics( &lhandle,*comm, display,*x,*y,*w,*h,
-			    *is_collective);
-*(int*)handle = MPIR_FromPointer(lhandle);
+    MPE_XGraph local_graph;
+    char *local_display;
+    int local_display_len;
+    int ii;
+
+    /* trim the trailing blanks in display */
+    for ( ii = (int) display_len-1; ii >=0; ii-- )
+        if ( display[ii] != ' ' ) break;
+    if ( ii < 0 ) {
+        local_display_len = 0;
+        local_display = NULL;
+    }	
+    else {
+        local_display_len = ii + 1;
+        local_display = (char *) MALLOC( (local_display_len+1) * sizeof(char) );
+        strncpy( local_display, display, local_display_len );
+        local_display[ local_display_len ] = '\0';
+    }
+
+    *__ierr = MPE_Open_graphics( &local_graph, MPI_Comm_f2c(*comm),
+                                 local_display, (int)*x, (int)*y,
+                                 (int)*w, (int)*h, (int)*is_collective );
+    *graph = MPE_XGraph_c2f(local_graph);
+
+    if ( local_display )
+        FREE( local_display );
 }
 
 #ifdef MPI_BUILD_PROFILING
@@ -77,14 +116,30 @@ MPE_XGraph lhandle;
 #endif
 #endif
 
-void mpe_capturefile_ ( MPE_XGraph *, char *, int *, int * );
-void mpe_capturefile_( handle, fname, freq, __ierr )
-MPE_XGraph*handle;
-char       *fname;
-int*freq;
-int *__ierr;
+void mpe_capturefile_( MPE_Fint *, char *, MPE_Fint *,
+                       MPE_Fint *, MPE_Fint );
+void mpe_capturefile_( MPE_Fint *graph, char *fname, MPE_Fint *freq,
+                       MPE_Fint *__ierr, MPE_Fint fname_len )
 {
-*__ierr = MPE_CaptureFile(*handle,fname,*freq);
+    char *local_fname;
+    int local_fname_len;
+    int ii;
+	
+    /* trim the trailing blanks in fname */
+    for ( ii = (int) fname_len-1; ii >=0; ii-- )
+        if ( fname[ii] != ' ' ) break;
+    if ( ii < 0 )
+        ii = 0;
+    local_fname_len = ii + 1;
+    local_fname = (char *) MALLOC( (local_fname_len+1) * sizeof(char) );
+    strncpy( local_fname, fname, local_fname_len );
+    local_fname[ local_fname_len ] = '\0';
+
+    *__ierr = MPE_CaptureFile( MPE_XGraph_f2c(*graph), local_fname,
+                               (int)*freq );
+
+    if ( local_fname )
+        FREE( local_fname );
 }
 
 #ifdef MPI_BUILD_PROFILING
@@ -107,15 +162,13 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_draw_point_ ( MPE_XGraph *, int *, int *, MPE_Color *, 
-				 int * );
-void mpe_draw_point_( handle, x, y, color, __ierr )
-MPE_XGraph*handle;
-int*x,*y;
-MPE_Color*color;
-int *__ierr;
+void mpe_draw_point_( MPE_Fint *, MPE_Fint *, MPE_Fint *,
+			          MPE_Fint *, MPE_Fint * );
+void mpe_draw_point_( MPE_Fint *graph, MPE_Fint *x, MPE_Fint *y,
+			          MPE_Fint *color, MPE_Fint *__ierr )
 {
-*__ierr = MPE_Draw_point(*handle,*x,*y,*color);
+    *__ierr = MPE_Draw_point( MPE_XGraph_f2c(*graph), (int)*x, (int)*y,
+                              MPE_Color_f2c(*color) );
 }
 
 #ifdef MPI_BUILD_PROFILING
@@ -138,15 +191,33 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_draw_points_ ( MPE_XGraph *, MPE_Point *, int *, int * );
-void mpe_draw_points_( handle, points, npoints, __ierr )
-MPE_XGraph*handle;
-MPE_Point *points;
-int*npoints;
-int *__ierr;
+void mpe_draw_points_( MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                       MPE_Fint * );
+void mpe_draw_points_( MPE_Fint *graph, MPE_Fint *points, MPE_Fint *npoints,
+                       MPE_Fint *__ierr )
 {
-*__ierr = MPE_Draw_points(*handle,
-	(MPE_Point* )MPIR_ToPointer( *(int*)(points) ),*npoints);
+    MPE_Point *local_points;
+    MPE_Fint *fpoint;
+    int Npts;
+    int ii;
+
+    Npts = (int)*npoints;
+    local_points = ( MPE_Point * ) MALLOC( Npts * sizeof( MPE_Point ) );
+
+    fpoint = points;
+    for ( ii = 0; ii < Npts; ii++ ) {
+        local_points[ ii ].x = (int) *fpoint;
+        fpoint ++;
+        local_points[ ii ].y = (int) *fpoint;
+        fpoint ++;
+        local_points[ ii ].c = MPE_Color_f2c(*fpoint);
+        fpoint ++;
+    }
+
+    *__ierr = MPE_Draw_points( MPE_XGraph_f2c(*graph), local_points, Npts );
+
+    if ( local_points )
+        FREE( local_points );
 }
 
 #ifdef MPI_BUILD_PROFILING
@@ -169,16 +240,17 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_draw_line_ ( MPE_XGraph *, int *, int *, int *, int *, 
-				MPE_Color *, int * );
-void mpe_draw_line_( handle, x1, y1, x2, y2, color, __ierr )
-MPE_XGraph*handle;
-int*x1,*y1,*x2,*y2;
-MPE_Color*color;
-int *__ierr;
+void mpe_draw_line_( MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                     MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                     MPE_Fint * );
+void mpe_draw_line_( MPE_Fint *graph, MPE_Fint *x1, MPE_Fint *y1,
+                     MPE_Fint *x2, MPE_Fint *y2, MPE_Fint *color,
+                     MPE_Fint *__ierr )
 {
-*__ierr = MPE_Draw_line(*handle,*x1,*y1,*x2,*y2,*color);
+    *__ierr = MPE_Draw_line( MPE_XGraph_f2c(*graph),(int)*x1,(int)*y1,
+                             (int)*x2, (int) *y2, MPE_Color_f2c(*color) );
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef F77_NAME_UPPER
 #define mpe_fill_rectangle_ PMPE_FILL_RECTANGLE
@@ -199,16 +271,17 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_fill_rectangle_ ( MPE_XGraph *, int *, int *, int *, int *,
-				     MPE_Color *, int * );
-void mpe_fill_rectangle_( handle, x, y, w, h, color, __ierr )
-MPE_XGraph*handle;
-int*x,*y,*w,*h;
-MPE_Color*color;
-int *__ierr;
+void mpe_fill_rectangle_( MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                          MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                          MPE_Fint * );
+void mpe_fill_rectangle_( MPE_Fint *graph, MPE_Fint *x, MPE_Fint *y,
+                          MPE_Fint *w, MPE_Fint *h, MPE_Fint *color,
+                          MPE_Fint *__ierr )
 {
-*__ierr = MPE_Fill_rectangle(*handle,*x,*y,*w,*h,*color);
+    *__ierr = MPE_Fill_rectangle( MPE_XGraph_f2c(*graph), (int)*x, (int)*y,
+                                  (int)*w, (int)*h, MPE_Color_f2c(*color) );
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef F77_NAME_UPPER
 #define mpe_update_ PMPE_UPDATE
@@ -229,13 +302,12 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_update_ ( MPE_XGraph *, int * );
-void mpe_update_( handle, __ierr )
-MPE_XGraph*handle;
-int *__ierr;
+void mpe_update_( MPE_Fint *, MPE_Fint * );
+void mpe_update_( MPE_Fint *graph, MPE_Fint *__ierr )
 {
-*__ierr = MPE_Update(*handle);
+    *__ierr = MPE_Update( MPE_XGraph_f2c(*graph) );
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef F77_NAME_UPPER
 #define mpe_close_graphics_ PMPE_CLOSE_GRAPHICS
@@ -256,18 +328,20 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_close_graphics_ ( MPE_XGraph *, int * );
-void mpe_close_graphics_( handle, __ierr )
-MPE_XGraph *handle;
-int *__ierr;
+void mpe_close_graphics_( MPE_Fint *, MPE_Fint * );
+void mpe_close_graphics_( MPE_Fint *graph, MPE_Fint *__ierr )
 {
-MPE_XGraph lhandle = (MPE_XGraph)MPIR_ToPointer( *(int*)(handle) );
-*__ierr = MPE_Close_graphics( &lhandle );
-if (!lhandle) {
-    MPIR_RmPointer( *(int*)handle );
-    }
+    MPE_XGraph local_graph;
 
-*(int*)handle = 0;
+    local_graph = MPE_XGraph_f2c( *graph );
+
+    *__ierr = MPE_Close_graphics( &local_graph );
+
+#ifdef POINTER_64_BITS
+    /* We could update the list of objects by removing *graph from the
+       list pointed at by MPE_fort_head */
+#endif
+    *graph = 0;
 }
 
 #ifdef MPI_BUILD_PROFILING
@@ -290,17 +364,27 @@ if (!lhandle) {
 #endif
 #endif
 
-void mpe_make_color_array_ ( MPE_XGraph *, int *, MPE_Color [], 
-				       int * );
-void mpe_make_color_array_( handle, ncolors, array, __ierr )
-MPE_XGraph*handle;
-int*ncolors;
-MPE_Color  array[];
-int *__ierr;
+void mpe_make_color_array_( MPE_Fint *, MPE_Fint *,
+                            MPE_Fint *, MPE_Fint * );
+void mpe_make_color_array_( MPE_Fint *graph, MPE_Fint *ncolors,
+                            MPE_Fint *array, MPE_Fint *__ierr )
 {
-*__ierr = MPE_Make_color_array(*handle,*ncolors,
-	(MPE_Color* )MPIR_ToPointer( *(int*)(array) ));
+    MPE_Color *local_array;
+    int       Ncolors;
+    int       ii;
+
+    Ncolors = (int)*ncolors;
+    local_array = ( MPE_Color * ) MALLOC( Ncolors * sizeof( MPE_Color ) );
+
+    *__ierr = MPE_Make_color_array( MPE_XGraph_f2c(*graph), Ncolors,
+                                    local_array );
+
+    for ( ii = 0; ii < Ncolors; ii++ )
+        array[ ii ] = MPE_Color_c2f( local_array[ ii ] );
+    if ( local_array )
+        FREE( local_array );
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef F77_NAME_UPPER
 #define mpe_num_colors_ PMPE_NUM_COLORS
@@ -321,14 +405,14 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_num_colors_ ( MPE_XGraph *, int *, int * );
-void mpe_num_colors_( handle, nc, __ierr )
-MPE_XGraph*handle;
-int        *nc;
-int *__ierr;
+void mpe_num_colors_( MPE_Fint *, MPE_Fint *, MPE_Fint * );
+void mpe_num_colors_( MPE_Fint *graph, MPE_Fint *ncolors, MPE_Fint *__ierr )
 {
-*__ierr = MPE_Num_colors(*handle,nc);
+    int local_ncolors;
+    *__ierr = MPE_Num_colors( MPE_XGraph_f2c(*graph), &local_ncolors );
+                              *ncolors = (MPE_Fint) local_ncolors;
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef F77_NAME_UPPER
 #define mpe_draw_circle_ PMPE_DRAW_CIRCLE
@@ -349,15 +433,14 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_draw_circle_ ( MPE_XGraph *, int *, int *, int *, 
-				  MPE_Color *, int * );
-void mpe_draw_circle_( graph, centerx, centery, radius, color, __ierr )
-MPE_XGraph*graph;
-int*centerx,*centery,*radius;
-MPE_Color*color;
-int *__ierr;
+void mpe_draw_circle_( MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                       MPE_Fint *, MPE_Fint *, MPE_Fint * );
+void mpe_draw_circle_( MPE_Fint *graph, MPE_Fint *centerx, MPE_Fint *centery,
+                       MPE_Fint *radius, MPE_Fint *color, MPE_Fint *__ierr )
 {
-*__ierr = MPE_Draw_circle(*graph,*centerx,*centery,*radius,*color);
+    *__ierr = MPE_Draw_circle( MPE_XGraph_f2c(*graph),
+                               (int)*centerx, (int)*centery,
+                               (int)*radius, MPE_Color_f2c(*color) );
 }
 
 #ifdef MPI_BUILD_PROFILING
@@ -380,15 +463,62 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_fill_circle_ ( MPE_XGraph *, int *, int *, int *, 
-				  MPE_Color *, int * );
-void mpe_fill_circle_( graph, centerx, centery, radius, color, __ierr )
-MPE_XGraph*graph;
-int*centerx,*centery,*radius;
-MPE_Color*color;
-int *__ierr;
+void mpe_fill_circle_( MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                       MPE_Fint *, MPE_Fint *, MPE_Fint * );
+void mpe_fill_circle_( MPE_Fint *graph, MPE_Fint *centerx, MPE_Fint *centery,
+                       MPE_Fint *radius, MPE_Fint *color, MPE_Fint *__ierr )
 {
-*__ierr = MPE_Fill_circle(*graph,*centerx,*centery,*radius,*color);
+    *__ierr = MPE_Fill_circle( MPE_XGraph_f2c(*graph),
+                               (int)*centerx, (int)*centery,
+                               (int)*radius, MPE_Color_f2c(*color) );
+}
+
+#ifdef MPI_BUILD_PROFILING
+#ifdef F77_NAME_UPPER
+#define mpe_draw_string_ PMPE_DRAW_STRING
+#elif defined(F77_NAME_LOWER_2USCORE)
+#define mpe_draw_string_ pmpe_draw_string__
+#elif !defined(F77_NAME_LOWER_USCORE)
+#define mpe_draw_string_ pmpe_draw_string
+#else
+#define mpe_draw_string_ pmpe_draw_string_
+#endif
+#else
+#ifdef F77_NAME_UPPER
+#define mpe_draw_string_ MPE_DRAW_STRING
+#elif defined(F77_NAME_LOWER_2USCORE)
+#define mpe_draw_string_ mpe_draw_string__
+#elif !defined(F77_NAME_LOWER_USCORE)
+#define mpe_draw_string_ mpe_draw_string
+#endif
+#endif
+
+void mpe_draw_string_( MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                       MPE_Fint *, char *, MPE_Fint *,
+                       MPE_Fint string_len );
+void mpe_draw_string_( MPE_Fint *graph, MPE_Fint *x, MPE_Fint *y,
+                       MPE_Fint *color, char *string, MPE_Fint *__ierr,
+                       MPE_Fint string_len )
+{
+    char *local_string;
+    int local_string_len;
+    int ii;
+	
+    /* trim the trailing blanks in string */
+    for ( ii = (int) string_len-1; ii >=0; ii-- )
+        if ( string[ii] != ' ' ) break;
+    if ( ii < 0 )
+        ii = 0;
+    local_string_len = ii + 1;
+    local_string = (char *) MALLOC( (local_string_len+1) * sizeof(char) );
+    strncpy( local_string, string, local_string_len );
+    local_string[ local_string_len ] = '\0';
+
+    *__ierr = MPE_Draw_string( MPE_XGraph_f2c(*graph), (int)*x, (int)*y,
+                               MPE_Color_f2c(*color), local_string );
+
+    if ( local_string )
+        FREE( local_string );
 }
 
 #ifdef MPI_BUILD_PROFILING
@@ -411,14 +541,12 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_draw_logic_ ( MPE_XGraph *, int *, int * );
-void mpe_draw_logic_( graph, function, __ierr )
-MPE_XGraph*graph;
-int*function;
-int *__ierr;
+void mpe_draw_logic_( MPE_Fint *, MPE_Fint *, MPE_Fint * );
+void mpe_draw_logic_( MPE_Fint *graph, MPE_Fint *function, MPE_Fint *__ierr )
 {
-*__ierr = MPE_Draw_logic(*graph,*function);
+    *__ierr = MPE_Draw_logic( MPE_XGraph_f2c(*graph), (int)*function );
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef F77_NAME_UPPER
 #define mpe_line_thickness_ PMPE_LINE_THICKNESS
@@ -439,13 +567,12 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_line_thickness_ ( MPE_XGraph *, int *, int * );
-void mpe_line_thickness_( graph, thickness, __ierr )
-MPE_XGraph*graph;
-int*thickness;
-int *__ierr;
+void mpe_line_thickness_( MPE_Fint *, MPE_Fint *,
+                          MPE_Fint * );
+void mpe_line_thickness_( MPE_Fint *graph, MPE_Fint *thickness,
+                          MPE_Fint *__ierr )
 {
-*__ierr = MPE_Line_thickness(*graph,*thickness);
+    *__ierr = MPE_Line_thickness( MPE_XGraph_f2c(*graph), (int)*thickness );
 }
 
 #ifdef MPI_BUILD_PROFILING
@@ -468,14 +595,18 @@ int *__ierr;
 #endif
 #endif
 
-void mpe_add_rgb_color_ ( MPE_XGraph *, int *, int *, int *, 
-				    MPE_Color *, int * );
-void mpe_add_rgb_color_( graph, red, green, blue, mapping, __ierr )
-MPE_XGraph*graph;
-int*red,*green,*blue;
-MPE_Color *mapping;
-int *__ierr;
+void mpe_add_rgb_color_( MPE_Fint *, MPE_Fint *, MPE_Fint *,
+                         MPE_Fint *, MPE_Fint *, MPE_Fint * );
+void mpe_add_rgb_color_( MPE_Fint *graph, MPE_Fint *red, MPE_Fint *green,
+                         MPE_Fint *blue, MPE_Fint *mapping, MPE_Fint *__ierr )
 {
-*__ierr = MPE_Add_RGB_color(*graph,*red,*green,*blue,
-	(MPE_Color* )MPIR_ToPointer( *(int*)(mapping) ));
+     MPE_Color local_mapping;
+
+     local_mapping = MPE_Color_f2c( *mapping );
+
+     *__ierr = MPE_Add_RGB_color( MPE_XGraph_f2c(*graph),
+                                 (int)*red, (int) *green, (int) *blue,
+                                 &local_mapping );
+
+     *mapping = local_mapping;
 }

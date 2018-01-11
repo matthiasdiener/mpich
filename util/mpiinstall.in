@@ -60,9 +60,9 @@ top_srcdir=@top_srcdir@
 includebuild_dir=@includebuild_dir@
 binbuild_dir=@binbuild_dir@
 libbuild_dir=@libbuild_dir@
-# File access mode
-MODE=0664
-XMODE=0775
+# File access mode.  Does not include group write.
+MODE=0644
+XMODE=0755
 replace=1
 # Propagate install arguments to mpe install
 mpeargs=""
@@ -94,7 +94,7 @@ for arg in "$@" ; do
 	          # switch incase mandir etc. were set on the configure
 		  # line (it uses the PREFIX, not prefix, value)
 		  prefix=`echo $arg | sed -e 's/-prefix=//g'` 
-		  if [ $prefix != $PREFIX ] ; then
+		  if [ "$prefix" != "$PREFIX" ] ; then
   	              prefix_override=1 
 		  fi
 		;;
@@ -173,6 +173,7 @@ if [ "$prefix_override" = 1 ] ; then
     libdir=$prefix/lib
     sharedlib_dir=$libdir/shared
     messagecat_dir=$libdir
+    htmldir=${prefix}/www
     if [ "$mandir_override" != 1 ] ; then
         mandir=$prefix/man
     fi
@@ -493,6 +494,8 @@ if [ -z "$libonly" ] ; then
     # sbin)
     # This step relies on a clean bin build directory
     # Only mpirun really needs FixupFile2; all others just need copyfile
+    #if [ -x mpid/${DEVICE}/mpirun_setup ] ; then
+    #
     if [ -x bin/mpirun ] ; then
         for file in bin/mpirun* ; do
 	    bfile=`basename $file`
@@ -543,8 +546,8 @@ if [ -z "$libonly" ] ; then
         echo "Construct new ${bindir}/mpireconfig.dat from config.status"
     fi
 
-    $Show /bin/rm -f $bindir/execer
-    CopyFile $top_srcdir/util/execer $bindir/execer $XMODE
+    #$Show /bin/rm -f $bindir/execer
+    #CopyFile $top_srcdir/util/execer $bindir/execer $XMODE
     #
     # mpicc, mpif77, mpif90
     FixupFile2 bin/mpicc $bindir/mpicc $XMODE
@@ -568,6 +571,7 @@ if [ -z "$libonly" ] ; then
     # script so that it has access to the various variables (e.g., 
     # prefix and bindir).  If you need to run a program, run it from
     # within the script
+    # These should use MODE and XMODE
     if [ -x mpid/$DEVICE/install_$DEVICE ] ; then
         . mpid/$DEVICE/install_$DEVICE
     elif [ -x $top_srcdir/mpid/$DEVICE/install_$DEVICE ] ; then
@@ -716,7 +720,7 @@ done
 # Copy the Message Queue dynamic link library if it exists
 for file in $libbuild_dir/libtvmpich.so* ; do
     if [ -f $file ] ; then
-	CopyFileP $file $libdir
+	CopyFileP $file $libdir $XMODE
     fi
 done
 # The Fortran wrapper libraries should have been created in libbuild_dir
@@ -727,24 +731,38 @@ done
 #        fi
 #    done
 #fi
-# Copy the shared library versions
+# Copy the shared library versions.  Set the permissions to allow execute
+# access.
 for file in $libbuild_dir/shared/*.so* ; do
     # Also need to handle any links!
     if [ ! -h $file -a -f $file ] ; then 
-        CopyFileP $file $sharedlib_dir
+        CopyFileP $file $sharedlib_dir $XMODE
 	if [ -n "$SHAREDLIB_LOCALDIR" -a \
 	     "$SHAREDLIB_LOCALDIR" != $sharedlib_dir ] ; then
-	    CopyFileP $file $SHAREDLIB_LOCALDIR
+	    CopyFileP $file $SHAREDLIB_LOCALDIR $XMODE
         fi
     fi
 done
-# Create links from foo.so.* to foo.so
+# Get the current directory (see pushd/popd comments below)
+curdir=`pwd`
+# Create links from foo.so.n.m to foo.so.n and foo.so.n to foo.so
 for file in $sharedlib_dir/*.so* ; do
-    filebase=`echo $file | sed -e 's%\.so\.[^/]*$%.so%g'`
-    if [ ! -h $filebase -a -s $file ] ; then 
-        $Show ln -s $file $filebase
-	echo "/bin/rm -f $filebase" >>$UNINSTALLFILE
-    fi
+    # pushd would be cleaner, but not all systems support it (e.g.,IRIX)
+    #pushd $sharedlib_dir >/dev/null
+    cd $sharedlib_dir >/dev/null
+    file=`basename $file`
+    filebase=`echo $file | sed -e 's%\.[0-9]*$%%'`
+    while [ $filebase != $file ]; do
+	 if [ ! -h $filebase -a -s $file ] ; then 
+	     $Show ln -s $file $filebase
+	     echo "/bin/rm -f $sharedlib_dir/$filebase" >>$UNINSTALLFILE
+	 fi
+	 file=$filebase
+	 filebase=`echo $file | sed -e 's%\.[0-9]*$%%'`
+    done
+    # popd is not universal
+    #popd >/dev/null
+    cd $curdir >/dev/null
 done
 #
 
@@ -795,6 +813,9 @@ CopyFile $includebuild_dir/mpidefs.h $includedir
 #
 # Documentation
 if [ -z "$noman" -a -z "$libonly" ] ; then 
+    # Add a note that we're installing the documentation because it
+    # is a large number of files and can take significant time.
+    echo "Installing documentation ... "
     if [ -z "$mandir" ] ; then
         mandir=$prefix/man
     fi
@@ -835,6 +856,7 @@ if [ -z "$noman" -a -z "$libonly" ] ; then
             done
         done
     fi
+    echo "Done installing documentation"
 fi
 if [ -z "$libonly" ] ; then
     for file in functions.ps.gz guide.ps.gz install.ps.gz ; do
@@ -860,7 +882,7 @@ if [ "$NOMPE" = "0" ] ; then
 	# mpeargs should be the same for the most part as mpi args.
 	# see command line processing.
 	mpeargs="$mpeargs -uninstall=$UNINSTALLFILE"
-        ( cd mpe ; ./sbin/mpeinstall $mpeargs )
+        ( cd mpe ; ./sbin/mpeinstall $mpeargs -mode=$MODE -xmode=$XMODE )
     fi
 fi
 #
@@ -912,34 +934,41 @@ fi
 # This SHOULD use mpireconfig...
 Savevar=$prefix
 if [ -n "$CPP_DIR" -a "$buildcpp" = 1 ] ; then 
+# Removed the installation of these extra examples.  
     # C++ Example programs 
-    CopyFile $top_srcdir/installtest/mpi-2-c++/Makefile.in $prefix/examples/$CPP_DIR
+#    CopyFile $top_srcdir/installtest/mpi-2-c++/Makefile.in $prefix/examples/$CPP_DIR
     #
     prefix=$APREFIX
-    CPPEXDIR=$top_srcdir/$CPP_DIR/contrib/examples
-    # This isn't correct because it doesn't handle all of the fields in
-    # the C++ examples Makefile, particularly the TEMPLATE_REP field
-    # The intent here is to update the directories; but we also need
-    # to update a few additional fields
-    (cd $prefix/examples/$CPP_DIR ; $bindir/mpireconfig Makefile )
-    echo "(cd $prefix/examples/$CPP_DIR ; $MAKE clean)" >> $UNINSTALLFILE
-    echo "/bin/rm -f $prefix/examples/$CPP_DIR/Makefile" >> $UNINSTALLFILE
-    prefix=$Savevar
-    CopyFile $CPPEXDIR/hello_world.cc $prefix/examples/$CPP_DIR
-    CopyFile $CPPEXDIR/ring.cc $prefix/examples/$CPP_DIR
-    CopyFile $CPPEXDIR/topology.cc $prefix/examples/$CPP_DIR
-    CopyFile $CPPEXDIR/user_bcast.cc $prefix/examples/$CPP_DIR
-    CopyFile $CPPEXDIR/chapter_10_mpi2.cc $prefix/examples/$CPP_DIR
-    CopyFile $CPPEXDIR/pi.cc $prefix/examples/$CPP_DIR
-    CopyFile $CPPEXDIR/README $prefix/examples/$CPP_DIR
-    #
-    # Test build the C++ examples
-    $Show "(cd $prefix/examples/$CPP_DIR ; /bin/rm -f mpirun ; \
-	      ln -s ../../bin/mpirun mpirun )"
-    echo "/bin/rm -f $prefix/examples/$CPP_DIR/mpirun" >> $UNINSTALLFILE
-    #
-    echo "About to run C++ installation test..."
-    $Show "(cd $prefix/examples/$CPP_DIR; $MAKE ; $MAKE clean)"
+#      CPPEXDIR=$top_srcdir/$CPP_DIR/contrib/examples
+#      # This isn't correct because it doesn't handle all of the fields in
+#      # the C++ examples Makefile, particularly the TEMPLATE_REP field
+#      # The intent here is to update the directories; but we also need
+#      # to update a few additional fields
+#      (cd $prefix/examples/$CPP_DIR ; $bindir/mpireconfig Makefile )
+#      echo "(cd $prefix/examples/$CPP_DIR ; $MAKE clean)" >> $UNINSTALLFILE
+#      echo "/bin/rm -f $prefix/examples/$CPP_DIR/Makefile" >> $UNINSTALLFILE
+#      prefix=$Savevar
+#      CopyFile $CPPEXDIR/hello_world.cc $prefix/examples/$CPP_DIR
+#      CopyFile $CPPEXDIR/ring.cc $prefix/examples/$CPP_DIR
+#      CopyFile $CPPEXDIR/topology.cc $prefix/examples/$CPP_DIR
+#      CopyFile $CPPEXDIR/user_bcast.cc $prefix/examples/$CPP_DIR
+#      CopyFile $CPPEXDIR/chapter_10_mpi2.cc $prefix/examples/$CPP_DIR
+#      CopyFile $CPPEXDIR/pi.cc $prefix/examples/$CPP_DIR
+#      CopyFile $CPPEXDIR/README $prefix/examples/$CPP_DIR
+#      #
+#      # Test build the C++ examples
+#      $Show "(cd $prefix/examples/$CPP_DIR ; /bin/rm -f mpirun ; \
+#  	      ln -s ../../bin/mpirun mpirun )"
+#      echo "/bin/rm -f $prefix/examples/$CPP_DIR/mpirun" >> $UNINSTALLFILE
+#      #
+#      echo "About to run C++ installation test..."
+#      $Show "(cd $prefix/examples/$CPP_DIR; $MAKE ; $MAKE clean)"
+#      # A temporary fix because C++ clean doesn't remove any template 
+#      # directories.  This will eventually need to be changed into a for loop
+#      # (even better, the clean target in the Makefile should be fixed)
+#      if [ -d $prefix/examples/$CPP_DIR/ii_files ] ; then
+#          $Show rm -rf $prefix/examples/$CPP_DIR/ii_files
+#      fi
     #
 fi
 #

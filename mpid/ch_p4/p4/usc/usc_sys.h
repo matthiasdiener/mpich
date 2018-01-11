@@ -74,7 +74,7 @@
     || defined(NEXT) || defined(TITAN) || defined(GP_1000) \
     || defined(KSR) \
     || defined(MEIKO_CS2) \
-    || defined(SGI) || defined(FX8)
+    || defined(SGI) || defined(FX8) || defined(CRAY)
 
 #	include <sys/time.h>
 

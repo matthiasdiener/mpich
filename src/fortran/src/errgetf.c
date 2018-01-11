@@ -83,5 +83,6 @@ EXPORT_MPI_API void mpi_errhandler_get_( MPI_Fint *comm, MPI_Fint *errhandler, M
 {
     MPI_Errhandler l_errhandler;
     *__ierr = MPI_Errhandler_get( MPI_Comm_f2c(*comm), &l_errhandler );
-    *errhandler = MPI_Errhandler_c2f(l_errhandler);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *errhandler = MPI_Errhandler_c2f(l_errhandler);
 }

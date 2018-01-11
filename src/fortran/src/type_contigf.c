@@ -84,5 +84,6 @@ EXPORT_MPI_API void mpi_type_contiguous_( MPI_Fint *count, MPI_Fint *old_type, M
 
     *__ierr = MPI_Type_contiguous((int)*count, MPI_Type_f2c(*old_type),
                                   &ldatatype);
-    *newtype = MPI_Type_c2f(ldatatype);
+    if (*__ierr == MPI_SUCCESS) 
+        *newtype = MPI_Type_c2f(ldatatype);
 }

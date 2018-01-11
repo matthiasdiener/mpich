@@ -96,11 +96,11 @@ Flags *flags;
 
     MPE_LOG_EVENT( S_WAIT_FOR_MESSAGE, 0, 0 );
     MPI_Probe( MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &mesgStatus );
-    MPE_LOG_RECEIVE( mesgStatus.MPI_SOURCE, mesgStatus.MPI_TAG, 0 );
-    MPE_LOG_EVENT( E_WAIT_FOR_MESSAGE, 0, 0 );
-
     procNum = mesgStatus.MPI_SOURCE;
     mesgTag = mesgStatus.MPI_TAG;
+    MPE_LOG_RECEIVE( procNum, mesgTag, 0 );
+    MPE_LOG_EVENT( E_WAIT_FOR_MESSAGE, 0, 0 );
+
 
 #if DEBUG
     fprintf( debug_file, "Master receives %d from %d\n", mesgTag, procNum );
@@ -112,8 +112,8 @@ Flags *flags;
     case READY_TO_START:
       inProgress++;
     case READY_FOR_MORE:
-      MPI_Recv( 0, 0, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG,
-	        MPI_COMM_WORLD, &mesgStatus );
+	/* Receive only the message that we probed for */
+      MPI_Recv( 0, 0, MPI_INT, procNum, mesgTag, MPI_COMM_WORLD, &mesgStatus );
       if (IS_Q_EMPTY(rect_q)) {		      /* if the queue is empty, */
 	idleList[nidle++] = procNum;  /* remember this process was left idle */
 	inProgress--;

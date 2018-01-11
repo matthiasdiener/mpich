@@ -59,8 +59,8 @@ or equal to "JDK 1.1.6 IBM build a116-19990115 (JIT enabled: jitc)"
 
 
 
-Running Jumpshot
-------- --------
+Running Jumpshot as An Application
+------- -------- -- -- -----------
 
 There are 2 ways to run jumpshot-3.
 
@@ -68,16 +68,94 @@ There are 2 ways to run jumpshot-3.
    cd to $(JUMPSHOT-3)/bin and run Jumpshot by entering "jumpshot" or
    "jumpshot slog_filename", e.g.
 
-   /homes/chan/jumpshot-3> bin/jumpshot logfiles/merge.slog
+   /homes/chan/jumpshot-3> bin/jumpshot [logfiles/merge.slog]
 
    With a filename as the command line argument, jumpshot skips the 
    logfile selection process and starts reading the file immediately.
 
-2, run jumpshot directly using "java" or "jre"
    Set the CLASSPATH in your local shell to where slog.jar, jumpshot.jar
    and swing.jar, preview.jar and statsviewer.jar are located.  Check
    $(JUMPSHOT-3)/bin/jumpshot for exact syntax.  Then you can invoke 
-   jumpshot-3 as "java jumpshot" or "java jumpshot slog_filename".
+   jumpshot-3 as
+
+   java MainFrame [slog_filename]
+
+
+1, run jumpshot directly using "java" or "jre".
+   change directory to the jumpshot-3 build directory to build
+   "executable"( only meaningful to Java 2 SDK ) jar file, jumpshot3.jar.
+
+   cd <jumpshot-3_build_dir>
+   make exejar
+
+   If Java 2 SDK or JRE is used, jumpshot-3 can simply be invoked as
+
+   java -jar jumpshot3.jar MainFrame [slog_filename]
+
+   [slog_filename] is optional.
+   If Java 1 SDK or JRE is used, it is a bit complicated to launch it.
+   It invokes sets up CLASSPATH.
+
+   cd <jumpshot-3_build_dir>
+   setenv CLASSPATH `pwd`/swing/swing.jar:`pwd`/jumpshot3.jar:.
+   java MainFrame [slog_filename]
+
+
+
+
+Running Jumpshot in Client-Server mode
+------- -------- -- ------------- ----
+
+Here assume Java 2 SDK, i.e. jdk-1.2.2 or newer, is used.
+The SLOG server code has only been fully tested using Java 2 SDK.
+Using Java 1 SDK to launch SLOG server would be more complicated,
+i.e. one has to set the CLASSPATH explicitly.  The server code
+has NOT been tested with Java 1 SDK.
+
+When running Jumpshot-3 in client-server mode, the client is
+an applet which has to be launched from a Java 2 enabled web-brower
+or appletviewer.  The distribution comes with jumpshot3.html file
+which can be used to invoke the applet.  One can put jumpshot3.html
+and jumpshot3.jar( created by "make exejar" at the top-level directory )
+into your user html directory.
+
+cd <jumpshot-3_build_dir>
+make exejar
+cp jumpshot3.html jumpshot3.jar lib/slog.jar ~<my_username>/public_html
+
+Before invoking the applet, the SLOG RMI server needs to be launched
+first by doing the following.
+
+cd ~<my_username>/public_html
+java -jar slog.jar -l -m <server_hostname> &
+
+Here <server_hostname> can be `hostname`.
+
+Here assume the http server and slog server will be the same machine.
+where "-l" option enables logging of all the activities of the server.
+For more usage information of the SLOG RMI Server, do
+"java -jar slog.jar -h".
+
+To invoke the client, say on machine <client_hostname>
+appletviewer http://<server_hostname>/~<my_username>/jumpshot3.html
+
+
+
+Running SLOG RMI server with a security manager
+------- ---- --- ------ ---- - -------- -------
+
+cd ~<my_username>/public_html
+java -Djava.security.manager -Djava.security.policy=slogd.policy
+     -jar slog.jar -l <slogd_logging_filename> -m <server_hostname> &
+
+the file slogd.policy has the following lines
+
+grant {
+  permission java.net.SocketPermission "<server_hostname>", "accept, connect, listen, resolve";
+  permission java.io.FilePermission "<slogd_logging_filename>", "write, read";
+  permission java.io.FilePermission "logfiles/*", "read";
+};
+
 
 
 

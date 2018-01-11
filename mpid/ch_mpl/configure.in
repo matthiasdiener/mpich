@@ -1,5 +1,6 @@
 AC_INIT()
 AC_CONFIG_HEADER(mpich-mpid.h)
+# ignore --enable-strict and --enable-g
 # check for mpproto.h
 # (try compile instead?)
 AC_CHECK_HEADERS(mpproto.h,pre_req=1,pre_req=0)

@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_DirEntry
+public class SLOG_DirEntry implements Serializable
 {
     public long    fptr2framehdr;
     public double  starttime;

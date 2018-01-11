@@ -1,6 +1,7 @@
 import java.io.*;
 
-public class SLOG_RecDef extends Object implements Cloneable
+public class SLOG_RecDef extends Object
+                         implements Cloneable, Serializable
 {
     public  short       intvltype;
     public  SLOG_bebits bebits;
@@ -12,7 +13,7 @@ public class SLOG_RecDef extends Object implements Cloneable
         intvltype = SLOG_Const.INVALID_short;
         bebits    = null;
         Nassocs   = SLOG_Const.INVALID_short;
-	Nargs     = SLOG_Const.INVALID_short;
+        Nargs     = SLOG_Const.INVALID_short;
     }
 
     public SLOG_RecDef( short in_intvltype, 

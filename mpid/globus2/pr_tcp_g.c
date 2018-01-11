@@ -10,18 +10,21 @@
 extern globus_io_handle_t Handle; 
 extern globus_mutex_t     MessageQueuesLock;
 extern volatile int       TcpOutstandingRecvReqs;
-extern struct channel_t * CommworldChannels;
 extern globus_size_t      Headerlen;
 int			  MpichGlobus2TcpBufsz = 0;
+extern struct commworldchannels *CommWorldChannelsTable;
 
 static void data_arrived(struct tcp_rw_handle_t *rwhp);
-static void send_cancel_result_over_tcp(int grank, 
+static void send_cancel_result_over_tcp(char *msgid_src_commworld_id,
+					int msgid_src_commworld_displ, 
 					int result, 
 					void *liba,
 					int libasize,
 					long msgid_sec,
 					long msgid_usec,
 					unsigned long msgid_ctr);
+
+static globus_bool_t i_establish_socket(int dest_grank);
 
 /**********************/
 /* Callback functions */
@@ -36,7 +39,7 @@ void read_callback(void *callback_arg,
 {
     struct tcp_rw_handle_t *rwhp = (struct tcp_rw_handle_t *) callback_arg;
 
-/* globus_libc_printf("%d: enter read_callback: state=", MPID_MyWorldRank); switch (rwhp->state) { case await_instructions: globus_libc_printf("await_instructions\n"); break; case await_format: globus_libc_printf("await_format\n"); break; case await_header: globus_libc_printf("await_header\n"); break; case await_data: globus_libc_printf("await_data\n"); break; default: globus_libc_printf("unknown\n"); break; } fflush(stdout); */
+/* globus_libc_fprintf(stderr, "%d: enter read_callback: rwhp(%x)->state=", MPID_MyWorldRank, rwhp); switch (rwhp->state) { case await_instructions: globus_libc_printf("await_instructions\n"); break; case await_format: globus_libc_printf("await_format\n"); break; case await_header: globus_libc_printf("await_header\n"); break; case await_data: globus_libc_printf("await_data\n"); break; default: globus_libc_printf("unknown\n"); break; } */
 
     if (result != GLOBUS_SUCCESS)
     {
@@ -75,6 +78,8 @@ void read_callback(void *callback_arg,
 
     switch (rwhp->state)
     {
+	struct channel_t *cp;
+
         /**********************/
         /* await_instructions */
         /**********************/
@@ -83,50 +88,79 @@ void read_callback(void *callback_arg,
 	    {
 		/* 
 		 * remote side called prime_the_line() connecting to me.
-		 * set me their format.  i must send mine back.
+		 * sent me their format.  i must send mine back.
 		 */
 
-		int dest_grank               = atoi((const char *) 
-						 &(rwhp->instruction_buff[2]));
 		globus_byte_t remote_format  = rwhp->instruction_buff[1];
+		int displ                    = atoi((const char *) 
+			 &(rwhp->instruction_buff[2+COMMWORLDCHANNELSNAMELEN]));
 		globus_byte_t my_format      = GLOBUS_DC_FORMAT_LOCAL;
+		int dest_grank;
 
-		if (dest_grank < MPID_MyWorldRank 
-		    || dest_grank > MPID_MyWorldSize)
+		if ((dest_grank = commworld_name_displ_to_grank((char *) 
+						&(rwhp->instruction_buff[2]), 
+						displ)) == -1)
 		{
 		    char err[1024];
 		    globus_libc_sprintf(err,
 			"ERROR: read_callback(): await_instructions FORMAT: "
-			"proc %d extracted dest_grank %d which must be >= "
-			"to my rank and < MPID_MyWorldSize %d",
-			MPID_MyWorldRank, dest_grank, MPID_MyWorldSize);
+			"proc %d could not resolve dest_grank from name >%s< "
+			"displ %d ",
+			MPID_MyWorldRank, &(rwhp->instruction_buff[2]), displ);
+		    print_channels();
 		    MPID_Abort(NULL, 0, "MPICH-G2", err);
 		}
-		else if (!(CommworldChannels[dest_grank].selected_proto))
+		else if (dest_grank != MPID_MyWorldRank /* when 
+						* dest_grank==MPID_MyWorldRank
+						* then both 'sides' will return 
+						* TRUE from i_establish_socket()
+						*/
+			&& i_establish_socket(dest_grank))
+		{
+		    char err[1024];
+		    globus_libc_sprintf(err,
+			"ERROR: read_callback(): await_instructions FORMAT: "
+			"prime_the_line proto error: proc %d extracted "
+			"dest_grank %d: remote side establishing socket "
+			"when I believe I should",
+			MPID_MyWorldRank, dest_grank);
+		    print_channels();
+		    MPID_Abort(NULL, 0, "MPICH-G2", err);
+		}
+		else if (!(cp = get_channel(dest_grank)))
+		{
+		    char err[1024];
+		    globus_libc_sprintf(err,
+			"ERROR: read_callback(): await_instructions FORMAT: "
+			"proc %d faild get_channel dest_grank %d\n",
+			MPID_MyWorldRank, dest_grank);
+		    print_channels();
+		    MPID_Abort(NULL, 0, "MPICH-G2", err);
+		}
+		else if (!(cp->selected_proto))
 		{
 		    globus_libc_fprintf(stderr,
 			"ERROR: read_callback(): await_instructions FORMAT: "
 			"proc %d: does not have selected proto for dest_grank "
 			"%d\n",
 			MPID_MyWorldRank, dest_grank); 
-		    print_channels(MPID_MyWorldSize, CommworldChannels);
+		    print_channels();
 		    MPID_Abort(NULL, 0, "MPICH-G2", "");
 		}
-		else if (CommworldChannels[dest_grank].selected_proto->type 
-			    != tcp)
+		else if ((cp->selected_proto)->type != tcp)
 		{
 		    globus_libc_fprintf(stderr,
 			"ERROR: read_callback(): await_instructions FORMAT: "
 			"proc %d: called with selected protocol to dest_grank "
 			"%d something other than TCP\n",
 			MPID_MyWorldRank, dest_grank); 
-		    print_channels(MPID_MyWorldSize, CommworldChannels);
+		    print_channels();
 		    MPID_Abort(NULL, 0, "MPICH-G2", "");
 		}
 		else
 		{
 		    struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-			    CommworldChannels[dest_grank].selected_proto->info;
+			    (cp->selected_proto)->info;
 		    globus_size_t nbytes_sent;
 
 		    globus_mutex_lock(&(tp->connection_lock));
@@ -219,37 +253,63 @@ void read_callback(void *callback_arg,
 		 * instructed me to call prime_the_line().
 		 */
 
-		int dest_grank = atoi((const char *)
-				    &(rwhp->instruction_buff[1]));
-		if (dest_grank >= MPID_MyWorldRank)
+		int displ = atoi((const char *) 
+			&(rwhp->instruction_buff[1+COMMWORLDCHANNELSNAMELEN]));
+		int dest_grank = commworld_name_displ_to_grank((char *)
+				    &(rwhp->instruction_buff[1]),
+				    displ);
+
+		if (dest_grank == -1)
+                {
+                    char err[1024];
+                    globus_libc_sprintf(err,
+                        "ERROR: read_callback(): await_instructions PRIME: "
+                        "proc %d could not resolve dest_grank from name >%s< "
+                        "displ %d ",
+                        MPID_MyWorldRank, &(rwhp->instruction_buff[1]), displ);
+                    print_channels();
+                    MPID_Abort(NULL, 0, "MPICH-G2", err);
+                }
+		else if (!i_establish_socket(dest_grank))
+		{
+                    char err[1024];
+                    globus_libc_sprintf(err,
+                        "ERROR: read_callback(): await_instructions PRIME: "
+                        "prime_the_line proto error: proc %d extracted "
+                        "dest_grank %d: remote side calling for PRIME "
+                        "when I believe I should",
+                        MPID_MyWorldRank, dest_grank);
+                    print_channels();
+                    MPID_Abort(NULL, 0, "MPICH-G2", err);
+		}
+		else if (!(cp = get_channel(dest_grank)))
 		{
 		    char err[1024];
 		    globus_libc_sprintf(err,
-			"ERROR: read_callback(): await_instructions CONNECT: "
-			"proc %d extracted dest_grank %d which must be < "
-			"my rank",
+			"ERROR: read_callback(): await_instructions PRIME: "
+			"proc %d faild get_channel dest_grank %d\n",
 			MPID_MyWorldRank, dest_grank);
+		    print_channels();
 		    MPID_Abort(NULL, 0, "MPICH-G2", err);
 		}
-		else if (!(CommworldChannels[dest_grank].selected_proto))
+		else if (!(cp->selected_proto))
 		{
 		    globus_libc_fprintf(stderr,
-			"ERROR: read_callback(): await_instructions CONNECT: "
+			"ERROR: read_callback(): await_instructions PRIME: "
 			"proc %d: does not have selected proto for dest_grank "
 			"%d\n",
 			MPID_MyWorldRank, dest_grank); 
-		    print_channels(MPID_MyWorldSize, CommworldChannels);
+		    print_channels();
 		    MPID_Abort(NULL, 0, "MPICH-G2", "");
 		}
-		else if (CommworldChannels[dest_grank].selected_proto->type 
-			    != tcp)
+		else if ((cp->selected_proto)->type != tcp)
 		{
 		    globus_libc_fprintf(stderr,
-			"ERROR: read_callback(): await_instructions CONNECT: "
+			"ERROR: read_callback(): await_instructions PRIME: "
 			"proc %d: called with selected protocol to dest_grank "
 			"%d something other than TCP\n",
 			MPID_MyWorldRank, dest_grank); 
-		    print_channels(MPID_MyWorldSize, CommworldChannels);
+		    print_channels();
 		    MPID_Abort(NULL, 0, "MPICH-G2", "");
 		}
 		else
@@ -264,7 +324,7 @@ void read_callback(void *callback_arg,
 			g_free((void *) rwhp);
 
 			prime_the_line((struct tcp_miproto_t *) 
-			    CommworldChannels[dest_grank].selected_proto->info, 
+			    (cp->selected_proto)->info, 
 			    dest_grank);
 		} /* endif */
 	    }
@@ -307,6 +367,7 @@ void read_callback(void *callback_arg,
                                 rwhp->incoming_header_len, /* wait for nbytes */
                                     read_callback,
                                     (void *) rwhp); /* optional callback arg */
+globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_format: just registered await_header (rwhp %x) read %d bytes\n", MPID_MyWorldRank, rwhp, rwhp->incoming_header_len);
             break;
 
         /****************/
@@ -321,19 +382,20 @@ void read_callback(void *callback_arg,
 		 * unpacking header type: either user_data or ack
 		 * type==user_data,src,tag,contextid,
 		 *       dataoriginbuffsize,ssendflag,packed_flag,
-		 *       msgid_src_grank,msgid_sec,msgid_usec,msgid_ctr,liba
-		 *       where (liba == remote addr and
-		 *               ssendflag == -1 (no ack necessary)) 
-		 *       or
-		 *              (ssendflag = src_grank (ack necessary))
+		 *       msgid_src_commworld_id,msgid_src_commworld_displ,
+		 *       msgid_sec,msgid_usec,msgid_ctr,liba
+		 *       where (liba == remote addr)
 		 * OR 
 		 * type==ack, liba
 		 * OR 
 		 * type==cancel_send,
-		 *       msgid_src_grank,msgid_sec,msgid_usec,msgid_ctr,
-		 *       liba
+		 *       msgid_src_commworld_id,msgid_src_commworld_displ,
+		 *       msgid_sec,msgid_usec,msgid_ctr,liba
 		 * OR 
-		 * type==cancel_result, cancel_success_flag, liba
+		 * type==cancel_result, 
+		 *          cancel_success_flag, 
+		 *          msgid_src_commworld_id,msgid_src_commworld_displ,
+		 *          msgid_sec,msgid_usec,msgid_ctr,liba 
 		 */
 
                 globus_dc_get_int(&cp, &type, 1, (int) (rwhp->remote_format));
@@ -345,7 +407,8 @@ void read_callback(void *callback_arg,
 		     * unpacking rest of header: 
 		     *      src,tag,contextid,
 		     *      dataoriginbuffsize,ssendflag,packed_flag,
-		     *      msgid_src_grank,msgid_sec,msgid_usec,msgid_ctr,liba
+		     *      msgid_src_commworld_id,msgid_src_commworld_displ,
+		     *      msgid_sec,msgid_usec,msgid_ctr,liba
 		     */
 		    globus_dc_get_int(&cp, &(rwhp->src), 1, 
 					(int) (rwhp->remote_format));
@@ -359,8 +422,11 @@ void read_callback(void *callback_arg,
 					(int) (rwhp->remote_format));
 		    globus_dc_get_int(&cp, &(rwhp->packed_flag), 1, 
 					(int) (rwhp->remote_format));
-		    globus_dc_get_int(&cp, &(rwhp->msg_id_src_grank), 1,
+		    globus_dc_get_char(&cp, rwhp->msg_id_src_commworld_id, 
+					COMMWORLDCHANNELSNAMELEN,
 					(int) (rwhp->remote_format));
+		    globus_dc_get_int(&cp, &(rwhp->msg_id_src_commworld_displ), 
+					1, (int) (rwhp->remote_format));
 		    globus_dc_get_long(&cp, &(rwhp->msg_id_sec), 1,
 					(int) (rwhp->remote_format));
 		    globus_dc_get_long(&cp, &(rwhp->msg_id_usec), 1,
@@ -368,6 +434,25 @@ void read_callback(void *callback_arg,
 		    globus_dc_get_u_long(&cp, &(rwhp->msg_id_ctr), 1,
 					(int) (rwhp->remote_format));
 		    memcpy(rwhp->liba, (void *) cp, rwhp->libasize);
+
+		    if ((rwhp->msg_id_src_grank = 
+					commworld_name_displ_to_grank(
+					    rwhp->msg_id_src_commworld_id, 
+					    rwhp->msg_id_src_commworld_displ))
+					== -1)
+		    {
+			char err[1024];
+			globus_libc_sprintf(err,
+			    "ERROR: %d read_callback(): await_header: "
+			    "type=user_data got grank -1 from commworld_id >%s<"
+			    "commworld_displ %d\n",
+			    MPID_MyWorldRank,
+			    rwhp->msg_id_src_commworld_id,
+			    rwhp->msg_id_src_commworld_displ);
+			print_channels();
+			MPID_Abort(NULL, 0, "MPICH-G2", err);
+		    } /* endif */
+globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_header: user_data: just extracted src %d tag %d context %d dataorigin_bufflen %d cwid %s cwdispl %d (-> grank %d) msgid_sec %ld msgid_usec %ld msgid_ctr %ld \n", MPID_MyWorldRank, rwhp->src, rwhp->tag, rwhp->context_id, rwhp->dataorigin_bufflen, rwhp->msg_id_src_commworld_id, rwhp->msg_id_src_commworld_displ, rwhp->msg_id_src_grank, rwhp->msg_id_sec, rwhp->msg_id_usec, rwhp->msg_id_ctr);
 
 		    /*
 		     * NICK: for now unconditionally cache the message ... 
@@ -405,6 +490,7 @@ void read_callback(void *callback_arg,
 				rwhp->incoming_header_len, /* wait for nbytes */
 						read_callback,
 				    (void *) rwhp); /* optional callback arg */
+globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_header: user_data: src %d tag %d context %d: empty payload just registered await_header (rwhp %x) read %d bytes\n", MPID_MyWorldRank, rwhp->src, rwhp->tag, rwhp->context_id, rwhp, rwhp->incoming_header_len);
 		    } /* endif */
 		}
 		else if (type == ack)
@@ -454,17 +540,21 @@ void read_callback(void *callback_arg,
 		    /* rcv side just received a request to cancel */
 		    /* a previously sent message */
 		    int result;
-		    int msgid_src_grank;
+		    char msgid_src_commworld_id[COMMWORLDCHANNELSNAMELEN];
+		    int msgid_src_commworld_displ;
 		    long msgid_sec;
 		    long msgid_usec;
 		    unsigned long msgid_ctr;
 		    MPIR_RHANDLE *rhandle;
 
 		    /* unpacking rest of header: 
-		     *     msgid_src_grank,msgid_sec,msgid_usec,msgid_ctr, 
-		     *     liba 
+		     *     msgid_src_commworld_id,msgid_src_commworld_displ,
+		     *     msgid_sec,msgid_usec,msgid_ctr,liba
 		     */
-		    globus_dc_get_int(&cp, &(msgid_src_grank), 1,
+		    globus_dc_get_char(&cp, msgid_src_commworld_id, 
+					COMMWORLDCHANNELSNAMELEN,
+					(int) (rwhp->remote_format));
+		    globus_dc_get_int(&cp, &(msgid_src_commworld_displ), 1,
 					(int) (rwhp->remote_format));
 		    globus_dc_get_long(&cp, &(msgid_sec), 1,
 					(int) (rwhp->remote_format));
@@ -473,6 +563,7 @@ void read_callback(void *callback_arg,
 		    globus_dc_get_u_long(&cp, &(msgid_ctr), 1,
 					(int) (rwhp->remote_format));
 		    memcpy(rwhp->liba, (void *) cp, rwhp->libasize);
+/* globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_header: cancel_send: just extracted cwid %s cwdispl %d msgid_sec %ld msgid_usec %ld msgid_ctr %ld\n", MPID_MyWorldRank, msgid_src_commworld_id, msgid_src_commworld_displ, msgid_sec, msgid_usec, msgid_ctr); */
 
 		    /* search 'unexpected' queue for message */
 		    /* if found, then found=TRUE and removed */
@@ -488,10 +579,13 @@ void read_callback(void *callback_arg,
 			{
 			    rhandle = p->ptr;
 			    /* trying to order so most likely to fail first */
+/* globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_header: cancel_send: looking at rhandle: cwid %s cwdispl %d msgid_sec %ld msgid_usec %ld msgid_ctr %ld\n", MPID_MyWorldRank, rhandle->msg_id_commworld_id, rhandle->msg_id_commworld_displ, rhandle->msg_id_sec, rhandle->msg_id_usec, rhandle->msg_id_ctr); */
 			    if (!(found = (rhandle->msg_id_ctr == msgid_ctr 
 				&& rhandle->msg_id_usec == msgid_usec
 				&& rhandle->msg_id_sec == msgid_sec
-			    && rhandle->msg_id_src_grank == msgid_src_grank)))
+		&& !strcmp(rhandle->msg_id_commworld_id, msgid_src_commworld_id)
+		&& rhandle->msg_id_commworld_displ == msgid_src_commworld_displ)
+				))
 			    {
 				pp = &p->next;
 				p = *pp;
@@ -522,7 +616,8 @@ void read_callback(void *callback_arg,
 			MPID_RecvFree(rhandle);
 		    } /* endif */
 
-		    send_cancel_result_over_tcp(msgid_src_grank,
+		    send_cancel_result_over_tcp(msgid_src_commworld_id,
+						msgid_src_commworld_displ,
 						result,
 						rwhp->liba,
 						rwhp->libasize,
@@ -544,20 +639,26 @@ void read_callback(void *callback_arg,
 		{
 		    /* send side just received a result from cancel request */
 		    MPIR_SHANDLE *sreq;
-		    int found;
+		    int cancel_success_flag;
+		    char msgid_src_commworld_id[COMMWORLDCHANNELSNAMELEN];
+		    int msgid_src_commworld_displ;
 		    int msgid_src_grank;
 		    long msgid_sec;
 		    long msgid_usec;
 		    unsigned long msgid_ctr;
 
 		    /* 
-		     * unpacking rest of header: found, 
-		     *          msgid_src_grank,msgid_sec,msgid_usec,msgid_ctr,
-		     *                           liba 
+		     * unpacking rest of header: 
+		     *     cancel_success_flag, 
+		     *     msgid_src_commworld_id,msgid_src_commworld_displ,
+		     *     msgid_sec,msgid_usec,msgid_ctr,liba 
 		     */
-		    globus_dc_get_int(&cp, &found, 1, 
+		    globus_dc_get_int(&cp, &cancel_success_flag, 1, 
 					(int) (rwhp->remote_format));
-		    globus_dc_get_int(&cp, &(msgid_src_grank), 1,
+		    globus_dc_get_char(&cp, msgid_src_commworld_id, 
+					COMMWORLDCHANNELSNAMELEN,
+					(int) (rwhp->remote_format));
+		    globus_dc_get_int(&cp, &(msgid_src_commworld_displ), 1,
 					(int) (rwhp->remote_format));
 		    globus_dc_get_long(&cp, &(msgid_sec), 1,
 					(int) (rwhp->remote_format));
@@ -566,6 +667,24 @@ void read_callback(void *callback_arg,
 		    globus_dc_get_u_long(&cp, &(msgid_ctr), 1,
 					(int) (rwhp->remote_format));
 		    memcpy(&sreq, (void *) cp, sizeof(MPIR_SHANDLE *));
+
+		    if ((msgid_src_grank = commworld_name_displ_to_grank(
+						msgid_src_commworld_id, 
+						msgid_src_commworld_displ))
+					== -1)
+		    {
+			char err[1024];
+			globus_libc_sprintf(err,
+			    "ERROR: %d read_callback(): await_header: "
+			    "type=cancel_result got grank -1 from "
+			    "commworld_id >%s< commworld_displ %d\n",
+			    MPID_MyWorldRank,
+			    msgid_src_commworld_id,
+			    msgid_src_commworld_displ);
+			print_channels();
+			MPID_Abort(NULL, 0, "MPICH-G2", err);
+		    } /* endif */
+/* globus_libc_fprintf(stderr, "NICK: %d: read_callback: await_header: cancel_result: just extracted result %d cwid %s cwdispl %d (-> grank %d) msgid_sec %ld msgid_usec %ld msgid_ctr %ld\n", MPID_MyWorldRank, cancel_success_flag, msgid_src_commworld_id, msgid_src_commworld_displ, msgid_src_grank, msgid_sec, msgid_usec, msgid_ctr); */
 
 		    if (!sreq)
 		    {
@@ -589,7 +708,7 @@ void read_callback(void *callback_arg,
 			 * the cancel request result.
 			 */
 			sreq->cancel_complete = sreq->is_complete = GLOBUS_TRUE;
-			if (sreq->is_cancelled = found)
+			if (sreq->is_cancelled = cancel_success_flag)
 			    sreq->s.MPI_TAG = MPIR_MSG_CANCELLED;
 		    } /* endif */
 		    RC_mutex_unlock(&(sreq->lock));
@@ -654,7 +773,7 @@ void read_callback(void *callback_arg,
 	    }
             break;
     } /* end switch() */
-/* globus_libc_printf("%d: exit read_callback: state=", MPID_MyWorldRank); switch (rwhp->state) { case await_instructions: globus_libc_printf("await_instructions\n"); break; case await_format: globus_libc_printf("await_format\n"); break; case await_header: globus_libc_printf("await_header\n"); break; case await_data: globus_libc_printf("await_data\n"); break; default: globus_libc_printf("unknown\n"); break; } fflush(stdout); */
+/* globus_libc_fprintf(stderr, "%d: exit read_callback: rwhp(%x)->state=", MPID_MyWorldRank, rwhp); switch (rwhp->state) { case await_instructions: globus_libc_printf("await_instructions\n"); break; case await_format: globus_libc_printf("await_format\n"); break; case await_header: globus_libc_printf("await_header\n"); break; case await_data: globus_libc_printf("await_data\n"); break; default: globus_libc_printf("unknown\n"); break; } */
 
 }  /* end read_callback() */
 
@@ -664,6 +783,7 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
     int found;
     int rc;
 
+globus_libc_fprintf(stderr, "NICK: %d: enter data_arrived: src %d tag %d context %d\n", MPID_MyWorldRank, rwhp->src, rwhp->tag, rwhp->context_id);
     /* check 'posted' queue for posted request */
     /* if found in posted queue, then remove into var rhandle */
     /* if not found in posted queue, then alloc a req into   */
@@ -674,6 +794,7 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
 		    rwhp->context_id,
 		    &rhandle,
 		    &found);
+globus_libc_fprintf(stderr, "NICK: %d: data_arrived: src %d tag %d context %d: found %c\n", MPID_MyWorldRank, rwhp->src, rwhp->tag, rwhp->context_id, (found ? 'T' : 'F'));
     if (!found) 
     {
 	rhandle->buf      = rwhp->incoming_raw_data;
@@ -693,22 +814,26 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
 	rhandle->libasize = rwhp->libasize;
 
 	/* copying msg id stuff */
-	rhandle->msg_id_src_grank = rwhp->msg_id_src_grank;
-	rhandle->msg_id_sec       = rwhp->msg_id_sec;
-	rhandle->msg_id_usec      = rwhp->msg_id_usec;
-	rhandle->msg_id_ctr       = rwhp->msg_id_ctr;
+	memcpy(rhandle->msg_id_commworld_id, 
+		rwhp->msg_id_src_commworld_id, 
+		COMMWORLDCHANNELSNAMELEN);
+	rhandle->msg_id_commworld_displ = rwhp->msg_id_src_commworld_displ;
+	rhandle->msg_id_sec             = rwhp->msg_id_sec;
+	rhandle->msg_id_usec            = rwhp->msg_id_usec;
+	rhandle->msg_id_ctr             = rwhp->msg_id_ctr;
     } /* endif */
     rhandle->src_format   = rwhp->remote_format;
     rhandle->packed_flag  = rwhp->packed_flag;
     rhandle->s.count      = 
-    rhandle->len          = rwhp->dataorigin_bufflen;
+	rhandle->len      = rwhp->dataorigin_bufflen;
+    rhandle->needs_ack    = rwhp->ssend_flag;
+    rhandle->partner      = rwhp->msg_id_src_grank;
     STATUS_INFO_SET_COUNT_LOCAL(rhandle->s);
     rhandle->s.MPI_ERROR  = MPI_SUCCESS;
-    rhandle->partner = rwhp->ssend_flag;
 
     if (found)
     {
-	extern volatile int		TcpOutstandingRecvReqs;
+	extern volatile int TcpOutstandingRecvReqs;
 	
 	/* recv had already been posted ... */
 	TcpOutstandingRecvReqs --;
@@ -743,7 +868,7 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
 #       endif
 
 	if (rwhp->ssend_flag != -1)
-	    send_ack_over_tcp(rwhp->ssend_flag,
+	    send_ack_over_tcp(rwhp->msg_id_src_grank,
 				rwhp->liba,
 				rwhp->libasize);
 
@@ -771,7 +896,7 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
 		g_malloc(buf, globus_byte_t *, len + 1);
 		buf[0] = format;
 		memcpy(buf + 1, rwhp->incoming_raw_data, len);
-	    }
+	    } /* endif */
 		
 	    rc = extract_data_into_req(rhandle,
 				       buf,
@@ -784,13 +909,13 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
 		!rwhp->packed_flag)
 	    {
 		g_free(buf);
-	    }
+	    } /* endif */
 	}
 	
 	if (rc)
 	{
-	    rhandle->s.MPI_ERROR = MPI_ERR_INTERN;
-	}
+	    rhandle->s.MPI_ERROR = MPI_ERR_INTERN; 
+	} /* endif */
 	    
 #       if defined(VMPI)
         {
@@ -799,14 +924,14 @@ static void data_arrived(struct tcp_rw_handle_t *rwhp)
 		MPI_Comm c = rhandle->comm->self;
 		MPI_Comm_free(&c);
 	    } /* endif */
-	}
+	} /* endif */
 #       endif
 	MPIR_Type_free(&(rhandle->datatype));
 	rhandle->is_complete = GLOBUS_TRUE;
 	if (((MPI_Request) rhandle)->chandle.ref_count <= 0)
 	{
 	    MPID_RecvFree(rhandle);
-	}
+	} /* endif */
 	globus_mutex_unlock(&(rhandle->lock));
 
 	g_free(rwhp->incoming_raw_data);
@@ -909,36 +1034,45 @@ void listen_callback(void *callback_arg,         /* unused */
 void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 {
     /* done first time only, connect and start TCP state machine */
+    struct channel_t *cp;
+    globus_bool_t i_est_sock;
 
-    if (!(CommworldChannels[dest_grank].selected_proto))
+    if (!(cp = get_channel(dest_grank)))
+    {
+	globus_libc_fprintf(stderr,
+            "ERROR: prime_the_line: proc %d failed get_channel dest_grank %d\n",
+            MPID_MyWorldRank, dest_grank); 
+        print_channels();
+	MPID_Abort(NULL, 0, "MPICH-G2", "");
+    }
+    else if (!(cp->selected_proto))
     {
 	globus_libc_fprintf(stderr,
             "ERROR: prime_the_line: proc %d does not have selected proto for"
             " dest_grank %d\n",
             MPID_MyWorldRank, dest_grank); 
-        print_channels(MPID_MyWorldSize, CommworldChannels);
+        print_channels();
 	MPID_Abort(NULL, 0, "MPICH-G2", "");
     }
-    else if (CommworldChannels[dest_grank].selected_proto->type != tcp)
+    else if ((cp->selected_proto)->type != tcp)
     {
         globus_libc_fprintf(stderr,
             "ERROR: prime_the_line: proc %d called with selected protocol to"
             " dest_grank %d something other than TCP\n",
             MPID_MyWorldRank, dest_grank); 
-        print_channels(MPID_MyWorldSize, CommworldChannels);
+        print_channels();
 	MPID_Abort(NULL, 0, "MPICH-G2", "");
     }
-    else if (CommworldChannels[dest_grank].selected_proto->info != tp)
+    else if ((cp->selected_proto)->info != tp)
     {
-        globus_libc_fprintf(
-	    stderr,
+        globus_libc_fprintf(stderr,
             "ERROR: prime_the_line: proc %d encountered mismatch between"
             " info %lx and passed tp %lx ... they should be equal\n",
             MPID_MyWorldRank,
 	    (unsigned long)
-	    CommworldChannels[dest_grank].selected_proto->info, 
+	    (cp->selected_proto)->info, 
 	    (unsigned long) tp); 
-        print_channels(MPID_MyWorldSize, CommworldChannels);
+        print_channels();
 	MPID_Abort(NULL, 0, "MPICH-G2", "");
     }
     else
@@ -950,6 +1084,16 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 	    struct tcp_rw_handle_t temp_rw;
 	    struct tcp_rw_handle_t *rwp;
 	    globus_size_t          nbytes_sent;
+	    int                    row;
+	    int                    displ;
+
+	    /* 
+	     * setting i_est_sock flag ... 
+	     * NOTE: the rest of prime_the_line requires that 
+	     *       i_est_sock be set TRUE if 
+	     *       MPID_MyWorldRank == dest_grank
+	     */
+	    i_est_sock = i_establish_socket(dest_grank);
 
 	    globus_io_tcpattr_init(&(tp->attr));
 	    
@@ -974,7 +1118,7 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 	     */
 	    globus_io_attr_set_tcp_nodelay(&(tp->attr), GLOBUS_TRUE);
 	    
-	    if (MPID_MyWorldRank >= dest_grank)
+	    if (i_est_sock)
 	    {
 		/* establish the permanent socket */
 
@@ -1051,22 +1195,41 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 		} /* endif */
 	    } /* endif */
 		    
-	    if (MPID_MyWorldRank >= dest_grank)
+	    if ((row = get_channel_rowidx(MPID_MyWorldRank, &displ)) == -1)
+	    {
+		char err[1024];
+		globus_libc_sprintf(err, 
+		    "ERROR: prime_the_line(): could not find channel row "
+		    "for grank = MPID_MyWorldRank = %d ",
+		    MPID_MyWorldRank);
+		print_channels();
+		MPID_Abort(NULL, 0, "MPICH-G2", err);
+	    } /* endif */
+
+	    if (i_est_sock)
 	    {
 		/* sending my format once */
 		sprintf((char *) rwp->instruction_buff, 
-		    "%c%c%d", 
+		    "%c%c%s", 
 		    FORMAT, 
 		    GLOBUS_DC_FORMAT_LOCAL, 
-		    MPID_MyWorldRank);
+		    CommWorldChannelsTable[row].name);
+		sprintf((char *) 
+		    &(rwp->instruction_buff[2+COMMWORLDCHANNELSNAMELEN]), 
+			"%d ", 
+			displ); 
 	    }
 	    else
 	    {
 		/* telling other side to prime_the_line() back to me */
 		sprintf((char *) rwp->instruction_buff, 
-			"%c%d", 
+			"%c%s", 
 			PRIME, 
-			MPID_MyWorldRank);
+			CommWorldChannelsTable[row].name);
+		sprintf((char *) 
+		    &(rwp->instruction_buff[1+COMMWORLDCHANNELSNAMELEN]), 
+			"%d ", 
+			displ);
 	    } /* endif */
 
 	    /* 
@@ -1085,7 +1248,7 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 		    "ERROR: prime_the_line: write format failed"); 
 	    } /* endif */
 
-	    if (MPID_MyWorldRank >= dest_grank)
+	    if (i_est_sock)
 	    {
 		/* wait for other side's format */
 		rwp->recvd_format = GLOBUS_FALSE;
@@ -1106,7 +1269,7 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
 
 		while (!(rwp->recvd_format))
 		{
-		    globus_cond_wait(&(rwp->connection_cond),
+		    globus_cond_wait(&(rwp->format_cond),
 					    &(tp->connection_lock));
 		} /* endwhile */
 	    }
@@ -1140,7 +1303,8 @@ void prime_the_line(struct tcp_miproto_t *tp, int dest_grank)
  * assumed that messaging to grank is known to be TCP
  */
 
-static void send_cancel_result_over_tcp(int grank, 
+static void send_cancel_result_over_tcp(char *msgid_src_commworld_id,
+					int msgid_src_commworld_displ, 
 					int result, 
 					void *liba,
 					int libasize,
@@ -1148,21 +1312,46 @@ static void send_cancel_result_over_tcp(int grank,
 					long msgid_usec,
 					unsigned long msgid_ctr)
 {
+    int grank;
     globus_size_t nbytes_sent;
+    struct channel_t *chp;
 
-    if (!(CommworldChannels[grank].selected_proto))
+    if ((grank = commworld_name_displ_to_grank(msgid_src_commworld_id, 
+						msgid_src_commworld_displ))
+			== -1)
+    {
+	char err[1024];
+	globus_libc_sprintf(err,
+	    "ERROR: %d send_cancel_result_over_tcp: "
+	    "got grank -1 from commworld_id >%s< commworld_displ %d\n",
+	    MPID_MyWorldRank,
+	    msgid_src_commworld_id,
+	    msgid_src_commworld_displ);
+	print_channels();
+	MPID_Abort(NULL, 0, "MPICH-G2", err);
+    } 
+    else if (!(chp = get_channel(grank)))
+    {
+        globus_libc_fprintf(stderr,
+            "ERROR: send_cancel_result_over_tcp: proc %d failed get_channel "
+	    "for grank %d\n",
+            MPID_MyWorldRank, grank); 
+        print_channels();
+	MPID_Abort(NULL, 0, "MPICH-G2", "");
+    } 
+    else if (!(chp->selected_proto))
     {
         globus_libc_fprintf(stderr,
             "ERROR: send_cancel_result_over_tcp: proc %d does not have "
 	    "selected proto for grank %d\n",
             MPID_MyWorldRank, grank); 
-        print_channels(MPID_MyWorldSize, CommworldChannels);
+        print_channels();
 	MPID_Abort(NULL, 0, "MPICH-G2", "");
     } 
-    else if (CommworldChannels[grank].selected_proto->type == tcp)
+    else if ((chp->selected_proto)->type == tcp)
     {
             struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-                CommworldChannels[grank].selected_proto->info;
+                (chp->selected_proto)->info;
             globus_byte_t *cp     = tp->header;
             enum header_type type = cancel_result;
 	    struct tcpsendreq * sr;
@@ -1173,29 +1362,35 @@ static void send_cancel_result_over_tcp(int grank,
                     "ERROR: send_cancel_result_over_tcp: proc %d found NULL "
 		    "handlep for grank %d\n",
                     MPID_MyWorldRank, grank);
-                print_channels(MPID_MyWorldSize, CommworldChannels);
+                print_channels();
 		MPID_Abort(NULL, 0, "MPICH-G2", "");
             } /* endif */
 
             /* 
-	     * packing header: type=cancel_result,result,
-	     *                  msgid_src_grank,msgid_sec,msgid_usec,msgid_ctr,
-	     *                  liba 
+	     * packing header: type=cancel_result,
+	     *     cancel_success_flag, 
+	     *     msgid_src_commworld_id,msgid_src_commworld_displ,
+	     *     msgid_sec,msgid_usec,msgid_ctr,liba 
 	     */
-            if (Headerlen-(globus_dc_sizeof_int(2)
+            if (Headerlen-(globus_dc_sizeof_char(COMMWORLDCHANNELSNAMELEN)
+			    +globus_dc_sizeof_int(1)
 			    +globus_dc_sizeof_long(2)
 			    +globus_dc_sizeof_u_long(1)) < libasize)
             {
 		char err[1024];
 
                 globus_libc_sprintf(err,
-                    "ERROR: send_cancel_result_over_tcp: deteremined that "
-		    "Headerlen (%ld) - (2*sizeof(int) (%ld)"
+                    "ERROR: %d: send_cancel_result_over_tcp: deteremined that "
+		    "Headerlen (%ld) - (%d*sizeof(char) (%ld)"
+		    "+sizeof(int) (%ld)"
 		    "+2*sizeof(long) (%ld)+sizeof(ulong) (%ld))"
 		    "< waiter for ack's "
 		    "libasize %d and will therefore not fit into header\n", 
+		    MPID_MyWorldRank,
                     Headerlen, 
-                    globus_dc_sizeof_int(2), 
+		    COMMWORLDCHANNELSNAMELEN,
+		    globus_dc_sizeof_char(COMMWORLDCHANNELSNAMELEN),
+                    globus_dc_sizeof_int(1), 
                     globus_dc_sizeof_long(2), 
                     globus_dc_sizeof_u_long(1), 
                     libasize);
@@ -1206,11 +1401,14 @@ static void send_cancel_result_over_tcp(int grank,
 	    g_malloc(sr->liba, void *, libasize);
 	    sr->type          = cancel_result;
 	    sr->result        = result;
-	    sr->dest_grank    = grank;
-	    sr->msgid_sec     = msgid_sec;
-	    sr->msgid_usec    = msgid_usec;
-	    sr->msgid_ctr     = msgid_ctr;
-	    sr->libasize      = libasize;
+	    memcpy(sr->msgid_commworld_id, 
+		    msgid_src_commworld_id, 
+		    COMMWORLDCHANNELSNAMELEN);
+	    sr->msgid_commworld_displ = msgid_src_commworld_displ;
+	    sr->msgid_sec             = msgid_sec;
+	    sr->msgid_usec            = msgid_usec;
+	    sr->msgid_ctr             = msgid_ctr;
+	    sr->libasize              = libasize;
 	    memcpy(sr->liba, liba, libasize);
 
 	    enqueue_tcp_send(sr);
@@ -1221,9 +1419,50 @@ static void send_cancel_result_over_tcp(int grank,
             "ERROR: send_cancel_result_over_tcp: proc %d called with "
 	    "selected protocol to grank %d something other than TCP\n",
             MPID_MyWorldRank, grank); 
-        print_channels(MPID_MyWorldSize, CommworldChannels);
+        print_channels();
 	MPID_Abort(NULL, 0, "MPICH-G2", "");
     } /* endif */
 
 } /* end send_cancel_result_over_tcp() */
+
+/* 
+ * NOTE: must return TRUE if MPID_MyWorldRank == dest_grank
+ */
+static globus_bool_t i_establish_socket(int dest_grank)
+{
+    int my_row;
+    int dest_row;
+    globus_bool_t rc;
+
+    if ((my_row = get_channel_rowidx(MPID_MyWorldRank, (int *) NULL)) == -1)
+    {
+	globus_libc_fprintf(stderr,
+	    "ERROR: i_establish_socket: proc %d failed "
+	    "get_channel_rowidx(%d)\n",
+	    MPID_MyWorldRank,
+	    MPID_MyWorldRank);
+	print_channels();
+	MPID_Abort(NULL, 0, "MPICH-G2", "");
+    } /* endif */
+
+    if ((dest_row = get_channel_rowidx(dest_grank, (int *) NULL)) == -1)
+    {
+	globus_libc_fprintf(stderr,
+	    "ERROR: i_establish_socket: proc %d failed "
+	    "get_channel_rowidx(%d)\n",
+	    MPID_MyWorldRank,
+	    dest_grank);
+	print_channels();
+	MPID_Abort(NULL, 0, "MPICH-G2", "");
+    } /* endif */
+
+    if (my_row == dest_row)
+	rc = (MPID_MyWorldRank >= dest_grank);
+    else
+	rc = (strcmp(CommWorldChannelsTable[my_row].name, 
+		    CommWorldChannelsTable[dest_row].name) >= 0);
+
+    return rc;
+
+} /* end setting i_establish_socket() */
 

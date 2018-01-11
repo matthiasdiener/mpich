@@ -84,11 +84,12 @@ hello++.o: hello++.cc
 # The Solaris C++ compiler creates a directory containing miscellaneous
 # data.  The action is not documented in the Solaris CC man pages
 # IRIX C++ creates ii_files
+# pgCC creates .ii and .ti files
 # We also remove any copy of pi3f90 that is created (e.g., pi3f90.f; pi3f90.f90
 # is the master file)
 clean:
 	-/bin/rm -f *.o *~ PI* $(EXECS) pi3 simpleio hello++ pi3f90 cpilog
-	-/bin/rm -rf SunWS_cache ii_files pi3f90.f pi3p cpip
+	-/bin/rm -rf SunWS_cache ii_files pi3f90.f pi3p cpip *.ti *.ii
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<

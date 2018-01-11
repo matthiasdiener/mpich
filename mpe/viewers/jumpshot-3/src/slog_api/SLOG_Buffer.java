@@ -82,4 +82,11 @@ public class SLOG_Buffer
         this.Seek( pos );
         this.ReadFrame();
     }
+
+    public void Close()
+    throws IOException
+    {
+        if ( data_istm != null )
+            data_istm.close();
+    }
 }

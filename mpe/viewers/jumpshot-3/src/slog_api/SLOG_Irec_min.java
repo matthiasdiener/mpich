@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_Irec_min
+public class SLOG_Irec_min implements Serializable
 {
     public short           bytesize;
     public short           rectype;

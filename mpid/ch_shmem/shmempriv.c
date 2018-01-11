@@ -197,7 +197,8 @@ void MPID_SHMEM_init( int *argc, char **argv )
 	MPID_shmem->incoming[i].tail     = 0;
 
     /* Setup the avail list of packets */
-	MPID_shmem->avail[i].head = MPID_shmem->pool + cnt;
+	MPID_shmem->avail[i].head = (MPID_PKT_T * VOLATILE)
+	    &MPID_shmem->pool[cnt];
 	for (j=0; j<pkts_per_proc; j++) {
 	    MPID_shmem->pool[cnt+j].head.next = 
 		((MPID_PKT_T *)MPID_shmem->pool) + cnt + j + 1;
@@ -367,7 +368,7 @@ int MPID_SHMEM_ReadControl( MPID_PKT_T **pkt, int size, int *from )
 {
     MPID_PKT_T *inpkt;
     int        backoff, cnt;
-/*    VOLATILE   MPID_PKT_T **ready; */
+/*    MPID_PKT_T *VOLATILE*ready; */
 
 #ifdef MPID_DEBUG_SPECIAL
     MPID_op = 1;
@@ -612,8 +613,12 @@ int MPID_SHMEM_SendControl( MPID_PKT_T *pkt, int size, int dest )
     tail = (MPID_PKT_T *)MPID_lshmem.incomingPtr[dest]->tail;
     if (tail) 
 	tail->head.next = pkt;
-    else
+    else {
 	MPID_lshmem.incomingPtr[dest]->head = pkt;
+	/* Here is where we can signal the receiver that data is 
+	   available (only the first writer should do this, since the
+	   reader takes all members from the queue */
+    }
 
     MPID_lshmem.incomingPtr[dest]->tail = pkt;
     p2p_unlock( MPID_lshmem.incominglockPtr[dest] );
@@ -747,4 +752,20 @@ void MPID_SHMEM_Print_internals( FILE *fp )
 	pkt = pkt->head.next;
     }
     fprintf( fp, "[%d] Avail packets are %d\n", MPID_myid, i );
+}
+
+/* From chdebug.c (this isn't the way we should do this, but until MPICH2,
+   it will have to do) */
+void MPID_Print_Short_data( MPID_PKT_SHORT_T *pkt )
+{
+    int i, max_i;
+    FILE *fp = MPID_DEBUG_FILE;
+    /* Special case to print data and location for short messages */
+    FPRINTF( fp, "\n[%d] PKTdata = (offset %ld)",  MPID_MyWorldRank, 
+	     (long)(&pkt->buffer[0] - (char *)pkt) );
+    max_i = (pkt->len > 32) ? 32 : pkt->len;
+    for (i=0; i<max_i; i++) {
+	FPRINTF( fp, "%2.2x", (unsigned int)(pkt->buffer[i]) );
+    }
+    FPRINTF( fp, "\n" );
 }

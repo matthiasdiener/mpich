@@ -1,7 +1,7 @@
 import java.io.*;
 import java.util.*;
 
-public class SLOG_ProfileEntry
+public class SLOG_ProfileEntry implements Serializable
 {
     public short        intvltype;
     public SLOG_bebits  bebits;

@@ -1,4 +1,4 @@
-.TH MPE_Open_graphics 4 "8/28/2000" " " "MPE"
+.TH MPE_Open_graphics 4 "6/19/2001" " " "MPE"
 .SH NAME
 MPE_Open_graphics \-  (collectively) opens an X Windows display 
 .SH SYNOPSIS
@@ -65,5 +65,28 @@ must call it, and it has the same semantics as
 .I MPI_Barrier
 (that is,
 other collective operations can not cross this routine).
+
+
+.SH NOTES FOR FORTRAN INTERFACE 
+The Fortran interface to this routine is different from its C
+counterpart and it has an additional argument, ierr, at the end
+of the argument list, i.e. the returned function value (the error
+code) in C interface is returned as the additional argument in
+Fortran interface.  The Fortran interface is invoked with the
+CALL statement.
+
+All MPI and MPE objects, MPI_Comm, MPE_XGraph and MPE_Color, are
+of type INTEGER in Fortran.
+
+.SH ADDITIONAL NOTES FOR FORTRAN INTERFACE 
+If Fortran 
+.I display
+argument is an empty string, "", display will be
+taken from the DISPLAY variable on the process with rank 0 in 
+.I comm
+\&.
+
+The trailing blanks in Fortran CHARACTER string argument will be
+ignored.
 .SH LOCATION
 mpe_graphics.c

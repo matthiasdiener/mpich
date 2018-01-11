@@ -1,7 +1,7 @@
 import java.io.*;
 
 
-public class SLOG_Header
+public class SLOG_Header implements Serializable
 {
     private int[]  version;
     private int    frame_bytesize;

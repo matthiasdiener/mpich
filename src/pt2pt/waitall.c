@@ -1,5 +1,5 @@
 /*
- *  $Id: waitall.c,v 1.18 1999/11/06 21:44:14 gropp Exp $
+ *  $Id: waitall.c,v 1.19 2001/04/04 15:16:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -99,7 +99,8 @@ EXPORT_MPI_API int MPI_Waitall(
 
 	if ( request->handle_type == MPIR_SEND ) {
 	    if (MPID_SendRequestCancelled(request)) {
-		array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
+		array_of_statuses[i].MPI_TAG   = MPIR_MSG_CANCELLED; 
+		array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
 	    }
 	    else {
 		rc = MPI_SUCCESS;

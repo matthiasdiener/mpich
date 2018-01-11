@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2recv.c,v 1.5 2000/07/17 20:44:01 swider Exp $
+ *  $Id: adi2recv.c,v 1.7 2001/02/27 23:59:26 rross Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -210,6 +210,12 @@ int         *error_code;
 	(rhandle->finish)( rhandle );
     if (status) *status = rhandle->s;
     *error_code = rhandle->s.MPI_ERROR;
+}
+
+/* Temp fix for MPI_Status_set_elements, needed in Romio */
+void MPID_Status_set_bytes( MPI_Status *status, int bytes )
+{
+    status->count = bytes;
 }
 
 #ifdef LAPI

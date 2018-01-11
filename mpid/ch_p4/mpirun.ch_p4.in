@@ -1,5 +1,8 @@
 #! /bin/sh
 exitstatus=1
+move_pgfile_to_master=no
+# We need to define the rcpcmd to allow for scp or Scyld bpcp
+rcpcmd=${RCPCOMMAND-rcp}
 #
 if [ -z "$argsset" ] ; then
    . $MPIRUN_HOME/mpirun.args
@@ -48,7 +51,7 @@ fi
 #
 # Construct the procgroup file.
 # If p4 was built with comm=shared, set MPI_MAX_CLUSTER_SIZE to 16 unless
-# it has already been set.
+# it has already been set. 
 if [ "$COMM" = "shared" ] ; then
     if [ -z "$MPI_MAX_CLUSTER_SIZE" ] ; then
         MPI_MAX_CLUSTER_SIZE=16
@@ -178,13 +181,22 @@ startpgm="$prognamemain $cmdLineArgs -p4pg $p4pgfile -p4wd $p4workdir"
 # startpgm="$startpgm < $stdinfile"
 #fi
 #
+# Having a p4p4file_master allows us to move the pg file to a location
+# where the master process can read it, even if the master does not
+# share a file system with the process that mpirun is executing on 
+p4pgfile_master=$p4pgfile
+if [ "$nolocal" = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
+    # Should we use $TMPDIR  instead of /tmp here?
+    p4pgfile_master=/tmp/`basename $p4pgfile`
+fi
+#
 # Handle debuggers
 #
 if [ "$debugger" != "" ] ; then
     if [ -x "$MPIRUN_HOME/mpirun_dbg.$debugger" ] ; then
         $MPIRUN_HOME/mpirun_dbg.$debugger -progname $prognamemain -p4pg $p4pgfile -p4wd $p4workdir -cmdlineargs "$cmdLineArgs"
     else
-        echo "CANNOT RUN DEBUGGER - NO DEBUGGER SCRIPT" 
+        echo "Cannot run debugger - no debugger script." 
 	exit 1
     fi
 else
@@ -206,20 +218,31 @@ else
     #
     if [ $nolocal = 1 ] ; then
         if [ "$stdinfile" = "/dev/null" ] ; then
-            doitall="$doitall $rshcmd $machinehead"
-        else
             doitall="$doitall $rshcmd -n $machinehead"
+        else
+            doitall="$doitall $rshcmd $machinehead"
+        fi
+	if [ "$move_pgfile_to_master" = "yes" ] ; then
+	    $rcpcmd $p4pgfile $machinehead:$p4pgfile_master
         fi
     fi
-
-    $doitall $startpgm
-    exitstatus=$?
+    if [ -n "$stdinfile" ] ; then
+        $doitall $startpgm < $stdinfile
+        exitstatus=$?
+    else
+        $doitall $startpgm
+        exitstatus=$?
+    fi
 fi
 if [ $just_testing != 1 ] ; then
     if [ $leavePGFile = 1 ] ; then
         echo "P4 procgroup file is $p4pgfile."
     else
-        /bin/rm "$p4pgfile"
+        if [ $nolocal = 1 -a "$move_pgfile_to_master" = "yes" ] ; then
+	    $rshcmd -n $machinehead /bin/rm $p4pgfile_master
+        else
+            /bin/rm "$p4pgfile"
+        fi
     fi
     if [ "$MPIRUN_RANDOM" = "yes" ] ; then
         /bin/rm -f "$TEMPDIR/mpirand-$LOGNAME"*

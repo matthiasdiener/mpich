@@ -85,5 +85,6 @@ EXPORT_MPI_API void mpi_type_vector_( MPI_Fint *count, MPI_Fint *blocklen, MPI_F
     *__ierr = MPI_Type_vector((int)*count, (int)*blocklen, (int)*stride,
                               MPI_Type_f2c(*old_type), 
                               &l_datatype);
-    *newtype = MPI_Type_c2f(l_datatype);
+    if (*__ierr == MPI_SUCCESS) 
+        *newtype = MPI_Type_c2f(l_datatype);
 }

@@ -47,5 +47,23 @@ X window server allows.  Not yet implemented.
 This is a collective routine.  All processes in the given communicator
 must call it, and it has the same semantics as <TT><A HREF="http://www.mpi-forum.org/docs/mpi-11-html/node66.html#node66">MPI_Barrier</A></TT> (that is,
 other collective operations can not cross this routine).
+<P>
+<P>
+<H2>Notes For Fortran Interface </H2>
+The Fortran interface to this routine is different from its C
+counterpart and it has an additional argument, ierr, at the end
+of the argument list, i.e. the returned function value (the error
+code) in C interface is returned as the additional argument in
+Fortran interface.  The Fortran interface is invoked with the
+CALL statement.
+<P>
+All MPI and MPE objects, MPI_Comm, MPE_XGraph and MPE_Color, are
+of type INTEGER in Fortran.
+<P>
+<H2>Additional Notes for Fortran Interface </H2>
+If Fortran <TT>display</TT> argument is an empty string, "", display will be
+taken from the DISPLAY variable on the process with rank 0 in <TT>comm</TT>.
+The trailing blanks in Fortran CHARACTER string argument will be
+ignored.
 <P><B>Location:</B>mpe_graphics.c<P>
 </BODY></HTML>

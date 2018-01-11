@@ -20,7 +20,7 @@ extern int __NUMNODES, __MYPROCID;
    -wy i n    windows in y, my # and total #
    -lastwindow generate the wait/new page.
  */
-typedef enum { GRF_X, GRF_EPS, GRF_PS } OutputForm;
+typedef enum { GRF_X, GRF_EPS, GRF_PS, GRF_GIF } OutputForm;
 
 struct _GraphData {
     FILE *fp, *fpdata;
@@ -35,6 +35,7 @@ struct _GraphData {
     void (*dataoutgop)( GraphData, int, double, double, double, double, 
 			double );
     void (*drawgop)( GraphData, int, int, double, double, int, int *);
+    void (*endgraph)( GraphData );
     /* Information about the graph */
     int wxi, wxn, wyi, wyn, is_lastwindow;
     int givedy;
@@ -66,6 +67,9 @@ void EndPageGnuplot( GraphData ctx );
 
 void ChangeToRate( GraphData, int );
 
+void EndGraphCIt( GraphData );
+void EndGraphGnuplot( GraphData );
+
 void PrintGraphHelp( void )
 {
 fprintf( stderr, "\n\
@@ -92,13 +96,16 @@ void HeaderCIt( GraphData ctx, char *protocol_name, char *title_string,
     char archname[20], hostname[256], date[30], *p;
     int dummy;
 
+    if (!ctx) return;
+
     fprintf( ctx->fp, "set default\nset font variable\n" );
     fprintf( ctx->fp, "set curve window y 0.15 0.90\n" );
     if (ctx->wxn > 1 || ctx->wyn > 1) 
 	fprintf( ctx->fp, "set window x %d %d y %d %d\n", 
 		 ctx->wxi, ctx->wxn, ctx->wyi, ctx->wyn );
-    if (ctx->givedy) 
+    if (ctx->givedy) {
 	/*fprintf( ctx->fp, "set order d d d x y d d d\n" )*/;
+    }
     else {
 	if (ctx->do_rate) 
 	    fputs( "set order d d d x d y\n", ctx->fp );
@@ -150,6 +157,8 @@ void HeaderForGopCIt( GraphData ctx, char *test_name, char *title_string,
     char archname[20], hostname[256], date[30], *p;
     int  dummy;
 
+    if (!ctx) return;
+
     fprintf( ctx->fp, "set default\nset font variable\n" );
     fprintf( ctx->fp, "set curve window y 0.15 0.90\n" );
     if (ctx->wxn > 1 || ctx->wyn > 1) 
@@ -191,6 +200,8 @@ void DataoutGraph( GraphData ctx, int proc1, int proc2, int distance,
 		   int len, double t, double mean_time, double rate,
 		   double tmean, double tmax )
 {
+    if (!ctx) return;
+
     if(ctx->givedy) 
 	fprintf( ctx->fpdata, "%d\t%d\t%d\t%d\t%f\t%.2f\t%f\t%f\n",
 		 proc1, proc2, distance, len, tmean * 1.0e6, rate, 
@@ -214,17 +225,23 @@ void DataoutGraph( GraphData ctx, int proc1, int proc2, int distance,
 void DataoutGraphForGop( GraphData ctx, int len, double t, double mean_time, 
 			 double rate, double tmean, double tmax )
 {
+    if (!ctx) return;
+
     fprintf( ctx->fpdata, "%f ", mean_time*1.0e6 );
     fflush( ctx->fpdata );
 }
 
 void DataendForGop( GraphData ctx )
 {
+    if (!ctx) return;
+
     fprintf( ctx->fpdata, "\n" );
 }
 
 void DatabeginForGop( GraphData ctx, int np )
 {
+    if (!ctx) return;
+
     fprintf( ctx->fpdata, "%d ", np );
 }
 
@@ -234,6 +251,9 @@ void RateoutputGraph( GraphData ctx, double sumlen, double sumtime,
 {
     double  s, r;
     double  variance = 0.0;
+
+    if (!ctx) return;
+
     PIComputeRate( sumlen, sumtime, sumlentime, sumlen2, ntest, &s, &r );
     s = s * 0.5;
     r = r * 0.5;
@@ -266,6 +286,8 @@ void RateoutputGraph( GraphData ctx, double sumlen, double sumtime,
 
 void DrawCIt( GraphData ctx, int first, int last, double s, double r )
 {
+    if (!ctx) return;
+
 /* Convert to one-way performance */
     if (ctx->givedy) {
 	fprintf( ctx->fp, "set order d d d x y d d d\n" );
@@ -299,6 +321,9 @@ void DrawGopCIt( GraphData ctx, int first, int last, double s, double r,
 		 int nsizes, int *sizelist )
 {
     int i, j;
+
+    if (!ctx) return;
+
 /* Do this in reverse order to help keep the scales correct */
     fprintf( ctx->fp, "set limits ymin 0\n" );
     for (i=nsizes-1; i>=0; i--) {
@@ -317,6 +342,8 @@ void DrawGopCIt( GraphData ctx, int first, int last, double s, double r,
  */
 void ChangeToRate( GraphData ctx, int n_particip )
 {
+    if (!ctx) return;
+
     fprintf( ctx->fp, "set order d d d x d d y\njoin\n" );
 }
 
@@ -325,6 +352,8 @@ void ChangeToRate( GraphData ctx, int n_particip )
  */
 void EndPageCIt( GraphData ctx )
 {
+    if (!ctx) return;
+
     if (ctx->is_lastwindow)
 	fprintf( ctx->fp, "wait\nnew page\n" );
 }
@@ -338,12 +367,17 @@ void HeaderGnuplot( GraphData ctx, char *protocol_name,
     char archname[20], hostname[256], date[30], *p;
     int  dummy;
 
+    if (!ctx) return;
+
     switch (ctx->output_type) {
     case GRF_EPS:
 	fprintf( ctx->fp, "set terminal postscript eps\n" );
 	break;
     case GRF_PS:
 	fprintf( ctx->fp, "set terminal postscript\n" );
+	break;
+    case GRF_GIF:
+	fprintf( ctx->fp, "set terminal gif\n" );
 	break;
     case GRF_X:
 	/* Default behavior */
@@ -380,6 +414,8 @@ void HeaderForGopGnuplot( GraphData ctx, char *protocol_name,
     char archname[20], hostname[256], date[30], *p;
     int  dummy;
 
+    if (!ctx) return;
+
     fprintf( ctx->fp, "set xlabel \"Processes\"\n" );
     fprintf( ctx->fp, "set ylabel \"time (us)\"\n" );
 
@@ -407,9 +443,13 @@ void HeaderForGopGnuplot( GraphData ctx, char *protocol_name,
 
 void DrawGnuplot( GraphData ctx, int first, int last, double s, double r )
 {
-    if (ctx->givedy)
-	fprintf( ctx->fp, "plot '%s' using 4:5:7:8 notitle with errorbars,\\\n", 
+    if (!ctx) return;
+
+    if (ctx->givedy) {
+	fprintf( ctx->fp, 
+		 "plot '%s' using 4:5:7:8 notitle with errorbars", 
 		 ctx->fname2 );
+    }
     else {
 	fprintf( ctx->fp, "plot '%s' using 4:5 notitle with ", ctx->fname2 );
 
@@ -435,6 +475,8 @@ void DrawGopGnuplot( GraphData ctx, int first, int last, double s,
 {
     int i;
 
+    if (!ctx) return;
+
     fprintf( ctx->fp, "plot " );
     for (i=0; i<nsizes; i++) {
 #ifdef GNUVERSION_HAS_BOXES
@@ -453,6 +495,8 @@ void DrawGopGnuplot( GraphData ctx, int first, int last, double s,
  */
 void EndPageGnuplot( GraphData ctx )
 {
+    if (!ctx) return;
+
     if (ctx->is_lastwindow) {
 	if (ctx->output_type == GRF_X) 
 	    fprintf( ctx->fp, 
@@ -466,28 +510,38 @@ void EndPageGnuplot( GraphData ctx )
 void HeaderGraph( GraphData ctx, char *protocol_name, char *title_string, 
 		  char *units )
 {
+    if (!ctx) return;
+
     (*ctx->header)( ctx, protocol_name, title_string, units );
 }
 
 void HeaderForGopGraph( GraphData ctx, char *protocol_name, 
 			char *title_string, char *units )
 {
+    if (!ctx) return;
+
     (*ctx->headergop)( ctx, protocol_name, title_string, units );
 }
 
 void DrawGraph( GraphData ctx, int first, int last, double s, double r )
 {
+    if (!ctx) return;
+
     (*ctx->draw)( ctx, first, last, s, r ) ;
 }
 
 void DrawGraphGop( GraphData ctx, int first, int last, double s, double r, 
 		   int nsizes, int *sizelist )
 {
+    if (!ctx) return;
+
     (*ctx->drawgop)( ctx, first, last, s, r, nsizes, sizelist ) ;
 }
 
 void EndPageGraph( GraphData ctx )
 {
+    if (!ctx) return;
+
     (*ctx->endpage)( ctx );
 }
 
@@ -530,6 +584,12 @@ GraphData SetupGraph( int *argc, char *argv[] )
 	    output_type = GRF_PS;
 	};
     }
+    if (!isgnu) {
+	if ((isgnu = SYArgHasName( argc, argv, 1, "-gnuplotgif" ))) {
+	    output_type = GRF_GIF;
+	};
+    }
+
     if (SYArgHasName( argc, argv, 1, "-cit" )) isgnu = 0;
     if (SYArgGetString( argc, argv, 1, "-fname", filename, 1024 ) &&
 	__MYPROCID == 0) {
@@ -581,6 +641,7 @@ GraphData SetupGraph( int *argc, char *argv[] )
 	new->draw	= DrawCIt;
 	new->drawgop    = DrawGopCIt;
 	new->endpage    = EndPageCIt;
+	new->endgraph   = EndGraphCIt;
 	new->fpdata	= new->fp;
 	new->fname2	= 0;
     }
@@ -593,6 +654,7 @@ GraphData SetupGraph( int *argc, char *argv[] )
 	new->draw	= DrawGnuplot;
 	new->drawgop	= DrawGopGnuplot;
 	new->endpage	= EndPageGnuplot;
+	new->endgraph   = EndGraphGnuplot;
 	if (filename[0]) {
 	    /* Try to remove the extension, if any, from the filename */
 	    char *p;
@@ -607,12 +669,16 @@ GraphData SetupGraph( int *argc, char *argv[] )
 	else {
 	    strcpy( filename2, "mppout.gpl" );
 	}
-	new->fpdata	    = fopen( filename2, "a" );
-	if (!new->fpdata) {
-	    fprintf( stderr, "Could not open file %s\n\
+	if (__MYPROCID == 0) {
+	    new->fpdata	    = fopen( filename2, "a" );
+	    if (!new->fpdata) {
+		fprintf( stderr, "Could not open file %s\n\
 used for holding data for GNUPLOT\n", filename2 );
-	    return 0;
+		return 0;
+	    }
 	}
+	else 
+	    new->fpdata   = 0;
 	new->fname2 = (char *)malloc((unsigned)(strlen(filename2 ) + 1 ));
 	strcpy( new->fname2, filename2 );
     }
@@ -621,5 +687,29 @@ used for holding data for GNUPLOT\n", filename2 );
 
 void DataScale( GraphData ctx, int isLog )
 {
+    if (!ctx) return;
+
     ctx->is_log = isLog;
+}
+
+void EndGraph( GraphData ctx )
+{
+    if (!ctx) return;
+
+    (*ctx->endgraph)( ctx );
+}
+
+void EndGraphCIt( GraphData ctx )
+{
+    if (!ctx) return;
+
+    if (ctx->fp && ctx->fp != stdout) fclose( ctx->fp );
+}
+
+void EndGraphGnuplot( GraphData ctx )
+{
+    if (!ctx) return;
+
+    if (ctx->fpdata)                      fclose( ctx->fpdata );
+    if (ctx->fp && ctx->fp != stdout)     fclose( ctx->fp );
 }

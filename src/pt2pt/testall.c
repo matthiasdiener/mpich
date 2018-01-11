@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.21 1999/11/17 19:19:43 gropp Exp $
+ *  $Id: testall.c,v 1.22 2001/04/04 15:16:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -88,6 +88,7 @@ EXPORT_MPI_API int MPI_Testall(
 	case MPIR_SEND:
 	    if (MPID_SendRequestCancelled(request)) {
 		array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
+		array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
 	        nready++; }
 	    else {
 	    if (!request->shandle.is_complete) {

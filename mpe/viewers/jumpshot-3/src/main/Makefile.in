@@ -42,7 +42,8 @@ SRC = CONST.java Info.java StateInfo.java ArrowInfo.java MtnInfo.java \
       ProgressDialog.java FrameReadingTask.java  \
       PlotData.java RecDefBtnPanel.java RecDefButtons.java \
       FrameDisplay.java ProgramCanvas.java \
-      VertScaleCanvas.java jumpshot.java SwingWorker.java \
+      VertScaleCanvas.java SwingWorker.java \
+      MainFrame.java MainApplet.java \
       debug.java
 
 OBJ = $(SRC:.java=.class)
@@ -72,5 +73,5 @@ rmlib:
 	rm -f $(GUI_LIBDIR)/$(MAIN_LIB)
 
 distclean: clean rmlib
-	rm -f *.java.* 
+	-rm -f *.java.* *.class
 	-rm -f Makefile

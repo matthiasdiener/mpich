@@ -20,8 +20,8 @@ verbose=0
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 sysconfdir=@sysconfdir@
-includedir=@includebuild_dir@
-libdir=@libbuild_dir@
+includedir=@includedir@
+libdir=@libdir@
 #
 # Directory locations: Can change for each Fortran version
 f90includedir=@f90includedir@
@@ -42,6 +42,7 @@ F90LIB_PATH_LEADER="@F90_LIBDIR_LEADER@"
 F90LIB_PATH="${libdir}"
 MPILIBNAME="@MPILIBNAME@"
 MPIVERSION="@MPIVERSION@"
+FWRAPNAME="@FWRAPNAME@"
 FLIBNAME="@FLIBNAME@"
 # set to yes if the PMPI routines are in the same library with the MPI routines
 # (for example, they are built with weak symbols).
@@ -54,7 +55,7 @@ hasMPE="@hasMPE@"
 SHAREDKIND="@SHAREDKIND@"
 SHARED_LIB_SEARCH_PATH_LEADER='@SHARED_LIB_SEARCH_PATH_LEADER@'
 SHARED_LIB_LOCALDIR="@SHARED_LIB_LOCALDIR@"
-sharedlibdir=@sharedlibbuild_dir@
+sharedlibdir=@sharedlib_dir@
 #
 # Override the compilers using environment variables
 F90LINKER="${MPICH_F90LINKER-$F90LINKERBASE}"
@@ -68,9 +69,6 @@ else
     F90="$F90BASE"
 fi
 UseSharedLib=${MPICH_USE_SHLIB-no}
-
-proflib=-lp${MPILIBNAME}
-proflibfullname=${libdir}/libp${MPILIBNAME}.a
 
 choice=0
 for arg in "$@" ; do
@@ -127,7 +125,7 @@ for arg in "$@" ; do
 	    UsesPmpi=1
         fi
 	if [ "$hasMPE" = "yes" ] ; then
-		MPILOG="-lf${MPILIBNAME} -llmpe -lmpe"
+		MPILOG="-l${FWRAPNAME} -llmpe -lmpe"
 	else
 	    echo "-mpilog requires the MPE libraries"
 	fi
@@ -140,7 +138,7 @@ for arg in "$@" ; do
 	    UsesPmpi=1
         fi
 	if [ "$hasMPE" = "yes" ] ; then
-   	    MPILOG="-lf${MPILIBNAME} -ltmpe"
+   	    MPILOG="-l${FWRAPNAME} -ltmpe"
 	else
 	    echo "-mpitrace requires the MPE libraries"
 	fi
@@ -153,7 +151,7 @@ for arg in "$@" ; do
 	    UsesPmpi=1
         fi
 	if [ "$hasMPE" = "yes" ] ; then
-	    MPILOG="-lf${MPILIBNAME} -lampe -lmpe"
+	    MPILOG="-l${FWRAPNAME} -lampe -lmpe"
 	else
 	    echo "-mpianim requires the MPE libraries"
 	fi
@@ -163,6 +161,14 @@ for arg in "$@" ; do
 	;;
 	-show)
 	Show=echo
+	;;
+	-config=*)
+	FCname=`echo A$arg | sed -e 's/A-config=//g'`
+        if [ -s $sysconfdir/mpif90-$FCname.conf ] ; then
+	    . $sysconfdir/mpif90-$FCname.conf 
+	else
+	    echo "Configuration file mpif90-$FCname.conf not found"
+	fi
 	;;
 	-f90=*)
 	F90=`echo A$arg | sed -e 's/A-f90=//g'`
@@ -185,6 +191,7 @@ for arg in "$@" ; do
 	;;
 	-v)
 	verbose=1
+	echo "mpif90 for $MPIVERSION"
 	compileargs="$compileargs -v"
 	linkargs="$linkargs -v"
 	;;
@@ -245,7 +252,7 @@ EOF
 	if [ -s "$arg" ] ; then
 	    ext=`expr "$arg" : '.*\(\..*\)'`
 	    if [ "$ext" = ".f" -o "$ext" = ".F" -o "$ext" = ".f90" -o \
-		 "$ext" = ".for" -o "$ext" = ".FOR" ] ; then
+		 "$ext" = ".for" -o "$ext" = ".FOR" -o "$ext" = ".F90" ] ; then
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
 	        fname=`basename $arg $ext`
@@ -272,10 +279,10 @@ done
 # Set the module directory
 if [ -n "$F90MODINC" ] ; then
     if [ $choice -lt 2 ] ; then
-        moduledir="${F90MODINC}${includedir}/f90choice"
+        moduledir="${F90MODINC}${f90includedir}/f90choice"
         modulelib=${MPILIBNAME}f90
     else
-        moduledir="${F90MODINC}${includedir}/f90base"
+        moduledir="${F90MODINC}${f90includedir}/f90base"
         modulelib=${MPILIBNAME}f90nc
     fi
     compileargs="$compileargs $moduledir"
@@ -292,6 +299,7 @@ if [ -z "${F90INC}" ] ; then
     if [ ! -r mpif.h ] ; then
         #echo "Adding a symbolic link for mpif.h"
 	trap "$Show /bin/rm mpif.h" 0
+	# This should really be the (related) f77includedir (see mpif77).
 	$Show ln -s ${includedir}/mpif.h mpif.h
 	added_link=1
     fi

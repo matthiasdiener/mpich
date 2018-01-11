@@ -25,7 +25,7 @@ done
 #
 # LINUX uses an incompatible form of the ipcrm command!  Try to detect this
 UseLinux=0
-statvalue=`ipcrm`
+statvalue=`ipcrm 2>&1`
 if [ $? != 0 ] ; then 
     if [ "$statvalue" = 'usage: ipcrm [shm | msg | sem] id' ] ; then
         UseLinux=1

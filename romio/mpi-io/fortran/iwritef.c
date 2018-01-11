@@ -1,5 +1,5 @@
 /* 
- *   $Id: iwritef.c,v 1.8 2000/08/22 21:19:36 gropp Exp $    
+ *   $Id: iwritef.c,v 1.9 2000/11/03 20:17:45 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -84,11 +84,11 @@
 #endif
 #endif
 
+#if defined(MPIHP) || defined(MPILAM)
 /* Prototype to keep compiler happy */
 void mpi_file_iwrite_(MPI_Fint *fh,void *buf,int *count,
-		      MPI_Datatype *datatype,MPI_Fint *request, int *ierr );
+		      MPI_Fint *datatype,MPI_Fint *request, int *ierr );
 
-#if defined(MPIHP) || defined(MPILAM)
 void mpi_file_iwrite_(MPI_Fint *fh,void *buf,int *count,
                     MPI_Fint *datatype,MPI_Fint *request, int *ierr )
 {
@@ -103,6 +103,10 @@ void mpi_file_iwrite_(MPI_Fint *fh,void *buf,int *count,
     *request = MPIO_Request_c2f(req_c);
 }
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_iwrite_(MPI_Fint *fh,void *buf,int *count,
+		      MPI_Datatype *datatype,MPI_Fint *request, int *ierr );
+
 void mpi_file_iwrite_(MPI_Fint *fh,void *buf,int *count,
                     MPI_Datatype *datatype,MPI_Fint *request, int *ierr )
 {

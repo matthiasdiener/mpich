@@ -1,6 +1,10 @@
 #include "p4.h"
 #include "p4_sys.h"
 
+#ifdef SCYLD_BEOWULF
+#include <sys/bproc.h>
+#endif
+
 int create_remote_processes(pg)
 struct p4_procgroup *pg;
 {
@@ -35,10 +39,18 @@ struct p4_procgroup *pg;
 				     pe->host_name,
 				     pe->slave_full_pathname,
 				     pe->username);
+#ifdef SCYLD_BEOWULF
+	    if (rm_fd < 0) 
+		break;
+#endif
 	    net_slave_info(pe, rm_outfile_head, rm_fd, i);
 	}
     }
 
+#ifdef SCYLD_BEOWULF
+    if (rm_fd == -2)    /* We are an rforked child */
+	return (-2);
+#endif
     close( serv_fd );
     return (0);
 }
@@ -285,6 +297,58 @@ char *username;
 	else
 #endif /* USE_OLD_SERVER */
 	{
+#ifdef SCYLD_BEOWULF
+	int node_num;
+	int curr_node;
+
+	    p4_dprintfl(20, "trying to create remote slave on %s\n",host);
+
+	    sprintf(serv_port_c,"%d",serv_port);
+	    node_num=bproc_getnodebyname(host);
+	    if(node_num==BPROC_NODE_NONE) p4_error("net_create_slave: host not a bproc node",node_num);
+
+            curr_node=bproc_currnode();		
+            if(curr_node==node_num)
+	    {
+		p4_dprintfl(20, "spawning slave via regular fork\n");
+		rc=child_pid=fork();
+	    } else {
+	        p4_dprintfl(20, "spawning slave via bproc\n");
+	        rc=child_pid=fork(); if(!child_pid) { rc=bproc_move(node_num); if(rc==-1) { p4_error("net_create_slave: bproc_move",rc); }}
+            } 
+	    if(!rc)
+	    {
+		reset_fork_p4(); /* reset some global crap */
+		curhostname = 0; /* global crap */
+		child_pid=0;	/* global crap */
+		active_fd=-1;	/* global crap */
+		close(serv_fd);
+		/* this helps p4_printf routines */
+		sprintf(whoami_p4, "p%d_%d", p4_get_my_id(), getpid());	
+	        p4_dprintfl(20, "bproc: (pid=%d)\n",getpid());
+		p4_local  = NULL;
+		p4_global = NULL;
+    		SIGNAL_P4(SIGALRM,SIG_DFL);
+    		SIGNAL_P4(LISTENER_ATTN_SIGNAL,SIG_DFL);
+		
+		{
+		  int argc = 4;
+		  char *argv[4];
+		  static char port_str[6];
+		  snprintf (port_str, 5, "%d", serv_port);
+		  argv[1] = myhost;
+		  argv[2] = port_str;
+		  rm_start (&argc, argv);
+		}
+		/*ALOG_SETUP(p4_local->my_id,ALOG_TRUNCATE);*/
+		return -2;
+	    } else if(rc<0) {
+		p4_error("net_create_slave: bproc_rfork",rc);
+	    } else {
+		p4_dprintfl(20, "bproc: (pid=%d) child pid is %d\n",getpid(),child_pid);
+	    }
+
+#else /* !BEOWULF */
 #if defined(HAS_RSHCOMMAND)
 	    strcpy( remote_shell, RSHCOMMAND );
 #endif
@@ -364,6 +428,7 @@ char *username;
 	    p4_dprintfl(90, "remote slave is running program %s as user %s\n",
 			pgm, username );
 #endif
+#endif /* SCYLD_BEOWULF */
 	}
     }
     /* WDG - There is a chance that we'll hang here forever.  Thus, we set a 

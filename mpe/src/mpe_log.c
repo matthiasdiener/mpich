@@ -32,7 +32,7 @@ int    MPE_Log_clockIsRunning = 0;
 int    MPE_Log_isLockedOut = 0;
 int    MPE_Log_AdjustedTimes = 0;
 #define MPE_HAS_PROCID
-static int    MPE_Log_procid;
+int    MPE_Log_procid;
 /* end of borrowing */
 
 /*@

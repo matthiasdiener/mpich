@@ -1,5 +1,5 @@
 /* 
- *   $Id: darrayf.c,v 1.2 2000/07/03 21:30:21 gropp Exp $    
+ *   $Id: darrayf.c,v 1.3 2001/04/19 20:50:45 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -152,7 +152,7 @@ EXPORT_MPI_API void mpi_type_create_darray_(MPI_Fint *size, MPI_Fint *rank,
 	FREE( l_array_of_dargs );
 	FREE( l_array_of_psizes );
     }
-
-    *newtype = MPI_Type_c2f(newtype_c);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *newtype = MPI_Type_c2f(newtype_c);
 }
 

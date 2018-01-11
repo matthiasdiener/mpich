@@ -171,10 +171,10 @@ dnl return AC_MSG_WARN(ErrorMsg) + exit 0 otherwise
 dnl
 define(PAC_MSG_ERROR,[
 if test "$1" = "yes" ; then
-    AC_MSG_WARN( $2 )
+    AC_MSG_WARN([ $2 ])
     exit 0
 else
-    AC_MSG_ERROR( $2 )
+    AC_MSG_ERROR([ $2 ])
 fi
 ])dnl
 dnl

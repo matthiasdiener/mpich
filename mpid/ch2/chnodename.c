@@ -41,8 +41,10 @@ int  nlen;
     /* strncpy(name,he->h_name,nlen); */
     {
 	char *p_out = name;
-	char *p_in  = he->h_name;
+	char *p_in;
 	int  i;
+
+	p_in = (he != NULL) ? he->h_name : utname.nodename;
 	for (i=0; i<nlen-1 && *p_in; i++) 
 	    *p_out++ = *p_in++;
 	*p_out = 0;

@@ -126,310 +126,6 @@ done<<>>dnl>>)
 changequote([,]))])
 
 dnl
-dnl/*D
-dnl AC_CACHE_LOAD - Replacement for autoconf cache load 
-dnl
-dnl Notes:
-dnl Caching in autoconf is broken.  The problem is that the cache is read
-dnl without any check for whether it makes any sense to read it.
-dnl A common problem is a build on a shared file system; connecting to 
-dnl a different computer and then building within the same directory will
-dnl lead to at best error messages from configure and at worse a build that
-dnl is wrong but fails only at run time (e.g., wrong datatype sizes used).
-dnl 
-dnl This fixes that by requiring the user to explicitly enable caching 
-dnl before the cache file will be loaded.
-dnl
-dnl To use this version of 'AC_CACHE_LOAD', you need to include
-dnl 'aclocal_cache.m4' in your 'aclocal.m4' file.  The sowing 'aclocal.m4'
-dnl file includes this file.
-dnl
-dnl If no --enable-cache or --disable-cache option is selected, the
-dnl command causes configure to keep track of the system being configured
-dnl in a config.system file; if the current system matches the value stored
-dnl in that file (or there is neither a config.cache nor config.system file),
-dnl configure will enable caching.  In order to ensure that the configure
-dnl tests make sense, the values of CC, F77, F90, and CXX are also included 
-dnl in the config.system file.
-dnl
-dnl See Also:
-dnl PAC_ARG_CACHING
-dnlD*/
-define([AC_CACHE_LOAD],
-[if test "X$cache_system" = "X" ; then
-    if test "$cache_file" != "/dev/null" ; then
-        # Get the directory for the cache file, if any
-	changequote(,)
-        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
-	changequote([,])
-        test "x$cache_system" = "x$cache_file" && cache_system="config.system"
-    fi
-fi
-dnl
-dnl The "action-if-not-given" part of AC_ARG_ENABLE is not executed until
-dnl after the AC_CACHE_LOAD is executed (!).  Thus, the value of 
-dnl enable_cache if neither --enable-cache or --disable-cache is selected
-dnl is null.  Just in case autoconf ever fixes this, we test both cases.
-if test "X$enable_cache" = "Xnotgiven" -o "X$enable_cache" = "X" ; then
-    # check for valid cache file
-    if uname -srm >/dev/null 2>&1 ; then
-	dnl cleanargs=`echo "$*" | tr '"' ' '`
-	cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
-        testval="`uname -srm` $cleanargs"
-        if test -f "$cache_system" -a -n "$testval" ; then
-	    if test "$testval" = "`cat $cache_system`" ; then
-	        enable_cache="yes"
-	    fi
-        elif test ! -f "$cache_system" -a -n "$testval" ; then
-	    echo "$testval" > $cache_system
-	    # remove the cache file because it may not correspond to our
-	    # system
-	    rm -f $cache_file
-	    enable_cache="yes"
-        fi
-    fi
-fi
-if test "X$enable_cache" = "Xyes" ; then
-  if test -r "$cache_file" ; then
-    echo "loading cache $cache_file"
-    . $cache_file
-  else
-    echo "creating cache $cache_file"
-    > $cache_file
-    rm -f $cache_system
-    cleanargs=`echo "$CC $F77 $CXX" | tr '"' ' '`
-    testval="`uname -srm` $cleanargs"
-    echo "$testval" > $cache_system
-  fi
-else
-  cache_file="/dev/null"
-fi
-])
-dnl
-dnl/*D 
-dnl PAC_ARG_CACHING - Enable caching of results from a configure execution
-dnl
-dnl Synopsis:
-dnl PAC_ARG_CACHING
-dnl
-dnl Output Effects:
-dnl Adds '--enable-cache' and '--disable-cache' to the command line arguments
-dnl accepted by 'configure'.  
-dnl
-dnl See Also:
-dnl AC_CACHE_LOAD
-dnlD*/
-dnl Add this call to the other ARG_ENABLE calls.  Note that the values
-dnl set here are redundant; the LOAD_CACHE call relies on the way autoconf
-dnl initially processes ARG_ENABLE commands.
-AC_DEFUN(PAC_ARG_CACHING,[
-AC_ARG_ENABLE(cache,
-[--enable-cache  - Turn on configure caching],
-enable_cache="$enableval",enable_cache="notgiven")
-])
-
-dnl
-dnl/*D 
-dnl PAC_LIB_MPI - Check for MPI library
-dnl
-dnl Synopsis:
-dnl PAC_LIB_MPI([action if found],[action if not found])
-dnl
-dnl Output Effect:
-dnl
-dnl Notes:
-dnl Currently, only checks for lib mpi and mpi.h.  Later, we will add
-dnl MPI_Pcontrol prototype (const int or not?).  
-dnl
-dnl If PAC_ARG_MPICH_BUILDING is included, this will work correctly 
-dnl when MPICH is being built.
-dnl
-dnl Prerequisites:
-dnl autoconf version 2.13 (for AC_SEARCH_LIBS)
-dnlD*/
-dnl Other tests to add:
-dnl Version of MPI
-dnl MPI-2 I/O?
-dnl MPI-2 Spawn?
-dnl MPI-2 RMA?
-dnl PAC_LIB_MPI([found text],[not found text])
-AC_DEFUN(PAC_LIB_MPI,[
-AC_PREREQ(2.13)
-if test "X$pac_lib_mpi_is_building" != "Xyes" ; then
-  # Use CC if TESTCC is defined
-  if test "X$pac_save_level" != "X" ; then
-     pac_save_TESTCC="${TESTCC}"
-     pac_save_TESTCPP="${TESTCPP}"
-     CC="$pac_save_CC"
-     if test "X$pac_save_CPP" != "X" ; then
-         CPP="$pac_save_CPP"
-     fi
-  fi
-  # Look for MPILIB first if it is defined
-  AC_SEARCH_LIBS(MPI_Init,$MPILIB mpi mpich)
-  if test "$ac_cv_search_MPI_Init" = "no" ; then
-    ifelse($2,,
-    AC_MSG_ERROR([Could not find MPI library]),[$2])
-  fi
-  AC_CHECK_HEADER(mpi.h,pac_have_mpi_h="yes",pac_have_mpi_h="no")
-  if test $pac_have_mpi_h = "no" ; then
-    ifelse($2,,
-    AC_MSG_ERROR([Could not find mpi.h include file]),[$2])
-  fi
-  if test "X$pac_save_level" != "X" ; then
-     CC="$pac_save_TESTCC"
-     CPP="$pac_save_TESTCPP"
-  fi
-fi
-ifelse($1,,,[$1])
-])
-dnl
-dnl
-dnl/*D
-dnl PAC_ARG_MPICH_BUILDING - Add configure command-line argument to indicated
-dnl that MPICH is being built
-dnl
-dnl Output Effect:
-dnl Adds the command-line switch '--with-mpichbuilding' that may be used to
-dnl indicate that MPICH is building.  This allows a configure to work-around
-dnl the fact that during a build of MPICH, certain commands, particularly the
-dnl compilation commands such as 'mpicc', are not yet functional.  The
-dnl variable 'pac_lib_mpi_is_building' is set to 'yes' if in an MPICH build,
-dnl 'no' otherwise.
-dnl
-dnl See Also:
-dnl PAC_LIB_MPI
-dnlD*/
-AC_DEFUN(PAC_ARG_MPICH_BUILDING,[
-AC_ARG_WITH(mpichbuilding,
-[--with-mpichbuilding - Assume that MPICH is being built],
-pac_lib_mpi_is_building=$withval,pac_lib_mpi_is_building="no")
-])
-dnl
-dnl
-dnl This should also set MPIRUN.
-dnl
-dnl/*D
-dnl PAC_ARG_MPI_TYPES - Add command-line switches for different MPI 
-dnl environments
-dnl
-dnl Synopsis:
-dnl PAC_ARG_MPI_TYPES([default])
-dnl
-dnl Output Effects:
-dnl Adds the following command line options to configure
-dnl+ \-\-with\-mpich[=path] - MPICH.  'path' is the location of MPICH commands
-dnl. \-\-with\-ibmmpi - IBM MPI
-dnl- \-\-with\-sgimpi - SGI MPI
-dnl If no type is selected, and a default ("mpich", "ibmmpi", or "sgimpi")
-dnl is given, that type is used as if '--with-<default>' was given.
-dnl
-dnl Sets 'CC', 'F77', 'TESTCC', 'TESTF77', and 'MPILIBNAME'.  Does `not`
-dnl perform an AC_SUBST for these values.
-dnl
-dnl See also:
-dnl PAC_LANG_PUSH_COMPILERS, PAC_LIB_MPI
-dnlD*/
-AC_DEFUN(PAC_ARG_MPI_TYPES,[
-AC_PROVIDE([AC_PROG_CC])
-AC_SUBST(CC)
-AC_SUBST(CXX)
-AC_SUBST(F77)
-AC_SUBST(F90)
-AC_ARG_WITH(mpich,
-[--with-mpich=path  - Assume that we are building with MPICH],
-ac_mpi_type=mpich)
-AC_ARG_WITH(ibmmpi,
-[--with-ibmmpi    - Use the IBM SP implementation of MPI],
-ac_mpi_type=ibmmpi)
-AC_ARG_WITH(sgimpi,
-[--with-sgimpi    - Use the SGI implementation of MPI],
-ac_mpi_type=sgimpi)
-if test "X$ac_mpi_type" = "X" ; then
-    if test "X$1" != "X" ; then
-        ac_mpi_type=$1
-    else
-        ac_mpi_type=unknown
-    fi
-fi
-case $ac_mpi_type in
-	mpich)
-        dnl 
-        dnl This isn't correct.  It should try to get the underlying compiler
-        dnl from the mpicc and mpif77 scripts or mpireconfig
-        if test "X$pac_lib_mpi_is_building" != "Xyes" ; then
-            save_PATH="$PATH"
-            if test "$with_mpich" != "yes" -a "$with_mpich" != "no" ; then 
-		# Look for commands; if not found, try adding bin to the
-		# path
-		if test ! -x $with_mpich/mpicc -a -x $with_mpich/bin/mpicc ; then
-			with_mpich="$with_mpich/bin"
-		fi
-                PATH=$with_mpich:${PATH}
-            fi
-            AC_PATH_PROG(MPICC,mpicc)
-            TESTCC=${CC-cc}
-            CC="$MPICC"
-            AC_PATH_PROG(MPIF77,mpif77)
-            TESTF77=${F77-f77}
-            F77="$MPIF77"
-            AC_PATH_PROG(MPIF90,mpif90)
-            TESTF90=${F90-f90}
-            F90="$MPIF90"
-            AC_PATH_PROG(MPICXX,mpiCC)
-            TESTCXX=${CXX-CC}
-            CXX="$MPICXX"
-	    PATH="$save_PATH"
-  	    MPILIBNAME="mpich"
-        else 
-	    # All of the above should have been passed in the environment!
-	    :
-        fi
-	;;
-	ibmmpi)
-	TESTCC=${CC-xlC}; TESTF77=${F77-xlf}; CC=mpcc; F77=mpxlf
-	# There is no mpxlf90, but the options langlvl and free can
-	# select the F90 version of xlf
-	TESTF90=${F90-xlf90}; F90="mpxlf -qlanglvl=90ext -qfree=f90"
-	MPILIBNAME=""
-	;;
-	sgimpi)
-	TESTCC=${CC:=cc}; TESTF77=${F77:=f77}; 
-	TESTCXX=${CXX:=CC}; TESTF90=${F90:=f90}
-	AC_CHECK_LIB(mpi,MPI_Init)
-	if test "$ac_cv_lib_mpi_MPI_Init" = "yes" ; then
-	    MPILIBNAME="mpi"
-	fi	
-	;;
-	*)
-	;;
-esac
-])
-dnl
-dnl/*D
-dnl PAC_MPI_F2C - Determine if MPI has the MPI-2 functions MPI_xxx_f2c and
-dnl   MPI_xxx_c2f
-dnl
-dnl Output Effect:
-dnl Define 'HAVE_MPI_F2C' if the routines are found.
-dnl
-dnl Notes:
-dnl Looks only for 'MPI_Request_c2f'.
-dnlD*/
-AC_DEFUN(PAC_MPI_F2C,[
-AC_CACHE_CHECK([for MPI F2C and C2F routines],
-pac_cv_mpi_f2c,
-[
-AC_TRY_LINK([#include "mpi.h"],
-[MPI_Request request;MPI_Fint a;a = MPI_Request_c2f(request);],
-pac_cv_mpi_f2c="yes",pac_cv_mpi_f2c="no")
-])
-if test "$pac_cv_mpi_f2c" = "yes" ; then 
-    AC_DEFINE(HAVE_MPI_F2C) 
-fi
-])
-
-dnl
 dnl This is a replacement for AC_PROG_CC that does not prefer gcc and
 dnl that does not mess with CFLAGS.  See acspecific.m4 for the original defn.
 dnl
@@ -574,11 +270,23 @@ dnlD*/
 AC_DEFUN(PAC_C_OPTIMIZATION,[
     for copt in "-O4 -Ofast" "-Ofast" "-fast" "-O3" "-xO3" "-O" ; do
         PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
-        if test $found_opt = "yes" ; then
+        if test "$found_opt" = "yes" ; then
 	    ifelse($1,,COPTIONS="$COPTIONS $copt",$1)
 	    break
         fi
     done
+    if test "$ac_cv_prog_gcc" = "yes" ; then
+	for copt in "-fomit-frame-pointer" "-finline-functions" \
+		 "-funroll-loops" ; do
+	    PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
+	    if test $found_opt = "yes" ; then
+	        ifelse($1,,COPTIONS="$COPTIONS $copt",$1)
+	        # no break because we're trying to add them all
+	    fi
+	done
+	# We could also look for architecture-specific gcc options
+    fi
+
 ])
 dnl
 dnl/*D
@@ -808,6 +516,26 @@ AC_TRY_COMPILE(,[volatile int a;],pac_cv_c_volatile="yes",
 pac_cv_c_volatile="no")])
 if test "$pac_cv_c_volatile" = "no" ; then
     AC_DEFINE(volatile,)
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_C_INLINE - Check if C supports inline
+dnl
+dnl Synopsis:
+dnl PAC_C_INLINE
+dnl
+dnl Output Effect:
+dnl Defines 'inline' as empty if inline is not available.
+dnl
+dnlD*/
+AC_DEFUN(PAC_C_INLINE,[
+AC_CACHE_CHECK([for inline],
+pac_cv_c_inline,[
+AC_TRY_COMPILE([inline int a( int b ){return b+1;}],[int a;],
+pac_cv_c_inline="yes",pac_cv_c_inline="no")])
+if test "$pac_cv_c_inline" = "no" ; then
+    AC_DEFINE(inline,)
 fi
 ])dnl
 dnl
@@ -1164,8 +892,839 @@ if test "$notbroken" = "no" ; then
 correctly set error code when a fatal error occurs])
 fi
 ])
+dnl
+dnl/*D
+dnl PAC_FUNC_CRYPT - Check that the function crypt is defined
+dnl
+dnl Synopsis:
+dnl PAC_FUNC_CRYPT
+dnl
+dnl Output Effects:
+dnl 
+dnl In Solaris, the crypt function is not defined in unistd unless 
+dnl _XOPEN_SOURCE is defines and _XOPEN_VERSION is 4 or greater.
+dnl We test by looking for a missing crypt by defining our own
+dnl incompatible one and trying to compile it.
+dnl Defines NEED_CRYPT_PROTOTYPE if no prototype is found.
+dnlD*/
+AC_DEFUN(PAC_FUNC_CRYPT,[
+AC_CACHE_CHECK([if crypt defined in unistd.h],
+pac_cv_func_crypt_defined,[
+AC_TRY_COMPILE([
+#include <unistd.h>
+double crypt(double a){return a;}],[return 0];,
+pac_cv_func_crypt_defined="no",pac_cv_func_crypt_defined="yes")])
+if test "$pac_cv_func_crypt_defined" = "no" ; then
+    # check to see if defining _XOPEN_SOURCE helps
+    AC_CACHE_CHECK([if crypt defined in unistd with _XOPEN_SOURCE],
+pac_cv_func_crypt_xopen,[
+    AC_TRY_COMPILE([
+#define _XOPEN_SOURCE    
+#include <unistd.h>
+double crypt(double a){return a;}],[return 0];,
+pac_cv_func_crypt_xopen="no",pac_cv_func_crypt_xopen="yes")])
+fi
+if test "$pac_cv_func_crypt_xopen" = "yes" ; then
+    AC_DEFINE(_XOPEN_SOURCE)
+elif test "$pac_cv_func_crypt_defined" = "no" ; then
+    AC_DEFINE(NEED_CRYPT_PROTOTYPE)
+fi
+])dnl
+dnl/*D
+dnl PAC_ARG_STRICT - Add --enable-strict to configure.  
+dnl
+dnl Synopsis:
+dnl PAC_ARG_STRICT
+dnl 
+dnl Output effects:
+dnl Adds '--enable-strict' to the command line.  If this is enabled, then
+dnl if no compiler has been set, set 'CC' to 'gcc'.
+dnl If the compiler is 'gcc', 'COPTIONS' is set to include
+dnl.vb
+dnl	-O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL
+dnl.ve
+dnl
+dnl If the value 'all' is given to '--enable-strict', additional warning
+dnl options are included.  These are
+dnl.vb
+dnl -Wunused -Wshadow -Wmissing-declarations -Wno-long-long -Wpointer-arith
+dnl.ve
+dnl 
+dnl This only works where 'gcc' is available.
+dnl In addition, it exports the variable 'enable_strict_done'. This
+dnl ensures that subsidiary 'configure's do not add the above flags to
+dnl 'COPTIONS' once the top level 'configure' sees '--enable-strict'.  To ensure
+dnl this, 'COPTIONS' is also exported.
+dnl
+dnl Not yet available: options when using other compilers.  However, 
+dnl here are some possible choices
+dnl Solaris cc
+dnl  -fd -v -Xc
+dnl
+dnlD*/
+AC_DEFUN(PAC_ARG_STRICT,[
+AC_ARG_ENABLE(strict,
+[--enable-strict  - Turn on strict compilation testing when using gcc])
+export enable_strict_done
+export COPTIONS
+if test "$enable_strict_done" != "yes" ; then
+    if test "$enable_strict" = "yes" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+            if test "$CC" = "gcc" ; then 
+                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+    	    fi
+        fi
+    elif test "$enable_strict" = "all" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+            if test "$CC" = "gcc" ; then 
+                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+    	    fi
+        fi
+    fi
+fi
+])
+dnl/*D
+dnl PAC_ARG_CC_G - Add debugging flags for the C compiler
+dnl
+dnl Synopsis:
+dnl PAC_ARG_CC_G
+dnl
+dnl Output Effect:
+dnl Adds '-g' to 'COPTIONS' and exports 'COPTIONS'.  Sets and exports the 
+dnl variable 'enable_g_simple' so that subsidiary 'configure's will not
+dnl add another '-g'.
+dnl
+dnl Notes:
+dnl '--enable-g' should be used for all internal debugging modes if possible.
+dnl Use the 'enable_val' that 'enable_g' is set to to pass particular values,
+dnl and ignore any values that are not recognized (some other 'configure' 
+dnl may have used them.  Of course, if you need extra values, you must
+dnl add code to extract values from 'enable_g'.
+dnl
+dnl For example, to look for a particular keyword, you could use
+dnl.vb
+dnl SaveIFS="$IFS"
+dnl IFS=","
+dnl for key in $enable_g ; do
+dnl     case $key in 
+dnl         mem) # add code for memory debugging 
+dnl         ;;
+dnl         *)   # ignore all other values
+dnl         ;;
+dnl     esac
+dnl done
+dnl IFS="$SaveIFS"
+dnl.ve
+dnl
+dnlD*/
+AC_DEFUN(PAC_ARG_CC_G,[
+AC_ARG_ENABLE(g,
+[--enable-g  - Turn on debugging of the package (typically adds -g to COPTIONS)])
+export COPTIONS
+export enable_g_simple
+if test -n "$enable_g" -a "$enable_g" != "no" -a \
+   "$enable_g_simple" != "done" ; then
+    enable_g_simple="done"
+    if test "$enable_g" = "g" -o "$enable_g" = "yes" ; then
+        COPTIONS="$COPTIONS -g"
+    fi
+fi
+])
+dnl
+dnl Simple version for both options
+dnl
+AC_DEFUN(PAC_ARG_CC_COMMON,[
+PAC_ARG_CC_G
+PAC_ARG_STRICT
+])
+dnl
+dnl Eventually, this can be used instead of the funky Fortran stuff to 
+dnl access the command line from a C routine.
+dnl #
+dnl # Under IRIX (some version) __Argc and __Argv gave the argc,argv values
+dnl #Under linux, __libc_argv and __libc_argc
+dnl AC_MSG_CHECKING([for alternative argc,argv names])
+dnl AC_TRY_LINK([
+dnl extern int __Argc; extern char **__Argv;],[return __Argc;],
+dnl alt_argv="__Argv")
+dnl if test -z "$alt_argv" ; then
+dnl    AC_TRY_LINK([
+dnl extern int __libc_argc; extern char **__libc_argv;],[return __lib_argc;],
+dnl alt_argv="__lib_argv")
+dnl fi
+dnl if test -z "$alt_argv" ; then
+dnl   AC_MSG_RESULT(none found)) 
+dnl else 
+dnl   AC_MSG_RESULT($alt_argv) 
+dnl fi
+dnl 
+dnl
+dnl
 
 AC_DEFUN(AM_IGNORE,[])
+
+dnl
+dnl/*D
+dnl AC_CACHE_LOAD - Replacement for autoconf cache load 
+dnl
+dnl Notes:
+dnl Caching in autoconf is broken.  The problem is that the cache is read
+dnl without any check for whether it makes any sense to read it.
+dnl A common problem is a build on a shared file system; connecting to 
+dnl a different computer and then building within the same directory will
+dnl lead to at best error messages from configure and at worse a build that
+dnl is wrong but fails only at run time (e.g., wrong datatype sizes used).
+dnl 
+dnl This fixes that by requiring the user to explicitly enable caching 
+dnl before the cache file will be loaded.
+dnl
+dnl To use this version of 'AC_CACHE_LOAD', you need to include
+dnl 'aclocal_cache.m4' in your 'aclocal.m4' file.  The sowing 'aclocal.m4'
+dnl file includes this file.
+dnl
+dnl If no --enable-cache or --disable-cache option is selected, the
+dnl command causes configure to keep track of the system being configured
+dnl in a config.system file; if the current system matches the value stored
+dnl in that file (or there is neither a config.cache nor config.system file),
+dnl configure will enable caching.  In order to ensure that the configure
+dnl tests make sense, the values of CC, F77, F90, and CXX are also included 
+dnl in the config.system file.
+dnl
+dnl See Also:
+dnl PAC_ARG_CACHING
+dnlD*/
+define([AC_CACHE_LOAD],
+[if test "X$cache_system" = "X" ; then
+    if test "$cache_file" != "/dev/null" ; then
+        # Get the directory for the cache file, if any
+	changequote(,)
+        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
+	changequote([,])
+        test "x$cache_system" = "x$cache_file" && cache_system="config.system"
+    fi
+fi
+dnl
+dnl The "action-if-not-given" part of AC_ARG_ENABLE is not executed until
+dnl after the AC_CACHE_LOAD is executed (!).  Thus, the value of 
+dnl enable_cache if neither --enable-cache or --disable-cache is selected
+dnl is null.  Just in case autoconf ever fixes this, we test both cases.
+if test "X$enable_cache" = "Xnotgiven" -o "X$enable_cache" = "X" ; then
+    # check for valid cache file
+    if uname -srm >/dev/null 2>&1 ; then
+	dnl cleanargs=`echo "$*" | tr '"' ' '`
+	cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
+        testval="`uname -srm` $cleanargs"
+        if test -f "$cache_system" -a -n "$testval" ; then
+	    if test "$testval" = "`cat $cache_system`" ; then
+	        enable_cache="yes"
+	    fi
+        elif test ! -f "$cache_system" -a -n "$testval" ; then
+	    echo "$testval" > $cache_system
+	    # remove the cache file because it may not correspond to our
+	    # system
+	    rm -f $cache_file
+	    enable_cache="yes"
+        fi
+    fi
+fi
+if test "X$enable_cache" = "Xyes" ; then
+  if test -r "$cache_file" ; then
+    echo "loading cache $cache_file"
+    . $cache_file
+  else
+    echo "creating cache $cache_file"
+    > $cache_file
+    rm -f $cache_system
+    cleanargs=`echo "$CC $F77 $CXX" | tr '"' ' '`
+    testval="`uname -srm` $cleanargs"
+    echo "$testval" > $cache_system
+  fi
+else
+  cache_file="/dev/null"
+fi
+])
+dnl
+dnl/*D 
+dnl PAC_ARG_CACHING - Enable caching of results from a configure execution
+dnl
+dnl Synopsis:
+dnl PAC_ARG_CACHING
+dnl
+dnl Output Effects:
+dnl Adds '--enable-cache' and '--disable-cache' to the command line arguments
+dnl accepted by 'configure'.  
+dnl
+dnl See Also:
+dnl AC_CACHE_LOAD
+dnlD*/
+dnl Add this call to the other ARG_ENABLE calls.  Note that the values
+dnl set here are redundant; the LOAD_CACHE call relies on the way autoconf
+dnl initially processes ARG_ENABLE commands.
+AC_DEFUN(PAC_ARG_CACHING,[
+AC_ARG_ENABLE(cache,
+[--enable-cache  - Turn on configure caching],
+enable_cache="$enableval",enable_cache="notgiven")
+])
+
+dnl
+dnl/*D 
+dnl PAC_LIB_MPI - Check for MPI library
+dnl
+dnl Synopsis:
+dnl PAC_LIB_MPI([action if found],[action if not found])
+dnl
+dnl Output Effect:
+dnl
+dnl Notes:
+dnl Currently, only checks for lib mpi and mpi.h.  Later, we will add
+dnl MPI_Pcontrol prototype (const int or not?).  
+dnl
+dnl If PAC_ARG_MPICH_BUILDING is included, this will work correctly 
+dnl when MPICH is being built.
+dnl
+dnl Prerequisites:
+dnl autoconf version 2.13 (for AC_SEARCH_LIBS)
+dnlD*/
+dnl Other tests to add:
+dnl Version of MPI
+dnl MPI-2 I/O?
+dnl MPI-2 Spawn?
+dnl MPI-2 RMA?
+dnl PAC_LIB_MPI([found text],[not found text])
+AC_DEFUN(PAC_LIB_MPI,[
+AC_PREREQ(2.13)
+if test "X$pac_lib_mpi_is_building" != "Xyes" ; then
+  # Use CC if TESTCC is defined
+  if test "X$pac_save_level" != "X" ; then
+     pac_save_TESTCC="${TESTCC}"
+     pac_save_TESTCPP="${TESTCPP}"
+     CC="$pac_save_CC"
+     if test "X$pac_save_CPP" != "X" ; then
+         CPP="$pac_save_CPP"
+     fi
+  fi
+  # Look for MPILIB first if it is defined
+  AC_SEARCH_LIBS(MPI_Init,$MPILIB mpi mpich)
+  if test "$ac_cv_search_MPI_Init" = "no" ; then
+    ifelse($2,,
+    AC_MSG_ERROR([Could not find MPI library]),[$2])
+  fi
+  AC_CHECK_HEADER(mpi.h,pac_have_mpi_h="yes",pac_have_mpi_h="no")
+  if test $pac_have_mpi_h = "no" ; then
+    ifelse($2,,
+    AC_MSG_ERROR([Could not find mpi.h include file]),[$2])
+  fi
+  if test "X$pac_save_level" != "X" ; then
+     CC="$pac_save_TESTCC"
+     CPP="$pac_save_TESTCPP"
+  fi
+fi
+ifelse($1,,,[$1])
+])
+dnl
+dnl
+dnl/*D
+dnl PAC_ARG_MPICH_BUILDING - Add configure command-line argument to indicated
+dnl that MPICH is being built
+dnl
+dnl Output Effect:
+dnl Adds the command-line switch '--with-mpichbuilding' that may be used to
+dnl indicate that MPICH is building.  This allows a configure to work-around
+dnl the fact that during a build of MPICH, certain commands, particularly the
+dnl compilation commands such as 'mpicc', are not yet functional.  The
+dnl variable 'pac_lib_mpi_is_building' is set to 'yes' if in an MPICH build,
+dnl 'no' otherwise.
+dnl
+dnl See Also:
+dnl PAC_LIB_MPI
+dnlD*/
+AC_DEFUN(PAC_ARG_MPICH_BUILDING,[
+AC_ARG_WITH(mpichbuilding,
+[--with-mpichbuilding - Assume that MPICH is being built],
+pac_lib_mpi_is_building=$withval,pac_lib_mpi_is_building="no")
+])
+dnl
+dnl
+dnl This should also set MPIRUN.
+dnl
+dnl/*D
+dnl PAC_ARG_MPI_TYPES - Add command-line switches for different MPI 
+dnl environments
+dnl
+dnl Synopsis:
+dnl PAC_ARG_MPI_TYPES([default])
+dnl
+dnl Output Effects:
+dnl Adds the following command line options to configure
+dnl+ \-\-with\-mpich[=path] - MPICH.  'path' is the location of MPICH commands
+dnl. \-\-with\-ibmmpi - IBM MPI
+dnl. \-\-with\-lammpi[=path] - LAM/MPI
+dnl- \-\-with\-sgimpi - SGI MPI
+dnl If no type is selected, and a default ("mpich", "ibmmpi", or "sgimpi")
+dnl is given, that type is used as if '--with-<default>' was given.
+dnl
+dnl Sets 'CC', 'F77', 'TESTCC', 'TESTF77', and 'MPILIBNAME'.  Does `not`
+dnl perform an AC_SUBST for these values.
+dnl Also sets 'MPIBOOT' and 'MPIUNBOOT'.  These are used to specify 
+dnl programs that may need to be run before and after running MPI programs.
+dnl For example, 'MPIBOOT' may start demons necessary to run MPI programs and
+dnl 'MPIUNBOOT' will stop those demons.
+dnl
+dnl See also:
+dnl PAC_LANG_PUSH_COMPILERS, PAC_LIB_MPI
+dnlD*/
+AC_DEFUN(PAC_ARG_MPI_TYPES,[
+AC_PROVIDE([AC_PROG_CC])
+AC_SUBST(CC)
+AC_SUBST(CXX)
+AC_SUBST(F77)
+AC_SUBST(F90)
+AC_ARG_WITH(mpich,
+[--with-mpich=path  - Assume that we are building with MPICH],
+ac_mpi_type=mpich)
+AC_ARG_WITH(lammpi,
+[--with-lammpi=path  - Assume that we are building with LAM/MPI],
+ac_mpi_type=lammpi)
+AC_ARG_WITH(ibmmpi,
+[--with-ibmmpi    - Use the IBM SP implementation of MPI],
+ac_mpi_type=ibmmpi)
+AC_ARG_WITH(sgimpi,
+[--with-sgimpi    - Use the SGI implementation of MPI],
+ac_mpi_type=sgimpi)
+if test "X$ac_mpi_type" = "X" ; then
+    if test "X$1" != "X" ; then
+        ac_mpi_type=$1
+    else
+        ac_mpi_type=unknown
+    fi
+fi
+if test "$ac_mpi_type" = "unknown" -a "$pac_lib_mpi_is_building" = "yes" ; then
+    ac_mpi_type="mpich"
+fi
+case $ac_mpi_type in
+	mpich)
+        dnl 
+        dnl This isn't correct.  It should try to get the underlying compiler
+        dnl from the mpicc and mpif77 scripts or mpireconfig
+        if test "X$pac_lib_mpi_is_building" != "Xyes" ; then
+            save_PATH="$PATH"
+            if test "$with_mpich" != "yes" -a "$with_mpich" != "no" ; then 
+		# Look for commands; if not found, try adding bin to the
+		# path
+		if test ! -x $with_mpich/mpicc -a -x $with_mpich/bin/mpicc ; then
+			with_mpich="$with_mpich/bin"
+		fi
+                PATH=$with_mpich:${PATH}
+            fi
+            AC_PATH_PROG(MPICC,mpicc)
+            TESTCC=${CC-cc}
+            CC="$MPICC"
+            AC_PATH_PROG(MPIF77,mpif77)
+            TESTF77=${F77-f77}
+            F77="$MPIF77"
+            AC_PATH_PROG(MPIF90,mpif90)
+            TESTF90=${F90-f90}
+            F90="$MPIF90"
+            AC_PATH_PROG(MPICXX,mpiCC)
+            TESTCXX=${CXX-CC}
+            CXX="$MPICXX"
+	    # We may want to restrict this to the path containing mpirun
+	    AC_PATH_PROG(MPIRUN,mpirun)
+	    AC_PATH_PROG(MPIBOOT,mpichboot)
+	    AC_PATH_PROG(MPIUNBOOT,mpichstop)
+	    PATH="$save_PATH"
+  	    MPILIBNAME="mpich"
+        else 
+	    # All of the above should have been passed in the environment!
+	    :
+        fi
+	;;
+
+	lammpi)
+	dnl
+        dnl This isn't correct.  It should try to get the underlying compiler
+        dnl from the mpicc and mpif77 scripts or mpireconfig
+        save_PATH="$PATH"
+        if test "$with_mpich" != "yes" -a "$with_mpich" != "no" ; then 
+	    # Look for commands; if not found, try adding bin to the path
+		if test ! -x $with_lammpi/mpicc -a -x $with_lammpi/bin/mpicc ; then
+			with_lammpi="$with_lammpi/bin"
+		fi
+                PATH=$with_lammpi:${PATH}
+        fi
+        AC_PATH_PROG(MPICC,mpicc)
+        TESTCC=${CC-cc}
+        CC="$MPICC"
+        AC_PATH_PROG(MPIF77,mpif77)
+        TESTF77=${F77-f77}
+        F77="$MPIF77"
+        AC_PATH_PROG(MPIF90,mpif90)
+        TESTF90=${F90-f90}
+        F90="$MPIF90"
+        AC_PATH_PROG(MPICXX,mpiCC)
+        TESTCXX=${CXX-CC}
+        CXX="$MPICXX"
+	PATH="$save_PATH"
+  	MPILIBNAME="lammpi"
+	MPIBOOT="lamboot"
+	MPIUNBOOT="wipe"
+	MPIRUN="mpirun"
+	;;
+
+	ibmmpi)
+	TESTCC=${CC-xlC}; TESTF77=${F77-xlf}; CC=mpcc; F77=mpxlf
+	# There is no mpxlf90, but the options langlvl and free can
+	# select the F90 version of xlf
+	TESTF90=${F90-xlf90}; F90="mpxlf -qlanglvl=90ext -qfree=f90"
+	MPILIBNAME=""
+	;;
+
+	sgimpi)
+	TESTCC=${CC:=cc}; TESTF77=${F77:=f77}; 
+	TESTCXX=${CXX:=CC}; TESTF90=${F90:=f90}
+	AC_CHECK_LIB(mpi,MPI_Init)
+	if test "$ac_cv_lib_mpi_MPI_Init" = "yes" ; then
+	    MPILIBNAME="mpi"
+	fi	
+	MPIRUN=mpirun
+	MPIBOOT=""
+	MPIUNBOOT=""
+	;;
+
+	*)
+	# Find the compilers
+	PAC_PROG_CC
+	AC_PROG_F77
+	AC_PROG_CXX
+	PAC_PROG_F90
+	# Set defaults for the TEST versions if not already set
+	if test -z "$TESTCC" ; then 
+	    TESTCC=${CC:=cc}
+        fi
+	if test -z "$TESTF77" ; then 
+  	    TESTF77=${F77:=f77}
+        fi
+	if test -z "$TESTCXX" ; then
+	    TESTCXX=${CXX:=CC}
+        fi
+	if test -z "$TESTF90" ; then
+       	    TESTF90=${F90:=f90}
+	fi
+	;;
+esac
+])
+dnl
+dnl/*D
+dnl PAC_MPI_F2C - Determine if MPI has the MPI-2 functions MPI_xxx_f2c and
+dnl   MPI_xxx_c2f
+dnl
+dnl Output Effect:
+dnl Define 'HAVE_MPI_F2C' if the routines are found.
+dnl
+dnl Notes:
+dnl Looks only for 'MPI_Request_c2f'.
+dnlD*/
+AC_DEFUN(PAC_MPI_F2C,[
+AC_CACHE_CHECK([for MPI F2C and C2F routines],
+pac_cv_mpi_f2c,
+[
+AC_TRY_LINK([#include "mpi.h"],
+[MPI_Request request;MPI_Fint a;a = MPI_Request_c2f(request);],
+pac_cv_mpi_f2c="yes",pac_cv_mpi_f2c="no")
+])
+if test "$pac_cv_mpi_f2c" = "yes" ; then 
+    AC_DEFINE(HAVE_MPI_F2C) 
+fi
+])
+
+dnl
+dnl Macros for Fortran 90
+dnl
+dnl We'd like to have a PAC_LANG_FORTRAN90 that worked with AC_TRY_xxx, but
+dnl that would require too many changes to autoconf macros.
+AC_DEFUN(PAC_LANG_FORTRAN90,
+[AC_REQUIRE([PAC_PROG_F90])
+define([AC_LANG], [FORTRAN90])dnl
+ac_ext=$pac_cv_f90_ext
+ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
+ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
+cross_compiling=$pac_cv_prog_f90_cross
+])
+dnl
+dnl This is an addition for AC_TRY_COMPILE, but for f90.  If the current 
+dnl language is not f90, it does a save/restore
+AC_DEFUN(PAC_TRY_F90_COMPILE,
+[AC_REQUIRE([PAC_LANG_FORTRAN90])
+ifelse(AC_LANG, FORTRAN90,,[AC_LANG_SAVE
+PAC_LANG_FORTRAN90
+define([NEED_POP],yes)])
+cat > conftest.$ac_ext <<EOF
+      program main
+[$2]
+      end
+EOF
+if AC_TRY_EVAL(ac_compile); then
+  ifelse([$3], , :, [rm -rf conftest*
+  $3])
+else
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat conftest.$ac_ext >&AC_FD_CC
+ifelse([$4], , , [  rm -rf conftest*
+  $4
+])dnl
+fi
+rm -f conftest*
+ifelse(NEED_POP,yes,[
+undefine([NEED_POP])
+AC_LANG_RESTORE)]
+])
+dnl
+dnl PAC_F90_MODULE_EXT(action if found,action if not found)
+dnl
+AC_DEFUN(PAC_F90_MODULE_EXT,
+[AC_CACHE_CHECK([for Fortran 90 module extension],
+pac_cv_f90_module_ext,[
+pac_cv_f90_module_case="unknown"
+cat >conftest.$ac_f90ext <<EOF
+	module conftest
+        integer n
+        parameter (n=1)
+        end module conftest
+EOF
+if AC_TRY_EVAL(ac_f90compile) ; then
+   dnl Look for module name
+   pac_MOD=`ls conftest* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
+   pac_MOD=`echo $pac_MOD | sed -e 's/conftest\.//g'`
+   pac_cv_f90_module_case="lower"
+   if test "X$pac_MOD" = "X" ; then
+	pac_MOD=`ls CONFTEST* 2>&1 | grep -v CONFTEST.f | grep -v CONFTEST.o`
+        pac_MOD=`echo $pac_MOD | sed -e 's/CONFTEST\.//g'`
+	if test -n "$pac_MOD" ; then
+	    testname="CONFTEST"
+	    pac_cv_f90_module_case="upper"
+	fi
+    fi
+    if test -z "$pac_MOD" ; then 
+	pac_cv_f90_module_ext="unknown"
+    else
+	pac_cv_f90_module_ext=$pac_MOD
+    fi
+else
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.$ac_f90ext >&AC_FD_CC
+    pac_cv_f90_module_ext="unknown"
+fi
+rm -f conftest*
+])
+AC_SUBST(F90MODEXT)
+if test "$pac_cv_f90_module_ext" = "unknown" ; then
+    ifelse($2,,:,[$2])
+else
+    ifelse($1,,F90MODEXT=$pac_MOD,[$1])
+fi
+])
+dnl
+dnl PAC_F90_MODULE_INCFLAG
+AC_DEFUN(PAC_F90_MODULE_INCFLAG,[
+AC_CACHE_CHECK([for Fortran 90 module include flag],
+pac_cv_f90_module_incflag,[
+AC_REQUIRE([PAC_F90_MODULE_EXT])
+cat >conftest.$ac_f90ext <<EOF
+	module conf
+        integer n
+        parameter (n=1)
+        end module conf
+EOF
+pac_madedir="no"
+if test ! -d conf ; then mkdir conf ; pac_madedir="yes"; fi
+if test "$pac_cv_f90_module_case" = "upper" ; then
+    pac_module="CONF.$pac_cv_f90_module_ext"
+else
+    pac_module="conf.$pac_cv_f90_module_ext"
+fi
+if AC_TRY_EVAL(ac_f90compile) ; then
+    cp $pac_module conf
+else
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.$ac_f90ext >&AC_FD_CC
+fi
+rm -f conftest.$ac_f90ext
+cat >conftest.$ac_f90ext <<EOF
+    program main
+    use conf
+    end
+EOF
+if ${F90-f90} -c $F90FLAGS -Iconf conftest.$ac_f90ext 1>&AC_FD_CC && \
+	test -s conftest.o ; then
+    pac_cv_f90_module_incflag="-I"
+elif ${F90-f90} -c $F90FLAGS -Mconf conftest.$ac_f90ext 1>&AC_FD_CC && \
+	test-s conftest.o ; then
+    pac_cv_f90_module_incflag="-M"
+elif ${F90-f90} -c $F90FLAGS -pconf conftest.$ac_f90ext 1>&AC_FD_CC && \
+	test -s conftest.o ; then
+    pac_cv_f90_module_incflag="-p"
+else
+    pac_cv_f90_module_incflag="unknown"
+fi
+if test "$pac_madedir" = "yes" ; then rm -rf conf ; fi
+rm -f conftest*
+])
+AC_SUBST(F90MODINCFLAG)
+F90MODINCFLAG=$pac_cv_f90_module_incflag
+])
+AC_DEFUN(PAC_F90_MODULE,[
+PAC_F90_MODULE_EXT
+PAC_F90_MODULE_INCFLAG
+])
+AC_DEFUN(PAC_F90_EXT,[
+AC_CACHE_CHECK([whether Fortran 90 accepts f90 suffix],
+pac_cv_f90_ext_f90,[
+save_ac_f90ext=$ac_f90ext
+ac_f90ext="f90"
+PAC_TRY_F90_COMPILE(,,pac_cv_f90_ext_f90="yes",pac_cv_f90_ext_f90="no")
+ac_f90ext=$save_ac_f90ext
+])
+])
+dnl
+dnl/*D 
+dnl PAC_PROG_F90_INT_KIND - Determine kind parameter for an integer with
+dnl the specified number of bytes.
+dnl
+dnl Synopsis:
+dnl  PAC_PROG_F90_INT_KIND(variable-to-set,number-of-bytes,[cross-size])
+dnl
+dnlD*/
+AC_DEFUN(PAC_PROG_F90_INT_KIND,[
+# Set the default
+$1=-1
+if test "$pac_cv_prog_f90_cross" = "yes" ; then
+    $1="$3"
+else
+if test -n "$ac_f90compile" ; then
+    AC_MSG_CHECKING([for Fortran 90 integer kind for $2-byte integers])
+    # Convert bytes to digits
+    case $2 in 
+	1) sellen=2 ;;
+	2) sellen=4 ;;
+	4) sellen=8 ;;
+	8) sellen=16 ;;
+       16) sellen=30 ;;
+	*) sellen=8 ;;
+    esac
+    # Check for cached value
+    eval testval=\$"pac_cv_prog_f90_int_kind_$sellen"
+    if test -n "$testval" ; then 
+        AC_MSG_RESULT([$testval (cached)])
+	$1=$testval
+    else
+        # must compute
+        rm -f conftest*
+        cat <<EOF > conftest.$ac_f90ext
+      program main
+      integer i
+      i = selected_int_kind($sellen)
+      open(8, file="conftest1.out", form="formatted")
+      write (8,*) i
+      close(8)
+      stop
+      end
+EOF
+        KINDVAL="unavailable"
+        eval "pac_cv_prog_f90_int_kind_$sellen"=-1
+        if AC_TRY_EVAL(ac_f90link) && test -s conftest ; then
+            ./conftest >>config.log 2>&1
+            if test -s conftest1.out ; then
+	        # Because of write, there may be a leading blank.
+                KINDVAL=`cat conftest1.out | sed 's/ //g'`
+ 	        eval "pac_cv_prog_f90_int_kind_$sellen"=$KINDVAL
+	        $1=$KINDVAL
+            fi
+        fi
+        rm -f conftest*
+	AC_MSG_RESULT($KINDVAL)
+    fi # not cached
+fi # Has Fortran 90
+fi # is not cross compiling
+])dnl
+dnl
+dnl
+dnl Note: This checks for f95 before f90, since F95 is the more recent
+dnl revision of Fortran 90.
+AC_DEFUN(PAC_PROG_F90,[
+if test -z "$F90" ; then
+    AC_CHECK_PROGS(F90,f95 f90 xlf90 pgf90)
+    test -z "$F90" && AC_MSG_WARN([no acceptable Fortran 90 compiler found in \$PATH])
+fi
+if test -n "$F90" ; then
+     PAC_PROG_F90_WORKS
+fi
+dnl Cache these so we don't need to change in and out of f90 mode
+ac_f90ext=$pac_cv_f90_ext
+ac_f90compile='${F90-f90} -c $F90FLAGS conftest.$ac_f90ext 1>&AC_FD_CC'
+ac_f90link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 1>&AC_FD_CC'
+])
+dnl Internal routine for testing F90
+dnl PAC_PROG_F90_WORKS()
+AC_DEFUN(PAC_PROG_F90_WORKS,
+[AC_MSG_CHECKING([for extension for Fortran 90 programs])
+pac_cv_f90_ext="f90"
+cat > conftest.$pac_cv_f90_ext <<EOF
+      program conftest
+      end
+EOF
+ac_compile='${F90-f90} -c $F90FLAGS conftest.$pac_cv_f90_ext 1>&AC_FD_CC'
+if AC_TRY_EVAL(ac_compile) ; then
+    AC_MSG_RESULT([f90])
+else
+    rm -f conftest*
+    pac_cv_f90_ext="f"
+    cat > conftest.$pac_cv_f90_ext <<EOF
+      program conftest
+      end
+EOF
+    if AC_TRY_EVAL(ac_compile) ; then
+	AC_MSG_RESULT([f])
+    else
+        AC_MSG_RESULT([unknown!])
+    fi
+fi
+AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) works])
+AC_LANG_SAVE
+PAC_LANG_FORTRAN90
+cat >conftest.$ac_ext <<EOF
+      program conftest
+      end
+EOF
+if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeect} ; then
+    pac_cv_prog_f90_works="yes"
+    if (./conftest; exit) 2>/dev/null ; then
+        pac_cv_prog_f90_cross="no"
+    else
+        pac_cv_prog_f90_cross="yes"
+    fi
+else
+  echo "configure: failed program was:" >&AC_FD_CC
+  cat conftest.$ac_ext >&AC_FD_CC
+  pac_cv_prog_f90_works="no"
+fi
+rm -f conftest*
+AC_LANG_RESTORE
+AC_MSG_RESULT($pac_cv_prog_f90_works)
+if test $pac_cv_prog_f90_works = no; then
+  AC_MSG_WARN([installation or configuration problem: Fortran 90 compiler cannot create executables.])
+fi
+AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler])
+AC_MSG_RESULT($pac_cv_prog_f90_cross)
+cross_compiling=$pac_cv_prog_f90_cross
+])
+dnl
+dnl The following looks for F90 options to enable th specified f90 compiler
+dnl to work with the f77 compiler, particularly for accessing command-line
+dnl arguments
 
 dnl
 dnl We need routines to check that make works.  Possible problems with
@@ -1703,289 +2262,4 @@ else
   pac_cv_prog_TESTCPP="$TESTCPP"
 fi
 ])
-
-dnl
-dnl Macros for Fortran 90
-dnl
-dnl We'd like to have a PAC_LANG_FORTRAN90 that worked with AC_TRY_xxx, but
-dnl that would require too many changes to autoconf macros.
-AC_DEFUN(PAC_LANG_FORTRAN90,
-[AC_REQUIRE([PAC_PROG_F90])
-define([AC_LANG], [FORTRAN90])dnl
-ac_ext=$pac_cv_f90_ext
-ac_compile='${F90-f90} -c $F90FLAGS conftest.$ac_ext 1>&AC_FD_CC'
-ac_link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
-cross_compiling=$pac_cv_prog_f90_cross
-])
-dnl
-dnl This is an addition for AC_TRY_COMPILE, but for f90.  If the current 
-dnl language is not f90, it does a save/restore
-AC_DEFUN(PAC_TRY_F90_COMPILE,
-[AC_REQUIRE([PAC_LANG_FORTRAN90])
-ifelse(AC_LANG, FORTRAN90,,[AC_LANG_SAVE
-PAC_LANG_FORTRAN90
-define([NEED_POP],yes)])
-cat > conftest.$ac_ext <<EOF
-      program main
-[$2]
-      end
-EOF
-if AC_TRY_EVAL(ac_compile); then
-  ifelse([$3], , :, [rm -rf conftest*
-  $3])
-else
-  echo "configure: failed program was:" >&AC_FD_CC
-  cat conftest.$ac_ext >&AC_FD_CC
-ifelse([$4], , , [  rm -rf conftest*
-  $4
-])dnl
-fi
-rm -f conftest*
-ifelse(NEED_POP,yes,[
-undefine([NEED_POP])
-AC_LANG_RESTORE)]
-])
-dnl
-dnl PAC_F90_MODULE_EXT(action if found,action if not found)
-dnl
-AC_DEFUN(PAC_F90_MODULE_EXT,
-[AC_CACHE_CHECK([for Fortran 90 module extension],
-pac_cv_f90_module_ext,[
-pac_cv_f90_module_case="unknown"
-cat >conftest.$ac_f90ext <<EOF
-	module conftest
-        integer n
-        parameter (n=1)
-        end module conftest
-EOF
-if AC_TRY_EVAL(ac_f90compile) ; then
-   dnl Look for module name
-   pac_MOD=`ls conftest* 2>&1 | grep -v conftest.$ac_f90ext | grep -v conftest.o`
-   pac_MOD=`echo $pac_MOD | sed -e 's/conftest\.//g'`
-   pac_cv_f90_module_case="lower"
-   if test "X$pac_MOD" = "X" ; then
-	pac_MOD=`ls CONFTEST* 2>&1 | grep -v CONFTEST.f | grep -v CONFTEST.o`
-        pac_MOD=`echo $pac_MOD | sed -e 's/CONFTEST\.//g'`
-	if test -n "$pac_MOD" ; then
-	    testname="CONFTEST"
-	    pac_cv_f90_module_case="upper"
-	fi
-    fi
-    if test -z "$pac_MOD" ; then 
-	pac_cv_f90_module_ext="unknown"
-    else
-	pac_cv_f90_module_ext=$pac_MOD
-    fi
-else
-    echo "configure: failed program was:" >&AC_FD_CC
-    cat conftest.$ac_f90ext >&AC_FD_CC
-    pac_cv_f90_module_ext="unknown"
-fi
-rm -f conftest*
-])
-AC_SUBST(F90MODEXT)
-if test "$pac_cv_f90_module_ext" = "unknown" ; then
-    ifelse($2,,:,[$2])
-else
-    ifelse($1,,F90MODEXT=$pac_MOD,[$1])
-fi
-])
-dnl
-dnl PAC_F90_MODULE_INCFLAG
-AC_DEFUN(PAC_F90_MODULE_INCFLAG,[
-AC_CACHE_CHECK([for Fortran 90 module include flag],
-pac_cv_f90_module_incflag,[
-AC_REQUIRE([PAC_F90_MODULE_EXT])
-cat >conftest.$ac_f90ext <<EOF
-	module conf
-        integer n
-        parameter (n=1)
-        end module conf
-EOF
-pac_madedir="no"
-if test ! -d conf ; then mkdir conf ; pac_madedir="yes"; fi
-if test "$pac_cv_f90_module_case" = "upper" ; then
-    pac_module="CONF.$pac_cv_f90_module_ext"
-else
-    pac_module="conf.$pac_cv_f90_module_ext"
-fi
-if AC_TRY_EVAL(ac_f90compile) ; then
-    cp $pac_module conf
-else
-    echo "configure: failed program was:" >&AC_FD_CC
-    cat conftest.$ac_f90ext >&AC_FD_CC
-fi
-rm -f conftest.$ac_f90ext
-cat >conftest.$ac_f90ext <<EOF
-    program main
-    use conf
-    end
-EOF
-if ${F90-f90} -c $F90FLAGS -Iconf conftest.$ac_f90ext 1>&AC_FD_CC && \
-	test -s conftest.o ; then
-    pac_cv_f90_module_incflag="-I"
-elif ${F90-f90} -c $F90FLAGS -Mconf conftest.$ac_f90ext 1>&AC_FD_CC && \
-	test-s conftest.o ; then
-    pac_cv_f90_module_incflag="-M"
-elif ${F90-f90} -c $F90FLAGS -pconf conftest.$ac_f90ext 1>&AC_FD_CC && \
-	test -s conftest.o ; then
-    pac_cv_f90_module_incflag="-p"
-else
-    pac_cv_f90_module_incflag="unknown"
-fi
-if test "$pac_madedir" = "yes" ; then rm -rf conf ; fi
-rm -f conftest*
-])
-AC_SUBST(F90MODINCFLAG)
-F90MODINCFLAG=$pac_cv_f90_module_incflag
-])
-AC_DEFUN(PAC_F90_MODULE,[
-PAC_F90_MODULE_EXT
-PAC_F90_MODULE_INCFLAG
-])
-AC_DEFUN(PAC_F90_EXT,[
-AC_CACHE_CHECK([whether Fortran 90 accepts f90 suffix],
-pac_cv_f90_ext_f90,[
-save_ac_f90ext=$ac_f90ext
-ac_f90ext="f90"
-PAC_TRY_F90_COMPILE(,,pac_cv_f90_ext_f90="yes",pac_cv_f90_ext_f90="no")
-ac_f90ext=$save_ac_f90ext
-])
-])
-dnl
-dnl/*D 
-dnl PAC_PROG_F90_INT_KIND - Determine kind parameter for an integer with
-dnl the specified number of bytes.
-dnl
-dnl Synopsis:
-dnl  PAC_PROG_F90_INT_KIND(variable-to-set,number-of-bytes,[cross-size])
-dnl
-dnlD*/
-AC_DEFUN(PAC_PROG_F90_INT_KIND,[
-# Set the default
-$1=-1
-if test "$pac_cv_prog_f90_cross" = "yes" ; then
-    $1="$3"
-else
-if test -n "$ac_f90compile" ; then
-    AC_MSG_CHECKING([for Fortran 90 integer kind for $2-byte integers])
-    # Convert bytes to digits
-    case $2 in 
-	1) sellen=2 ;;
-	2) sellen=4 ;;
-	4) sellen=8 ;;
-	8) sellen=16 ;;
-       16) sellen=30 ;;
-	*) sellen=8 ;;
-    esac
-    # Check for cached value
-    eval testval=\$"pac_cv_prog_f90_int_kind_$sellen"
-    if test -n "$testval" ; then 
-        AC_MSG_RESULT([$testval (cached)])
-	$1=$testval
-    else
-        # must compute
-        rm -f conftest*
-        cat <<EOF > conftest.$ac_f90ext
-      program main
-      integer i
-      i = selected_int_kind($sellen)
-      open(8, file="conftest1.out", form="formatted")
-      write (8,*) i
-      close(8)
-      stop
-      end
-EOF
-        KINDVAL="unavailable"
-        eval "pac_cv_prog_f90_int_kind_$sellen"=-1
-        if AC_TRY_EVAL(ac_f90link) && test -s conftest ; then
-            ./conftest >>config.log 2>&1
-            if test -s conftest1.out ; then
-	        # Because of write, there may be a leading blank.
-                KINDVAL=`cat conftest1.out | sed 's/ //g'`
- 	        eval "pac_cv_prog_f90_int_kind_$sellen"=$KINDVAL
-	        $1=$KINDVAL
-            fi
-        fi
-        rm -f conftest*
-	AC_MSG_RESULT($KINDVAL)
-    fi # not cached
-fi # Has Fortran 90
-fi # is not cross compiling
-])dnl
-dnl
-dnl
-dnl Note: This checks for f95 before f90, since F95 is the more recent
-dnl revision of Fortran 90.
-AC_DEFUN(PAC_PROG_F90,[
-if test -z "$F90" ; then
-    AC_CHECK_PROGS(F90,f95 f90 xlf90 pgf90)
-    test -z "$F90" && AC_MSG_WARN([no acceptable Fortran 90 compiler found in \$PATH])
-fi
-if test -n "$F90" ; then
-     PAC_PROG_F90_WORKS
-fi
-dnl Cache these so we don't need to change in and out of f90 mode
-ac_f90ext=$pac_cv_f90_ext
-ac_f90compile='${F90-f90} -c $F90FLAGS conftest.$ac_f90ext 1>&AC_FD_CC'
-ac_f90link='${F90-f90} -o conftest${ac_exeext} $F90FLAGS $LDFLAGS conftest.$ac_f90ext $LIBS 1>&AC_FD_CC'
-])
-dnl Internal routine for testing F90
-dnl PAC_PROG_F90_WORKS()
-AC_DEFUN(PAC_PROG_F90_WORKS,
-[AC_MSG_CHECKING([for extension for Fortran 90 programs])
-pac_cv_f90_ext="f90"
-cat > conftest.$pac_cv_f90_ext <<EOF
-      program conftest
-      end
-EOF
-ac_compile='${F90-f90} -c $F90FLAGS conftest.$pac_cv_f90_ext 1>&AC_FD_CC'
-if AC_TRY_EVAL(ac_compile) ; then
-    AC_MSG_RESULT([f90])
-else
-    rm -f conftest*
-    pac_cv_f90_ext="f"
-    cat > conftest.$pac_cv_f90_ext <<EOF
-      program conftest
-      end
-EOF
-    if AC_TRY_EVAL(ac_compile) ; then
-	AC_MSG_RESULT([f])
-    else
-        AC_MSG_RESULT([unknown!])
-    fi
-fi
-AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) works])
-AC_LANG_SAVE
-PAC_LANG_FORTRAN90
-cat >conftest.$ac_ext <<EOF
-      program conftest
-      end
-EOF
-if AC_TRY_EVAL(ac_link) && test -s conftest${ac_exeect} ; then
-    pac_cv_prog_f90_works="yes"
-    if (./conftest; exit) 2>/dev/null ; then
-        pac_cv_prog_f90_cross="no"
-    else
-        pac_cv_prog_f90_cross="yes"
-    fi
-else
-  echo "configure: failed program was:" >&AC_FD_CC
-  cat conftest.$ac_ext >&AC_FD_CC
-  pac_cv_prog_f90_works="no"
-fi
-rm -f conftest*
-AC_LANG_RESTORE
-AC_MSG_RESULT($pac_cv_prog_f90_works)
-if test $pac_cv_prog_f90_works = no; then
-  AC_MSG_WARN([installation or configuration problem: Fortran 90 compiler cannot create executables.])
-fi
-AC_MSG_CHECKING([whether the Fortran 90 compiler ($F90 $F90FLAGS $LDFLAGS) is a cross-compiler])
-AC_MSG_RESULT($pac_cv_prog_f90_cross)
-cross_compiling=$pac_cv_prog_f90_cross
-])
-dnl
-dnl The following looks for F90 options to enable th specified f90 compiler
-dnl to work with the f77 compiler, particularly for accessing command-line
-dnl arguments
 

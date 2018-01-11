@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.10 1999/10/18 22:18:56 gropp Exp $
+ *  $Id: cart_shift.c,v 1.11 2001/05/01 18:21:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -116,7 +116,13 @@ EXPORT_MPI_API int MPI_Cart_shift ( MPI_Comm comm, int direction, int displ,
       dest_position = MPI_PROC_NULL;
   }
   topo->cart.position[direction] = dest_position;
-  MPI_Cart_rank ( comm, topo->cart.position, dest );
+  /* MPI_Cart_rank returns an error for a coordinate that is off the end
+     in any non-periodic dimension.  Instead, we want to return MPI_PROC_NULL
+     for those directions */
+  if (dest_position != MPI_PROC_NULL) 
+      MPI_Cart_rank ( comm, topo->cart.position, dest );
+  else
+      *dest = MPI_PROC_NULL;
 
   /* Shift for the source */
   source_position -= displ;
@@ -133,7 +139,10 @@ EXPORT_MPI_API int MPI_Cart_shift ( MPI_Comm comm, int direction, int displ,
       source_position = MPI_PROC_NULL;
   }
   topo->cart.position[direction] = source_position;
-  MPI_Cart_rank ( comm, topo->cart.position, source );
+  if (source_position != MPI_PROC_NULL) 
+      MPI_Cart_rank ( comm, topo->cart.position, source );
+  else
+      *source = MPI_PROC_NULL;
 
   /* Restore my position */
   topo->cart.position[direction] = save_position;

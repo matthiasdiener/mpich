@@ -116,8 +116,9 @@ EXPORT_MPI_API void mpi_type_get_contents_(MPI_Fint *datatype, MPI_Fint *max_int
 	array_of_integers[i] = (MPI_Fint)l_array_of_integers[i];
     for (i=0; i<(int)*max_addresses; i++)
 	array_of_addresses[i] = (MPI_Aint)l_array_of_addresses[i];
-    for (i=0; i<(int)*max_datatypes; i++)
-	array_of_datatypes[i] = MPI_Type_c2f(l_array_of_datatypes[i]);
+    if (*__ierr == MPI_SUCCESS) 
+        for (i=0; i<(int)*max_datatypes; i++)
+            array_of_datatypes[i] = MPI_Type_c2f(l_array_of_datatypes[i]);
 
     FREE( l_array_of_integers );
     FREE( l_array_of_addresses );

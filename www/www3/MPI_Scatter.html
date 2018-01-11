@@ -11,14 +11,14 @@ Sends data from one task to all other tasks in a group
 <PRE>
 #include "mpi.h"
 int MPI_Scatter ( 
- void *sendbuf, 
- int sendcnt, 
- MPI_Datatype sendtype, 
- void *recvbuf, 
- int recvcnt, 
- MPI_Datatype recvtype, 
- int root, 
- MPI_Comm comm )
+        void *sendbuf, 
+        int sendcnt, 
+        MPI_Datatype sendtype, 
+        void *recvbuf, 
+        int recvcnt, 
+        MPI_Datatype recvtype, 
+        int root, 
+        MPI_Comm comm )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

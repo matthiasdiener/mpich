@@ -17,6 +17,21 @@
 
 #define MAX_REQ 32
 
+#ifndef HAVE_SLEEP
+void sleep( int secs )
+{
+#ifdef VX_WORKS
+    /* Also needs include <time.h>? */
+    struct timespec rqtp = { 10, 0 };
+    nanosleep(&rqtp, NULL);
+#else
+    double t;
+    t = MPI_Wtime();
+    while (MPI_Wtime() - t < (double)secs) ;
+#endif
+}
+#endif
+
 int main( int argc, char **argv )
 {
     int rank, size;

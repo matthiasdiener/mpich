@@ -194,6 +194,16 @@ P4VOID process_args(int *argc, char **argv)
 	    print_version_info();
 	    continue;
 	}
+	/* Add escape for socket performance controls */
+	if (!strcmp( *a, "-p4sctrl" ))
+	{
+	    if (bad_arg(a[1]))
+		usage();
+	    p4_socket_control( a[1] );
+	    strip_out_args(a, argc, &c, 2);
+	    continue;
+	}
+
 	if (!strcmp(*a, "-p4help"))
 	    usage();
     }
@@ -240,6 +250,7 @@ static P4VOID usage( void )
     printf("\t-p4rout    <file>  set output file prefix for remote masters\n");
     printf("\t-p4ssport <port#>  set private port number for secure server\n");
     printf("\t-p4norem           don't start remote processes\n");
+    printf("\t-p4sctrl <string>  set socket control features\n");
 #ifdef ALOG_TRACE
     printf("\t-p4log             enable internal p4 logging by alog\n");
 #endif

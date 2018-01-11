@@ -21,6 +21,7 @@ struct local_data *alloc_local_bm( void )
     initialize_msg_queue(l->queued_messages);
     l->soft_errors = 0;
     l->conntab = 0;
+    l->in_wait_for_exit = 0;
 
 #   ifdef CAN_DO_XDR
     if ((l->xdr_buff = (char *) p4_malloc(XDR_BUFF_LEN)) == NULL)
@@ -379,6 +380,10 @@ P4VOID alloc_global(void)
     for (i = 0; i < P4_MAX_MSG_QUEUES; i++)
     {
 	initialize_msg_queue(&g->shmem_msg_queues[i]);
+    }
+
+    for (i = 0; i < P4_MAXPROCS; i++)
+    {
 	g->dest_id[i] = -1;
     }
 
@@ -390,11 +395,7 @@ P4VOID alloc_global(void)
     g->num_in_proctable = 0;
     g->num_installed = 0;
 
-#   if !defined(SUN_SOLARIS) && !defined(MEIKO_CS2)
-    gethostname(g->my_host_name,HOSTNAME_LEN);
-#   else
-    sysinfo(SI_HOSTNAME, g->my_host_name, HOSTNAME_LEN);
-#   endif
+    gethostname_p4(g->my_host_name,HOSTNAME_LEN);
 
     /* get_qualified_hostname(g->my_host_name); */
 

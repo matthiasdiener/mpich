@@ -17,7 +17,7 @@ SHELL       = /bin/sh
 
 
 # Target library
-LIB = libtvmpich.so
+LIB = libtvmpich.so.1
 
 #
 # The rules for regenerating things
@@ -27,7 +27,7 @@ LIB = libtvmpich.so
 
 # Compilers and flags
 
-REMOVER = /bin/rm -f
+REMOVER = rm -f
 LN  = ln -s
 CPP = /lib/cpp
 
@@ -65,7 +65,7 @@ ${libbuild_dir}/${LIB}: ${LIB}
 # Several makes could not handle these expansions, so we have replaced the
 # filenames directly
 #${LIB}: ${OBJS}
-libtvmpich.so: dll_mpich.o
+libtvmpich.so.1: dll_mpich.o
 	-if test "@SHAREDKIND_FOR_TV@" != "ignore" ; then \
 	${REMOVER} ${LIB}; \
 	( CC="${CC}" ; export CC ; CLINKER="@CLINKER@" ; export CLINKER ; \

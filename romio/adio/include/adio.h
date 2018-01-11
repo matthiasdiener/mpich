@@ -1,5 +1,5 @@
 /* 
- *   $Id: adio.h,v 1.7 2000/02/10 21:54:55 thakur Exp $    
+ *   $Id: adio.h,v 1.10 2001/07/31 18:41:08 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -213,6 +213,7 @@ typedef struct {
 #define ADIO_HFS                 155   /* HP/Convex */
 #define ADIO_SFS                 156   /* NEC */
 #define ADIO_PVFS                157   /* PVFS for Linux Clusters from Clemson Univ. */
+#define ADIO_TESTFS              158   /* fake file system for testing */
 
 #define ADIO_SEEK_SET            SEEK_SET
 #define ADIO_SEEK_CUR            SEEK_CUR
@@ -311,7 +312,8 @@ void ADIO_Delete(char *filename, int *error_code);
 void ADIO_Flush(ADIO_File fd, int *error_code);
 void ADIO_Resize(ADIO_File fd, ADIO_Offset size, int *error_code);
 void ADIO_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
-void ADIO_FileSysType(char *filename, int *fstype, int *error_code);
+void ADIO_ResolveFileType(MPI_Comm comm, char *filename, int *fstype, 
+          ADIOI_Fns **ops, int *error_code);
 void ADIO_Get_shared_fp(ADIO_File fd, int size, ADIO_Offset *shared_fp, 
 			 int *error_code);
 void ADIO_Set_shared_fp(ADIO_File fd, ADIO_Offset offset, int *error_code);

@@ -86,7 +86,7 @@ hello++: hello++.o
 unsafe: unsafe.o
 	$(CLINKER) $(OPTFLAGS) -o unsafe unsafe.o 
 clean:
-	/bin/rm -f *.o *~ PI* $(ALL_EXECS) upshot rdb.* startup.* core
+	rm -f *.o *~ PI* $(ALL_EXECS) upshot rdb.* startup.* core
 
 cpilog.o: cpilog.c
 	@if test -z "$(MPE_DIR)" ; then \

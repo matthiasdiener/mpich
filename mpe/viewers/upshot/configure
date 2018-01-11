@@ -599,10 +599,10 @@ fi
 if test ! -d "$top_srcdir_abs" ; then
     
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: *** $top_srcdir_abs is not a valid directory - cannot continue " 1>&2
+    echo "configure: warning:  *** $top_srcdir_abs is not a valid directory - cannot continue " 1>&2
     exit 0
 else
-    { echo "configure: error: *** $top_srcdir_abs is not a valid directory - cannot continue " 1>&2; exit 1; }
+    { echo "configure: error:  *** $top_srcdir_abs is not a valid directory - cannot continue " 1>&2; exit 1; }
 fi
 
 fi
@@ -793,10 +793,10 @@ fi
 if test -z "$wishloc" ; then
     
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: Could not find executable wish (needed for Upshot) " 1>&2
+    echo "configure: warning:  Could not find executable wish (needed for Upshot) " 1>&2
     exit 0
 else
-    { echo "configure: error: Could not find executable wish (needed for Upshot) " 1>&2; exit 1; }
+    { echo "configure: error:  Could not find executable wish (needed for Upshot) " 1>&2; exit 1; }
 fi
 
 fi
@@ -1018,10 +1018,10 @@ for script in "sbin/install-viewer"; do
     else
         
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: *** $script is not a valid file - Make sure you have configured with a valid Upshot source directory " 1>&2
+    echo "configure: warning:  *** $script is not a valid file - Make sure you have configured with a valid Upshot source directory " 1>&2
     exit 0
 else
-    { echo "configure: error: *** $script is not a valid file - Make sure you have configured with a valid Upshot source directory " 1>&2; exit 1; }
+    { echo "configure: error:  *** $script is not a valid file - Make sure you have configured with a valid Upshot source directory " 1>&2; exit 1; }
 fi
 
     fi

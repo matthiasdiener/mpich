@@ -9,21 +9,25 @@ enum header_type {user_data, ack, cancel_send, cancel_result};
 
 /* header =
  * type==user_data,src,tag,contextid,dataoriginbuffsize,ssendflag,packed_flag,
- *       msgid_srcgrank(int),msgid_sec(long),msgid_usec(long),msgid_ctr(ulong),
- *       liba(ulong)
+ *       msgid_src_commworld_id(COMMWORLDCHANNELSNAMELEN),
+ *       msgid_src_commworld_displ(int),msgid_sec(long),msgid_usec(long),
+ *       msgid_ctr(ulong),liba(ulong)
  * OR 
  * type==ack, liba(ulong) 
  */
 #define TCP_HDR_N_INTS   8
 #define TCP_HDR_N_LONGS  2
 #define TCP_HDR_N_ULONGS 2
+#define TCP_HDR_N_CHARS  COMMWORLDCHANNELSNAMELEN
 #define LOCAL_HEADER_LEN (globus_dc_sizeof_int(TCP_HDR_N_INTS) + \
-    globus_dc_sizeof_long(TCP_HDR_N_LONGS) + \
-    globus_dc_sizeof_u_long(TCP_HDR_N_ULONGS))
-#define REMOTE_HEADER_LEN(format) \
-    (globus_dc_sizeof_remote_int(TCP_HDR_N_INTS, (format)) + \
-    globus_dc_sizeof_remote_long(TCP_HDR_N_LONGS, (format)) + \
-    globus_dc_sizeof_remote_u_long(TCP_HDR_N_ULONGS, (format)))
+    globus_dc_sizeof_long(TCP_HDR_N_LONGS)                     + \
+    globus_dc_sizeof_u_long(TCP_HDR_N_ULONGS)                  + \
+    globus_dc_sizeof_char(TCP_HDR_N_CHARS))
+#define REMOTE_HEADER_LEN(format)                                \
+    (globus_dc_sizeof_remote_int(TCP_HDR_N_INTS, (format))     + \
+    globus_dc_sizeof_remote_long(TCP_HDR_N_LONGS, (format))    + \
+    globus_dc_sizeof_remote_u_long(TCP_HDR_N_ULONGS, (format)) + \
+    globus_dc_sizeof_remote_char(TCP_HDR_N_CHARS, (format)))
 
 struct tcpsendreq
 {
@@ -40,6 +44,8 @@ struct tcpsendreq
     int context_id;
     int result;
     int dest_grank;
+    char msgid_commworld_id[COMMWORLDCHANNELSNAMELEN];
+    int msgid_commworld_displ;
     long msgid_sec;
     long msgid_usec;
     unsigned long msgid_ctr;
@@ -50,9 +56,9 @@ struct tcpsendreq
 
 /* 
  * INSTRUCTIONBUFFLEN must be large enough to hold 
- * 2 chars + string representation of largest rank in MPI_COMM_WORLD + '\0'
+ * 2 chars + <commworldID, displ>  
  */
-#define INSTRUCTIONBUFFLEN 20
+#define INSTRUCTIONBUFFLEN (2+COMMWORLDCHANNELSNAMELEN+HEADERLEN)
 
 /* instructions */
 #define FORMAT 'F'
@@ -77,10 +83,12 @@ struct tcp_rw_handle_t
     int                    ssend_flag;
     int                    packed_flag;
     globus_byte_t          *incoming_raw_data;
-    int                    msg_id_src_grank; /* message id */
-    long                   msg_id_sec;       /* message id */
-    long                   msg_id_usec;      /* message id */
-    unsigned long          msg_id_ctr;       /* message id */
+    char msg_id_src_commworld_id[COMMWORLDCHANNELSNAMELEN]; /* message id */
+    int msg_id_src_commworld_displ;                         /* message id */
+    int msg_id_src_grank;                                   /* message id */
+    long msg_id_sec;                                        /* message id */
+    long msg_id_usec;                                       /* message id */
+    unsigned long msg_id_ctr;                               /* message id */
 };
 
 struct tcp_miproto_t
@@ -128,6 +136,10 @@ struct tcp_miproto_t
     struct tcpsendreq *cancel_tail;
     struct tcpsendreq *send_head;
     struct tcpsendreq *send_tail;
+
+    /* Different levels for TCP: WAN-TCP > LAN-TCP > localhost-TCP */
+    char *globus_lan_id;
+    int localhost_id;
 };
 
 /*******************/

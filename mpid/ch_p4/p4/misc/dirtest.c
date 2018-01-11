@@ -71,7 +71,7 @@ worker()
     char dirname[200];
 
     my_id = p4_get_my_id();
-    getwd(dirname);
+    getcwd(dirname,200);
     p4_dprintf("directory is %s\n",dirname);
     sprintf(filename,"dirtest%d",my_id);
     fp = fopen(filename,"w");

@@ -85,7 +85,7 @@ if [ $check_canrun = 1 ] ; then
     MakeExe third
     /bin/rm -f third.out
     echo '*** Testing Unexpected messages ***' >> third.out
-    $mpirun $args -np 2 third </dev/null >> third.out 2>&1
+    $mpirun $args -np 2 ./third </dev/null >> third.out 2>&1
     echo '*** Testing Unexpected messages ***' >> third.out
     rm -f third.stdo
     cat >>third.stdo <<EOF
@@ -100,6 +100,8 @@ EOF
 	echo "Output from run attempt was"
 	cat third.out
         echo "mpirun program was $mpirun"
+	echo "mpirun command was "
+	echo "$mpirun $args -np 2 ./third </dev/null >>third.out 2>&1"
 	rc=1
     fi
     CleanExe third
@@ -261,7 +263,7 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     echo "FORTRAN TESTS"
     #
     #echo "*** secondf ***" >> pt2pt.out
-    #$mpirun $args -np 2 secondf "$@" >> pt2pt.out 2>&1
+    #$mpirun $args -np 2 ./secondf "$@" >> pt2pt.out 2>&1
     #
     RunTest allpair 2 "*** Testing pt-2-pt from Fortran ***"
 
@@ -279,9 +281,9 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     # panic (!!) in this case.  Since both behaviors represent broken
     # operating systems, we test for ARCH=IRIX64 
     if [ "@ARCH@" = "IRIX64" ] ; then 
-      $mpirun $args -np 2 structf "$@" >> structf.out 2>&1 < /dev/null
+      $mpirun $args -np 2 ./structf "$@" >> structf.out 2>&1 < /dev/null
     else
-      $mpirun $args -np 2 structf "$@" >> structf.out 2>&1
+      $mpirun $args -np 2 ./structf "$@" >> structf.out 2>&1
     fi
     echo '*** Testing Type_struct from Fortran ***' >> structf.out
     CheckOutput structf
@@ -297,7 +299,7 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
 #    MakeExe pingpong
 #    echo '*** Testing pt-2-pt from Fortran (3) ***'
 #    echo '*** Testing pt-2-pt from Fortran (3) ***' >> pingpong.out
-#    $mpirun $args -np 2 pingpong "$@" >> pingpong.out 2>&1
+#    $mpirun $args -np 2 ./pingpong "$@" >> pingpong.out 2>&1
 #    echo '*** Testing pt-2-pt from Fortran (3) ***' >> pingpong.out
 #    CheckOutput pingpong
 #    CleanExe pingpong

@@ -140,6 +140,7 @@ EXPORT_MPI_API void mpi_type_struct_( MPI_Fint *count, MPI_Fint blocklens[], MPI
 	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
 	return;
     }
-    *newtype = MPI_Type_c2f(l_newtype);
+    if (*__ierr == MPI_SUCCESS) 
+        *newtype = MPI_Type_c2f(l_newtype);
 
 }

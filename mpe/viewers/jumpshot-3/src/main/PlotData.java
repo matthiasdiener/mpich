@@ -24,23 +24,24 @@ import java.io.*;
 
 public class PlotData
 {
-            SLOG_InputStream    slog                 = null;
-            SLOG_Frame          slog_frame           = null;
+            SLOG_ProxyInputStream    slog                 = null;
+            SLOG_Frame               slog_frame           = null;
 
-            RecDefGroup         stateDefs;
-            StateGroupListPair  all_states;
-            RecDefGroup         arrowDefs;
-            ArrowList           all_arrows;   /* Not used in drawing canvas */
-            Vector              mtns;
+            RecDefGroup              stateDefs;
+            StateGroupListPair       all_states;
+            RecDefGroup              arrowDefs;
+            /* Not used in drawing canvas */
+            ArrowList                all_arrows;
+            Vector                   mtns;
 
-            String              view_indexes_label;
+            String                   view_indexes_label;
 
 
 
     /**
      * Constructor
      */
-    public PlotData( final SLOG_InputStream in_slog, 
+    public PlotData( final SLOG_ProxyInputStream in_slog, 
                      final SLOG_Frame       in_frame,
                            int              connect_idx,
                            int              view_idx )
@@ -56,7 +57,7 @@ public class PlotData
         all_arrows = new ArrowList();
         mtns       = new Vector();
 
-        all_states.visible.Init( slog.threadinfos, connect_idx, view_idx );
+        all_states.visible.Init( slog.GetThreadInfos(), connect_idx, view_idx );
         CreateStateDefsAndArrowDefs();
         CreateStatesAndArrows( connect_idx, view_idx );
         all_states.visible.SetBeginTime();
@@ -72,7 +73,7 @@ public class PlotData
         String            entry_description;
         RecDef            statedef, arrowdef;
 
-        Enumeration profile = slog.profile.entries.elements();
+        Enumeration profile = slog.GetProfile().GetEnumerationOfEntries();
         while ( profile.hasMoreElements() ) {
             entry    = ( SLOG_ProfileEntry ) profile.nextElement();
             entry_classtype = ( new String( entry.classtype ) ).toLowerCase();
@@ -104,13 +105,13 @@ public class PlotData
         Enumeration         irecs;
         boolean             isforward;
 
-        SLOG_ThreadInfos    slog_threadinfos = slog.threadinfos;
-        IrecGroupList       buffer = new IrecGroupList( slog.threadinfos,
+        SLOG_ThreadInfos    slog_threadinfos = slog.GetThreadInfos();
+        IrecGroupList       buffer = new IrecGroupList( slog_threadinfos,
                                                         view_idx );
 
         /*
         if ( connect_idx != 0 )
-            buffer.Init( slog.threadinfos, view_idx );
+            buffer.Init( slog_threadinfos, view_idx );
         */
 
         irecs = sector.irecs.elements();

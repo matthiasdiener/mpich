@@ -14,9 +14,7 @@ static char failed_tests[255][81];
 static char suite_name[255];
 FILE *fileout = NULL;
 
-void Test_Init(suite, rank)
-char *suite;
-int rank;
+void Test_Init(char *suite, int rank)
 {
     char filename[512];
 
@@ -31,15 +29,13 @@ int rank;
     MPI_Errhandler_create( Test_Errors_warn, &TEST_ERRORS_WARN );
 }
 
-void Test_Message(mess)
-char *mess;
+void Test_Message(char *mess)
 {
     fprintf(fileout, "[%s]: %s\n", suite_name, mess);
     fflush(fileout);
 }
 
-void Test_Failed(test)
-char *test;
+void Test_Failed(char *test)
 {
     fprintf(fileout, "[%s]: *** Test '%s' Failed! ***\n", suite_name, test);
     strncpy(failed_tests[tests_failed], test, 81);
@@ -47,8 +43,7 @@ char *test;
     tests_failed++;
 }
 
-void Test_Passed(test)
-char *test;
+void Test_Passed(char *test)
 {
 #ifdef VERBOSE
     fprintf(fileout, "[%s]: Test '%s' Passed.\n", suite_name, test);
@@ -78,10 +73,14 @@ int Summarize_Test_Results()
     return tests_failed;
 }
 
-void Test_Finalize()
+void Test_Finalize( void )
 {
-    fflush(fileout);
-    fclose(fileout);
+    if (TEST_ERRORS_WARN != MPI_ERRHANDLER_NULL) 
+	MPI_Errhandler_free( &TEST_ERRORS_WARN );
+    if (fileout) {
+	fflush(fileout);
+	fclose(fileout);
+    }
 }
 
 #include "mpi.h"
@@ -89,7 +88,7 @@ void Test_Finalize()
    to make sure that all processes complete, and that a test "passes" because
    it executed, not because it some process failed.  
  */
-void Test_Waitforall( )
+void Test_Waitforall( void )
 {
     int m, one, myrank, n;
 
@@ -110,15 +109,18 @@ void Test_Waitforall( )
    Handler prints warning messsage and returns.  Internal.  Not
    a part of the standard.
  */
-MPI_Errhandler TEST_ERRORS_WARN;
+MPI_Errhandler TEST_ERRORS_WARN = MPI_ERRHANDLER_NULL;
 
 #ifdef USE_STDARG
 void Test_Errors_warn(  MPI_Comm *comm, int *code, ... )
 {  
   char buf[MPI_MAX_ERROR_STRING];
   int  myid, result_len; 
-  char *string, *file;
+  char *string;
+#ifdef MPIR_DEBUG
+  char *file;
   int  *line;
+#endif
   static int in_handler = 0;
   va_list Argp;
 
@@ -128,14 +130,15 @@ void Test_Errors_warn(  MPI_Comm *comm, int *code, ... )
   va_start( Argp, code );
 #endif
   string = va_arg(Argp,char *);
+#ifdef MPIR_DEBUG
+  /* These are only needed for debugging output */
   file   = va_arg(Argp,char *);
   line   = va_arg(Argp,int *);
+#endif
   va_end( Argp );
 #else
-void Test_Errors_warn(  comm, code, string, file, line )
-MPI_Comm *comm;
-int      *code, *line;
-char     *string, *file;
+void Test_Errors_warn( MPI_Comm *comm, int *code, char *string, char *file, 
+		       int *line )
 {
   char buf[MPI_MAX_ERROR_STRING];
   int  myid, result_len; 

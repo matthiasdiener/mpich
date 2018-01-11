@@ -1,9 +1,7 @@
 #include "p4.h"
 #include "p4_sys.h"
 
-int bm_start(argc, argv)
-int *argc;
-char **argv;
+int bm_start(int *argc, char **argv)
 {
     int bm_switch_port;
     char *s,pgmname[P4_MAX_PGM_LEN];

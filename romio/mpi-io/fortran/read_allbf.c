@@ -1,5 +1,5 @@
 /* 
- *   $Id: read_allbf.c,v 1.7 2000/08/24 16:18:26 gropp Exp $    
+ *   $Id: read_allbf.c,v 1.8 2000/11/03 20:17:46 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -84,11 +84,11 @@
 #endif
 #endif
 
+#if defined(MPIHP) || defined(MPILAM)
 /* Prototype to keep compiler happy */
 void mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
-			      MPI_Datatype *datatype, int *ierr );
+			      MPI_Fint *datatype, int *ierr );
 
-#if defined(MPIHP) || defined(MPILAM)
 void mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
                       MPI_Fint *datatype,int *ierr )
 {
@@ -101,6 +101,10 @@ void mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
     *ierr = MPI_File_read_all_begin(fh_c,buf,*count,datatype_c);
 }
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
+			      MPI_Datatype *datatype, int *ierr );
+
 void mpi_file_read_all_begin_(MPI_Fint *fh,void *buf,int *count,
                       MPI_Datatype *datatype, int *ierr ){
     MPI_File fh_c;

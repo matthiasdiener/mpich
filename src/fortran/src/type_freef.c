@@ -81,5 +81,6 @@ EXPORT_MPI_API void mpi_type_free_ ( MPI_Fint *datatype, MPI_Fint *__ierr )
 {
     MPI_Datatype ldatatype = MPI_Type_f2c(*datatype);
     *__ierr = MPI_Type_free(&ldatatype);
-    *datatype = MPI_Type_c2f(ldatatype);
+    if (*__ierr == MPI_SUCCESS) 
+        *datatype = MPI_Type_c2f(ldatatype);
 }

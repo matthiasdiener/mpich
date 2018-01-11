@@ -55,6 +55,7 @@ int main( int argc, char **argv )
       else             printf( " No Errors\n" );
   }
 
+  MPI_Type_free( &my_type );
   MPI_Finalize();
   return 0;
 }

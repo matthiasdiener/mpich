@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_getnthf.c,v 1.2 2000/06/30 17:53:25 gropp Exp $    
+ *   $Id: info_getnthf.c,v 1.3 2001/04/19 20:50:47 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -110,6 +110,7 @@ EXPORT_MPI_API void mpi_info_get_nthkey_(MPI_Fint *info, MPI_Fint *n, char *key,
     info_c = MPI_Info_f2c(*info);
     *__ierr = MPI_Info_get_nthkey(info_c, (int)*n, tmpkey);
 
+    if (*__ierr != MPI_SUCCESS) return;
     tmpkeylen = strlen(tmpkey);
 
     if (tmpkeylen <= (int)keylen) {

@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_write_str.c,v 1.6 2000/07/19 22:38:36 thakur Exp $    
+ *   $Id: ad_write_str.c,v 1.7 2001/03/07 22:13:10 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -94,7 +94,7 @@ void ADIOI_GEN_WriteStrided(ADIO_File fd, void *buf, int count,
     MPI_Aint filetype_extent, buftype_extent; 
     int buf_count, buftype_is_contig, filetype_is_contig;
     ADIO_Offset userbuf_off;
-    ADIO_Offset off, req_off, disp, end_offset, writebuf_off, start_off;
+    ADIO_Offset off, req_off, disp, end_offset=0, writebuf_off, start_off;
     char *writebuf, *value;
     int flag, st_fwr_size, st_n_filetypes, writebuf_len, write_sz;
     ADIO_Status status1;

@@ -178,3 +178,5 @@
 #undef USE_HOLD_LAST_DEBUG
 #undef USE_PRINT_LAST_ON_ERROR
 
+/* Define if there is a routine to print tracebacks */
+#undef HAVE_PRINT_BACKTRACE

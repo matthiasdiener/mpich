@@ -81,3 +81,7 @@ test_inter: test_inter_bcast.o test_inter_reduce.o test_inter_allreduce.o inter_
 	${CC} -o test_inter_reduce test_inter_reduce.o inter_fns.o ${libbuild_dir}/libmpich.a
 	${CC} -o test_inter_allreduce test_inter_allreduce.o inter_fns.o ${libbuild_dir}/libmpich.a
 
+
+distclean: clean
+	-rm -f Makefile
+

@@ -105,6 +105,7 @@ clean: rmprog
 
 distclean: rmprog
 	( cd src ; $(MAKE) distclean )
+	( cd viewers ; $(MAKE) distclean )
 	@-for dir in contrib/life contrib/mandel contrib/mastermind \
 	             contrib/test share/examples ; do \
 	      if [ -s $$dir/Makefile ] ; then \
@@ -114,6 +115,7 @@ distclean: rmprog
 	@-$(RM) -f sbin/mpeinstall sbin/mpeuninstall
 	@-$(RM) -f Makefile mpeconf.h config.log config.status
 
-configure: configure.in aclocal.m4
+configure: configure.in aclocal.m4 aclocal_f77.m4 aclocal_make.m4 \
+	aclocal_mpi.m4
 	autoheader
 	autoconf

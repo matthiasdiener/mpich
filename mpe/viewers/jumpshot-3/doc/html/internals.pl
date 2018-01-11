@@ -38,12 +38,12 @@ $key = q/cite_slog1/;
 $ref_files{$key} = "$dir".q|node6.html|; 
 $noresave{$key} = "$nosave";
 
-$key = q/cite_slog2/;
-$ref_files{$key} = "$dir".q|node6.html|; 
-$noresave{$key} = "$nosave";
-
 $key = q/fig:_statistics_viewer/;
 $ref_files{$key} = "$dir".q|node4.html|; 
+$noresave{$key} = "$nosave";
+
+$key = q/cite_slog2/;
+$ref_files{$key} = "$dir".q|node6.html|; 
 $noresave{$key} = "$nosave";
 
 $key = q/fig:_preview_mode_line/;

@@ -48,6 +48,10 @@ extern char *sys_errlist[];
 
 #include "p4_globals.h"
 
+#ifdef P4_WITH_MPD
+#include "bnr.h"    /* BNR interface to mpd */
+#endif
+
 /* This is sometimes found in sys/param.h.  We only need a long name */
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN 256

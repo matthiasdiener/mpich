@@ -1,5 +1,43 @@
 #ifndef MPIR_GROUP_COOKIE
 
+/* do not use the general collective functions defined in src/coll/intra_fns.c,
+ * use the ones defined for globus2 device */
+
+#include "topology_intra_fns.h"
+
+#define MPID_Barrier
+#define MPID_Bcast
+#define MPID_Gather
+#undef MPID_Gatherv
+#define MPID_Scatter
+#undef MPID_Scatterv
+#undef MPID_Allgather
+#undef MPID_Allgatherv
+#undef MPID_Alltoall
+#undef MPID_Alltoallv
+#define MPID_Reduce
+#undef MPID_Allreduce
+#undef MPID_Reduce_scatter
+#undef MPID_Scan
+
+/* some data structures used by the topology aware functions */
+
+typedef struct
+{
+   int size;            /* number of processes in the set */
+   int level;           /* level at which the message is received */
+   int root_index;      /* position of the source process in the receive set */
+   int my_rank_index;   /* position of the current process in the set */
+   int *set;            /* array of process ids participating in the bcast */
+} single_set_t;
+
+typedef struct
+{
+   int num;             /* number of sets */
+   single_set_t *sets;  /* array of sets of processes */
+} multiple_set_t;
+
+
 /*
  * Definition of a communicator and group
  */
@@ -126,6 +164,17 @@ struct MPIR_COMMUNICATOR {
 					    communicators */
     char 		     *comm_name; /* A print name for this 
 					    communicator */
+
+    /* Topology aware stuff */
+    int *Topology_Depths;
+    int **Topology_ClusterIds;
+    /* pre-allocated pointers to the sets of procs at each level */
+    int **Topology_ClusterSets;
+    /* Size of my cluster at each level */
+    int *Topology_ClusterSizes;
+    /* pre-allocated pointer */
+    single_set_t *Topology_InfoSets;
+    int **Topology_ColorTable;
 };
 
 /*

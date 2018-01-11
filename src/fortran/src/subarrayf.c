@@ -1,5 +1,5 @@
 /* 
- *   $Id: subarrayf.c,v 1.3 2000/07/03 21:30:23 gropp Exp $    
+ *   $Id: subarrayf.c,v 1.4 2001/04/19 20:50:49 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -143,6 +143,7 @@ EXPORT_MPI_API void mpi_type_create_subarray_(MPI_Fint *ndims, MPI_Fint *array_o
 	FREE( l_array_of_starts );
     }
 
-    *newtype = MPI_Type_c2f(newtype_c);
+    if (*__ierr == MPI_SUCCESS) 
+        *newtype = MPI_Type_c2f(newtype_c);
 }
 

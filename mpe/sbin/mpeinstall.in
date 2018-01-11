@@ -44,8 +44,8 @@ LOGVIEWERS=@LOGVIEWERS@
 MPE_HEADERS="@MPE_HEADERS@"
 
 # File access mode
-MODE=0664
-XMODE=0775
+MODE=0644
+XMODE=0755
 replace=1
 # set failmode to soft to let failures accumulate
 failmode="hard"
@@ -523,7 +523,8 @@ chmod u+x $UNINSTALLFILE
 # Install the log viewers
 if [ $LOGVIEWERS = 1 ] ; then
     ( cd $sbinbuild_dir/../viewers ; \
-      ./sbin/install-viewers -prefix=$prefix -uninstall=$UNINSTALLFILE )
+      ./sbin/install-viewers -prefix=$prefix -uninstall=$UNINSTALLFILE \
+	-mode=$MODE -xmode=$XMODE )
 fi
 
 if [ -s $examplesdir/Makefile ] ; then

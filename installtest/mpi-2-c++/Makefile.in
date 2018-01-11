@@ -39,9 +39,11 @@ chapter_10_mpi2:  chapter_10_mpi2.o
 #
 # The Solaris C++ compiler creates a directory containing miscellaneous
 # data.  The action is not documented in the Solaris CC man pages
+# Other compilers generate files with suffixes .ti and .ii (pgCC)
 clean:
 	@ touch bogus
-	rm -rf *.o *~ *% core $(EXECS) bogus $(TEMPLATE_REP) SunWS_cache
+	rm -rf *.o *.ii *.ti \
+	*~ *% core $(EXECS) bogus $(TEMPLATE_REP) SunWS_cache
 
 .cc.o:
 	$(CXX) -c $*.cc

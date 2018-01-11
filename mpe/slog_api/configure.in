@@ -18,6 +18,7 @@ echo "Configuring SLOG with $ac_configure_args"
 AC_CONFIG_HEADER( slog_config.h )
 AC_HEADER_STDC
 AC_CHECK_HEADERS( unistd.h stdlib.h string.h ctype.h stdarg.h )
+PAC_HEADER_STDARG(,AC_MSG_ERROR([slog_api requires C-standard stdarg]))
 #
 MAKE=${MAKE:-"make"}
 SLOGNAME=slog
@@ -40,7 +41,11 @@ SLOG_HOME=$SLOG_TRIAL
   
 CC=${CC:-cc}
 
-AC_ARG_WITH( cc, [--with-cc=SLOG_CC                  - pass the preferred CC compiler, e.g. --with-cc=xlc.  This will overide the environmental variable CC.], SLOG_CC="$withval" )
+AC_ARG_WITH( cc, 
+[--with-cc=SLOG_CC                  - pass the preferred CC compiler, 
+                                     e.g. --with-cc=xlc.  This will overide 
+                                     the environmental variable CC.],
+SLOG_CC="$withval" )
 if test -n "$SLOG_CC" ; then
     CC="$SLOG_CC"
 fi
@@ -50,12 +55,20 @@ if test -n "` echo $CC | grep mpcc `" -o -n "` echo $CC | grep mpCC `" ; then
     CC="xlc"
 fi
 
-AC_ARG_WITH( cflags, [--with-cflags=SLOG_CFLAGS          - pass extra CFLAGS to the CC compiler like optimization flags or special machine dependent flags, e.g. -64 for IRIX64 platform], SLOG_CFLAGS="$withval" ) 
+AC_ARG_WITH( cflags, 
+[--with-cflags=SLOG_CFLAGS          - pass extra CFLAGS to the CC compiler 
+                                     such as optimization flags or special 
+                                     machine dependent flags, e.g. -64 for 
+                                     IRIX64 platforms], 
+SLOG_CFLAGS="$withval" ) 
 if test -n "$SLOG_CFLAGS" ; then 
     CFLAGS="$CFLAGS $SLOG_CFLAGS"
 fi
  
-AC_ARG_ENABLE( g, [--enable-g                         - Turn on/off the debugging and diagnostic code, default=disabled], , enable_g=no )
+AC_ARG_ENABLE( g, 
+[--enable-g                         - Turn on/off the debugging and 
+                                     diagnostic code, default=disabled],
+, enable_g=no )
 if test "$enable_g" = "yes" ; then
     AC_DEFINE( DEBUG )
     if test -z "`echo $CFLAGS | grep "\-g"`"; then
@@ -186,7 +199,41 @@ if test $cross_compiling = "yes" ; then
 else
     AC_C_BIGENDIAN
 fi
-#
+
+# Try to workaround the va_arg bug found gcc-2.96 
+AC_MSG_CHECKING([if the C compiler treats stdarg consistently])
+AC_TRY_COMPILE( [
+#include <stdarg.h>
+
+typedef  unsigned int    uint32;
+typedef  unsigned short  uint16;
+typedef  unsigned char   uint8;
+
+void test_fn( const uint32 ui32, ... )
+{
+        va_list       ap;
+        uint16        ui16;
+        uint8         ui8;
+
+        va_start( ap, ui32 );
+        ui16      = va_arg( ap, uint16 );
+        ui8       = va_arg( ap, uint8 );
+        va_end( ap );
+} ], 
+[ 
+        uint32        ui32;
+        uint16        ui16;
+        uint8         ui8;
+
+        test_fn( ui32, ui16, ui8 );
+], prompt_va_arg_to_int=no, prompt_va_arg_to_int=yes )
+if test "$prompt_va_arg_to_int" = "yes" ; then
+    AC_MSG_RESULT(no)
+    AC_DEFINE(GCC296_VA_ARG_FIX)
+else
+    AC_MSG_RESULT(yes)
+fi
+
 #   -- Check if there is any memory leak checking tool like "electric fence"
 if test "$enable_g" = "yes"; then
     AC_CHECK_LIB( efence, malloc, DEBUG_LIBS="-lefence" )

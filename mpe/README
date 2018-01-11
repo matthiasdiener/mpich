@@ -1,10 +1,10 @@
-		      MPE (Multi-Processing Environment)
+                      MPE (Multi-Processing Environment)
                       ----------------------------------
 
-		         Version 1.2.1, August, 2000
+                          Version 1.2.2. July, 2001
 
-                   Mathematics and Computer Science Division
-		         Argonne National Laboratory
+                    Mathematics and Computer Science Division
+                           Argonne National Laboratory
 
 I.  INTRODUCTION
 ----------------
@@ -208,10 +208,31 @@ Other User Options:
 
 --with-java=JAVA_HOME           Specify the path of the top-level directory 
                                 of the Java, JDK, installation.  If this 
-                                option is not given, configure will try to 
-                                locate JDK for you to build Jumpshot-2 and
-                                Jumpshot-3.  JDK 1.1.6 to JDK 1.1.8 can be
-                                used to build both Jumpshots.
+                                option or --with-javaX is not given, configure
+                                will try to locate JDK for you to build 
+                                Jumpshot-2 and Jumpshot-3.  JDK 1.1.6 to 
+                                JDK 1.1.8 can be used to build both Jumpshots.
+                                It is recommended that user should use this 
+                                option when there is only 1 version of JDK 
+                                installed on the machine.
+
+--with-java1=JAVA_HOME          Specify the path of the top-level directory
+                                of the Java, JDK, installation for Jumpshot-2
+                                only.  If this option or --with-java is not 
+                                given, Jumpshot-2's configure will try to 
+                                locate JDK for you to build Jumpshot-2.  For
+                                performance reason, it is recommended to use
+                                the latest Java 1, i.e. JDK-1.1.8, to build
+                                Jumpshot-2.
+
+--with-java2=JAVA_HOME          Specify the path of the top-level directory
+                                of the Java, JDK, installation for Jumpshot-3
+                                only.  If this option or --with-java is not 
+                                given, Jumpshot-3's configure will try to 
+                                locate JDK for you to build Jumpshot-3.  For
+                                performance reason, it is recommended to use
+                                the latest Java 2, i.e. JDK-1.3.x, to build
+                                Jumpshot-3.
 
 --with-wishloc=WISHLOC          This switch specifies the name of Tcl/Tk wish
                                 executable.  If this switch is omitted, 
@@ -221,6 +242,10 @@ Other User Options:
                                 incompatible ways, we will soon be dropping 
                                 support for any tool that uses Tcl/Tk.
 
+In order to achieve maximum performance benefit, it is recommended to
+use latest Java 1, i.e. JDK-1.1.8, as well as latest Java 2, i.e. JDK-1.3.1
+to build Jumpshots.  So instead of using --with-java=<JDK-1.1.8> option, 
+--with-java1=<JDK-1.1.8> and --with=java2=<JDK-1.3.1> should be used instead.
 
 
 
@@ -270,7 +295,7 @@ for 64 bits ABI, add options --with-cflags=-64 and --with-fflags=-64 to the
 configure options.
 
 
-for IBM MPI, e.g. quad.mcs.anl.gov, do
+For IBM MPI, e.g. quad.mcs.anl.gov, do
 
     setenv MPI_CC mpcc
     setenv MPI_F77 mpxlf
@@ -279,11 +304,11 @@ for IBM MPI, e.g. quad.mcs.anl.gov, do
     make install PREFIX=${MPE_INSTALL_DIR}
 
 
-for HP-UX's MPI implementation,
+For HP-UX's MPI implementation,
 
     ${MPE_SRC_DIR}/configure --with-mpicc=mpicc \
                              --with-mpif77=mpif77 \
-			     --with-flib_path_leader="-Wl,-L"
+                             --with-flib_path_leader="-Wl,-L"
     make
     make install PREFIX=${MPE_INSTALL_DIR}
 
@@ -293,19 +318,20 @@ is there.  Here is the configure options.
 
     ${MPE_SRC_DIR}/configure --with-mpicc=mpicc \
                              --with-mpif77=mpif77 \
-			     --with-flib_path_leader="-Wl,-L" \
-			     --with-f2cmpilibs=-lfmpi
+                             --with-flib_path_leader="-Wl,-L" \
+                             --with-f2cmpilibs=-lfmpi
     make
     make install PREFIX=${MPE_INSTALL_DIR}
 
 
-for prebuilt version of MPICH-1.1.2 or MPICH-1.2.0, e.g. donner, do
+For prebuilt version of MPICH-1.1.2 or MPICH-1.2.0, e.g. donner, do
 
     setenv MPI_CC ${MPICH_INSTALL_DIR}/mpicc
     setenv MPI_F77 ${MPICH_INSTALL_DIR}/mpif77
     ${MPE_SRC_DIR}/configure  --with-f2cmpilibs=-lfmpich \
                               --with-mpelibname=newMPE \
-                              --with-java=/sandbox/jdk117_v3
+                              --with-java1=/sandbox/jdk117_v3 \
+                              --with-java2=/sandbox/jdk1.3.1
     make
     make install PREFIX=${MPE_INSTALL_DIR}
 
@@ -318,17 +344,29 @@ forces MPE to use the Fortran to C MPI wrapper library in previous
 version of MPICH.
 
 
-for LAM, do
+For LAM, do
 
-    setenv MPI_CC ${LAM_INSTALL_DIR}/bin/hcc
-    setenv MPI_f77 ${LAM_INSTALL_DIR}/bin/hf77
+    setenv MPI_CC ${LAM_INSTALL_DIR}/bin/mpicc
+    setenv MPI_f77 ${LAM_INSTALL_DIR}/bin/mpif77
     ${MPE_SRC_DIR}/configure --with-mpilibs="-L${LAM_INSTALL_DIR}/lib -lpmpi" \
-                             --with-java=/sandbox/jdk117_v3
+                             --with-java1=/sandbox/jdk117_v3 \
+                             --with-java2=/sandbox/jdk1.3.1
     make
     make install PREFIX=${MPE_INSTALL_DIR}
 
-Currently, the support for using MPE with LAM for fortran MPI program is
-not working yet.  But it is being worked on now.
+Using MPE with LAM for fortran MPI program is not working until recently.  
+Configure options listed above enable MPE's internal Fortran to C MPI library.
+To use LAM's Fortran to C MPI library in LAM 6.3.3 or later, liblamf77mpi.a, 
+do
+
+    setenv MPI_CC ${LAM_INSTALL_DIR}/bin/mpicc
+    setenv MPI_f77 ${LAM_INSTALL_DIR}/bin/mpif77
+    ${MPE_SRC_DIR}/configure --with-mpilibs="-L${LAM_INSTALL_DIR}/lib -lpmpi" \
+                             --with-f2cmpilibs=-llamf77mpi \
+                             --with-java1=/sandbox/jdk117_v3 \
+                             --with-java2=/sandbox/jdk1.3.1
+    make
+    make install PREFIX=${MPE_INSTALL_DIR}
 
 
 
@@ -538,3 +576,77 @@ logviewer : the script which involves appropriate viewer based on the file
 	    logviewer will invoke jumpshot-3 to display the logfile.
 	    Jumpshot-3 resides in share/.  For more information of
 	    logviewer, do "logviewer -help" to list all available options.
+
+
+
+
+
+VII. Using MPE in MPICH
+-----------------------
+
+MPE has been seamlessly integrated into MPICH distribution, so user may
+find it easier to use MPE when using it with MPICH.  Here are the differences
+of using MPE with MPICH and with other MPI implementations.
+
+
+
+VII. a) Compilation and Linkage
+-------------------------------
+MPICH provides scripts to help users to compile and link C/C++ and
+F77/F90 programs.  They are mpicc for C programs, mpiCC for C++ programs,
+mpif77 for F77 and mpif90 for F90 programs.  In addition, these 4 scripts
+allows special options to be used to link with MPE profiling libraries.
+These options are :
+
+-mpitrace   - to compile and link with tracing library.
+-mpianim    - to compile and link with animation libraries.
+-mpilog     - to compile and link with logging libraries.
+
+For instance, the following command creates executable, {\tt fpilog}, which
+generates logfile when it is executed.
+
+mpif77 -mpilog -o fpilog fpilog.f 
+
+For other MPI implementations, user needs to compile and link their application
+with MPE profiling libraries explicitly as shown in the example makefile.
+
+
+
+VII. b) Inheritance of Environmental Variables
+----------------------------------------------
+MPE relies on certain environmental variables (e.g. TMPDIR).  These
+variables determine how MPE behaves.  It is important to make sure that
+all the MPI processes receive the intended value of environmental variables.
+The complication of this issue comes from the fact that MPICH contains many
+different devices for different platforms, some of these devices have a
+different way of passing of environmental variables to other processes.
+The often used devices, like ch_p4 and ch_shmem, do not require special
+attention to pass the value of the environmental variable to spawned
+processes.  The spawned process inherits the value from the launching
+process when the environmental variable in the launching process has been
+set.  But this is NOT true for all the devices, for instance, the
+ch_p4mpd device requires a special option of mpirun to be used to set
+the environmental variables to all processes.
+
+mpirun -np N cpilog -MPDENV- MPE_LOG_FORMAT=SLOG
+
+In this example, the option -MPDENV- is needed to make sure
+that all processes have their environmental variable, MPE_LOG_FORMAT,
+set to SLOG.
+
+For other MPI implementations, how environmental variables are passed
+remains unchanged.  User needs to get familar with the environment and
+set the environmental variables accordingly.
+
+
+
+VII. c) Viewing Logfiles
+------------------------
+MPE's install directory structure is the same as MPICH's.  So all MPE's
+utility programs will be located in MPICH's bin/ directory.
+To view a logfile, say fpilog.slog, do
+
+logviewer fpilog.slog
+
+The command will select and invoke Jumpshot-3 to display the content
+of SLOG file if Jumpshot-3 has been built and installed successfully.

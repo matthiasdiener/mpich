@@ -85,6 +85,7 @@ EXPORT_MPI_API void mpi_probe_( MPI_Fint *source, MPI_Fint *tag, MPI_Fint *comm,
    
     *__ierr = MPI_Probe((int)*source, (int)*tag, MPI_Comm_f2c(*comm),
                         &c_status);
-    MPI_Status_c2f(&c_status, status);
+    if (*__ierr == MPI_SUCCESS) 
+        MPI_Status_c2f(&c_status, status);
     
 }

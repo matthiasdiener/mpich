@@ -1,13 +1,13 @@
-.TH MPI_Cart_rank 3 "8/30/1999" " " "MPI"
+.TH MPI_Cart_rank 3 "4/19/2001" " " "MPI"
 .SH NAME
 MPI_Cart_rank \-  Determines process rank in communicator given Cartesian location 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
 int MPI_Cart_rank ( 
- MPI_Comm comm, 
- int *coords, 
- int *rank )
+        MPI_Comm comm, 
+        int *coords, 
+        int *rank )
 .fi
 .SH INPUT PARAMETERS
 .PD 0
@@ -30,6 +30,12 @@ coordinates of a process
 .B rank 
 - rank of specified process (integer) 
 .PD 1
+
+.SH NOTES
+Out-of-range coordinates are erroneous for non-periodic dimensions.  Versions
+of MPICH before 1.2.2 returned 
+.I MPI_PROC_NULL
+for the rank in this case.
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 

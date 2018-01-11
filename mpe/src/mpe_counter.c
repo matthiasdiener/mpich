@@ -20,6 +20,14 @@
 
 /*@
     MPE_Counter_create - create and initialize shared counter (process)
+
+    Input Parameter:
+.   oldcomm - Communicator to 
+
+    Output Parameters:
++   smaller_comm - 
+-   counter_comm - Duplicate of 'oldcomm'
+
 @*/
 int MPE_Counter_create( oldcomm, smaller_comm, counter_comm )
 MPI_Comm  oldcomm,  *smaller_comm,  *counter_comm;
@@ -56,6 +64,7 @@ MPI_Comm  oldcomm,  *smaller_comm,  *counter_comm;
         }
         MPE_Counter_free( smaller_comm, counter_comm );
     }
+    return 0;
 }
         
 /*@
@@ -74,7 +83,7 @@ MPI_Comm *counter_comm;
     MPI_Comm_free( counter_comm );
     if (smaller_comm && *smaller_comm) 
 	MPI_Comm_free( smaller_comm );
-    return(0);
+    return 0;
 }
 
 /*@
@@ -92,6 +101,6 @@ int *value;
     server = numprocs-1; 
     MPI_Send(NULL, 0, MPI_INT, server, REQUEST, counter_comm );
     MPI_Recv(value, 1, MPI_INT, server, VALUE, counter_comm, &status );
-    fprintf(stderr,"requestor %d received %d\n", myid, *value);
-    return(0);
+    /* fprintf(stderr,"requestor %d received %d\n", myid, *value); */
+    return MPE_SUCCESS;
 }

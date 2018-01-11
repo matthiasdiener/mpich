@@ -121,7 +121,7 @@ default: clean rmprog rmlib
 mpe_debug_objs:
 	@-if [ "$(MPEDBG)" = "1" -a "$(MPICH)" = "1" ] ; then \
 	    echo "making MPICH's mpedbg" ;  \
-	    ( cd ${top_srcdir}/../../src/env ; $(MAKE) mpe_debug_objs ) ; \
+	    ( cd ../../src/env ; $(MAKE) mpe_debug_objs ) ; \
 	fi
 
 #

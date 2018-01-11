@@ -1,5 +1,5 @@
 /* 
- *   $Id: write_ordbf.c,v 1.6 2000/02/09 21:30:32 thakur Exp $    
+ *   $Id: write_ordbf.c,v 1.7 2000/09/28 15:49:15 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -85,6 +85,10 @@
 #endif
 
 #if defined(MPIHP) || defined(MPILAM)
+/* Prototype to keep compiler happy */
+void mpi_file_write_ordered_begin_(MPI_Fint *fh,void *buf,int *count,
+				   MPI_Fint *datatype, int *ierr );
+
 void mpi_file_write_ordered_begin_(MPI_Fint *fh,void *buf,int *count,
                        MPI_Fint *datatype, int *ierr ){
     MPI_File fh_c;
@@ -96,6 +100,10 @@ void mpi_file_write_ordered_begin_(MPI_Fint *fh,void *buf,int *count,
     *ierr = MPI_File_write_ordered_begin(fh_c,buf,*count,datatype_c);
 }
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_write_ordered_begin_(MPI_Fint *fh,void *buf,int *count,
+				   MPI_Datatype *datatype, int *ierr );
+
 void mpi_file_write_ordered_begin_(MPI_Fint *fh,void *buf,int *count,
                        MPI_Datatype *datatype, int *ierr ){
     MPI_File fh_c;

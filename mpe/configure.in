@@ -7,7 +7,9 @@ define([AC_CACHE_LOAD], )dnl
 define([AC_CACHE_SAVE], )dnl
 dnl
 dnl
+set -x
 AC_INIT()
+set +x
 AC_CONFIG_HEADER(mpeconf.h)
 #
 echo "Configuring MPE Profiling Libraries with $ac_configure_args"
@@ -39,6 +41,7 @@ LOG_LIBS=""
 PROF_LIBS=""
 TRACE_LIBS=""
 ANIM_LIBS=""
+XGRAPH_LIBS=""
 DBX_NAME=""
 GDB_NAME=""
 # CPRP is the version of cp that accepts -r and -p arguments.
@@ -98,11 +101,13 @@ else
     MPICH=0
 fi
 
+AC_ARG_WITH( mpiio, [----with-mpiio                     - Include/exclude MPI-IO from mpe logging.  The default is include.  This flag is relevant only when --enable-mpich is used], ,with_mpiio=yes )
+
 AC_ARG_ENABLE( checkMPI, [--enable-checkMPI                  - Turn on/off the linking test for the MPI include files, MPI libraries and MPI_CC compiler. The default is enable=yes], ,enable_checkMPI=yes )
 
 AC_ARG_ENABLE( checkMPIwtime, [--enable-checkMPIwtime             - Turn on/off the linking test for the MPI_Wtime(). The default is enable=no], ,enable_checkMPIwtime=no )
 
-
+AC_ARG_WITH( checkMPIO, [--enable-checkMPIO                 - Turn on/off the linking test for MPI-IO routines in MPI implementation.  The default is enable=yes.], ,enable_checkMPIO=yes )
 #
 # Set the MPE Libraries name
 #
@@ -216,7 +221,7 @@ for dir in include lib bin sbin ; do
             if mkdir -p $dirvalue ; then
                 :
             else
-		AC_MSG_ERROR([Could not create directory $dirvalue])
+                AC_MSG_ERROR([Could not create directory $dirvalue])
             fi
         fi
     fi
@@ -305,6 +310,7 @@ PROF_LIBS="-l$PROF_LIBNAME"
 LOG_LIBS="-l$LOG_LIBNAME $PROF_LIBS"
 TRACE_LIBS="-l$TRACE_LIBNAME"
 ANIM_LIBS="-l$ANIM_LIBNAME $PROF_LIBS"
+XGRAPH_LIBS="$PROF_LIBS"
 
 if test "$NOF77" = "0" ; then
     if test "$enable_f2cmpilib" = "yes" ; then
@@ -328,7 +334,7 @@ if test "$enable_checkMPI" = "yes" ; then
         AC_MSG_RESULT(yes)
     else
         AC_MSG_RESULT(no)
-	AC_MSG_ERROR( [Cannot link with basic MPI C program!
+        AC_MSG_ERROR( [Cannot link with basic MPI C program!
 	Check your MPI include paths, MPI libraries and MPI CC compiler] )
     fi
 fi
@@ -337,8 +343,8 @@ if test "$enable_checkMPI" = "yes" -a "$NOF77" = "0" ; then
     PAC_MPI_LINK_F77_FUNC( $MPI_F77, [$FFLAGS $MPI_INC], $MPI_LIBS, [
 	integer mytid
 	integer ierr
-	], [ call MPI_Comm_rank( MPI_COMM_WORLD, mytid, ierr ) ],
-			    [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+    ], [ call MPI_Comm_rank( MPI_COMM_WORLD, mytid, ierr ) ],
+    [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
     if test "$mpe_link_ok" = "yes" ; then
         AC_MSG_RESULT(yes)
     else
@@ -356,45 +362,93 @@ fi
 if test "$enable_checkMPI" = "yes" -a "$enable_checkMPIwtime" = "yes" ; then
     AC_MSG_CHECKING( [for the C version of MPI_Wtime()] )
     PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS,
-    		 	  [ double d ],
-			  [ d=MPI_Wtime() ],
-			  [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+                          [ double d ],
+                          [ d=MPI_Wtime() ],
+                          [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
     if test "$mpe_link_ok" = "yes" ; then
         AC_MSG_RESULT(yes)
-	AC_DEFINE( HAVE_MPI_WTIME )
+        AC_DEFINE( HAVE_MPI_WTIME )
     else
         AC_MSG_RESULT(no)
-	AC_MSG_ERROR( [Cannot link with MPI_Wtime()!
+        AC_MSG_ERROR( [Cannot link with MPI_Wtime()!
 	Check your MPI include paths, MPI libraries and MPI CC compiler ] )
     fi
 fi
 
+if test "$enable_checkMPI" = "yes" -a "$enable_checkMPIO" = "yes" ; then
+    AC_MSG_CHECKING( [for the C version of MPI_File_open()] )
+    PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS,
+                          [ int itmp; MPI_File fh ],
+                          [ itmp=MPI_File_open( MPI_COMM_WORLD, "mpiiotest", MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &fh ) ],
+                          [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+    if test "$mpe_link_ok" = "yes" ; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE( HAVE_MPI_IO )
+    else
+        AC_MSG_RESULT([no, assumed No MPI-IO routines])
+    fi
+fi
 
-#
+# When it is built with MPICH, MPE configure observes --with[out]-mpiio
+if test "$MPI_IMPL" = "MPICH" -a "$with_mpiio" = "yes" ; then
+    AC_DEFINE( HAVE_MPI_IO )
+fi
+
+
+ 
 if test -z "$CC" -o -z "$MPI_CC"; then
     AC_MSG_ERROR( You must configure MPE with a specific MPI )
 fi
-#
+ 
 if test -n "$F77" -a "$NOF77" = 0 ; then 
+    AC_F77_LIBRARY_LDFLAGS
     PAC_PROG_F77_NAME_MANGLE
 fi
-#
 
-if test "${F2CMPI_LIBS}" = "-l${F2CMPI_LIBNAME}" ; then
+if test "$enable_mpe_graphics" = "yes" -a "$NOF77" = "0" ; then
+    if test "$enable_checkMPI" = "yes" ; then
+        enable_f2c_graphicslib=yes
+    else
+        enable_f2c_graphicslib=no
+        if test "$MPI_IMPL" = "MPICH" ; then
+            AC_DEFINE( HAVE_MPI_COMM_F2C )
+        fi
+    fi
+fi
 
+if test "$enable_f2c_graphicslib" = "yes" ; then
 #   Determine MPI_Fint
     AC_MSG_CHECKING( [for MPI_Fint] )
     PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS,
                           [ MPI_Fint aa=1 ], ,
-			  [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+                          [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
     if test "$mpe_link_ok" = "yes" ; then
         AC_MSG_RESULT(yes)
         MPI_FINT_TYPE=MPI_Fint
     else
         AC_MSG_RESULT([no, assumed MPI_Fint to be int])
         MPI_FINT_TYPE=int
-	AC_DEFINE( MPI_Fint, int )
+        AC_DEFINE( MPI_Fint, int )
     fi
+
+#   Determmine if MPI_Comm_f2c() and MPI_Comm_c2f() are there
+    AC_MSG_CHECKING( [for MPI_Comm_c2f() and MPI_Comm_f2c()] )
+    PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS, [
+			  MPI_Comm comm; ${MPI_FINT_TYPE} aa;
+			  ], [ 
+			  aa=MPI_Comm_c2f(comm) ;
+			  comm=MPI_Comm_f2c(aa) ;
+			  ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+    if test "$mpe_link_ok" = "yes" ; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE( HAVE_MPI_COMM_F2C )
+    else
+        AC_MSG_RESULT(no)
+    fi
+fi
+
+
+if test "${F2CMPI_LIBS}" = "-l${F2CMPI_LIBNAME}" ; then
 
 #   Determine MPI_STATUS_SIZE
     mpe_tmpfile=mpe_mpistatusvalue
@@ -424,12 +478,12 @@ main()
 }
                         ], [ mpe_run_ok=yes ], [ mpe_run_ok=no ] )
     if test "$mpe_run_ok" = "yes" ; then
-	mpe_MPI_STATUS_SIZE="`cat ${mpe_tmpfile} | sed -e 's/ //g'`"
-	AC_DEFINE_UNQUOTED( MPI_STATUS_SIZE, $mpe_MPI_STATUS_SIZE )
-	AC_MSG_RESULT( [${mpe_MPI_STATUS_SIZE}] )
-	rm -f ${mpe_tmpfile}
+        mpe_MPI_STATUS_SIZE="`cat ${mpe_tmpfile} | sed -e 's/ //g'`"
+        AC_DEFINE_UNQUOTED( MPI_STATUS_SIZE, $mpe_MPI_STATUS_SIZE )
+        AC_MSG_RESULT( [${mpe_MPI_STATUS_SIZE}] )
+        rm -f ${mpe_tmpfile}
     else
-	AC_MSG_ERROR( [could NOT determine!] )
+        AC_MSG_ERROR( [could NOT determine!] )
     fi
 
 #   Determmine if MPI_Status_f2c() and MPI_Status_c2f() are there
@@ -444,13 +498,43 @@ main()
 			  ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
     if test "$mpe_link_ok" = "yes" ; then
         AC_MSG_RESULT(yes)
-        AC_DEFINE( HAVE_MPI_STATUS_C2F )
+        AC_DEFINE( HAVE_MPI_STATUS_F2C )
     else
         AC_MSG_RESULT(no)
     fi
 
-#   Determmine if MPI_xxx_f2c() and MPI_xxx_c2f() are there
-    AC_MSG_CHECKING( [for other MPI_xxxx_c2f() and MPI_xxxx_f2c()] )
+#   Determmine if MPI_Type_f2c() and MPI_Type_c2f() are there
+    AC_MSG_CHECKING( [for MPI_Type_c2f() and MPI_Type_f2c()] )
+    PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS, [
+			  MPI_Datatype type; ${MPI_FINT_TYPE} aa;
+			  ], [ 
+			  aa=MPI_Type_c2f(type) ;
+			  type=MPI_Type_f2c(aa) ;
+			  ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+    if test "$mpe_link_ok" = "yes" ; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE( HAVE_MPI_TYPE_F2C )
+    else
+        AC_MSG_RESULT(no)
+    fi
+
+#   Determmine if MPI_Group_f2c() and MPI_Group_c2f() are there
+    AC_MSG_CHECKING( [for MPI_Group_c2f() and MPI_Group_f2c()] )
+    PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS, [
+			  MPI_Group group; ${MPI_FINT_TYPE} aa;
+			  ], [ 
+			  aa=MPI_Group_c2f(group) ;
+			  group=MPI_Group_f2c(aa) ;
+			  ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+    if test "$mpe_link_ok" = "yes" ; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE( HAVE_MPI_GROUP_F2C )
+    else
+        AC_MSG_RESULT(no)
+    fi
+
+#   Determmine if MPI_Request_f2c() and MPI_Request_c2f() are there
+    AC_MSG_CHECKING( [for MPI_Request_c2f() and MPI_Request_f2c()] )
     PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS, [
 			  MPI_Request request; ${MPI_FINT_TYPE} aa;
 			  ], [ 
@@ -459,7 +543,37 @@ main()
 			  ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
     if test "$mpe_link_ok" = "yes" ; then
         AC_MSG_RESULT(yes)
-        AC_DEFINE( HAVE_MPI_XXXX_F2C )
+        AC_DEFINE( HAVE_MPI_REQUEST_F2C )
+    else
+        AC_MSG_RESULT(no)
+    fi
+
+#   Determmine if MPI_Op_f2c() and MPI_Op_c2f() are there
+    AC_MSG_CHECKING( [for MPI_Op_c2f() and MPI_Op_f2c()] )
+    PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS, [
+			  MPI_Op op; ${MPI_FINT_TYPE} aa;
+			  ], [ 
+			  aa=MPI_Op_c2f(op) ;
+			  op=MPI_Op_f2c(aa) ;
+			  ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+    if test "$mpe_link_ok" = "yes" ; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE( HAVE_MPI_OP_F2C )
+    else
+        AC_MSG_RESULT(no)
+    fi
+
+#   Determmine if MPI_Errhandler_f2c() and MPI_Errhandler_c2f() are there
+    AC_MSG_CHECKING( [for MPI_Errhandler_c2f() and MPI_Errhandler_f2c()] )
+    PAC_MPI_LINK_CC_FUNC( $MPI_CC, [$CFLAGS $MPI_INC], $MPI_LIBS, [
+			  MPI_Errhandler errhandler; ${MPI_FINT_TYPE} aa;
+			  ], [ 
+			  aa=MPI_Errhandler_c2f(errhandler) ;
+			  errhandler=MPI_Errhandler_f2c(aa) ;
+			  ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
+    if test "$mpe_link_ok" = "yes" ; then
+        AC_MSG_RESULT(yes)
+        AC_DEFINE( HAVE_MPI_ERRHANDLER_F2C )
     else
         AC_MSG_RESULT(no)
     fi
@@ -469,7 +583,7 @@ main()
     AC_MSG_CHECKING( [for values of Fortran logicals in MPI C program] )
     PAC_MPI_RUN_F77_FUNC_FROM_C( $F77, $FFLAGS,
                                  $MPI_CC, [$CFLAGS $MPI_INC],
-				 $CC, $CFLAGS, $LIBS, [
+                                 $CC, $CFLAGS, $LIBS, [
       subroutine ftest( itrue, ifalse )
       logical itrue, ifalse
       itrue  = .TRUE.
@@ -496,19 +610,19 @@ int main()
 }
                                  ], [ mpe_link_ok=yes ], [ mpe_link_ok=no ] )
     if test "$mpe_run_ok" = "yes" ; then
-	mpe_f77logicals="`cat ${mpe_tmpfile}`"
-	true_val="`echo ${mpe_f77logicals} | sed -e 's/ .*//g'`"
-	false_val="`echo ${mpe_f77logicals} | sed -e 's/.*  *//g'`"
-	if test -n "$true_val" -a -n "$false_val" ; then
-	    AC_DEFINE_UNQUOTED( MPE_F77_TRUE_VALUE, $true_val )
-	    AC_DEFINE_UNQUOTED( MPE_F77_FALSE_VALUE, $false_val )
-	    AC_MSG_RESULT( [True=$true_val and False=$false_val] )
+        mpe_f77logicals="`cat ${mpe_tmpfile}`"
+        true_val="`echo ${mpe_f77logicals} | sed -e 's/ .*//g'`"
+        false_val="`echo ${mpe_f77logicals} | sed -e 's/.*  *//g'`"
+        if test -n "$true_val" -a -n "$false_val" ; then
+            AC_DEFINE_UNQUOTED( MPE_F77_TRUE_VALUE, $true_val )
+            AC_DEFINE_UNQUOTED( MPE_F77_FALSE_VALUE, $false_val )
+            AC_MSG_RESULT( [True=$true_val and False=$false_val] )
         else
-	    AC_MSG_ERROR( [could NOT determine!] )
-	fi
-	rm -f ${mpe_tmpfile}
+            AC_MSG_ERROR( [could NOT determine!] )
+	    fi
+        rm -f ${mpe_tmpfile}
     else
-	AC_MSG_ERROR( [could NOT determine!] )
+        AC_MSG_ERROR( [could NOT determine!] )
     fi
 fi
 
@@ -517,6 +631,10 @@ fi
 # otherwise, top_srcdir/Makefile.in and top_srcdir/sbin/mpeinstall will need
 # to define MPE_HEADERS separately.
 MPE_HEADERS="mpe.h mpe_graphics.h mpe_log.h mpetools.h mpeexten.h basex11.h protofix.h"
+if test "$NOF77" = 0 ; then
+    # Add the Fortran version of mpef.h
+    MPE_HEADERS="$MPE_HEADERS mpef.h"
+fi
 AC_SUBST(MPE_HEADERS)
 
 MPE_GRPAHICS=""
@@ -542,11 +660,13 @@ if test -z "$no_x" ; then
         X_INC=-I$x_includes
     fi
     if test -n "$x_libraries" ; then
-	X_LIB="-L$x_libraries -lX11"
+        X_LIB="-L$x_libraries -lX11"
         ANIM_LIBS="$ANIM_LIBS -L$x_libraries -lX11"
+        XGRAPH_LIBS="$XGRAPH_LIBS -L$x_libraries -lX11"
     else
-	X_LIB="-lX11"
+        X_LIB="-lX11"
         ANIM_LIBS="$ANIM_LIBS -lX11"
+        XGRAPH_LIBS="$XGRAPH_LIBS -lX11"
     fi
 else
     AC_MSG_WARN([*# Could not find appropriate X windows libraries.  MPE routines that make use of X11 graphics will NOT be built unless you put X windows libraries in your path and reconfigure])
@@ -556,22 +676,22 @@ fi
 #
 #
 AC_PATH_PROG(DBX_NAME,dbx)
-if test -z "$DBX_NAME" ; then
-    if test -n "$MPICH_WARNING_SEP" ; then echo '>'$MPICH_WARNING_SEP ; fi
-    echo "*# Cannot find dbx in your path.  You can put dbx in your path and "
-    echo "*# reconfigure or else you will not be able to run the debugger code"
-    echo "*# using the dbx debugger."
-    if test -n "$MPICH_WARNING_SEP" ; then echo '<'$MPICH_WARNING_SEP ; fi
-fi
+dnl if test -z "$DBX_NAME" ; then
+dnl    if test -n "$MPICH_WARNING_SEP" ; then echo '>'$MPICH_WARNING_SEP ; fi
+dnl    echo "*# Cannot find dbx in your path.  You can put dbx in your path and "
+dnl    echo "*# reconfigure or else you will not be able to run the debugger code"
+dnl    echo "*# using the dbx debugger."
+dnl    if test -n "$MPICH_WARNING_SEP" ; then echo '<'$MPICH_WARNING_SEP ; fi
+dnl fi
 #
 AC_PATH_PROG(GDB_NAME,gdb)
-if test -z "$GDB_NAME" ; then
-    if test -n "$MPICH_WARNING_SEP" ; then echo '>'$MPICH_WARNING_SEP ; fi
-    echo "*# Cannot find gdb in your path.  You can put gdb in your path and"
-    echo "*# reconfigure or else you will not be able to run the debugger code"
-    echo "*# using the gdb debugger."
-    if test -n "$MPICH_WARNING_SEP" ; then echo '<'$MPICH_WARNING_SEP ; fi
-fi
+dnl if test -z "$GDB_NAME" ; then
+dnl     if test -n "$MPICH_WARNING_SEP" ; then echo '>'$MPICH_WARNING_SEP ; fi
+dnl     echo "*# Cannot find gdb in your path.  You can put gdb in your path and"
+dnl     echo "*# reconfigure or else you will not be able to run the debugger code"
+dnl     echo "*# using the gdb debugger."
+dnl     if test -n "$MPICH_WARNING_SEP" ; then echo '<'$MPICH_WARNING_SEP ; fi
+dnl fi
 #   
 dnl Check if C compiler fully supports the keyword `const' - if not define 
 dnl `const' to be empty.     
@@ -674,10 +794,11 @@ AC_SUBST(TRACE_LIBNAME)
 AC_SUBST(ANIM_LIBNAME)
 AC_SUBST(F2CMPI_LIBNAME)
 
+AC_SUBST(PROF_LIBS)
 AC_SUBST(LOG_LIBS)
 AC_SUBST(TRACE_LIBS)
 AC_SUBST(ANIM_LIBS)
-AC_SUBST(PROF_LIBS)
+AC_SUBST(XGRAPH_LIBS)
 AC_SUBST(F2CMPI_LIBS)
 
 AC_SUBST(MPEDBG)

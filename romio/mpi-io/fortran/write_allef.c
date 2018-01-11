@@ -1,5 +1,5 @@
 /* 
- *   $Id: write_allef.c,v 1.6 2000/02/09 21:30:31 thakur Exp $    
+ *   $Id: write_allef.c,v 1.7 2000/09/28 15:49:15 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -83,6 +83,9 @@
 #endif
 #endif
 #endif
+
+/* Prototype to keep compiler happy */
+void mpi_file_write_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *ierr ); 
 
 void mpi_file_write_all_end_(MPI_Fint *fh,void *buf,MPI_Status *status, int *ierr ){
     MPI_File fh_c;

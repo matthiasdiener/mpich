@@ -100,11 +100,16 @@
 #    define LOCKS_PICKED
 #endif
 
+#if !defined(LOCKS_PICKED) && defined(HAVE_SEM_POST) 
+#    define USE_POSIX_SEM
+#    define LOCKS_PICKED
+#endif
+
 /* Check that we picked at least one type of locks.  We have already
  * checked that we did not pick more than one.
  */
 #if !defined(LOCKS_PICKED)
-      Choke - no locks picked
+#error  Choke - no locks picked
 #endif
 
 #endif /* !defined(LOCKS_PICKED) */
@@ -130,6 +135,7 @@
 #    else
          'Oops - no uslocks'
 #    endif
+#    define p2p_lock_free(l)
 #endif
 
 #if defined(USE_HPLOCKS)
@@ -140,6 +146,7 @@
 #    define p2p_lock(l)        MPID_SHMEM__acquire_lock(l)
 #    define p2p_unlock(l)      MPID_SHMEM__release_lock(l)
 #    define p2p_lock_name      "HPUX assembly language locks"
+#    define p2p_lock_free(l)
 #endif
 
 #if defined(USE_TSLOCKS)
@@ -149,6 +156,7 @@
 #    define p2p_lock(l)        tslock(l)
 #    define p2p_unlock(l)      tsunlock(l)
 #    define p2p_lock_name      "tslocks"
+#    define p2p_lock_free(l)
 #endif
 
 #if defined(USE_MSEM)
@@ -180,6 +188,7 @@
 #    define p2p_lock(l)        msem_lock(l, 0)
 #    define p2p_unlock(l )     msem_unlock(l, 0)
     */
+#    define p2p_lock_free(l)
 #endif
 
 #if defined(USE_MUTEX)
@@ -194,6 +203,7 @@
 #    define p2p_lock(l)        mutex_lock(l)
 #    define p2p_unlock(l)      mutex_unlock(l)
 #    define p2p_lock_name      "mutex_lock"
+#    define p2p_lock_free(l)
 #endif
 
 #if defined(USE_SEMOP)
@@ -212,8 +222,21 @@ void semop_unlock (p2p_lock_t *);
 int MD_init_semop( void );
 int MD_init_sysv_semop(void);
 void MD_remove_sysv_sipc( void );
+#    define p2p_lock_free(l)
 #endif
 
+#if defined(USE_POSIX_SEM)
+#include <?>
+#define INCLUDED_POSIX_SEM
+typedef struct { sem_t mutex; } p2p_lock_t;
+#define p2p_lock_init(l) sem_init( &((l).mutex), 0, 1 )
+/* Sem_wait is a slow system call and can be interrupted */
+#define p2p_lock(l)      \
+    while (sem_wait( &((l).mutex) == -1 && errno == EAGAIN );
+#define p2p_unlock(l)    sem_post( &((l).mutex) )
+#define p2p_lock_name    "Posix sem"
+#define p2p_lock_free(l) sem_destroy( &((l).mutex )
+#endif
 
 /* A few odds and ends */
 
@@ -249,3 +272,39 @@ void MD_remove_sysv_sipc( void );
      p2p_lock( &MPID_shmem->globlock );\
      p2p_unlock( &MPID_shmem->globlock );\
      }
+/*
+ * Define some condition variable operations.  To allow both in-process
+ * spin-on-value and more general OS wait-for-change, these operations
+ * contain both the local condition being changed (e.g., assigning to a 
+ * pointer) and a condition variable.
+ *
+ * These are not yet used in the code.  They may eventually be used in the
+ * MPID_SHMEM_ReadControl and _SendControl routines.
+ */
+
+#ifdef USE_SEM_CONDVAR
+#define p2p_condvar_init(l) sem_init(&l)
+#define p2p_condvar_free(l) sem_free(&l)
+#define p2p_condvar_decl(l) sem_t l
+#define p2p_condvar_post(exp,l) exp;sem_post(&l)
+#define p2p_condvar_wait(boolexp,l) sem_wait(&l)
+#endif
+
+#ifndef p2p_condvar_init
+     /* No condition variables.  Instead, use only the expressions */
+#define p2p_condvar_init(l)
+#define p2p_condvar_free(l)
+#define p2p_condvar_decl(l)
+#define p2p_condvar_post(exp,condvar) exp
+     /* The wait needs a better "do while spinning" operation.
+        Instead, should the API be 
+	  p2p_condvar_wait(boolexp,condvar,optwhilewait)
+	where optwhilewait is what is executed while spinning?
+	Then when using condition variables, we could still do
+	something like
+	  if (!exp) {optwhilewait;} sem_wait(condvar)
+	which would allow a implementation to use the "optwhilewait"
+	to flush any pending stuff before entering the blocking call
+     */
+#define p2p_condvar_wait(boolexp,condvar) while (!(boolexp)) 
+#endif

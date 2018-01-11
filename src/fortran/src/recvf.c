@@ -144,6 +144,7 @@ EXPORT_MPI_API void mpi_recv_( void *buf, MPI_Fint *count, MPI_Fint *datatype, M
     *__ierr = MPI_Recv(MPIR_F_PTR(buf), (int)*count,MPI_Type_f2c(*datatype),
                        (int)*source, (int)*tag,
 		       MPI_Comm_f2c(*comm), &c_status);
-    MPI_Status_c2f(&c_status, status);
+    if (*__ierr == MPI_SUCCESS) 
+        MPI_Status_c2f(&c_status, status);
 }
 #endif

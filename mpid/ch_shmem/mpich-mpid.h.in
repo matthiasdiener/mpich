@@ -67,6 +67,9 @@
 /* Define if you have the mutex_init function.  */
 #undef HAVE_MUTEX_INIT
 
+/* Define if you have the sem_post function.  */
+#undef HAVE_SEM_POST
+
 /* Define if you have the semop function.  */
 #undef HAVE_SEMOP
 

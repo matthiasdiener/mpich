@@ -136,7 +136,7 @@ wrapperinfo *winfo;
   return;
 }
 
-
+static int fn_num = 0;
 
 void ProcessEscape( outf, finfo, rinfo, winfo,
 		    escBodyList,
@@ -248,8 +248,8 @@ replacement string.\n", finfo->name, startingLine );
 replacement string and at least one function name.\n",
 	       finfo->name, startingLine );
     }
-      
-
+  } else if (!strcmp( escBodyList[0], "fn_num" )) {
+      fprintf( outf, "%d", fn_num++ );
   } else {
     fprintf( stderr, "Unrecognized escape '%s' in file %s, line %d.\n",
 	     escBody, finfo->name, startingLine );
@@ -943,19 +943,30 @@ wrapperinfo *winfo;
     if (ListSize( fn_list[i].wrapperdefs, int )) {
         /* print function return type and name */
       fprintf( outf, "\n%s %s( ", fn_list[i].returnType, fn_list[i].name);
-      if (fn_list[i].nargs)	/* print first arg */
-	fprintf( outf, "%s", fn_list[i].argNames[0] );
 
-        /* print comma separated args */
-      for (j=1; j<fn_list[i].nargs; j++)
-	fprintf( outf, ", %s", fn_list[i].argNames[j] );
-      fprintf( outf, " )\n" );
+      if (oldstyle_function()) {
+	  /* Pre-prototype C */
+	  if (fn_list[i].nargs)	/* print first arg */
+	      fprintf( outf, "%s", fn_list[i].argNames[0] );
 
-        /* print args and types */
-      for (j=0; j<fn_list[i].nargs; j++)
-	fprintf( outf, "%s %s%s;\n", fn_list[i].argTypePrefix[j],
-		 fn_list[i].argNames[j], fn_list[i].argTypeSuffix[j] );
+	  /* print comma separated args */
+	  for (j=1; j<fn_list[i].nargs; j++)
+	      fprintf( outf, ", %s", fn_list[i].argNames[j] );
+	  fprintf( outf, " )\n" );
 
+	  /* print args and types */
+	  for (j=0; j<fn_list[i].nargs; j++)
+	      fprintf( outf, "%s %s%s;\n", fn_list[i].argTypePrefix[j],
+		       fn_list[i].argNames[j], fn_list[i].argTypeSuffix[j] );
+      }
+      else {
+	  /* print args and types */
+	  for (j=0; j<fn_list[i].nargs; j++)
+	      fprintf( outf, "%s %s%s%c", fn_list[i].argTypePrefix[j],
+		       fn_list[i].argNames[j], fn_list[i].argTypeSuffix[j], 
+		       (j<fn_list[i].nargs-1)? ',' : ' ' );
+	  fprintf( outf, " )\n" );
+      }
         /* declare return type */
       fprintf( outf, "{\n  %s %s;\n", fn_list[i].returnType,
 	       RETURN_VAR_NAME );
@@ -1067,7 +1078,7 @@ char ***varNames;
   rinfo.fn_list = fn_list;
   rinfo.n_fn = n_fn;
 
-  /* if this is one past the last wrapper, print the acutual call */
+  /* if this is one past the last wrapper, print the actual call */
   if (wrapperNumIdx==ListSize( fn_list[fn_num].wrapperdefs, int )) {
     fprintf( outf, "\n  %s = P%s( ", RETURN_VAR_NAME, fn_list[fn_num].name );
     if (fn_list[fn_num].nargs)

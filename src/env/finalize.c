@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.14 2000/07/05 20:21:25 gropp Exp $
+ *  $Id: finalize.c,v 1.17 2001/03/17 19:07:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -26,8 +26,10 @@
 #include "binding.h"
 #endif
 #include "reqalloc.h"
+/* #include "queue.h" */
 #define MPIR_SBdestroy MPID_SBdestroy
 extern int MPIR_Dump_Mem;
+extern int MPIR_Dump_Ptrs;
 extern int MPIR_Print_queues;
 
 #define DBG(a)
@@ -187,6 +189,7 @@ EXPORT_MPI_API int MPI_Finalize()
 #ifdef MPID_HAS_PROC_INFO
     /* Release any space we allocated for the proc table */
     if (MPIR_proctable != 0) {
+        MPIR_debug_state    = MPIR_DEBUG_ABORTING;
 	FREE(MPIR_proctable);
     }
 #endif
@@ -215,7 +218,7 @@ EXPORT_MPI_API int MPI_Finalize()
        by the initutil.c routine.  Instead, we just set a "highwatermark"
        for the initial values.
      */
-    if (MPIR_Dump_Mem) {
+    if (MPIR_Dump_Ptrs) {
 	MPIR_UsePointer( stdout );
 	MPIR_DumpPointers( stdout );
     }

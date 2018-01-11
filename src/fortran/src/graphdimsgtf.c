@@ -87,5 +87,4 @@ EXPORT_MPI_API void mpi_graphdims_get_ ( MPI_Fint *comm, MPI_Fint *nnodes, MPI_F
                                  &lnedges);
     *nnodes = (MPI_Fint)lnnodes;
     *nedges = (MPI_Fint)lnedges;
-    
 }

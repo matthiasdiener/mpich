@@ -1,5 +1,5 @@
 /*
- *  $Id: mperror.c,v 1.10 2000/08/23 17:49:22 gropp Exp $
+ *  $Id: mperror.c,v 1.11 2000/12/19 18:38:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -79,6 +79,9 @@ void MPIR_Errors_are_fatal( MPI_Comm *comm, int *code, char *string,
 #ifdef DEBUG_TRACE
   /* Print internal trace from top down */
   TR_stack_print( stderr, -1 );
+#endif
+#ifdef HAVE_PRINT_BACKTRACE
+  MPIR_Print_backtrace( NULL, 1, "Call stack\n" );
 #endif
 
   /* Comm might be null; must NOT invoke error handler from 

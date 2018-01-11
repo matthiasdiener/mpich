@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.14 2000/07/28 17:34:07 swider Exp $
+ *  $Id: chinit.c,v 1.16 2001/06/21 21:39:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -122,10 +122,7 @@ int  short_len, long_len;
    There should probably be a separate argument for whether it is a 
    user requested or internal abort.
  */
-int MPID_CH_Abort( comm_ptr, code, msg )
-struct MPIR_COMMUNICATOR *comm_ptr;
-int      code;
-char     *msg;
+int MPID_CH_Abort( struct MPIR_COMMUNICATOR *comm_ptr, int code, char *msg )
 {
     if (msg) {
 	fprintf( stderr, "[%d] %s\n", MPID_MyWorldRank, msg );

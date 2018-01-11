@@ -12,7 +12,7 @@
 int main( int argc, char *argv[])
 {
   int idx;
-  int num_procs,my_id,flag;
+  int num_procs,my_id;
   int s;
   int r;
   MPI_Status status;

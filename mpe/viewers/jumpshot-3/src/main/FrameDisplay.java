@@ -202,7 +202,7 @@ implements AdjustmentListener, ActionListener {
         MyButton button = new MyButton( "Print",
                                         "Print display to file or printer",
                                         this);
-            // if (init_win.aplt) button.setEnabled (false);
+            // if ( init_win.getIsApplet() ) button.setEnabled (false);
         oP.add (button);
         oP.add (new MyButton ("Close", "Close window", this));
         // **

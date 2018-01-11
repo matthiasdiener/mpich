@@ -14,6 +14,7 @@
 #include "test.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "mpi.h"
 
 #ifdef HAVE_MPICHCONF_H
@@ -492,15 +493,16 @@ main( int argc, char **argv)
 	exit(-1);
     }
     Test_Waitforall( );
-    MPI_Finalize();
     if (myrank == dest) {
 	int rval;
 	rval = Summarize_Test_Results();
 	Test_Finalize();
+	MPI_Finalize();
 	return rval;
     }
     else {
 	Test_Finalize();
+	MPI_Finalize();
 	return 0;
     }
 }

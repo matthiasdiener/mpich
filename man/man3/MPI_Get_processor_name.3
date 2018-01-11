@@ -1,18 +1,22 @@
-.TH MPI_Get_processor_name 3 "8/30/1999" " " "MPI"
+.TH MPI_Get_processor_name 3 "4/3/2001" " " "MPI"
 .SH NAME
 MPI_Get_processor_name \-  Gets the name of the processor 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
 int MPI_Get_processor_name( 
- char *name,
- int *resultlen)
+        char *name,
+        int *resultlen)
 .fi
 .SH OUTPUT PARAMETERS
 .PD 0
 .TP
 .B name 
-- A unique specifier for the actual (as opposed to virtual) node. 
+- A unique specifier for the actual (as opposed to virtual) node. This
+must be an array of size at least 
+.I MPI_MAX_PROCESSOR_NAME
+\&.
+
 .PD 1
 .PD 0
 .TP

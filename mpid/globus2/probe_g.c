@@ -15,7 +15,6 @@ static int get_elements_from_partial(int req_nelem,
 /********************/
 /* Global Variables */
 /********************/
-extern struct channel_t * CommworldChannels;
 extern globus_mutex_t     MessageQueuesLock;
 
 /*
@@ -450,17 +449,28 @@ int get_proto(struct MPIR_COMMUNICATOR *comm, int src_lrank)
 	if (src_lrank >= 0 && src_lrank < comm->np)
 	{
 	    int src_grank = comm->lrank_to_grank[src_lrank];
-	    if (CommworldChannels[src_grank].selected_proto)
-		rc = CommworldChannels[src_grank].selected_proto->type;
-	    else
+	    struct channel_t *cp;
+
+	    if (!(cp = get_channel(src_grank)))
+	    {
+		rc = -1;
+		globus_libc_fprintf(stderr, 
+		    "ERROR: get_proto: proc %d failed get_channel "
+		    "for src_grank %d\n",
+		    MPID_MyWorldRank, src_grank);
+		print_channels();
+	    }
+	    else if (!(cp->selected_proto))
 	    {
 		rc = -1;
 		globus_libc_fprintf(stderr, 
 		    "ERROR: get_proto: proc %d has NULL selected protocol "
 		    "for src_grank %d\n",
 		    MPID_MyWorldRank, src_grank);
-		print_channels(MPID_MyWorldSize, CommworldChannels);
-	    } /* endif */
+		print_channels();
+	    } 
+	    else
+		rc = (cp->selected_proto)->type;
 	}
 	else
 	{

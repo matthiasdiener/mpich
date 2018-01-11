@@ -1,5 +1,5 @@
 /* 
- *   $Id: wr_atallbf.c,v 1.6 2000/02/09 21:30:31 thakur Exp $    
+ *   $Id: wr_atallbf.c,v 1.7 2000/09/28 15:49:15 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -84,7 +84,12 @@
 #endif
 #endif
 
+
 #if defined(MPIHP) || defined(MPILAM)
+/* Prototype to keep compiler happy */
+void mpi_file_write_at_all_begin_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
+				  int *count,MPI_Fint *datatype, int *ierr );
+
 void mpi_file_write_at_all_begin_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
                           int *count,MPI_Fint *datatype, int *ierr )
 {
@@ -97,6 +102,10 @@ void mpi_file_write_at_all_begin_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
     *ierr = MPI_File_write_at_all_begin(fh_c,*offset,buf,*count,datatype_c);
 }
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_write_at_all_begin_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
+				  int *count,MPI_Datatype *datatype, int *ierr );
+
 void mpi_file_write_at_all_begin_(MPI_Fint *fh,MPI_Offset *offset,void *buf,
                           int *count,MPI_Datatype *datatype, int *ierr )
 {

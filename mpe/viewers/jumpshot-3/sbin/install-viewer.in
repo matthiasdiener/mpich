@@ -24,6 +24,9 @@ libbuild_dir=@libbuild_dir@
 binbuild_dir=@binbuild_dir@
 docbuild_dir=@docbuild_dir@
 logfilesbuild_dir=@logfilesbuild_dir@
+etcbuild_dir=@etcbuild_dir@
+sharebuild_dir=@sharebuild_dir@
+sbinbuild_dir=@sbinbuild_dir@
 swingbuild_dir=@swingbuild_dir@
 
 # Installation directories: Default paths (set at configure time)
@@ -32,8 +35,12 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 bindir=@bindir@
 sbindir=@sbindir@
+datadir=@datadir@
+sysconfdir=@sysconfdir@
 docdir=$prefix/doc
 logfilesdir=$prefix/logfiles
+etcdir=$sysconfdir
+sharedir=$datadir
 if [ -n "$swingbuild_dir" ] ; then
     swingdir=$prefix/swing
 else
@@ -41,8 +48,8 @@ else
 fi
 
 # File access mode
-MODE=0664
-XMODE=0775
+MODE=0644
+XMODE=0755
 replace=1
 # set failmode to soft to let failures accumulate
 failmode="hard"
@@ -348,6 +355,8 @@ if [ "$prefix_override" = 1 ] ; then
     sbindir=$prefix/sbin
     docdir=$prefix/doc
     logfilesdir=$prefix/logfiles
+    etcdir=$prefix/etc
+    sharedir=$prefix/share
     if [ -n "$swingbuild_dir" ] ; then
         swingdir=$prefix/swing
     else
@@ -361,8 +370,12 @@ fi
 # echo "UNINSTALLFILE = $UNINSTALLFILE"
 
 MkDir $sbindir
+CopyFileP $sbinbuild_dir/exejar         $sbindir
+if [ -f $sbindir/exejar ] ; then
+    chmod u+x $sbindir/exejar
+fi
 
-for type in lib doc logfiles swing ; do
+for type in lib doc etc share logfiles swing ; do
     fromdir_name=${type}build_dir
     todir_name=${type}dir
     eval fromdir_value=\$"$fromdir_name"

@@ -82,5 +82,6 @@ EXPORT_MPI_API void mpi_comm_free_ ( MPI_Fint *comm, MPI_Fint *__ierr )
 {
     MPI_Comm l_comm = MPI_Comm_f2c(*comm);
     *__ierr = MPI_Comm_free(&l_comm);
-    *comm = MPI_Comm_c2f(l_comm);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *comm = MPI_Comm_c2f(l_comm);
 }

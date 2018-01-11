@@ -357,7 +357,7 @@ AC_ARG_WITH(mpichdev,	[--with-mpichdev=LIBDIR  Library subdirectory for MPICH/MP
 AC_ARG_WITH(mpichbin,   [--with-mpichbin=BINDIR  bin subdirectory for MPICH/MPI], MPI_IMP="mpich" MPICH_BIN=$withval)
 AC_ARG_WITH(mpichsrc,   [--with-mpichsrc=SRCDIR  source home for MPICH/MPI], MPI_IMP="mpich" MPICH_SRC=$withval)
 AC_ARG_WITH(mpichlib,   [--with-mpichlib=LIBDIR  Library directory for MPICH/MPI], MPI_IMP="mpich" MPILIB_DIR=$withval)
-
+AC_ARG_WITH(mpichlibname,[--with-mpichlibname=NAME Alternate name for MPICH library],MPI_IMP="mpich" MPICH_LIBNAME=$withval,MPICH_LIBNAME="mpich")
 if test "$MPI_IMP" = "mpich"; then
 
     if test "$WITHDIR" = "yes"; then
@@ -427,6 +427,13 @@ if test "$MPI_IMP" = "mpich"; then
 		WANT_UPGRADE=0
 		if test -z "$MPICH_BIN"; then
 		    AC_MSG_ERROR([when configuring for 1.2.1, --with-mpichbin must be specified])
+		fi
+	    elif test "$MPICH_VERSION" = "1.2.2."; then
+		AC_DEFINE(MPI2CPP_MPICH121)
+		AC_MSG_RESULT([1.2.2 (good)])
+		WANT_UPGRADE=0
+		if test -z "$MPICH_BIN"; then
+		    AC_MSG_ERROR([when configuring for 1.2.2, --with-mpichbin must be specified])
 		fi
 	    else
 		AC_DEFINE(MPI2CPP_MPICHUNKNOWN, 1)
@@ -528,7 +535,7 @@ if test "$MPI_IMP" = "mpich"; then
     CXX=$MPI_CXX
     # Tell mpiCC to not load mpi++.h when reading mpi.h
     CXXFLAGS="$CXXFLAGS -DMPICH_SKIP_MPICXX"
-    MPI_LIBS="-lmpich"
+    MPI_LIBS="-l$MPICH_LIBNAME"
 
     # JGS not sure were these should go
     MPI_CXXFLAGS="-I$WITHDIR/include -I$WITHDIR"

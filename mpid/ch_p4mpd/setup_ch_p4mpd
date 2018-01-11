@@ -54,6 +54,90 @@ fi
 
 echo "About to do p4mpd device"
 DEVICE_KIND=network
+#
+# The ch_p4mpd device makes use of the ch_p4/p4 code.  Rather than 
+# always copy the data, we make sure that we have links to the appropriate 
+# directories.
+# First, the default directories
+use_link=yes
+for dir in alog bin servers usc doc lib_f messages contrib contrib_f \
+    messages_f misc monitors ; do
+    if [ ! -d $top_srcdir/mpid/ch_p4mpd/p4mpd/$dir ] ; then
+        # Remove it incase an old link is now bogus
+        rm -f $top_srcdir/mpid/ch_p4mpd/p4mpd/$dir 
+        ln -s $top_srcdir/mpid/ch_p4/p4/$dir \
+	      $top_srcdir/mpid/ch_p4mpd/p4mpd/$dir
+    fi
+done
+# Now, the trickier ones: lib and .
+# These are files that had minor differences
+for file in p4_MD.c p4_MD.h p4_alloc.c p4_args.c p4_broadcast.c \
+    p4_debug.c p4_defs.h p4_funcs.h p4_error.c \
+    p4_rm.c p4_secure.c p4_sock_conn.c p4_sock_cr.c p4_sock_sr.c \
+    p4_sock_util.c p4_sock_util.h p4_sys.h \
+    p4_sys_funcs.h xdr_float.c ; do
+    if [ ! -f $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file ] ; then
+        if [ "$use_link" = "yes" ] ; then
+            # Remove it incase an old link is now bogus
+            rm -f $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file
+            ln -s $top_srcdir/mpid/ch_p4/p4/lib/$file \
+	         $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file 
+	else
+            cp  $top_srcdir/mpid/ch_p4/p4/lib/$file \
+	         $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file 
+	    chmod a-w $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file 
+        fi
+    fi
+done
+# These were identical files between ch_p4/p4/lib and ch_p4mpd/p4mpd/lib
+for file in listener_p4.c p4.h p4_fc.c p4_globals.c p4_globals.h \
+    p4_macros.h p4_mon.c p4_mon.h p4_patchlevel.h p4_procgroup.c \
+    p4_shmem_sr.c p4_sr.h sfcdchi.h makefile.proto ; do
+    if [ ! -f $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file ] ; then
+        if [ "$use_link" = "yes" ] ; then
+            # Remove it incase an old link is now bogus
+            rm -f $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file
+            ln -s $top_srcdir/mpid/ch_p4/p4/lib/$file \
+	          $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file 
+        else
+            cp $top_srcdir/mpid/ch_p4/p4/lib/$file \
+	          $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file 
+	    chmod a-w $top_srcdir/mpid/ch_p4mpd/p4mpd/lib/$file 
+        fi
+    fi
+done
+# These were identical files between ch_p4 and ch_p4mpd
+for file in CHANGES MACHINES OPTIONS README config.guess defs.all \
+    p4_config.h.in ; do 
+    if [ ! -f $top_srcdir/mpid/ch_p4mpd/p4mpd/$file ] ; then
+        if [ "$use_link" = "yes" ] ; then
+            # Remove it incase an old link is now bogus
+            rm -f $top_srcdir/mpid/ch_p4mpd/p4mpd/$file
+            ln -s $top_srcdir/mpid/ch_p4/p4/$file \
+	          $top_srcdir/mpid/ch_p4mpd/p4mpd/$file 
+	else
+            cp $top_srcdir/mpid/ch_p4/p4/$file \
+	          $top_srcdir/mpid/ch_p4mpd/p4mpd/$file 
+	    chmod a-x $top_srcdir/mpid/ch_p4mpd/p4mpd/$file 
+        fi
+    fi
+done
+# These were modified
+for file in configure configure.in ; do
+    if [ ! -f $top_srcdir/mpid/ch_p4mpd/p4mpd/$file ] ; then
+        if [ "$use_link" = "yes" ] ; then
+            # Remove it incase an old link is now bogus
+            rm -f $top_srcdir/mpid/ch_p4mpd/p4mpd/$file
+            ln -s $top_srcdir/mpid/ch_p4/p4/$file \
+	          $top_srcdir/mpid/ch_p4mpd/p4mpd/$file 
+	else 
+            cp $top_srcdir/mpid/ch_p4/p4/$file \
+	          $top_srcdir/mpid/ch_p4mpd/p4mpd/$file 
+	    chmod a-w $top_srcdir/mpid/ch_p4mpd/p4mpd/$file 
+        fi
+    fi
+done
+#
 # In the following, we add mpd to get the ch_p4mpd device if specified
 #  INCLUDE_PATH="$INCLUDE_PATH -I$MPIR_HOME/mpid/ch_p4/p4/include"
 # This needs to get the other libraries as required for the specific
@@ -175,6 +259,14 @@ fi
 if test -n "$P4_OPTS" ; then
     otherargs="$otherargs $P4_OPTS"
 fi
+if test -n "$enable_strict" ; then
+    otherargs="--enable-strict=$enable_strict"
+    export enable_strict_done
+fi
+if test -n "$enable_g" ; then
+    otherargs="--enable-g=$enable_g"
+    export enable_g_simple
+fi
 # specify the C compiler in case it is different from the P4 choice
 if [ ! -d mpid/ch_p4mpd/p4mpd ] ; then 
     mkdir mpid/ch_p4mpd/p4mpd
@@ -232,24 +324,60 @@ if [ ! -d mpid/mpd ] ; then
     mkdir mpid/mpd
 fi
 # Run configure in the mpd directory
+RSHCOMMAND="${RSHCOMMAND-$rshcommand}"
 echo "Configuring mpd subsystem..."
-export VPATH
 (cd mpid/mpd ; \
+    export VPATH ; export RSHCOMMAND ;\
+    export CC ;\
     $top_srcdir/mpid/mpd/configure --with-cc="$CC" \
                 --with-opt="$OPTFLAGS" \
                 --with-top_srcdir=$top_srcdir \
                 -srcdir=$top_srcdir/mpid/mpd \
 		-prefix=$prefix \
 		-exec-prefix=$exec_prefix \
-                -libdir=$top_srcdir/lib )
+                -libdir=$libdir $enable_args )
 if test $? != 0 ; then
     print_error "Configure of the mpd sub-system may have failed!"
     exit 1
 fi
+#
+# The following were moved here from the top-level configure
+if test -s mpid/mpd/mpd.hosts  ; then
+    # Is this the right thing to do?  
+    /bin/rm -f mpid/mpd/mpd.hosts
+fi
+HOST=""
+HOST="`hostname 2>/dev/null`"
+# Note that uname -n may not produce a usable hostname.  
+# Any suggestions?
+if test "$HOST" = "" ; then
+    HOST="`uname -n`"
+fi
+cat > mpid/mpd/mpd.hosts <<EOF
+# Change this file to contain the machines that you want to use
+# to run MPI jobs on.  The format is one host name per line, as in
+#    hostname
+# The hostname should be the same as the result from the command "hostname"
+$HOST
+$HOST
+$HOST
+$HOST
+$HOST
+EOF
+#
 echo "Finished configuring the mpd subsystem"
 # Run configure in the device directory
 export CC 
 export VPATH
-( cd mpid/ch_p4mpd ; $top_srcdir/mpid/ch_p4mpd/configure --srcdir=$srcdir)
+( cd mpid/ch_p4mpd ; export VPATH ; export RSHCOMMAND ;\
+  $top_srcdir/mpid/ch_p4mpd/configure --srcdir=$top_srcdir/mpid/ch_p4mpd)
 # Variable assignments from configure are in localdefs
 #. mpid/ch_p4mpd/localdefs
+#
+# Setup the MPIBOOT etc.
+# Use eval to expand the value of bindir.  Note that bindir is often
+# set to ${exec_prefix}/bin, so we eval again
+eval MPIBOOT=${bindir}/mpichboot
+eval MPIBOOT=$MPIBOOT
+eval MPIUNBOOT=${bindir}/mpichstop
+eval MPIUNBOOT=$MPIUNBOOT

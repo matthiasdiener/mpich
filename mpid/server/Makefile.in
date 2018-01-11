@@ -32,7 +32,7 @@ clean:
 distclean: clean
 	rm -rf Makefile config.cache config.log config.status server.h
 
-configure: configure.in
+configure: configure.in aclocal.m4
 	autoheader
 	autoconf
 

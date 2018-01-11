@@ -359,7 +359,7 @@ get_globus_setting globus_threads_enabled globus_threads_enabled
 # locally.  Obviously, using this technique, we are making the
 # assumption that the host platform and the target platform are the
 # same.  If they are different, then the configure code is going to
-# detect qthe wrong features and values.  The only way to solve this
+# detect the wrong features and values.  The only way to solve this
 # problem in general is to make configure understand how to run on the
 # target machine or have the user supply all of the necessary values,
 # both of which are painful (for us and the users).  For now, we
@@ -633,3 +633,17 @@ sed -e "s!@VMPI@!$VMPI!" \
 # Make sure scripts are executable
 #
 chmod +x ${top_srcdir}/mpid/${DEVICE}/install_globus2
+
+#
+# Add a default machines file if one does not exist
+#
+if [ ! -f ${binbuild_dir}/machines ] ; then
+    echo "Creating a default machines file in ${binbuild_dir}.  This will"
+    echo "allow testing of MPICH-G2, but you will need to create a new"
+    echo "file to exploit the full capabilities of MPICH-G2.  Please see"
+    echo "the documentation."
+    host=`uname -n 2>&1`
+    if [ -n "$host" ] ; then
+        echo "$host" >> ${binbuild_dir}/machines
+    fi
+fi

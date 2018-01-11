@@ -137,5 +137,6 @@ EXPORT_MPI_API void mpi_graph_create_ ( MPI_Fint *comm_old, MPI_Fint *nnodes, MP
 	FREE( lindex );
 	FREE( ledges );
     }
-    *comm_graph = MPI_Comm_c2f(lcomm_graph);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *comm_graph = MPI_Comm_c2f(lcomm_graph);
 }

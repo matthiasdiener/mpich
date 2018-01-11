@@ -106,9 +106,12 @@ EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fi
 {
     MPI_Group l_newgroup;
  
-    if (sizeof(MPI_Fint) == sizeof(int))
+    if (sizeof(MPI_Fint) == sizeof(int)) {
+	/* We cast ranges here in case MPI_Fint != int and the compiler
+	   wants to complain...*/
         *__ierr = MPI_Group_range_incl(MPI_Group_f2c(*group), *n,
-                                       ranges, &l_newgroup);
+                                       (int (*)[])ranges, &l_newgroup);
+    }
     else {
 	int *l_ranges;
 	int i;
@@ -129,5 +132,6 @@ EXPORT_MPI_API void mpi_group_range_incl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fi
                                         &l_newgroup);
 	FREE( l_ranges );
     }
-    *newgroup = MPI_Group_c2f(l_newgroup);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *newgroup = MPI_Group_c2f(l_newgroup);
 }

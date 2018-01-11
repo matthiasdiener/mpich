@@ -1,5 +1,5 @@
 /* 
- *   $Id: info_createf.c,v 1.1 2000/05/26 21:29:24 gropp Exp $    
+ *   $Id: info_createf.c,v 1.2 2001/04/19 20:50:47 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -89,5 +89,6 @@ EXPORT_MPI_API void mpi_info_create_(MPI_Fint *info, MPI_Fint *__ierr )
     MPI_Info info_c;
 
     *__ierr = MPI_Info_create(&info_c);
-    *info = MPI_Info_c2f(info_c);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *info = MPI_Info_c2f(info_c);
 }

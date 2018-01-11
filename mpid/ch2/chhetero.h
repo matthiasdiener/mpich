@@ -28,16 +28,17 @@ extern int MPID_IS_HETERO;
 
 #ifndef MPID_HAS_HETERO
 /* Msgrep is simply OK for Homogeneous systems */
-#define MPID_CH_Comm_msgrep( comm ) ((comm)->msgform = MPID_MSG_OK,MPI_SUCCESS)
+#define MPID_CH_Comm_msgrep( comm ) \
+    ((comm?((struct MPIR_COMMUNICATOR *)comm)->msgform = MPID_MSG_OK:0),MPI_SUCCESS)
 #define MPID_Msgrep_from_comm( comm ) MPID_MSGREP_RECEIVER
 #else
-extern int MPID_CH_Comm_msgrep ANSI_ARGS(( struct MPIR_COMMUNICATOR * ));
+extern int MPID_CH_Comm_msgrep ( struct MPIR_COMMUNICATOR * );
 /* The value of the ? operation is an INT, even though both members come from
    the SAME enumerated type.  At least on SGI... */
 #define MPID_Msgrep_from_comm( comm ) \
 (MPID_Msgrep_t)(((comm)->msgform == MPID_MSG_OK) ? MPID_MSGREP_RECEIVER : MPID_MSGREP_XDR)
 #endif
-extern int MPID_CH_Hetero_free ANSI_ARGS((void));
+extern int MPID_CH_Hetero_free (void);
 
 #ifdef MPID_DEVICE_CODE
 #if defined(HAS_XDR) && defined(MPID_HAS_HETERO)
@@ -46,27 +47,26 @@ extern int MPID_CH_Hetero_free ANSI_ARGS((void));
 #include "rpc/rpc.h"
 #define INCLUDED_RPC_RPC_H
 #endif
-void MPID_Mem_XDR_Init ANSI_ARGS(( char *, int, enum xdr_op, XDR * ));
-int MPID_Mem_XDR_len  ANSI_ARGS(( struct MPIR_DATATYPE *, int ));
-void MPID_Mem_XDR_Free ANSI_ARGS(( XDR * ));
-int MPID_Mem_XDR_Encode ANSI_ARGS(( unsigned char *, unsigned char *,
-				    xdrproc_t, int, int, XDR * ));
-int MPID_Mem_XDR_Encode_Logical ANSI_ARGS(( unsigned char *, unsigned char *,
-				    xdrproc_t, int, XDR * ));
-int MPID_Mem_XDR_ByteEncode ANSI_ARGS(( unsigned char *, unsigned char *,
-					int, XDR * ));
-int MPID_Mem_XDR_Decode ANSI_ARGS(( unsigned char *, unsigned char *,
+void MPID_Mem_XDR_Init ( char *, int, enum xdr_op, XDR * );
+int MPID_Mem_XDR_len  ( struct MPIR_DATATYPE *, int );
+void MPID_Mem_XDR_Free ( XDR * );
+int MPID_Mem_XDR_Encode ( unsigned char *, unsigned char *,
+				    xdrproc_t, int, int, XDR * );
+int MPID_Mem_XDR_Encode_Logical ( unsigned char *, unsigned char *,
+				    xdrproc_t, int, XDR * );
+int MPID_Mem_XDR_ByteEncode ( unsigned char *, unsigned char *, int, XDR * );
+int MPID_Mem_XDR_Decode ( unsigned char *, unsigned char *,
 				    xdrproc_t, int, int, int, int *, int *, 
-				    XDR * ));
-int MPID_Mem_XDR_Decode_Logical ANSI_ARGS(( unsigned char *, unsigned char *,
+				    XDR * );
+int MPID_Mem_XDR_Decode_Logical ( unsigned char *, unsigned char *,
 				    xdrproc_t, int, int, int, int *, int *, 
-				    XDR * ));
-int MPID_Mem_XDR_ByteDecode ANSI_ARGS(( unsigned char *, unsigned char *,
-					int, int, int *, int *, XDR * ));
+				    XDR * );
+int MPID_Mem_XDR_ByteDecode ( unsigned char *, unsigned char *,
+					int, int, int *, int *, XDR * );
 #endif
-int MPID_Type_XDR_encode ANSI_ARGS((unsigned char *, unsigned char *, 
-				    struct MPIR_DATATYPE*, int, void * ));
-int MPID_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *, 
-				    struct MPIR_DATATYPE*, int, void * ));
+int MPID_Type_XDR_encode (unsigned char *, unsigned char *, 
+				    struct MPIR_DATATYPE*, int, void * );
+int MPID_Type_swap_copy (unsigned char *, unsigned char *, 
+				    struct MPIR_DATATYPE*, int, void * );
 #endif /* MPID_DEVICE_CODE */
 #endif

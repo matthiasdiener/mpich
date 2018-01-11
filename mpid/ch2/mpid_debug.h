@@ -10,7 +10,7 @@ int  MPID_GetMsgDebugFlag (void);
 void MPID_PrintMsgDebug   (void);
 void MPID_Print_rhandle   ( FILE *, MPIR_RHANDLE * );
 void MPID_Print_shandle   ( FILE *, MPIR_SHANDLE * );
-
+void MPID_Print_Short_data ( MPID_PKT_SHORT_T * );
 void MPID_Print_last_args( char * );
 void MPID_Ch_dprint_last( void );
 void MPID_Ch_send_last_p4error( char * );
@@ -82,6 +82,9 @@ memcpy( a, b, c );}
        fputs( ch_debug_buf, MPID_DEBUG_FILE );\
        MPID_Print_mode( MPID_DEBUG_FILE, (MPID_PKT_T *)(pkt) );\
        FPRINTF( MPID_DEBUG_FILE, "(%s:%d)\n", __FILE__, __LINE__ );\
+       if ((pkt)->mode == MPID_PKT_SHORT) {\
+           MPID_Print_Short_data( (MPID_PKT_SHORT_T*)pkt );\
+       }\
        fflush( MPID_DEBUG_FILE );}\
      MPID_SAVE_MSG;}}
 

@@ -5,7 +5,7 @@
 /* Define if semctl requires a union semun argument in the 4th position */
 #undef SEMCTL_NEEDS_SEMUN
 
-/* Define as empty if C supports does not support volatile */
+/* Define as empty if C does not support volatile */
 #undef volatile
 
 /* Define if #pragma weak supported */
@@ -16,3 +16,16 @@
 
 /* Define is #pragma _CRI duplicate x as y supported */
 #undef HAVE_PRAGMA_CRI_DUP
+
+/* Define if crypt requires a prototype */
+#undef NEED_CRYPT_PROTOTYPE
+
+/* Define as empty if C does not support any form of restrict or define 
+   as the appropriate extension */
+#undef restrict
+
+/* Define if the XOPEN versions of routines and header files are needed */
+#undef _XOPEN_SOURCE
+
+/* Define as empty if C does not support inline */
+#undef inline

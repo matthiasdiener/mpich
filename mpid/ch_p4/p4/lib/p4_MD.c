@@ -94,6 +94,10 @@ P4VOID MD_initmem(int memsize)
 	nsegs = memsize / segsize;
     else
 	nsegs = memsize / segsize + 1;
+
+    if (nsegs > P4_MAX_SYSV_SHMIDS) 
+	p4_error( "exceeding max num of P4_MAX_SYSV_SHMIDS\n", P4_MAX_SYSV_SHMIDS );
+	
     size = nsegs * segsize;
     /* Try first to get a single section of memeory.  If that doesn't work,
        try to piece it together */
@@ -239,8 +243,7 @@ P4VOID MD_malloc_hint( int a, int b )
 #endif
 }
 
-char *MD_shmalloc(size)
-int size;
+char *MD_shmalloc( int size )
 {
     char *p;
 
@@ -1402,6 +1405,18 @@ int init_sysv_semset(int setnum)
       ushort *array;
       } arg;
 #   else
+#    if defined(SEMCTL_ARG_UNION)
+#       if !defined(SEMUN_UNDEFINED)
+       union semun arg;
+#       else
+       union semun {
+	   int val;
+	   struct semid_ds *buf;
+	   unsigned short int *array;
+	   struct seminfo *__buf;
+       } arg;
+#       endif /* SEMUN_UNDEFINED */
+#   else
 #   if defined(IBM3090) || defined(RS6000) ||    \
        defined(TITAN)  || defined(DEC5000) ||    \
        defined(HP) || defined(KSR)  
@@ -1415,12 +1430,13 @@ int init_sysv_semset(int setnum)
 	   struct seminfo *__buf;
        } arg;
 #   else
-    union semun arg;
+       union semun arg;
 #      endif
 #   endif
 #endif
+#endif
 
-#   if defined(SUN_SOLARIS)
+#   if defined(SUN_SOLARIS) || defined(SEMCTL_ARG_UNION)
     arg.val = 1;
 #   else
 #   if defined(IBM3090) || defined(RS6000) ||    \
@@ -1601,7 +1617,7 @@ int data_representation( char *machine_type )
     if (strcmp(machine_type, "TC_2000_TCMP") == 0)    return 18;
     if (strcmp(machine_type, "KSR") == 0)             return 19;
     if (strcmp(machine_type, "NCUBE") == 0)           return 20;
-    printf("%s\n",machine_type);
+    p4_dprintf("invalid machine type=:%s:\n",machine_type);
     p4_error("data_representation: invalid machine type",0);
     return(-1);
 }

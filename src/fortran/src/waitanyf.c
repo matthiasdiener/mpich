@@ -107,15 +107,18 @@ EXPORT_MPI_API void mpi_waitany_(MPI_Fint *count, MPI_Fint array_of_requests[], 
 
     *__ierr = MPI_Waitany((int)*count,lrequest,&lindex,&c_status);
 
-    if (lindex != -1) {
+    if (lindex >= 0) {
+	/* lindex may be MPI_UNDEFINED if all are null */
 	if (!*__ierr) {
-                array_of_requests[lindex] = MPI_Request_c2f(lrequest[lindex]);
+	    array_of_requests[lindex] = MPI_Request_c2f(lrequest[lindex]);
 	}
     }
 
    if ((int)*count > MPIR_USE_LOCAL_ARRAY) {
 	FREE( lrequest );
     }
+
+    if (*__ierr != MPI_SUCCESS) return;
 
     /* See the description of waitany in the standard; the Fortran index ranges
        are from 1, not zero */

@@ -1,14 +1,15 @@
 /* clog.c */
-#ifdef HAVE_STDLIB_H
-#include <stdlib.h>
-#endif
+#include "mpeconf.h"
 #include <string.h>
 #include <fcntl.h>
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
+#include <stdlib.h>
+#endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#include "mpeconf.h"
 #include "clogimpl.h"
+#include "mpi.h"
 
 void CLOG_nodebuffer2disk( void );
 
@@ -33,13 +34,13 @@ char       CLOG_tmpfilename[CLOG_name_len] = "";
                                 /* local logfile name (abhi)*/ 
 int        CLOG_tempFD = -5;    /* temp log file descriptor (abhi) */
                                 /* buffers for clog-merge (abhi) */ 
-double     *out_buffer;
-double     *left_buffer;
-double     *right_buffer;
+double     *CLOG_out_buffer;
+double     *CLOG_left_buffer;
+double     *CLOG_right_buffer;
 int        CLOG_num_blocks = 0;
 static int me;                  /* process id of this process required for
 				   error messages (abhi)*/
-long       event_count = 0;     /* (abhi) to count number of events */
+long       CLOG_event_count = 0;     /* (abhi) to count number of events */
 void       *slog_buffer;        /* (abhi) to allocate memory for SLOG */
 
 /*@
@@ -73,11 +74,12 @@ void CLOG_init_buffers( void )
 	  the merge process.
 	*/
     }
-    left_buffer   = (double *) MALLOC ( CLOG_BLOCK_SIZE );
-    right_buffer  = (double *) MALLOC ( CLOG_BLOCK_SIZE );
-    out_buffer    = (double *) MALLOC ( CLOG_BLOCK_SIZE );
+    CLOG_left_buffer   = (double *) MALLOC ( CLOG_BLOCK_SIZE );
+    CLOG_right_buffer  = (double *) MALLOC ( CLOG_BLOCK_SIZE );
+    CLOG_out_buffer    = (double *) MALLOC ( CLOG_BLOCK_SIZE );
     CLOG_newbuff(&CLOG_first);	/* get first buffer */
-    if((!left_buffer) || (!right_buffer) || (!out_buffer) || (!CLOG_first)) {
+    if((!CLOG_left_buffer) || (!CLOG_right_buffer) || 
+       (!CLOG_out_buffer) || (!CLOG_first)) {
         fprintf(stderr, __FILE__":CLOG_init_buffers() - \n"
 			"\t""Unable to allocate memory for logging "
                         "at process %d\n", me);
@@ -138,7 +140,7 @@ void CLOG_nodebuffer2disk( void )
     int           ierr;
 
     if ( CLOG_tempFD == -5 ) {
-        CLOG_tempFD = open(CLOG_tmpfilename, O_RDWR|O_CREAT|O_TRUNC, 0600);
+        CLOG_tempFD = OPEN(CLOG_tmpfilename, O_RDWR|O_CREAT|O_TRUNC, 0600);
         if ( CLOG_tempFD == -1 ) {
 	    fprintf( stderr, __FILE__":CLOG_nodebuffer2disk() - \n"
 		  	     "\t""Unable to open temporary log file %s.\n"
@@ -274,7 +276,7 @@ int etype, data;
 char *string;
 {
     if (CLOG_OK) {                                                    
-        event_count++;
+        CLOG_event_count++;
 	{   
 	    static int first = 1;
 	    static int srcloc;

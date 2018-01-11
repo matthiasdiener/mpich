@@ -25,9 +25,7 @@ static int dest = 0;
 /* Prototypes for picky compilers */
 void Generate_Data ( int *, int );
 
-void Generate_Data(buffer, buff_size)
-int *buffer;
-int buff_size;
+void Generate_Data( int *buffer, int buff_size)
 {
     int i;
 
@@ -95,11 +93,11 @@ for this test.\n" );
 		      MPI_COMM_WORLD, &status );
 	MPI_Wait( &r1, &status );
 	Test_Waitforall( );
-	MPI_Finalize();
 	{
 	    int rval = Summarize_Test_Results(); /* Returns number of tests;
 						    that failed */
 	    Test_Finalize();
+	    MPI_Finalize();
 	    return rval;
 	}
 
@@ -114,6 +112,7 @@ for this test.\n" );
 	MPI_Recv( buffer, act_size, MPI_INT, src, 1, MPI_COMM_WORLD, &status );
 
 	Test_Waitforall( );
+	Test_Finalize();
 	MPI_Finalize();
     } else {
 	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");

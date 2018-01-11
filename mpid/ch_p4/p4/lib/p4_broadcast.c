@@ -19,6 +19,10 @@ int data_len, data_type;
 {
     int status = 0;
 
+#ifdef P4_WITH_MPD
+    if (1) return(0);		/* mpd debugging */
+#endif
+
 #if defined(NCUBE)
     int req_type, req_from;
     struct p4_msg *tmsg;
@@ -215,6 +219,11 @@ P4VOID(*op) ANSI_ARGS((char *, char *, int));
     int zero = 0;
     int msg_len;
     char *msg;
+
+#ifdef P4_WITH_MPD
+    p4_dprintfl( 50, "entering AND LEAVING p4_global_op \n");
+    if (1)  return(0);  /* mpd debugging */
+#endif
 
     init_p4_brdcst_info();
 

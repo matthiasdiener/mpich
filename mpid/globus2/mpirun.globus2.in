@@ -21,7 +21,9 @@ createRslJob() {
         contact="`echo \"$line\" | cut -d'\"' -f2`"
         count="`echo \"$line\"  | cut -d'\"' -f3 | sed -e 's/ //g'`"
 	
-	if [ "$count" -eq 0 ]; then
+	if [ "$count" = "" ]; then
+	    count=1
+	elif [ "$count" -eq 0 ]; then
 	    count=1
 	fi
 
@@ -46,10 +48,10 @@ createRslJob() {
 	    echo "   (arguments=$my_cmdLineArgs)"
 	fi
 	if [ $my_stage_file -eq 0 ]; then
-	    echo "   (directory=$my_dirname)"
-	    echo "   (executable=$my_progname)"
+	    echo "   (directory=\"$my_dirname\")"
+	    echo "   (executable=\"$my_progname\")"
 	else
-	    echo "   (executable=\$(GLOBUSRUN_GASS_URL)$my_progname)"
+	    echo "   (executable=\"\$(GLOBUSRUN_GASS_URL)$my_progname\")"
 	fi
 	echo ")"
 

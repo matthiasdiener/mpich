@@ -91,9 +91,6 @@ struct _MPIR_SHANDLE {
     int (*wait)   ANSI_ARGS((MPIR_SHANDLE *));
     int (*cancel) ANSI_ARGS((MPIR_SHANDLE *));
     int (*finish) ANSI_ARGS((MPIR_SHANDLE *));
-
-    void *bsend;                /* Pointer to structure managed for 
-				   buffered sends */
 };
 
 /* 

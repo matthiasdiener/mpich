@@ -6,12 +6,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.NoSuchMethodException;
 
-public class ROUTINES {
-  public static void QuickSort (Vector source, int lBound, int uBound) {
+public class ROUTINES 
+{
+  public static void QuickSort (Vector source, int lBound, int uBound)
+  {
     int lCount, uCount;
     Info pivot, a, b;
     
-    if (lBound >= uBound) return;                  /* trap door for recursion */
+    if (lBound >= uBound) return;            /* trap door for recursion */
 
     a = (Info)source.elementAt (uBound);
     b = (Info)source.elementAt (lBound);
@@ -21,20 +23,20 @@ public class ROUTINES {
       source.setElementAt (b, uBound);
     }
     
-    pivot = (Info)source.elementAt (lBound);  /* comparisons made with this one */
-    lCount = lBound;                               /* forward count starts at the pivot */
-    uCount = uBound;                               /* backward count starts at end */
+    pivot = (Info)source.elementAt (lBound); /* comparisons made with this one */
+    lCount = lBound;                         /* forward count starts at pivot */
+    uCount = uBound;                         /* backward count starts at end */
   
     while (lCount <= uCount) {
       
-      do {                                    /* scan the list from the front + 1 until */
-	lCount++;                             /* the first number greater than */
-      }                                       /* or equal to pivot is found */
+      do {                                   /* scan the list from the front + 1 until */
+	lCount++;                                /* the first number greater than */
+      }                                      /* or equal to pivot is found */
       while (((Info)source.elementAt (lCount)).lenT < pivot.lenT);
       
-      do {                                    /* scan the list from the end - 1 until */
-	uCount--;                             /* the first number less than */
-      }                                       /* or equal to pivot is found */
+      do {                                   /* scan the list from the end - 1 until */
+	uCount--;                                /* the first number less than */
+      }                                      /* or equal to pivot is found */
       while (((Info)source.elementAt (uCount)).lenT > pivot.lenT);
 	
       
@@ -45,7 +47,7 @@ public class ROUTINES {
       	source.setElementAt (a, uCount);
 	source.setElementAt (b, lCount);
       }
-    }                                               /* while lCount <= uCount */
+    }                                        /* while lCount <= uCount */
   
     /* now swap the pivot into the correct position */
     source.setElementAt ((Info)source.elementAt (uCount), lBound);
@@ -67,6 +69,7 @@ public class ROUTINES {
     }
   }
 
+/*
   public static Object invokeMethod (Object target, String methodname,
                                      Object arg) {
     //    System.out.println ("Entering invokeMethod:" + methodname);
@@ -139,4 +142,5 @@ public class ROUTINES {
     //    System.out.println ("Leaving invokeMethod");
     return returnVal;
   }
+*/
 }

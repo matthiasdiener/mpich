@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_ufs_write.c,v 1.5 2000/02/09 21:30:01 thakur Exp $    
+ *   $Id: ad_ufs_write.c,v 1.6 2001/07/27 19:00:51 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -35,7 +35,7 @@ void ADIOI_UFS_WriteContig(ADIO_File fd, void *buf, int count,
     }
 
 #ifdef HAVE_STATUS_SET_BYTES
-    if (err != -1) MPIR_Status_set_bytes(status, datatype, err);
+    if (err != -1 && status) MPIR_Status_set_bytes(status, datatype, err);
 #endif
 
 #ifdef PRINT_ERR_MSG

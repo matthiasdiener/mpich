@@ -11,10 +11,10 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <string.h>
-#ifdef HAVE_STDLIB_H
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
 #endif
-#ifdef HAVE_UNISTD_H
+#if defined( HAVE_UNISTD_H )
 /* Prototype for dup2; also defines STDOUT_FILENO */
 #include <unistd.h>
 #endif
@@ -46,10 +46,10 @@ void MPE_IO_Stdout_to_file( char *name, int mode )
     if ((p = strchr(name,'%')) && p[1] == 'd') {
 	MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 	sprintf( fname, name, rank );
-	fd = open( fname, O_WRONLY | O_CREAT, mode );
+	fd = OPEN( fname, O_WRONLY | O_CREAT, mode );
     }
     else {
-	fd = open( name, O_WRONLY | O_CREAT, mode );
+	fd = OPEN( name, O_WRONLY | O_CREAT, mode );
     }
     dup2( fd, STDOUT_FILENO );
 }

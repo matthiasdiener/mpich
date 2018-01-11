@@ -151,6 +151,7 @@ EXPORT_MPI_API void mpi_ibsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
     *__ierr = MPI_Ibsend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
                          (int)*dest,(int)*tag,MPI_Comm_f2c(*comm),
                          &lrequest);
-    *request = MPI_Request_c2f(lrequest);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *request = MPI_Request_c2f(lrequest);
 }
 #endif

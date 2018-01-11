@@ -33,7 +33,7 @@
  */
 
 /* Put macro-definitions of routines here */
-int p4_proc_info ANSI_ARGS(( int, char **, char ** ));
+int p4_proc_info ( int, char **, char ** );
 #define MPID_getpid(i,n,e) p4_proc_info((i),(n),(e))
 
 /* Communicator initialization routines */

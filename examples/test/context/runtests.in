@@ -86,6 +86,8 @@ RunTest groupcreate 4 "*** Testing Group creation ***"
 
 RunTest ictest 4 "*** Testing Intercommunicators ***"
 
+RunTest icdup 3 "*** Testing dup of an intercommunicator ***"
+
 #
 # ictest2 relies on a inconsistency in the standard, to wit, that the
 # leader in both groups can be the same process.  This seems to be

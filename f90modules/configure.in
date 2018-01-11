@@ -143,10 +143,11 @@ testname="conftest"
 modcase="lower"
 if $F90 -c conftest.f > conftest.out 2>&1 ; then
     MOD=`ls conftest* | grep -v conftest.f | grep -v conftest.o`
-    MOD=`echo $MOD | sed -e 's/conftest\.//g'`
+    MOD=`echo "$MOD" | sed -e 's/conftest\.//g'`
     if test -z "$MOD" ; then
-	MOD=`ls CONFTEST* | grep -v CONFTEST.f | grep -v CONFTEST.o`
-        MOD=`echo $MOD | sed -e 's/CONFTEST\.//g'`
+	MOD=`ls CONFTEST* 2>/dev/null \
+		| grep -v CONFTEST.f | grep -v CONFTEST.o`
+        MOD=`echo "$MOD" | sed -e 's/CONFTEST\.//g'`
 	if test -n "$MOD" ; then
 	    testname="CONFTEST"
 	    modcase="upper"
@@ -154,6 +155,8 @@ if $F90 -c conftest.f > conftest.out 2>&1 ; then
     fi
     if test -z "$MOD" ; then 
         AC_MSG_RESULT(unknown)
+	# Use mod if we can't figure it out
+	MOD="mod"   
     else
         AC_MSG_RESULT($MOD)
     fi
@@ -241,7 +244,7 @@ else
     F90SUFFIX="f"
     AC_MSG_RESULT(no)
 fi
-rm conftest*
+rm -f conftest*
 AC_SUBST(F90SUFFIX)
 
 dnl Checks for libraries.

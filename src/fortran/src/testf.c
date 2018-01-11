@@ -85,6 +85,7 @@ EXPORT_MPI_API void mpi_test_ ( MPI_Fint *request, MPI_Fint *flag, MPI_Fint *sta
     MPI_Request lrequest = MPI_Request_f2c(*request);
 
     *__ierr = MPI_Test( &lrequest, &l_flag, &c_status);
+    if (*__ierr != MPI_SUCCESS) return;
     *request = MPI_Request_c2f(lrequest);
 
     *flag = MPIR_TO_FLOG(l_flag);

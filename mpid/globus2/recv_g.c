@@ -13,7 +13,6 @@ struct mpi_posted_queue   MpiPostedQueue;
 /* access to TcpOutstandingRecvReqs must be controlled by MessageQueuesLock */
 volatile int		  TcpOutstandingRecvReqs = 0;
 extern volatile int	  TcpOutstandingSendReqs;
-extern struct channel_t * CommworldChannels;
 extern globus_mutex_t     MessageQueuesLock;
 extern globus_size_t      Headerlen;
 
@@ -199,6 +198,7 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
     MPIR_RHANDLE *posted = (MPIR_RHANDLE *) request;
     
     DEBUG_FN_ENTRY(DEBUG_MODULE_RECV);
+globus_libc_fprintf(stderr, "NICK: %d enter MPID_IrecvDatatype: tag %d context %d src_lrank %d\n", MPID_MyWorldRank, tag, context_id, src_lrank);
     
     /* Make sure the receive is valid */
     if (buf == NULL && count > 0 && datatype->is_contig)
@@ -243,7 +243,7 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 	    mpi_recv_or_post(posted, error_code);
 	    globus_mutex_unlock(&MessageQueuesLock);
 	} /* endif (proto == mpi) */
-    }
+    } /* endif */
 #   endif
 
     if (posted->req_src_proto == tcp 
@@ -259,6 +259,7 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 						context_id,
 						posted,
 						&unexpected);
+globus_libc_fprintf(stderr, "NICK: %d MPID_IrecvDatatype: tag %d context %d src_lrank %d: found unexpected = %c\n", MPID_MyWorldRank, tag, context_id, src_lrank, (unexpected ? 'T' : 'F'));
 
 	if (unexpected)
 	{
@@ -288,11 +289,11 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 			    "did NOT find request in MPI queue\n");
 		    } /* endif */
 		} /* endif */
-	    }
+	    } /* endif */
 #           endif
 
 	    tmp = MPI_SUCCESS;
-	    if (unexpected->partner != -1)
+	    if (unexpected->needs_ack)
 	    {
 		if (!send_ack_over_tcp(unexpected->partner, 
 				    (void *) &(unexpected->liba), 
@@ -300,8 +301,8 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 		{
 		    /* posted->s.MPI_ERROR = *error_code = MPI_ERR_INTERN; */
 		    tmp = MPI_ERR_INTERN;
-		}
-	    }
+		} /* endif */
+	    } /* endif */
 
 	    {
 		unsigned char *		buf;
@@ -338,7 +339,7 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 		    !unexpected->packed_flag)
 		{
 		    g_free(buf);
-		}
+		} /* endif */
 	    }
 	    
 	    if (rc)
@@ -357,7 +358,7 @@ void MPID_IrecvDatatype(struct MPIR_COMMUNICATOR *comm,
 		    MPI_Comm c = posted->comm->self;
 		    MPI_Comm_free(&c);
 		} /* endif */
-	    }
+	    } /* endif */
 #           endif
 	    MPIR_Type_free(&(posted->datatype));
 	    posted->is_complete = GLOBUS_TRUE;
@@ -392,6 +393,8 @@ void MPID_RecvComplete(MPI_Request request,
 
     DEBUG_FN_ENTRY(DEBUG_MODULE_RECV);
     
+
+globus_libc_fprintf(stderr, "NICK: %d enter MPID_RecvComplete: rhandle->is_complete %c TcpOutstandingRecvReqs %d TcpOutstandingSendReqs %d\n", MPID_MyWorldRank, (rhandle->is_complete ? 'T' : 'F'), TcpOutstandingRecvReqs, TcpOutstandingSendReqs);
     *error_code = 0;
     while (*error_code == 0 && !done)
     {
@@ -703,20 +706,30 @@ int extract_data_into_req(MPIR_RHANDLE *req,
 globus_bool_t send_ack_over_tcp(int grank, void *liba, int libasize)
 {
     globus_size_t nbytes_sent;
+    struct channel_t *cp;
 
-    if (!(CommworldChannels[grank].selected_proto))
+    if (!(cp = get_channel(grank)))
+    {
+        globus_libc_fprintf(stderr,
+	    "ERROR: send_ack_over_tcp: proc %d failed get_channel for"
+	    " grank %d\n",
+            MPID_MyWorldRank, grank); 
+        print_channels();
+	return GLOBUS_FALSE;
+    } 
+    else if (!(cp->selected_proto))
     {
         globus_libc_fprintf(stderr,
 	    "ERROR: send_ack_over_tcp: proc %d does not have selected proto for"
 	    " grank %d\n",
             MPID_MyWorldRank, grank); 
-        print_channels(MPID_MyWorldSize, CommworldChannels);
+        print_channels();
 	return GLOBUS_FALSE;
     } 
-    else if (CommworldChannels[grank].selected_proto->type == tcp)
+    else if ((cp->selected_proto)->type == tcp)
     {
             struct tcp_miproto_t *tp = (struct tcp_miproto_t *) 
-                CommworldChannels[grank].selected_proto->info;
+                (cp->selected_proto)->info;
 	    globus_byte_t *cp = tp->header;
 	    struct tcpsendreq * sr;
 	    
@@ -726,7 +739,7 @@ globus_bool_t send_ack_over_tcp(int grank, void *liba, int libasize)
 		    "ERROR: send_ack_over_tcp: proc %d found NULL handlep"
 		    " for grank %d\n",
 		    MPID_MyWorldRank, grank);
-		print_channels(MPID_MyWorldSize, CommworldChannels);
+		print_channels();
 		return GLOBUS_FALSE;
 	    } /* endif */
 
@@ -759,7 +772,7 @@ globus_bool_t send_ack_over_tcp(int grank, void *liba, int libasize)
 	    "ERROR: send_ack_over_tcp: proc %d called with selected protocol to"
 	    " grank %d something other than TCP\n",
             MPID_MyWorldRank, grank); 
-        print_channels(MPID_MyWorldSize, CommworldChannels);
+        print_channels();
 	return GLOBUS_FALSE;
     } /* endif */
 

@@ -52,7 +52,7 @@ extern int free();
 #endif
 
 /* Prototypes for local routines */
-char *MPER_Copy_string ( char * );
+static char *MPER_Copy_string ( char * );
 
 #if (defined(__STDC__) || defined(__cplusplus))
 #define MPIR_USE_STDARG
@@ -250,8 +250,7 @@ MPI_Errhandler_create( (MPI_Handler_function *)MPE_Errors_to_dbx, &err );
 MPI_Errhandler_set( MPI_COMM_WORLD, err );
 }
 
-char *MPER_Copy_string( str )
-char *str;
+static char *MPER_Copy_string( char *str )
 {
     char *new;
     new = (char *)malloc( strlen(str) + 1 );

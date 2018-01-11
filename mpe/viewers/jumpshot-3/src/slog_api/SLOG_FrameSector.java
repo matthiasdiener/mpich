@@ -1,7 +1,7 @@
 import java.io.*;
 import java.util.*;
 
-public class SLOG_FrameSector
+public class SLOG_FrameSector implements Serializable
 {
     private int     bytesize;          // Byte Size of the sector in file
     private int     Nrec;              // Number of Record in the sector

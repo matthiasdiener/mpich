@@ -285,6 +285,7 @@ int mp_issend(
     return rc;
 } /* end mpi_issend() */
 
+
 #undef DEBUG_FN_NAME
 #define DEBUG_FN_NAME mp_cancel
 int mp_cancel(void *request)
@@ -565,7 +566,6 @@ int mp_comm_get_size()
 {
     return sizeof(MPI_Comm);
 }
-
 
 #undef DEBUG_FN_NAME
 #define DEBUG_FN_NAME mp_comm_split
@@ -999,6 +999,115 @@ int mp_type_struct(
 			   (MPI_Datatype *) old_types, 
 			   (MPI_Datatype *) new_type));
 } /* end mp_type_struct() */
+
+/******************************************************/
+/* START Special boostrap wrappers for vMPI functions */
+/******************************************************/
+
+/*
+ * these are NOT general-purpose wrappers for vMPI functions.
+ * these are special-purpose wrappers for vMPI functions that
+ * are needed during MPID_Init.  they participate in the 
+ * all-to-all distribution function.  
+ *
+ * we needed to write these special-purpose wrappers because
+ * the call to MPID_Init (our function that calls all these functions)
+ * appears _before_ the call to MPIR_Init_dtes (which creates/registers
+ * all the datatypes) in MPIR_Init in mpich/src/env/initutil.c ...
+ * this means that the native MPI datatypes we'd like to use (MPI_{INT,CHAR})
+ * do not exist at our device level yet, so we accomodate them here.
+ *
+ * these functions were written assuming vMPI MPI_COMM_WORLD as
+ * the communicator with root always 0.
+ *
+ */
+
+/* mp_bootstrap_bcast can be called to bcast an MPI_INT or an MPI_CHAR */
+
+#undef DEBUG_FN_NAME
+#define DEBUG_FN_NAME mp_bootstrap_bcast
+int mp_bootstrap_bcast(void *buff, int	count, int type)
+{
+    int	rc;
+    
+    DEBUG_FN_ENTRY(DEBUG_MODULE_MP);
+
+    rc = MPI_Bcast(buff,
+		    count,
+		    (type == 0 ? MPI_INT : MPI_CHAR),
+		    0, /* root */
+		    MPI_COMM_WORLD);
+
+    debug_check_mpi_result("MPI_bootstrap_Bcast()", rc);
+    
+  fn_exit:
+    rc = mpi_error_to_vmpi_error(rc);
+    DEBUG_FN_EXIT(DEBUG_MODULE_MP);
+    return rc;
+}
+
+/* mp_bootstrap_gather is called only to gather an MPI_INT */
+
+#undef DEBUG_FN_NAME
+#define DEBUG_FN_NAME mp_gatherint
+int mp_bootstrap_gather(void *sbuff, int scnt, void *rbuff, int rcnt)
+{
+    int	rc;
+    
+    DEBUG_FN_ENTRY(DEBUG_MODULE_MP);
+
+    rc = MPI_Gather(sbuff,
+		    scnt,
+		    MPI_INT,
+		    rbuff,
+		    rcnt,
+		    MPI_INT,
+		    0, /* root */
+		    MPI_COMM_WORLD);
+
+    debug_check_mpi_result("MPI_bootstrap_Gather()", rc);
+    
+  fn_exit:
+    rc = mpi_error_to_vmpi_error(rc);
+    DEBUG_FN_EXIT(DEBUG_MODULE_MP);
+    return rc;
+}
+
+/* mp_bootstrap_gatherv is called only to gatherv an MPI_CHAR */
+
+#undef DEBUG_FN_NAME
+#define DEBUG_FN_NAME mp_bootstrap_gatherv
+int mp_bootstrap_gatherv(void *sbuff, 
+			int scnt, 
+			void *rbuff, 
+			int *rcnts, 
+			int *displs)
+{
+    int	rc;
+    
+    DEBUG_FN_ENTRY(DEBUG_MODULE_MP);
+
+    rc = MPI_Gatherv(sbuff,
+		    scnt,
+		    MPI_CHAR,
+		    rbuff,
+		    rcnts,
+		    displs,
+		    MPI_CHAR,
+		    0, /* root */
+		    MPI_COMM_WORLD);
+
+    debug_check_mpi_result("MPI_bootstrap_Gatherv()", rc);
+    
+  fn_exit:
+    rc = mpi_error_to_vmpi_error(rc);
+    DEBUG_FN_EXIT(DEBUG_MODULE_MP);
+    return rc;
+}
+
+/****************************************************/
+/* END Special boostrap wrappers for vMPI functions */
+/****************************************************/
 
 /*******************/
 /* Local Functions */

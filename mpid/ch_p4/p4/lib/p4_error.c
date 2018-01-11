@@ -62,7 +62,7 @@ int p4_soft_errors( int onoff )
     return old;
 }
 
-P4VOID p4_error( char *string, int value)
+P4VOID p4_error( char *string, int value )
 {
     char job_filename[64];
 #ifdef USE_PRINT_LAST_ON_ERROR
@@ -80,12 +80,15 @@ P4VOID p4_error( char *string, int value)
        see the comment at the head of the file */
     SIGNAL_P4(SIGINT,SIG_IGN);
     fflush(stdout);
+    if (value != SIGINT) {
+	/* Don't generate this message when there is a SIGINT */
 #ifdef USE_PTHREADS
-    printf("%s: %u:  p4_error: %s: %d\n",whoami_p4,pthread_self(),
-	   string,value);
+	printf("%s: %u:  p4_error: %s: %d\n",whoami_p4,pthread_self(),
+	       string,value);
 #else
-    printf("%s:  p4_error: %s: %d\n",whoami_p4,string,value);
+	printf("%s:  p4_error: %s: %d\n",whoami_p4,string,value);
 #endif
+    }
     if (value < 0)
         perror("    p4_error: latest msg from perror");
     fflush(stdout);
@@ -103,11 +106,19 @@ P4VOID p4_error( char *string, int value)
 
     /* Send kill-clients message to all known listeners */
 
+#ifdef P4_WITH_MPD
+#ifdef FOOGLE
+    /* Not right for mpd */
+    if (p4_get_my_id() != -99)   /* if I am not the listener */
+	zap_remote_p4_processes();
+#endif
+#else
     if (p4_local->my_id != -99)   /* if I am not the listener */
     {
         p4_dprintfl(99, "about to zap remote processes, value=%d\n", value);
 	zap_remote_p4_processes();
     }
+#endif
 
     /* shutdown(sock,2), close(sock) all sockets */
 #   ifdef CAN_DO_SOCKET_MSGS
@@ -122,6 +133,13 @@ P4VOID p4_error( char *string, int value)
     unlink(p4_sgi_shared_arena_filename);
 #   endif
 
+#ifdef P4_WITH_MPD
+    { BNR_Group mygroup;
+      int rc;
+      rc = BNR_Get_group( &mygroup );
+      BNR_Kill( mygroup );
+    }
+#endif
     if (execer_starting_remotes  &&  execer_mynodenum == 0)
     {
 	strcpy(job_filename,"/tmp/p4_");

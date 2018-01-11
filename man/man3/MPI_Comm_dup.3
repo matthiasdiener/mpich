@@ -1,12 +1,12 @@
-.TH MPI_Comm_dup 3 "8/10/2000" " " "MPI"
+.TH MPI_Comm_dup 3 "8/14/2001" " " "MPI"
 .SH NAME
 MPI_Comm_dup \-  Duplicates an existing communicator with all its cached information 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
 int MPI_Comm_dup ( 
- MPI_Comm comm, 
- MPI_Comm *comm_out )
+        MPI_Comm comm, 
+        MPI_Comm *comm_out )
 .fi
 .SH INPUT PARAMETER
 .PD 0
@@ -19,10 +19,41 @@ int MPI_Comm_dup (
 .PD 0
 .TP
 .B newcomm 
-- copy of 
+- A new communicator over the same group as 
 .I comm
-(handle) 
+but with a new
+context. See notes.  (handle) 
 .PD 1
+
+.SH NOTES
+This routine is used to create a new communicator that has a new
+communication context but contains the same group of processes as
+the input communicator.  Since all MPI communication is performed
+within a communicator (specifies as the group of processes 
+.B plus
+the context), this routine provides an effective way to create a
+private communicator for use by a software module or library.  In
+particular, no library routine should use 
+.I MPI_COMM_WORLD
+as the
+communicator; instead, a duplicate of a user-specified communicator
+should always be used.  For more information, see Using MPI, 2nd
+edition.
+
+Because this routine essentially produces a copy of a communicator,
+it also copies any attributes that have been defined on the input
+communicator, using the attribute copy function specified by the
+.I copy_function
+argument to 
+.I MPI_Keyval_create
+\&.
+This is
+particularly useful for (a) attributes that describe some property
+of the group associated with the communicator, such as its
+interconnection topology and (b) communicators that are given back
+to the user; the attibutes in this case can track subsequent
+.I MPI_Comm_dup
+operations on this communicator.
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 
@@ -88,7 +119,8 @@ implementation is unable to acquire memory.
 .PD 1
 
 .SH SEE ALSO
-MPI_Comm_free
+MPI_Comm_free, MPI_Keyval_create, MPI_Attr_set, MPI_Attr_delete
 .br
+
 .SH LOCATION
 comm_dup.c

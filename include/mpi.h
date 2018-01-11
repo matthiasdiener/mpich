@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.30 2000/08/28 19:02:39 gropp Exp $
+ *  $Id: mpi.h,v 1.34 2001/08/14 14:48:11 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -9,6 +9,9 @@
 
 #ifndef _MPI_INCLUDE
 #define _MPI_INCLUDE
+
+/* needed for MPI-2 extensions */
+#define MPI_MAX_PORT_NAME 256
 
 /* 
    NEW_POINTERS enables using ints for the MPI objects instead of addresses.
@@ -268,7 +271,14 @@ typedef struct MPIR_Info *MPI_Info;
 /*************** Experimental MPICH FEATURES BEGIN HERE *******************/
 /* Attribute keys.  These are set to MPI_KEYVAL_INVALID by default */
 extern int MPICHX_QOS_BANDWIDTH;
+extern int MPICHX_QOS_PARAMETERS;
 /**************** Experimental MPICH FEATURES END HERE ********************/
+
+/******** Globus-2 device gives access to the underlying processor ********/
+/******** topology at the user level using attribute caching **************/
+extern int MPICHX_TOPOLOGY_DEPTHS;
+extern int MPICHX_TOPOLOGY_COLORS;
+/******** End of Globus-2 device keys *************************************/
 
 /* MPI's error classes */
 #include "mpi_errno.h"
@@ -634,8 +644,8 @@ EXPORT_MPI_API int PMPI_Finalize(void);
 EXPORT_MPI_API int PMPI_Initialized(int *);
 EXPORT_MPI_API int PMPI_Abort(MPI_Comm, int);
 /* MPI-2 communicator naming functions */
-/* EXPORT_MPI_API int PMPI_Comm_set_name(MPI_Comm, char *); */
-/* EXPORT_MPI_API int PMPI_Comm_get_name(MPI_Comm, char **); */
+EXPORT_MPI_API int PMPI_Comm_set_name(MPI_Comm, char *);
+EXPORT_MPI_API int PMPI_Comm_get_name(MPI_Comm, char *, int *); 
 #ifdef HAVE_NO_C_CONST
 /* Default Solaris compiler does not accept const but does accept prototypes */
 #if defined(USE_STDARG) 

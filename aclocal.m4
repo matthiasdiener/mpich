@@ -148,7 +148,7 @@ dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_LONG_LONG_INT,
 [AC_REQUIRE([AC_PROG_CC])dnl
 AC_MSG_CHECKING([for long long])
-AC_TEST_PROGRAM([int main() {
+PAC_TEST_PROGRAM([int main() {
 /* See long double test; this handles the possibility that long long
    has the same problem on some systems */
 exit(sizeof(long long) < sizeof(long)); }],
@@ -203,7 +203,7 @@ AC_MSG_RESULT(yes)
 else
 AC_COMPILE_CHECK(,,long double a;return 0;,ldok=1,ldok=0)
 if test $ldok = 1 ; then
-    AC_TEST_PROGRAM([int main() {
+    PAC_TEST_PROGRAM([int main() {
 /* On Ultrix 4.3 cc, long double is 4 and double is 8.  */
 exit(sizeof(long double) < sizeof(double)); }],
 AC_DEFINE(HAVE_LONG_DOUBLE)AC_MSG_RESULT(yes),
@@ -238,7 +238,7 @@ dnl
 dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 define(PAC_WORDS_BIGENDIAN,
 [AC_MSG_CHECKING([byte ordering])
-AC_TEST_PROGRAM([main () {
+PAC_TEST_PROGRAM([main () {
   /* Are we little or big endian?  From Harbison&Steele.  */
   union
   {
@@ -872,6 +872,7 @@ ifelse([$3],,, [test -n "[$]$1" || $1="$3"
 dnl
 dnl *** THIS IS SUPERCEEDED BY AN AUTOCONF 2 MACRO ***
 dnl PAC_CHECK_SIZEOF(TYPE)
+dnl (switch to testcc now done by PAC_TEST_PROGRAM)
 define(PAC_CHECK_SIZEOF,
 [changequote(<<, >>)dnl
 dnl The name to #define.
@@ -892,11 +893,7 @@ if test "$cross_compiling" = 1 -a -z "$TESTCC" ; then
     fi
 else
 AC_MSG_CHECKING(size of $1)
-if test -n "$TESTCC" ; then
-    CCsav="$CC"
-    CC="$TESTCC"
-fi
-AC_TEST_PROGRAM([#include <stdio.h>
+PAC_TEST_PROGRAM([#include <stdio.h>
 main()
 {
   FILE *f=fopen("cftestval", "w");
@@ -905,9 +902,6 @@ main()
   exit(0);
 }], AC_CV_NAME=`cat cftestval`,AC_CV_NAME=0)
 rm -f cftestval
-if test -n "$TESTCC" ; then
-    CC="$CCsav"
-fi
 
 if test "$AC_CV_NAME" = 0 ; then
 AC_MSG_RESULT($1 unsupported)
@@ -1638,10 +1632,15 @@ case $1 in
    meiko|solaris) AR="ar cr" ; ARNAME="ar" ; ARARGS="cr" 
    ;;
    ncube) AR="nar cr" ; ARNAME="nar" ; ARARGS="cr" ;;
+   *)
+   PAC_PROGRAMS_CHECK(ARNAME,ar)
 esac
 fi
+if test -z "$ARNAME" ; then
+    ARNAME="ar"
+fi
 if test -z "$AR" ; then 
-    AR="ar cr$ARLOCAL" ; ARNAME="ar" ; ARARGS="cr$ARLOCAL" 
+    AR="$ARNAME cr$ARLOCAL" ; ARARGS="cr$ARLOCAL" 
 fi
 ])dnl
 dnl --------------------------------------------------------
@@ -1912,9 +1911,11 @@ if test -n "$pac_cv_cross_compiling" ; then
 else
     AC_MSG_CHECKING(whether cross-compiling)
     # If we cannot run a trivial program, we must be cross compiling.
+    dnl This must use AC_TEST_PROGRAM, not PAC_TEST_PROGRAM, because
+    dnl PAC_TEST_PROGRAM tries to use the TESTCC program
     AC_TEST_PROGRAM([main(){exit(0);}], pac_ok=1, pac_ok=0)
     if test $pac_ok = 1 ; then
-         AC_TEST_PROGRAM([main(){exit(1);}], pac_ok=0 )
+        AC_TEST_PROGRAM([main(){exit(1);}], pac_ok=0 )
         if test $pac_ok = 1 ; then
 	    pac_cv_cross_compiling="no"
             AC_MSG_RESULT(no)
@@ -3349,7 +3350,17 @@ int foo(int);
 int main(void){ return foo(-1); }
 EOF
     if ${CC-cc} $CFLAGS $CC_SHARED_OPT -c conftest.c >conftest.out 2>&1 ; then
-	$SHARED_LIB_UTIL -obj=conftest.o -lib=libconftest.a
+	if $SHARED_LIB_UTIL -obj=conftest.o -lib=libconftest.a >conftest.out 2>&1 ; then
+	    :
+	else
+	    echo "Failed to build shared library" >> config.log
+	    cat conftest.out >>config.log
+	    # The next statement will fail because there is no library,
+	    # which is ok because it does so relatively silently.
+	    rm -f conftest.out
+	    echo "Steps taken to build the shared library:" >>config.log
+	    $SHARED_LIB_UTIL -echo -obj=conftest.o -lib=libconftest.a >>config.log 2>&1 
+	fi
 	if ${CC-cc} $CFLAGS -o conftest conftest1.c $SHARED_LIB_PATH \
 		$SHARED_LIB_SEARCH_PATH -lconftest >conftest.out 2>&1 ; then
 	   ifelse([$1],,,[$1])
@@ -3643,6 +3654,10 @@ havestdarg=1])
 # are quite happy to accept the *wrong* number of arguments to a macro!
 # Instead, we try to find a clean compile version, using our special
 # TRY_COMPILE_CLEAN command
+#
+# This approach fails for compilers that generate noise.  What we need to 
+# do is to run a program that makes use of stdarg and see if it works 
+# correctly.  We can fall back on this approach when cross-compiling
 #
 USE_STDARG=0
 AC_SUBST(USE_STDARG)

@@ -13,6 +13,11 @@
 #undef TM_IN_SYS_TIME
 
 #undef HAVE_SHMALLOC
+#undef restrict
+#undef HAVE_LONG_LONG
+
+/* Define if you have the MPI_Get function.  */
+#undef HAVE_MPI_GET
 
 /* Define if you have the MPI_Put function.  */
 #undef HAVE_MPI_PUT

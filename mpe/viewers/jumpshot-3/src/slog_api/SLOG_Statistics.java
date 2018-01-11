@@ -1,13 +1,13 @@
 import java.io.*;
 import java.util.*;
 
-public class SLOG_Statistics
+public class SLOG_Statistics implements Serializable
 {
-    double        starttime;
-    double        endtime;
-    int           Nset;
-    int           Nbin;
-    Vector        sets;       // Vector of SLOG_StatSet
+    private double        starttime;
+    private double        endtime;
+    private int           Nset;
+    private int           Nbin;
+    private Vector        sets;       // Vector of SLOG_StatSet
 
     public SLOG_Statistics()
     {
@@ -16,6 +16,21 @@ public class SLOG_Statistics
         Nset       = SLOG_Const.INVALID_int;
         Nbin       = SLOG_Const.INVALID_int;
         sets       = null;
+    }
+
+    public Enumeration GetEnumerationOfSets()
+    {
+        return sets.elements();
+    }
+
+    public int GetNumOfSets()
+    {
+        return Nset;
+    }
+
+    public int GetNumOfBins()
+    {
+        return Nbin;
     }
 
     public SLOG_Statistics( RandomAccessFile file_stm )

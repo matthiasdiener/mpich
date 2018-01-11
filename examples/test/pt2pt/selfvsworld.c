@@ -14,22 +14,22 @@
  * ------------------------------------------------------------------------ */
 #include <stdio.h>
 #include "mpi.h"
-#define MSGLEN 100         /* length of message in elements */
+#define MSGLEN 100            /* length of message in elements */
 #define TAG_A 100
 #define TAG_B 200
 
 int main( int argc, char *argv[] ) 
 {
-  float message1 [MSGLEN],   /* message buffers                      */
+  float message1 [MSGLEN],    /* message buffers                      */
         message2 [MSGLEN],
         message3 [MSGLEN];
-  int rank,                  /* rank of task in communicator         */
-      dest, source,          /* rank in communicator of destination  */
-                             /* and source tasks                     */
-      send_tag, recv_tag,    /* message tags                         */
+  int rank,                   /* rank of task in communicator         */
+      dest=0, source=0,       /* rank in communicator of destination  */
+                              /* and source tasks                     */
+      send_tag=0, recv_tag=0, /* message tags                         */
       flag, size, i;
   int errs = 0, toterrs;
-  MPI_Status status;         /* status of communication              */
+  MPI_Status status;          /* status of communication              */
   MPI_Status statuses[2];
   MPI_Request requests[2];
 

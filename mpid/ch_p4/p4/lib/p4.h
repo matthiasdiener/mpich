@@ -47,7 +47,7 @@ struct p4_procgroup_entry {
     char username[10];
 };
 
-#define P4_MAX_PROCGROUP_ENTRIES 256
+#define P4_MAX_PROCGROUP_ENTRIES 1024
 struct p4_procgroup {
     struct p4_procgroup_entry entries[P4_MAX_PROCGROUP_ENTRIES];
     int num_entries;

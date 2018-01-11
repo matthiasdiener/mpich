@@ -800,8 +800,8 @@ int SLOG_STM_WriteFrameDirHdr( SLOG_STREAM       *slog )
 int SLOG_STM_UpdateFrameDirEntry_Forward(       SLOG_STREAM  *slog,
                                           const int           IsLastFrame )
 {
-    SLOG_time   endtime_tmp;
-    int         idx_of_cur_frame;
+    SLOG_time           endtime_tmp;
+    SLOG_uint32         idx_of_cur_frame;
 
     /*  Update the Buffer's Frame Directory Entry  */
 
@@ -855,6 +855,16 @@ int SLOG_STM_UpdateFrameDirEntry_Forward(       SLOG_STREAM  *slog,
             if ( endtime_tmp > ( slog->frame_dir_entry ).endtime ) 
                 ( slog->frame_dir_entry ).endtime = endtime_tmp;
         }
+    }
+
+    if ( idx_of_cur_frame >= slog->hdr->max_Ndirframe ) {
+        fprintf( errfile, __FILE__
+                          ":SLOG_STM_UpdateFrameDirEntry_Forward() - "
+                          "the current frame index ("fmt_ui32") >= maximum "
+                          "number of frames per directory ("fmt_ui32") !!!\n",
+                          idx_of_cur_frame, slog->hdr->max_Ndirframe );
+        fflush( errfile );
+        return SLOG_FAIL;
     }
 
     /*  Update the (slog->frame_dir).entries[ idx_of_current_frame ]  */

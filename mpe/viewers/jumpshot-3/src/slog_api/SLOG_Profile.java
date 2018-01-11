@@ -1,13 +1,18 @@
 import java.io.*;
 import java.util.*;
 
-public class SLOG_Profile
+public class SLOG_Profile implements Serializable
 {
-    Vector entries;  // Vector of SLOG_ProfileEntry
+    private Vector    entries;  // Vector of SLOG_ProfileEntry
 
     public SLOG_Profile()
     {
         entries  = new Vector( 0 );
+    }
+
+    public Enumeration GetEnumerationOfEntries()
+    {
+        return entries.elements();
     }
 
     public SLOG_Profile( RandomAccessFile file_stm )

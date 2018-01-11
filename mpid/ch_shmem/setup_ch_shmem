@@ -38,7 +38,10 @@ DEFAULT_MACHINE="smp"
 rm -f ${top_srcdir}/mpid/ch_shmem/mpich-mpid.h
 ( cd mpid/ch_shmem ; export CC ; export usesysv ; \
     $top_srcdir/mpid/ch_shmem/configure )
-
+if [ $? != 0 ] ; then
+    echo "Aborting device setup because device configure failed"
+    exit 1
+fi
 # Variable assignments from configure are in localdefs
 . mpid/ch_shmem/localdefs
 LIB_LIST="$LIB_LIST $CHSHMEM_LIBS"

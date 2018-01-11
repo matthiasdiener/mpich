@@ -24,18 +24,23 @@ EXAMPLES  = hellop
 
 SOURCES   = ${mpd_SOURCES} ${base_SOURCES} ${example_SOURCES}
 OBJECTS   = ${mpd_OBJECTS} ${base_OBJECTS} ${example_OBJECTS}
-HEADERS   = mpdconf.h mpd.h mpdlib.h mpdman.h
+HEADERS   = mpdconf.h mpd.h mpdlib.h mpdman.h mpdattach.h # QuickData.h
 
-CMDS      =  mpirun mpigdb mpdtrace mpddump mpdringtest mpdexit mpdallexit \
+CMDS      =  mpirun mpigdb mpdtrace mpddump mpdringtest mpdringsize mpdexit mpdallexit \
              mpdbomb mpdhelp mpdcleanup mpdmpexec mpdmandump \
-             mpdlistjobs mpdkilljob 
+             mpdlistjobs mpdkilljob mpdshutdown mpdclean
 
-mpd_SOURCES     = mpd.c handlers.c sockets.c sibproc.c conproc.c util.c
+CMDS_FROM_CON = mpdtrace mpddump mpdexit mpdallexit mpdbomb mpdhelp \
+		mpdcleanup mpdmpexec mpigdb mpdmandump mpdlistjobs \
+		mpdkilljob mpdringtest mpdshutdown mpdringsize \
+		mpdclean
+
+mpd_SOURCES     = mpd.c handlers.c sockets.c sibproc.c conproc.c util.c \
+                  mpddebugutil.c # QuickData.c
 base_SOURCES	= mpdlib.c
 example_SOURCES	= hellop.c 
 
 mpd_OBJECTS	= ${mpd_SOURCES:.c=.o}
-#mpd_OBJECTS     =  mpd.o handlers.o sockets.o sibproc.o conproc.o util.o
 base_OBJECTS	= ${base_SOURCES:.c=.o}
 example_OBJECTS	= ${example_SOURCES:.c=.o}
 
@@ -53,19 +58,19 @@ cmds: mpdcon
 	@for cmd in ${CMDS} ; do \
 	    if [ ! -f $$cmd ] ; then \
 		if [ "$$cmd" != "mpigdb"  -o  "$(GDB)" = "1" ] ; then \
-			ln -s mpdcon $$cmd ; \
+			ln -s -f mpdcon $$cmd ; \
 	    	fi ; \
 	    fi ; \
 	done
 
-mpd: ${mpd_OBJECTS}
-	$(C_LINK) -o mpd ${mpd_OBJECTS} $(LIBS)
+mpd: ${mpd_OBJECTS} mpdlib.o
+	$(C_LINK) -o mpd ${mpd_OBJECTS} mpdlib.o $(LIBS)
 
-mpdman: mpdman.o util.o sockets.o
-	$(C_LINK) -o mpdman mpdman.o util.o sockets.o $(LIBS)
+mpdman: mpdman.o util.o sockets.o mpdlib.o
+	$(C_LINK) -o mpdman mpdman.o util.o sockets.o mpdlib.o $(LIBS)
 
-mpdcon: mpdcon.o util.o sockets.o
-	$(C_LINK) -o mpdcon mpdcon.o sockets.o util.o $(LIBS)
+mpdcon: mpdcon.o util.o sockets.o mpddebugutil.o merge.o set.o mpdlib.o
+	$(C_LINK) -o mpdcon mpdcon.o sockets.o util.o mpddebugutil.o merge.o set.o mpdlib.o $(LIBS) 
 
 # The following lines provide the right libraries for all example programs
 .c:
@@ -92,7 +97,7 @@ Makefile: ${srcdir}/Makefile.in config.status
 	./config.status
 
 sibproc.o: sibproc.c
-	${C_COMPILE} -c -DMANAGER_PATHNAME=\"`pwd`/mpdman\" $< 
+	${C_COMPILE} -c -DMANAGER_PATHNAME=\"${bindir}/mpdman\" $< 
 
 .c.o:	
 	${C_COMPILE} -c $<
@@ -115,38 +120,38 @@ sockets.o: sockets.c mpd.h
 util.o: util.c mpd.h
 
 # Installation target
+# This installation target isn't ready yet; it needs to be more careful
+# of modes (particularly setting a+x)
 install:
 # startdaemons at least temporarily obsolete      
 #	sed -e "s/^DIR=.*$/DIR=${bindir}/g" ${top_srcdir}/mpid/mpd/startdaemons.in ${bindir}/startdaemons
 #	chmod ${XMODE} ${bindir}/startdaemons
+	if [ ! -d ${bindir} ] ; then \
+	    mkdir -p ${bindir} ;\
+	fi   
 	cp mpd ${bindir}/mpd
 	cp mpdcon ${bindir}/mpdcon
+	@if [ "`whoami`" = "root" ] ; then \
+	    echo "chmod 4755 ${bindir}/mpdcon" ;\
+	    chmod 4755 ${bindir}/mpdcon ;\
+	fi
 	cp mpdman ${bindir}/mpdman
 #	if [ -f startdaemons -a mpd.hosts ] ; then \
 #	    cp startdaemons ${bindir}/startdaemons ;\
 #	    cp mpd.hosts ${bindir}/mpd.hosts ;\
 #	fi
-#  This should be a loop over CMDS
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdtrace
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpddump
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdexit
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdallexit
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdbomb
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdhelp
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdcleanup
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdmpexec
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpigdb
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdmandump
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdlistjobs
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdkilljob
-	@LN_S@ ${bindir}/mpdcon ${bindir}/mpdringtest
+	-@for cmd in ${CMDS_FROM_CON} ; do \
+	    rm -f ${bindir}/$$cmd ; \
+	    @LN_S@ -f ${bindir}/mpdcon ${bindir}/$$cmd ; done
 #  Some other part of mpich install might have created an mpirun
 	/bin/rm -f ${bindir}/mpirun
+	@LN_S@ -f ${bindir}/mpdcon ${bindir}/mpirun
 	-@if [ -n "${UNINSTALLFILE}" ] ; then \
-	    for file in mpd mpdcon mpdman mpdtrace mpddump mpdexit \
+	    for file in mpd mpdcon mpdman mpdtrace mpddump mpdexit mpirun \
 	        mpdallexit mpdbomb mpdhelp mpdcleanup mpdmpexec \
-		mpigdb mpdmandump mpdlistjobs mpdkilljob mpdringtest ; do \
-	        echo "/bin/rm -f ${bindir}/$$file" >> ${UNINSTALLFILE} ; \
+	        mpdclean \
+		mpigdb mpdmandump mpdlistjobs mpdkilljob mpdringtest mpdringsize mpdshutdown; do \
+	        echo "/bin/rm -f ${bindir}/$$file" >> "${UNINSTALLFILE}" ; \
 	    done ; \
 	fi
 #

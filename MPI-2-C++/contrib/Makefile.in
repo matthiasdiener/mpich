@@ -103,12 +103,14 @@ GZIP = --best
 default: all
 
 .SUFFIXES:
+# Tru64 complains about empty SUFFIX lists
+.SUFFIXES: .c
 #$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 #	cd $(top_srcdir) && $(AUTOMAKE) --foreign contrib/Makefile
 
-Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
-	cd $(top_builddir) \
-	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+#Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+#	cd $(top_builddir) \
+#	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
 
 # This directory's subdirectories are mostly independent; you can cd
@@ -193,7 +195,8 @@ dvi: dvi-recursive
 check: all-am
 	$(MAKE) check-recursive
 installcheck: installcheck-recursive
-all-am: Makefile
+#all-am: Makefile
+all-am:
 
 install-exec: install-exec-recursive
 	@$(NORMAL_INSTALL)

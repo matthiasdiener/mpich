@@ -83,5 +83,6 @@ EXPORT_MPI_API void mpi_comm_dup_ ( MPI_Fint *comm, MPI_Fint *comm_out, MPI_Fint
     MPI_Comm l_comm_out;
 
     *__ierr = MPI_Comm_dup( MPI_Comm_f2c(*comm), &l_comm_out );
-    *comm_out = MPI_Comm_c2f(l_comm_out);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *comm_out = MPI_Comm_c2f(l_comm_out);
 }

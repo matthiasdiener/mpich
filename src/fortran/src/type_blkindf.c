@@ -118,7 +118,8 @@ EXPORT_MPI_API void mpi_type_create_indexed_block_( MPI_Fint *count, MPI_Fint *b
     if ((int)*count > MPIR_USE_LOCAL_ARRAY) 
 	FREE( l_array_of_displacements );
 
-    *newtype = MPI_Type_c2f( lnewtype );
+    if (*__ierr == MPI_SUCCESS) 
+        *newtype = MPI_Type_c2f( lnewtype );
 }
 
 

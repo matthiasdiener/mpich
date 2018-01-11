@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_write_coll.c,v 1.5 2000/03/06 22:55:29 thakur Exp $    
+ *   $Id: ad_write_coll.c,v 1.7 2001/07/27 19:01:27 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -76,9 +76,6 @@ void ADIOI_GEN_WriteStridedColl(ADIO_File fd, void *buf, int count,
     ADIO_Offset *fd_start, *fd_end, fd_size, min_st_offset, *end_offsets;
     ADIO_Offset off;
     char *value;
-#ifdef HAVE_STATUS_SET_BYTES
-    int bufsize, size;
-#endif
 
 #ifdef PROFILE
 	MPE_Log_event(13, 0, "start computation");
@@ -221,9 +218,13 @@ void ADIOI_GEN_WriteStridedColl(ADIO_File fd, void *buf, int count,
     ADIOI_Free(fd_end);
 
 #ifdef HAVE_STATUS_SET_BYTES
-    MPI_Type_size(datatype, &size);
-    bufsize = size * count;
-    MPIR_Status_set_bytes(status, datatype, bufsize);
+    if (status) {
+      int bufsize, size;
+      /* Don't set status if it isn't needed */
+      MPI_Type_size(datatype, &size);
+      bufsize = size * count;
+      MPIR_Status_set_bytes(status, datatype, bufsize);
+    }
 /* This is a temporary way of filling in status. The right way is to 
    keep track of how much data was actually written during collective I/O. */
 #endif
@@ -251,9 +252,9 @@ static void ADIOI_Exch_and_write(ADIO_File fd, void *buf, MPI_Datatype
    array to a file, where each local array is 8Mbytes, requiring
    at least another 8Mbytes of temp space is unacceptable. */
 
-    int hole, i, j, m, size, ntimes, max_ntimes, buftype_is_contig;
+    int hole, i, j, m, size=0, ntimes, max_ntimes, buftype_is_contig;
     ADIO_Offset st_loc=-1, end_loc=-1, off, done, req_off;
-    char *write_buf;
+    char *write_buf=NULL;
     int *curr_offlen_ptr, *count, *send_size, req_len, *recv_size;
     int *partial_recv, *sent_to_proc, *start_pos, flag;
     int *send_buf_idx, *curr_to_proc, *done_to_proc;
@@ -515,7 +516,7 @@ static void ADIOI_W_Exchange_data(ADIO_File fd, void *buf, char *write_buf,
                          int *error_code)
 {
     int i, j, k, *tmp_len, nprocs_recv, nprocs_send, err;
-    char **send_buf; 
+    char **send_buf = NULL; 
     MPI_Request *requests;
     MPI_Datatype *recv_types;
     MPI_Status *statuses, status;

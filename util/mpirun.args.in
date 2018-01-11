@@ -73,7 +73,7 @@ mpirun [mpirun_options...] <progname> [options...]
   mpirun_options:
     -arch <architecture>
             specify the architecture (must have matching machines.<arch>
-            file in ${MPIR_HOME}/bin/machines) if using the execer
+            file in ${datadir}) if using the execer
     -h      This help
     -machine <machine name>
             use startup procedure for <machine name>
@@ -95,7 +95,16 @@ cat <<EOF
 	    currently only ch_mpl device supports this)
     -nolocal
             don't run on the local machine (only works for 
-            p4 and ch_p4 jobs)
+            ch_p4 jobs)
+    -all-cpus, -allcpus
+            Use all available CPUs on all the nodes.
+    -all-local
+            Run all processes on the master node.
+    -exclude <list>
+            Exclude nodes in a colon delimited list.
+    -map <list>
+            Use the colon delimited list to specify which rank
+            runs on which nodes.
     -stdin filename
             Use filename as the standard input for the program.  This
             is needed for programs that must be run as batch jobs, such
@@ -204,7 +213,7 @@ EOF
 
 if [ -x $MPIRUN_HOME/mpirun.$default_device.args ] ; then
     # Here is the easiest way to set the arg list to -usage
-    set "--usage"
+    set - "--usage"
     . $MPIRUN_HOME/mpirun.$default_device.args
 fi
 }
@@ -222,7 +231,8 @@ while [ 1 -le $# ] ; do
 	eval arch$narch=$1
 	shift
 	;;
-    -np)
+    -np|--np)
+        # Accept gnuish -- form for multicharater opts
 	np="$1"
         nodigits=`echo $np | sed 's/^[0-9]*$//'`
         if [ "$nodigits" != "" -o $np -lt 1 ] ; then
@@ -230,6 +240,9 @@ while [ 1 -le $# ] ; do
            exit 1
 	fi
 	eval np$narch=$1
+        NP=$np
+        # Make np available to others (See external_allocate_cmd)
+	export NP
 	shift
 	;;
     -nodes)
@@ -274,9 +287,30 @@ while [ 1 -le $# ] ; do
         stderrfile="$1"
         shift
         ;;
-    -nolocal)
+    -nolocal|-no-local|--nolocal|--no-local)
         nolocal=1
+	NO_LOCAL=$nolocal
+	export NO_LOCAL
 	;;	
+    -all-cpus | -allcpus | --all-cpus | --allcpus)
+        ALL_CPUS=1
+        export ALL_CPUS
+        np=10000   # Arbit. large
+        ;;
+    -all-local | --all-local)
+        ALL_LOCAL=1
+        export ALL_LOCAL
+        ;;
+    -exclude | --exclude)
+        EXCLUDE="$1"
+        export EXCLUDE
+        shift
+        ;;
+    -map | --map | -beowulf_job_map | --beowulf_job_map)
+        BEOWULF_JOB_MAP="$1"
+        export BEOWULF_JOB_MAP
+        shift
+        ;;
     -h)
 	if [ "$hasprinthelp" = 1 ] ; then
 	   PrintHelp
@@ -613,7 +647,7 @@ if [ "$machine" = "" ] ; then
       # MEIKO machines.
       if [ -r /dev/elan ] ; then
 	machine="meiko"
-      elif [ "$default_device" = "ch_p4" -a $use_execer = 0 ] ; then
+      elif [ "$default_device" = "ch_p4" -a "$use_execer" != 1 ] ; then
 	machine="p4"
       elif [ "$default_device" = "globus" ] ; then
 	machine="globus"
@@ -636,9 +670,9 @@ if [ "$machine" = "" ] ; then
 	machine="globus"
       elif [ -d /etc/FRAMES -a -d /mcs ] ; then
         machine="anlspx"
-      elif [ "$default_device" = "ch_p4" -a $use_execer = 0 ] ; then
+      elif [ "$default_device" = "ch_p4" -a "$use_execer" != 1 ] ; then
 	machine="p4"
-      elif [ "$default_device" = "ch_p4" -a $use_execer = 1 ] ; then
+      elif [ "$default_device" = "ch_p4" -a "$use_execer" = 1 ] ; then
 	machine="execer"
       elif [ -d /usr/lpp/euih ] ; then
         machine="sp1"
@@ -657,7 +691,7 @@ if [ "$machine" = "" ] ; then
         machine="symm_ptx"
 	;;
     *)
-      if [ "$default_device" = "ch_p4" -a $use_execer = 0 ] ; then
+      if [ "$default_device" = "ch_p4" -a "$use_execer" != 1 ] ; then
 	machine="p4"
       elif [ "$default_device" = "globus" ] ; then
 	machine="globus"
@@ -679,6 +713,10 @@ if [ "$machine" = p4 -o "$machine" = execer -o \
     MPI_HOST=""
     if [ "$arch" = "ipsc860" ] ; then
 	MPI_HOST=`hostname`
+    elif [ "$COMM" = "bproc" ] ; then
+        # I'm not sure that COMM is set to bproc yet, but this provides
+        # placeholder
+        MPI_HOST="-1"
     else
         # Which is not supported in many sh's.  head isn't on some as well.
 #	HOSTNAMEPGM="`which hostname | head -1`"

@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_create.c,v 1.10 2000/08/10 22:15:34 toonen Exp $
+ *  $Id: comm_create.c,v 1.11 2001/08/14 14:43:41 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -103,12 +103,12 @@ EXPORT_MPI_API int MPI_Comm_create ( MPI_Comm comm, MPI_Group group, MPI_Comm *c
     new_comm->np             = new_comm->group->np;
     new_comm->comm_name      = 0;
 
+    (void) MPIR_Attr_create_tree ( new_comm );
     if ((mpi_errno = MPID_CommInit( comm_ptr, new_comm )))
 	return mpi_errno;
 
     (void) MPIR_Context_alloc( comm_ptr, 2, &(new_comm->send_context) );
     new_comm->recv_context = new_comm->send_context;
-    (void) MPIR_Attr_create_tree ( new_comm );
     (void) MPIR_Comm_make_coll( new_comm, MPIR_INTRA );
 
     /* Remember it for the debugger */

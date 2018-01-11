@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2pack.c,v 1.6 2000/08/09 22:29:35 gropp Exp $
+ *  $Id: adi2pack.c,v 1.7 2001/02/27 22:41:48 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -162,7 +162,7 @@ MPID_Msg_pack_t msgact;
     void *packctx = 0;
     int  outlen;
     int  err;
-#ifdef HAS_XDR
+#if defined(MPID_HAS_HETERO) && defined(HAS_XDR)
     XDR xdr_ctx;    
 #endif
 
@@ -200,7 +200,7 @@ MPID_Msg_pack_t msgact;
 
     /* If the CHANGE IN position is > maxcount, then an error has occurred.
        We need to include maxcount in the call to MPIR_Pack2. */
-#if HAS_XDR
+#if defined(MPID_HAS_HETERO) && defined(HAS_XDR)
     if (packcontig == MPID_Type_XDR_encode)
 	MPID_Mem_XDR_Free( &xdr_ctx );
 #endif    

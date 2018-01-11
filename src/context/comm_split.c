@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.9 2000/08/10 22:15:34 toonen Exp $
+ *  $Id: comm_split.c,v 1.10 2001/08/14 14:43:42 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -168,10 +168,10 @@ EXPORT_MPI_API int MPI_Comm_split ( MPI_Comm comm, int color, int key, MPI_Comm 
   new_comm->np             = new_comm->group->np;
   new_comm->send_context   = new_comm->recv_context = context;
   new_comm->comm_name	   = 0;
+  (void) MPIR_Attr_create_tree ( new_comm );
   /* CommInit may need lrank_to_grank, etc */
   if ((mpi_errno = MPID_CommInit( comm_ptr, new_comm )) )
       return MPIR_ERROR(comm_ptr,mpi_errno,myname);
-  (void) MPIR_Attr_create_tree ( new_comm );
   (void) MPIR_Comm_make_coll( new_comm, MPIR_INTRA );
 
   /* Remember it for the debugger */

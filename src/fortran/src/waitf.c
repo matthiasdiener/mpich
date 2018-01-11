@@ -86,5 +86,6 @@ EXPORT_MPI_API void mpi_wait_ ( MPI_Fint *request, MPI_Fint *status, MPI_Fint *_
     *__ierr = MPI_Wait(&lrequest, &c_status);
     *request = MPI_Request_c2f(lrequest);
 
-    MPI_Status_c2f(&c_status, status);
+    if (*__ierr == MPI_SUCCESS) 
+        MPI_Status_c2f(&c_status, status);
 }

@@ -10,16 +10,16 @@
 #if defined(HAVE_PRAGMA_WEAK)
 #if defined(F77_NAME_UPPER)
 #pragma weak MPI_NULL_DELETE_FN = PMPI_NULL_DELETE_FN
-EXPORT_MPI_API void MPI_NULL_DELETE_FN ( MPI_Fint *, MPI_Fint *, void *, void * );
+EXPORT_MPI_API void MPI_NULL_DELETE_FN ( MPI_Fint *, MPI_Fint *, void *, void *, MPI_Fint * );
 #elif defined(F77_NAME_LOWER_2USCORE)
 #pragma weak mpi_null_delete_fn__ = pmpi_null_delete_fn__
-EXPORT_MPI_API void mpi_null_delete_fn__ ( MPI_Fint *, MPI_Fint *, void *, void * );
+EXPORT_MPI_API void mpi_null_delete_fn__ ( MPI_Fint *, MPI_Fint *, void *, void *, MPI_Fint * );
 #elif !defined(F77_NAME_LOWER_USCORE)
 #pragma weak mpi_null_delete_fn = pmpi_null_delete_fn
-EXPORT_MPI_API void mpi_null_delete_fn ( MPI_Fint *, MPI_Fint *, void *, void * );
+EXPORT_MPI_API void mpi_null_delete_fn ( MPI_Fint *, MPI_Fint *, void *, void *, MPI_Fint * );
 #else
 #pragma weak mpi_null_delete_fn_ = pmpi_null_delete_fn_
-EXPORT_MPI_API void mpi_null_delete_fn_ ( MPI_Fint *, MPI_Fint *, void *, void * );
+EXPORT_MPI_API void mpi_null_delete_fn_ ( MPI_Fint *, MPI_Fint *, void *, void *, MPI_Fint * );
 #endif
 
 #elif defined(HAVE_PRAGMA_HP_SEC_DEF)
@@ -74,10 +74,12 @@ EXPORT_MPI_API void mpi_null_delete_fn_ ( MPI_Fint *, MPI_Fint *, void *, void *
 
 /* Prototype to suppress warnings about missing prototypes */
 EXPORT_MPI_API void mpi_null_delete_fn_ ( MPI_Fint *, MPI_Fint *, void *, 
-					  void * );
+					  void *, MPI_Fint * );
 
-EXPORT_MPI_API void mpi_null_delete_fn_ ( MPI_Fint *comm, MPI_Fint *keyval, void *attr, void *extra_state )
+EXPORT_MPI_API void mpi_null_delete_fn_ ( MPI_Fint *comm, MPI_Fint *keyval, 
+					  void *attr, void *extra_state, 
+					  MPI_Fint *ierr )
 {
-    MPIR_null_delete_fn(MPI_Comm_f2c(*comm), (int)*keyval, attr,
-                        extra_state);
+    /* Null function doesn't do anything */
+    *ierr = MPI_SUCCESS;
 }

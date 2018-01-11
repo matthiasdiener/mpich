@@ -201,7 +201,7 @@ int id;
 
 	if (head == NULL) return;
 	if (!strcmp(xx_alog_outdir, ""))
-		getwd(cd);
+		getcwd(cd,100);
 	else
 		strcpy(cd, xx_alog_outdir);
 	if (cd[strlen(cd)-1] != '/')
@@ -224,7 +224,7 @@ int id;
 
 	if (head == NULL) return;
 	if (!strcmp(xx_alog_outdir, ""))
-		getwd(cd);
+		getcwd(cd,100);
 	else
 		strcpy(cd, xx_alog_outdir);
 	if (cd[strlen(cd)-1] != '/')

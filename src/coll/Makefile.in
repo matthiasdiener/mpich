@@ -75,5 +75,5 @@ ${libbuild_dir}/libp@MPILIBNAME@.a: ${MPI_OBJECTS}
 # We need to clean the srcdir of any .o files because they can confuse the
 # VPATH build process
 clean:
-	/bin/rm -f *.o *~ ${srcdir}/*.o
+	rm -f *.o *~ ${srcdir}/*.o
 

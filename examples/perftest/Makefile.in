@@ -72,10 +72,13 @@ FOPTIONS = @FOPTIONS@
 GRAPHICS_PGM = @GRAPHICS_PGM@
 MAKE = @MAKE@
 MAKEINFO = @MAKEINFO@
+MPIBOOT = @MPIBOOT@
 MPICC = @MPICC@
 MPICXX = @MPICXX@
 MPIF77 = @MPIF77@
 MPIF90 = @MPIF90@
+MPIRUN = @MPIRUN@
+MPIUNBOOT = @MPIUNBOOT@
 PACKAGE = @PACKAGE@
 TESTCPP = @TESTCPP@
 VERSION = @VERSION@
@@ -87,10 +90,10 @@ AM_CFLAGS = ${COPTIONS}
 # Package Description start here
 bin_PROGRAMS = mpptest goptest buflimit 
 EXTRA_PROGRAMS = tunepkt pktuse copytest vectest stress ctest cluster tcomm
-
+EXTRA_SCRIPTS = rungoptest runmpptest runsample
 noinst_HEADERS = mpptest.h getopts.h
 
-extra_SOURCES = gopf.c grph.c ovlap.c pair.c pattern.c util.c getopts.c 		rate.c mpe_seq.c copy.c
+extra_SOURCES = gopf.c grph.c ovlap.c pair.c pattern.c getopts.c 		rate.c mpe_seq.c copy.c
 
 mpptest_SOURCES = mpptest.c $(extra_SOURCES) halo.c
 goptest_SOURCES = goptest.c $(extra_SOURCES)
@@ -100,7 +103,7 @@ tcomm_SOURCES = tcomm.c mpe_seq.c getopts.c
 copytest_SOURCES = copytest.c duff.c
 
 # Distribution modifications
-EXTRA_DIST = config
+EXTRA_DIST = config ${EXTRA_SCRIPTS}
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = mpptestconf.h
@@ -149,12 +152,12 @@ tcomm_LDADD = $(LDADD)
 tcomm_DEPENDENCIES = 
 tcomm_LDFLAGS = 
 mpptest_OBJECTS =  mpptest.o gopf.o grph.o ovlap.o pair.o pattern.o \
-util.o getopts.o rate.o mpe_seq.o copy.o halo.o
+getopts.o rate.o mpe_seq.o copy.o halo.o
 mpptest_LDADD = $(LDADD)
 mpptest_DEPENDENCIES = 
 mpptest_LDFLAGS = 
 goptest_OBJECTS =  goptest.o gopf.o grph.o ovlap.o pair.o pattern.o \
-util.o getopts.o rate.o mpe_seq.o copy.o
+getopts.o rate.o mpe_seq.o copy.o
 goptest_LDADD = $(LDADD)
 goptest_DEPENDENCIES = 
 goptest_LDFLAGS = 
@@ -203,6 +206,7 @@ $(ACLOCAL_M4):  configure.in  config/confdb/aclocal.m4 \
 		config/confdb/aclocal_cxx.m4 \
 		config/confdb/aclocal_f77.m4 \
 		config/confdb/aclocal_f90.m4 \
+		config/confdb/aclocal_java.m4 \
 		config/confdb/aclocal_make.m4 \
 		config/confdb/aclocal_mpi.m4 \
 		config/confdb/aclocal_perl.m4 \
@@ -492,13 +496,13 @@ clean-generic maintainer-clean-generic clean mostlyclean distclean \
 maintainer-clean
 
 #
-# Autoconf/make often find the wrong versions of autoconf/make/header/local
+# Autoconf/make oftens find the wrong versions of autoconf/make/header/local
 dist-hook:
 	-find ${distdir} -name CVS -print | sed 's/^/rm -rf /g' | sh
 	cd ${distdir} ; sed -e 's/^AUTOMAKE.*/AUTOMAKE = true/g' \
-	    -e 's/^AUTOCONF.*/AUTOCONF = true/g' \
-	    -e 's/^AUTOHEADER.*/AUTOHEADER = true/g' \
-	    -e 's/^ACLOCAL.*/ACLOCAL = true/g' Makefile.in > .tmp ; \
+	    -e 's/^AUTOCONF *=.*/AUTOCONF = true/g' \
+	    -e 's/^AUTOHEADER *=.*/AUTOHEADER = true/g' \
+	    -e 's/^ACLOCAL *=.*/ACLOCAL = true/g' Makefile.in > .tmp ; \
 	rm -f Makefile.in ; \
 	mv .tmp Makefile.in
 distclean-local:

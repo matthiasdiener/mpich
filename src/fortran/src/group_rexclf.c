@@ -110,5 +110,6 @@ EXPORT_MPI_API void mpi_group_range_excl_ ( MPI_Fint *group, MPI_Fint *n, MPI_Fi
 	FREE( l_ranges );
 	
     }
-    *newgroup = MPI_Group_c2f(l_newgroup);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *newgroup = MPI_Group_c2f(l_newgroup);
 }

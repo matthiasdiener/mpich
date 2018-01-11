@@ -63,7 +63,8 @@ EOF
    AC_LANG_SAVE
    AC_LANG_C   
    save_LIBS="$LIBS"
-   LIBS="fconftestf.o $LIBS"
+   dnl FLIBS comes from AC_F77_LIBRARY_LDFLAGS
+   LIBS="fconftestf.o $FLIBS $LIBS"
    AC_TRY_LINK(,my_name();,pac_cv_prog_f77_name_mangle="lower")
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      AC_TRY_LINK(,my_name_();,pac_cv_prog_f77_name_mangle="lower underscore")
@@ -150,7 +151,8 @@ if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
     AC_LANG_SAVE
     AC_LANG_C
     save_LIBS="$LIBS"
-    LIBS="conftestf.o $LIBS"
+    dnl Add the Fortran linking libraries
+    LIBS="conftestf.o $FLIBS $LIBS"
     AC_TRY_RUN([#include <stdio.h>
 #ifdef F77_NAME_UPPER
 #define cisize_ CISIZE
@@ -339,8 +341,25 @@ dnl performed on the compiler version that will be used.
 dnl
 dnl 'AC_SUBST' is called for all six variables.
 dnl
+dnl One complication is that on systems with multiple Fortran compilers, 
+dnl some libraries used by one Fortran compiler may have been (mis)placed
+dnl in a common location.  We have had trouble with libg2c in particular.
+dnl To work around this, we test whether iargc etc. work first.  This
+dnl will catch most systems and will speed up the tests.
+dnl
+dnl Next, the libraries are only added if they are needed to complete a 
+dnl link; they aren't added just because they exist.
+dnl
 dnl f77argdef
 dnlD*/
+dnl
+dnl Random notes
+dnl You can export the command line arguments from C to the g77 compiler
+dnl using
+dnl    extern char **__libc_argv;
+dnl    extern int  __libc_argc;
+dnl    f_setarg( __libc_argc, __libc_argv );
+dnl
 AC_DEFUN(PAC_PROG_F77_CMDARGS,[
 found_cached="yes"
 AC_MSG_CHECKING([for routines to access the command line from Fortran 77])
@@ -348,15 +367,61 @@ AC_CACHE_VAL(pac_cv_prog_f77_cmdarg,
 [
     AC_MSG_RESULT([searching...])
     found_cached="no"
+    # First, we perform a quick check.  Does iargc and getarg work?
+    fxx_module="${FXX_MODULE:-}"
+    f77_getargdecl="${F77_GETARGDECL:-external getarg}"
+    f77_getarg="${F77_GETARG:-call GETARG(i,s)}"
+    f77_iargc="${F77_IARGC:-IARGC()}"
+    #    
+    # Grumble.  The Absoft Fortran compiler computes i - i as 0 and then
+    # 1.0 / 0 at compile time, even though the code may never be executed.
+    # What we need is a way to generate an error, so the second usage of i
+    # was replaced with f77_iargc.  
+    cat > conftest.f <<EOF
+        program main
+$fxx_module
+        integer i, j
+        character*20 s
+        $f77_getargdecl
+	i = 0
+        $f77_getarg
+        i=$f77_iargc
+	if (i .gt. 1) then
+	    j = i - $f77_iargc
+	    j = 1.0 / j
+	endif
+        end
+EOF
+    found_answer="no"
+    if test -z "$ac_fcompilelink" ; then
+        ac_fcompilelink="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LIBS 1>&AC_FD_CC"
+    fi
+    AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with GETARG and IARGC])
+    if AC_TRY_EVAL(ac_fcompilelink) && test -x conftest ; then
+	if test "$ac_cv_prog_f77_cross" = "no" ; then
+	    if ./conftest >/dev/null 2>&1 ; then
+		found_answer="yes"
+	        FXX_MODULE="$fxx_module"
+		F77_GETARGDECL="$f77_getargdecl"
+		F77_GETARG="$f77_getarg"
+		F77_IARGC="$f77_iargc"
+		AC_MSG_RESULT(yes)
+     	    fi
+        fi
+    fi    
+    if test $found_answer = "no" ; then
+	AC_MSG_RESULT(no)
     # Grumph.  Here are a bunch of different approaches
     # We have several axes the check:
     # Library to link with (none, -lU77 (HPUX), -lg2c (LINUX f77))
+    # PEPCF90 (Intel ifc)
     # The first line is a dummy
     # (we experimented with using a <space>, but this caused other 
     # problems because we need <space> in the IFS)
-trial_LIBS="0
--lU77
--lg2c"
+    trial_LIBS="0 -lU77 -lPEPCF90"
+    if test "$NOG2C" != "1" ; then
+        trial_LIBS="$trial_LIBS -lg2c"
+    fi
     # Discard libs that are not availble:
     save_IFS="$IFS"
     # Make sure that IFS includes a space, or the tests that run programs
@@ -490,8 +555,8 @@ $flag"
 	   FXX_MODULE=""
 	   F77_GETARGDECL="external pxfgetarg"
 	   F77_GETARG="call pxfgetarg(i,s,l,ier)"
-	   F77_IARGC="ipxfiargc()"
-	   MSG="pxfgetarg and ipxfiargc"
+	   F77_IARGC="ipxfargc()"
+	   MSG="pxfgetarg and ipxfargc"
 	   ;;
 	4) # Nag f90_unix_env module
 	   FXX_MODULE="        use f90_unix_env"
@@ -524,16 +589,22 @@ $flag"
            break
 	   ;;
 	esac
-	# Create the program
+	# Create the program.  Make sure that we can run it.
+	# Force a divide-by-zero if there is a problem (but only at runtime!
+        # (the Absoft compiler does divide-by-zero at compile time)
         cat > conftest.f <<EOF
         program main
 $FXX_MODULE
-        integer i
+        integer i, j
         character*20 s
-
         $F77_GETARGDECL
+	i = 0
         $F77_GETARG
         i=$F77_IARGC
+	if (i .gt. 1) then
+	    j = i - $F77_IARGC
+	    j = 1.0 / j
+	endif
         end
 EOF
     #
@@ -551,7 +622,19 @@ EOF
 		IFS="$save_IFS"
 		dnl We need this here because we've fiddled with IFS
 	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $libs $LIBS 1>&AC_FD_CC"
+		found_answer="no"
                 if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
+		    if test "$ac_cv_prog_f77_cross" = "no" ; then
+			if ./conftest >/dev/null 2>&1 ; then
+			    found_answer="yes"
+			fi
+		    else 
+			found_answer="yes"
+		    fi
+                fi
+	        IFS=" 
+"
+		if test "$found_answer" = "yes" ; then
 	            AC_MSG_RESULT([yes])
 		    pac_cv_prog_f77_cmdarg="$MSG"
 		    pac_cv_prog_f77_cmdarg_fflags="$flags"
@@ -562,14 +645,13 @@ EOF
 		    echo "configure: failed program was:" >&AC_FD_CC
                     cat conftest.f >&AC_FD_CC
 	        fi
-		IFS=" 
-"
             done
         done
         IFS="$save_IFS"   
 	rm -f conftest.*
         trial=`expr $trial + 1`   
     done
+fi
 pac_cv_F77_GETARGDECL="$F77_GETARGDECL"
 pac_cv_F77_IARGC="$F77_IARGC"
 pac_cv_F77_GETARG="$F77_GETARG"
@@ -765,7 +847,7 @@ if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
     AC_LANG_SAVE
     AC_LANG_C
     save_LIBS="$LIBS"
-    LIBS="conftestf.o $LIBS"
+    LIBS="conftestf.o $FLIBS $LIBS"
     AC_TRY_RUN([#include <stdio.h>
 #ifdef F77_NAME_UPPER
 #define ftest_ FTEST
@@ -781,4 +863,95 @@ else
     cat conftest.f >&AC_FD_CC
 fi
 rm -f conftest*
+])
+dnl
+dnl PAC_PROG_F77_IN_C_LIBS
+dnl
+dnl Find the essential libraries that are needed to use the C linker to 
+dnl create a program that includes a trival Fortran code.  
+dnl
+dnl For example, all pgf90 compiled objects include a reference to the
+dnl symbol pgf90_compiled, found in libpgf90 .
+dnl
+AC_DEFUN(PAC_PROG_F77_IN_C_LIBS,[
+AC_MSG_CHECKING([what Fortran libraries are needed to link C with Fortran])
+F77_IN_C_LIBS="$FLIBS"
+/bin/rm -f conftest*
+cat <<EOF > conftest.f
+        subroutine ftest
+        end
+EOF
+dnl
+if test "X$ac_fcompile" = "X" ; then
+    ac_fcompile='${F77-f77} -c $FFLAGS conftest.f 1>&AC_FD_CC'
+fi
+if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
+    mv conftest.o mconftestf.o
+    AC_LANG_SAVE
+    AC_LANG_C
+    save_LIBS="$LIBS"
+    dnl First try with no libraries
+    LIBS="mconftestf.o $save_LIBS"
+    AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+    if test "$link_worked" = "no" ; then
+        flibdirs=`echo $FLIBS | tr ' ' '\012' | grep '\-L' | tr '\012' ' '`
+        fliblibs=`echo $FLIBS | tr ' ' '\012' | grep -v '\-L' | tr '\012' ' '`
+        for flibs in $fliblibs ; do
+            LIBS="mconftestf.o $flibdirs $flibs $save_LIBS"
+            AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+            if test "$link_worked" = "yes" ; then 
+	        F77_IN_C_LIBS="$flibdirs $flibs"
+                break
+            fi
+        done
+    if test "$link_worked" = "no" ; then
+	# try to add libraries until it works...
+        flibscat=""
+        for flibs in $fliblibs ; do
+	    flibscat="$flibscat $flibs"
+            LIBS="mconftestf.o $flibdirs $flibscat $save_LIBS"
+            AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+            if test "$link_worked" = "yes" ; then 
+	        F77_IN_C_LIBS="$flibdirs $flibscat"
+                break
+            fi
+        done
+    fi
+    else
+	# No libraries needed
+	F77_IN_C_LIBS=""
+    fi
+    LIBS="$save_LIBS"
+    AC_LANG_RESTORE
+else 
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.f >&AC_FD_CC
+fi
+rm -f conftest* mconftest*
+if test -z "$F77_IN_C_LIBS" ; then
+    AC_MSG_RESULT(none)
+else
+    AC_MSG_RESULT($F77_IN_C_LIBS)
+fi
 ])

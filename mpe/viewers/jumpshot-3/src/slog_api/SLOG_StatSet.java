@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_StatSet
+public class SLOG_StatSet implements Serializable
 {
     public short    rectype;
     public short    intvltype;

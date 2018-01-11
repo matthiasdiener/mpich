@@ -64,7 +64,7 @@ EOF
    AC_LANG_SAVE
    AC_LANG_C   
    save_LIBS="$LIBS"
-   LIBS="fconftestf.o $LIBS"
+   LIBS="fconftestf.o $FLIBS $LIBS"
    AC_TRY_LINK(,my_name();,pac_cv_prog_f77_name_mangle="lower")
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      AC_TRY_LINK(,my_name_();,pac_cv_prog_f77_name_mangle="lower underscore")

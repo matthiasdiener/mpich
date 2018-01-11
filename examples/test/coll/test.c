@@ -11,9 +11,7 @@ static char failed_tests[255][81];
 static char suite_name[255];
 FILE *fileout = NULL;
 
-void Test_Init(suite, rank)
-char *suite;
-int rank;
+void Test_Init( char *suite, int rank)
 {
     char filename[512];
 
@@ -26,15 +24,13 @@ int rank;
     }
 }
 
-void Test_Message(mess)
-char *mess;
+void Test_Message( char *mess)
 {
     fprintf(fileout, "[%s]: %s\n", suite_name, mess);
     fflush(fileout);
 }
 
-void Test_Failed(test)
-char *test;
+void Test_Failed(char *test)
 {
     fprintf(fileout, "[%s]: *** Test '%s' Failed! ***\n", suite_name, test);
     strncpy(failed_tests[tests_failed], test, 81);
@@ -42,8 +38,7 @@ char *test;
     tests_failed++;
 }
 
-void Test_Passed(test)
-char *test;
+void Test_Passed(char *test)
 {
 #ifdef VERBOSE
     fprintf(fileout, "[%s]: Test '%s' Passed.\n", suite_name, test);
@@ -52,7 +47,7 @@ char *test;
     tests_passed++;
 }
 
-int Summarize_Test_Results()
+int Summarize_Test_Results(void)
 {
 #ifdef VERBOSE
     fprintf(fileout, "For test suite '%s':\n", suite_name);
@@ -73,7 +68,7 @@ int Summarize_Test_Results()
     return tests_failed;
 }
 
-void Test_Finalize()
+void Test_Finalize(void)
 {
     fflush(fileout);
     fclose(fileout);
@@ -84,7 +79,7 @@ void Test_Finalize()
    to make sure that all processes complete, and that a test "passes" because
    it executed, not because it some process failed.  
  */
-void Test_Waitforall( )
+void Test_Waitforall(void)
 {
     int m, one, myrank, n;
 

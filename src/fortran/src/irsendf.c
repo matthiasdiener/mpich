@@ -148,10 +148,11 @@ EXPORT_MPI_API void mpi_irsend_ ( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
 
 EXPORT_MPI_API void mpi_irsend_( void *buf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *dest, MPI_Fint *tag, MPI_Fint *comm, MPI_Fint *request, MPI_Fint *__ierr )
 {
-MPI_Request lrequest;
-*__ierr = MPI_Irsend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
+    MPI_Request lrequest;
+    *__ierr = MPI_Irsend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
                      (int)*dest,(int)*tag,
                      MPI_Comm_f2c(*comm),&lrequest);
-*request = MPI_Request_c2f(lrequest);
+    if (*__ierr == MPI_SUCCESS) 
+        *request = MPI_Request_c2f(lrequest);
 }
 #endif

@@ -1,5 +1,5 @@
 /* 
- *   $Id: adioi_fs_proto.h,v 1.4 2000/02/09 21:30:09 thakur Exp $    
+ *   $Id: adioi_fs_proto.h,v 1.8 2001/07/31 18:41:08 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,6 +10,8 @@
 #define ADIO_PROTO
 
 #ifdef NFS
+extern struct ADIOI_Fns_struct ADIO_NFS_operations;
+
 void ADIOI_NFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_NFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_NFS_ReadContig(ADIO_File fd, void *buf, int count, 
@@ -73,6 +75,8 @@ void ADIOI_NFS_Set_shared_fp(ADIO_File fd, ADIO_Offset offset, int *error_code);
 #endif
 
 #ifdef PFS
+extern struct ADIOI_Fns_struct ADIO_PFS_operations;
+
 void ADIOI_PFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_PFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_PFS_ReadContig(ADIO_File fd, void *buf, int count, 
@@ -133,6 +137,8 @@ void ADIOI_PFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
 #endif
 
 #ifdef PIOFS
+extern struct ADIOI_Fns_struct ADIO_PIOFS_operations;
+
 void ADIOI_PIOFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_PIOFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_PIOFS_ReadContig(ADIO_File fd, void *buf, int count, 
@@ -193,6 +199,8 @@ void ADIOI_PIOFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
 #endif
 
 #ifdef UFS
+extern struct ADIOI_Fns_struct ADIO_UFS_operations;
+
 void ADIOI_UFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_UFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_UFS_ReadContig(ADIO_File fd, void *buf, int count, 
@@ -253,6 +261,8 @@ void ADIOI_UFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
 #endif
 
 #ifdef HFS
+extern struct ADIOI_Fns_struct ADIO_HFS_operations;
+
 void ADIOI_HFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_HFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_HFS_ReadContig(ADIO_File fd, void *buf, int count, 
@@ -313,6 +323,8 @@ void ADIOI_HFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
 #endif
 
 #ifdef XFS
+extern struct ADIOI_Fns_struct ADIO_XFS_operations;
+
 void ADIOI_XFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_XFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_XFS_ReadContig(ADIO_File fd, void *buf, int count, 
@@ -373,6 +385,8 @@ void ADIOI_XFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
 #endif
 
 #ifdef SFS
+extern struct ADIOI_Fns_struct ADIO_SFS_operations;
+
 void ADIOI_SFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_SFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_SFS_ReadContig(ADIO_File fd, void *buf, int count, 
@@ -432,7 +446,9 @@ ADIO_Offset ADIOI_SFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset,
 void ADIOI_SFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
 #endif
 
-#ifdef PVFS
+#ifdef ROMIO_PVFS
+extern struct ADIOI_Fns_struct ADIO_PVFS_operations;
+
 void ADIOI_PVFS_Open(ADIO_File fd, int *error_code);
 void ADIOI_PVFS_Close(ADIO_File fd, int *error_code);
 void ADIOI_PVFS_ReadContig(ADIO_File fd, void *buf, int count, 
@@ -486,10 +502,17 @@ void ADIOI_PVFS_IwriteStrided(ADIO_File fd, void *buf, int count,
 		       ADIO_Offset offset, ADIO_Request *request, int
 		       *error_code);
 void ADIOI_PVFS_Flush(ADIO_File fd, int *error_code);
+void ADIOI_PVFS_Delete(char *filename, int *error_code);
 void ADIOI_PVFS_Resize(ADIO_File fd, ADIO_Offset size, int *error_code);
 ADIO_Offset ADIOI_PVFS_SeekIndividual(ADIO_File fd, ADIO_Offset offset, 
                        int whence, int *error_code);
 void ADIOI_PVFS_SetInfo(ADIO_File fd, MPI_Info users_info, int *error_code);
+#endif
+
+#ifdef ROMIO_TESTFS
+extern struct ADIOI_Fns_struct ADIO_TESTFS_operations;
+
+/* prototypes are in adio/ad_testfs/ad_testfs.h */
 #endif
 
 #endif

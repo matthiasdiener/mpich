@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_DirHdr
+public class SLOG_DirHdr implements Serializable
 {
     public long     prevdir;
     public long     nextdir;

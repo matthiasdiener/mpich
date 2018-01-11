@@ -125,9 +125,9 @@ done
 # Finally, create mpi.f90
 rm -f mpi.${F90SUFFIX}
 cat >>mpi.${F90SUFFIX} <<EOF
-	MODULE MPI
+        MODULE MPI
 !       This module was created by the script CreateChoiceSrc
-	USE MPI_CONSTANTS,                                               &
+        USE MPI_CONSTANTS,                                               &
      &      BASE_MPI_WTIME => MPI_WTIME, BASE_MPI_WTICK => MPI_WTICK
 !
 !       Include the interface modules for the choice arguments
@@ -136,28 +136,27 @@ if [ -s mpi.add ] ; then
     cat mpi.add >> mpi.${F90SUFFIX}
 fi
 cat >>mpi.${F90SUFFIX} <<EOF
-
 !
 !       Include the interface modules for the nonchoice arguments
-	USE MPI1
-	USE MPI2
+        USE MPI1
+        USE MPI2
 
-	END MODULE MPI	
+        END MODULE MPI	
 EOF
 
 # This module can be used for the non-choice (basic module) support
 rm -f mpi-nochoice.${F90SUFFIX}
 cat >>mpi-nochoice.${F90SUFFIX} <<EOF
-	MODULE MPI
+        MODULE MPI
 !       This module was created by the script CreateChoiceSrc
-	USE MPI_CONSTANTS,                                               &
+        USE MPI_CONSTANTS,                                               &
      &      BASE_MPI_WTIME => MPI_WTIME, BASE_MPI_WTICK => MPI_WTICK
 !
 !       Include the interface modules for the choice arguments
 !
 !       Include the interface modules for the nonchoice arguments
-	USE MPI1
-	USE MPI2
+        USE MPI1
+        USE MPI2
 
-	END MODULE MPI	
+        END MODULE MPI	
 EOF

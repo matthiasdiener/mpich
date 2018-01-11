@@ -85,5 +85,6 @@ EXPORT_MPI_API void mpi_buffer_detach_( void **buffer, MPI_Fint *size, MPI_Fint 
   int lsize;
 
   *__ierr = MPI_Buffer_detach(&tmp,&lsize);
-  *size = (MPI_Fint)lsize;
+  if (*__ierr == MPI_SUCCESS) 		     
+      *size = (MPI_Fint)lsize;
 }

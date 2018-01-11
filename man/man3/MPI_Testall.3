@@ -1,14 +1,14 @@
-.TH MPI_Testall 3 "11/17/1999" " " "MPI"
+.TH MPI_Testall 3 "4/4/2001" " " "MPI"
 .SH NAME
 MPI_Testall \-  Tests for the completion of all previously initiated communications 
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
 int MPI_Testall( 
- int count, 
- MPI_Request array_of_requests[], 
- int *flag, 
- MPI_Status array_of_statuses[] )
+        int count, 
+        MPI_Request array_of_requests[], 
+        int *flag, 
+        MPI_Status array_of_statuses[] )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

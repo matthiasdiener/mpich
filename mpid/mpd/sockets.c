@@ -5,8 +5,40 @@ extern int    myrank;
 extern int    console_idx;
 extern int    debug;
 
-int setup_unix_socket( pathname )	
-char *pathname;
+int setup_network_socket( int *port ) /* returns fd */
+{
+    int backlog = 15;
+    int rc;
+    mpd_sockopt_len_t sinlen;
+    int skt_fd;
+    struct sockaddr_in sin;
+
+    sin.sin_family	= AF_INET;
+    sin.sin_addr.s_addr	= INADDR_ANY;
+    sin.sin_port	= htons( *port );
+    sinlen              = sizeof( sin );
+
+    skt_fd = socket( AF_INET, SOCK_STREAM, 0 );
+    error_check( skt_fd, "setup_network_socket: socket" );
+
+    rc = bind( skt_fd, ( struct sockaddr * ) &sin, sizeof( sin ) );
+    error_check( rc, "setup_network_socket: bind" );
+
+    rc = getsockname( skt_fd, (struct sockaddr *) &sin, &sinlen ); 
+    error_check( rc, "setup_network_socket: getsockname" );
+
+    mpdprintf( 0, "network socket port is %d, len = %d\n",
+	    ntohs(sin.sin_port), sinlen);
+    *port = ntohs(sin.sin_port);
+
+    rc = listen( skt_fd, backlog );
+    error_check( rc, "setup_network_socket: listen" );
+    mpdprintf( debug, "listening on network socket %d\n", skt_fd );
+
+    return skt_fd;
+}
+
+int setup_unix_socket( char *pathname )	
 {
     int backlog = 15;
     int rc;
@@ -33,16 +65,14 @@ char *pathname;
     return( skt_fd );
 }
 
-int network_connect( hostname, port )
-char *hostname;
-int  port;
+int network_connect( char *hostname, int port )
 {
     int s;
     struct sockaddr_in sa;
     struct hostent *hp;
     int optval = 1;
+#   define NUMTOTRY 100
     int rc, numtriesleft, connected;
-#define NUMTOTRY 100
 
     hp = gethostbyname( hostname );
     if (hp == NULL)
@@ -64,13 +94,13 @@ int  port;
     connected = 0;
     numtriesleft  = NUMTOTRY; 
 
+    s = socket( AF_INET, SOCK_STREAM, 0 );
+    error_check( s, "network_connect, socket" );
+
+    rc = setsockopt( s, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof( optval ) );
+    error_check( rc, "network_connect, setsockopt" );
+
     while ( !connected && numtriesleft > 0 ) {
-	s = socket( AF_INET, SOCK_STREAM, 0 );
-	error_check( s, "network_connect, socket" );
-
-	rc = setsockopt( s, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof( optval ) );
-	error_check( rc, "network_connect, setsockopt" );
-
 	rc = connect( s, (struct sockaddr *) &sa, sizeof(sa) );
 	if ( rc == 0 )
 	    connected = 1;
@@ -91,8 +121,7 @@ int  port;
     return s;
 }
 
-int accept_connection( skt )
-int skt;
+int accept_connection( int skt )
 {
     struct sockaddr_in from;
     int new_skt, gotit, rc;
@@ -124,8 +153,7 @@ int skt;
 }
 
 
-int accept_unix_connection( skt )
-int skt;
+int accept_unix_connection( int skt )
 {
     struct sockaddr_in from;
     int new_skt, gotit;
@@ -151,17 +179,48 @@ int skt;
     return( new_skt );
 }
 
-int recv_msg( fd, buf )
-int fd;
-char *buf;
+int local_connect( char *name )	
+{
+    int s, rc;
+    struct sockaddr_un sa;
+
+    bzero( (void *)&sa, sizeof( sa ) );
+
+    sa.sun_family = AF_UNIX;
+    strncpy( sa.sun_path, name, sizeof( sa.sun_path ) - 1 );
+
+    s = socket( AF_UNIX, SOCK_STREAM, 0 );
+    error_check( s, "local_connect: socket" );
+
+    rc = connect( s, ( struct sockaddr * ) &sa, sizeof( sa ) );
+
+    if ( rc != -1 ) {
+	mpdprintf( debug, "local_connect; socket = %d\n", s );
+	return ( s );
+    }
+    else
+	return( rc );
+}
+
+void send_msg( int fd, char *buf, int size )	
 {
     int n;
 
-    n = read( fd, buf, 999 );
+    /* maybe should check whether size < MAXLINE? */
+    n = write( fd, buf, size );
+    if ( n < 0 )
+	mpdprintf(1, "error on write; buf=:%s:\n", buf );
+    error_check( n, "send_msg write" );
+}
+
+int recv_msg( int fd, char *buf, int size )
+{
+    int n;
+
+    n = read( fd, buf, size );
     error_check( n, "recv_msg read" );
     if ( n == 0 )
 	return( RECV_EOF );
     return( RECV_OK );
 }
-
 

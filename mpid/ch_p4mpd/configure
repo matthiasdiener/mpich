@@ -465,7 +465,7 @@ echo > confdefs.h
 
 # A filename unique to this package, relative to the directory that
 # configure is in, which we can look for to find out if srcdir is correct.
-ac_unique_file=
+ac_unique_file=setup_ch_p4mpd
 
 # Find the source files, if location was not specified.
 if test -z "$srcdir"; then
@@ -816,7 +816,7 @@ fi
 #
 if test -z "$RSHCOMMAND" ; then
     machine=`hostname`
-    for program in remsh rsh ssh ; do
+    for program in remsh rsh ; do
         # First, check to see if the program exists
         
 if test -n "$pac_cv_cross_compiling" ; then
@@ -827,7 +827,7 @@ else
     echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
 echo "configure:829: checking whether cross-compiling" >&2
     # If we cannot run a trivial program, we must be cross compiling.
-    if test "$cross_compiling" = yes; then
+            if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
@@ -848,7 +848,7 @@ rm -fr conftest*
 fi
 
     if test $pac_ok = 1 ; then
-         if test "$cross_compiling" = yes; then
+        if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
@@ -935,15 +935,71 @@ echo "configure:922: checking whether $RSHCOMMAND works" >&2
 	    fi
         fi
     done
+    # Check ssh with special options to avoid user prompting which causes the
+    # configure script to "hang"
+    if test -z "$RSHCOMMAND" ; then
+    	# Extract the first word of "ssh", so it can be a program name with args.
+set dummy ssh; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+echo "configure:945: checking for $ac_word" >&2
+if eval "test \"`echo '$''{'ac_cv_path_RSHCOMMAND'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&1
+else
+  case "$RSHCOMMAND" in
+  /*)
+  ac_cv_path_RSHCOMMAND="$RSHCOMMAND" # Let the user override the test with a path.
+  ;;
+  ?:/*)			 
+  ac_cv_path_RSHCOMMAND="$RSHCOMMAND" # Let the user override the test with a dos path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="$PATH"
+  for ac_dir in $ac_dummy; do 
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_RSHCOMMAND="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  ;;
+esac
+fi
+RSHCOMMAND="$ac_cv_path_RSHCOMMAND"
+if test -n "$RSHCOMMAND"; then
+  echo "$ac_t""$RSHCOMMAND" 1>&1
+else
+  echo "$ac_t""no" 1>&1
 fi
 
+    	if test -n "$RSHCOMMAND" ; then
+    	    echo $ac_n "checking whether $RSHCOMMAND works""... $ac_c" 1>&1
+echo "configure:979: checking whether $RSHCOMMAND works" >&2
+    	    output=`$RSHCOMMAND -o "StrictHostKeyChecking no" \
+    	      -o "BatchMode yes" $machine -n true 2>&1 </dev/null`
+    	    if test $? -ne 0 ; then
+    		echo "$ac_t""no" 1>&1
+    		echo "Errors while trying to run true on $machine with ssh"
+    		echo "$output"
+    		RSHCOMMAND=""
+    		# HORRIBLE, TERRIBLE BUG in AUTOCONF!!!
+    		# It is determined to INCORRECTLY remember some results,
+    		# while forgetting others (like "cross-compiling")
+    		unset ac_cv_path_RSHCOMMAND
+    	    else
+    		echo "$ac_t""yes" 1>&1
+    	    fi
+    	fi
+    fi
+fi
 
 for ac_func in gettimeofday BSDgettimeofday
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&1
-echo "configure:945: checking for $ac_func" >&2
+echo "configure:1001: checking for $ac_func" >&2
 cat > conftest.$ac_ext <<EOF
-#line 947 "configure"
+#line 1003 "configure"
 #include "confdefs.h"
 #include <ctype.h> /* Arbitrary system header to define __stub macros. */
 #ifdef __cplusplus
@@ -964,7 +1020,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:968: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1024: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else

@@ -12,7 +12,7 @@
 #if defined(OUT_TO_TERM)
 #define P4_OUTFILE "/dev/ttyp4"
 #else
-#define P4_OUTFILE "/u/rbutler/p4/tests/out"
+#define P4_OUTFILE "/tmp/p4out"
 #endif
 #endif
 

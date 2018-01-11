@@ -45,7 +45,7 @@ Usage: ${progname} [-arch=ARCH_TYPE]
                    [-cflags=CFLAGS] [-fflags=FFLAGS]
                    [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
                    [-lib=LIBRARY] [-mpilibname=MPINAME]
-		   [-mpichpath=path]
+		   [-mpichpath=path] [--with-mpich=path]
                    [-cross] [-mpi2]
 where
    ARCH_TYPE    = the type of machine that MPI is to be configured for
@@ -88,7 +88,7 @@ the system make.
 The option '-mpi2' enables testing of some MPI 2 functions.  Currently, only a
 few simple functions are tested.
 
-The option '-mpichpath=bindir' sets both the directory to look for compiler
+The option '-with-mpich=bindir' sets both the directory to look for compiler
 and mpirun commands in and specifies that MPICH is the version of MPI being
 tested.
 
@@ -121,6 +121,10 @@ CFLAGS=""
 NOSHORTLONGS=no
 NO_LONG_LONG=no
 NO_LONG_DOUBLE=no
+#
+# --enable-boot causes the runtest to start and stop any mpirun demons
+USE_BOOT=no
+#
 # Change MPIFDEP to make Fortran builds depend on an mpif link.
 MPIFDEP=""
 #
@@ -257,6 +261,14 @@ do
 	USERFLINKER=1
 	;;
 
+     -mpiboot=* | --mpiboot=*)
+	MPIBOOT=`echo A$arg|sed 's/A-*mpiboot=//'`
+	;;
+
+     -mpiunboot=* | --mpiunboot=*)
+	MPIUNBOOT=`echo A$arg|sed 's/A-*mpiunboot=//'`
+	;;
+
      -lib=* | --lib=*)
        package="`echo $arg|sed 's/-*lib=//'`"
        USERLIB="$package" ;;
@@ -293,10 +305,18 @@ do
 
      -mpichpath=*|--mpichpath=*)
 	mpichpath=`echo A$arg | sed 's/A-*mpichpath=//'`
+	if test ! -x $mpichpath/mpicc -a -x $mpichpath/bin/mpicc ; then
+	    mpichpath=$mpichpath/bin
+	fi
 	MPIRUNARGS='"-mvhome"'
 	MPIRUNMVBACK="-mvback"
 	;;
 
+     -with-mpich=*|--with-mpich=*)
+        mpichpath=`echo A$arg | sed 's/A-*with-mpich=//'`
+	MPIRUNARGS='"-mvhome"'
+	MPIRUNMVBACK="-mvback"
+	;;
      -mpi2)
 	HAS_MPI2=1
 	# add I/O test
@@ -317,6 +337,12 @@ do
        IO="io"
        ;;
 
+     -enable-boot | --enable-boot ) 
+       USE_BOOT=yes
+       ;;
+     -disable-boot | --disable-boot)
+       USE_BOOT=no
+       ;;
      -nobanner)
 	nobanner=1
 	;;
@@ -378,24 +404,33 @@ done]
 
 dnl Finish the initalization
 AC_PREPARE()
+PAC_FIXUP_SRCDIR
 #
 #
-## Find the MPICH home directory if not specified
-#if test -s $srcdir/src/pt2pt/Makefile.in ; then 
-#    MPIR_TRIAL=$srcdir
-#else
-#    PA C_GETWD(MPIR_TRIAL,src/pt2pt/Makefile.in)
-#fi
-#MPIR_HOME=$MPIR_TRIAL
+## Find the Toplevel directory
+if test -z "$srcdir" ; then srcdir="." ; fi
+if test "X$srcdir" != "X." -a -s $srcdir/pt2pt/runtests.in ; then 
+    MPITEST_TRIAL=$srcdir
+else
+    PAC_GETWD(MPITEST_TRIAL,$srcdir/pt2pt/runtests.in)
+fi
+MPITEST_HOME=$MPITEST_TRIAL
 #
 if test -z "$prefix" -a -n "$PREFIX" ; then prefix=$PREFIX ; fi
 AC_SUBST(prefix)
 if test -z "$top_srcdir" -o "$top_srcdir" = "." ; then 
-    top_srcdir=$srcdir
+    top_srcdir=$MPITEST_HOME
 fi
 AC_SUBST(top_srcdir)
+# We can't use a relative srcdir path because autoconf1 has a bug that
+# resets top_srcdir to srcdir!
+# srcdir is the directory that contains SOURCE files.
+if test -z "$srcdir" -o "$srcdir" = "." ; then srcdir="$MPITEST_HOME" ; fi
 
 if test -n "$mpichpath" ; then
+    if test ! -x $mpichpath/mpicc -a -x $mpichpath/bin/mpicc ; then
+        mpichpath="$mpichpath/bin"
+    fi
     if test -z "$MPICC" ; then MPICC=$mpichpath/mpicc ; fi
     if test -z "$MPIF77" ; then MPIF77=$mpichpath/mpif77 ; fi
     if test -z "$MPICPLUSPLUS" ; then MPICPLUSPLUS=$mpichpath/mpiCC ; fi
@@ -404,6 +439,10 @@ if test -n "$mpichpath" ; then
 	MPICH_VERSION="MPICH"
     fi
     if test -z "$MPI_VERSION" ; then MPI_VERSION="MPICH" ; fi
+    if test "$DEVICE" = "ch_p4mpd" ; then
+	MPIRUNARGS=""
+	MPIRUNMVBACK=""
+    fi
 fi
 #
 if test $BASECC = 0 ; then
@@ -487,6 +526,26 @@ if test $NOF77 = 0 ; then
        F77="echo no Fortran compiler"
        FLINKER="$F77"
        MPI_FOBJECTS="")
+    # If the Fortran compiler is g77, then we want to add -Wno-globals
+    # to suppress noise about using different types of variables in calls
+    # to MPI communication and address functions.  Note that the name
+    # may be f77; we need to detect that it is in fact g77.  In autoconf2
+    # we can use A C PROG_F77_GNU.  The following test is taken from there
+    AC_MSG_CHECKING([whether we are using GNU Fortran 77])
+    cat > conftest.fpp <<EOF
+#ifdef __GNUC__
+    yes
+#endif    
+EOF
+    if ($F77 -E conftest.fpp 2>&1 ) | egrep yes > /dev/null 2>&1 ; then
+        ac_cv_prog_g77=yes
+    else
+        ac_cv_prog_g77=no
+    fi
+    AC_MSG_RESULT($ac_cv_prog_g77)
+    if test $ac_cv_prog_g77 = "yes" ; then
+        FFLAGS="$FFLAGS -Wno-globals"
+    fi
 fi
 # Fixup for make
 PAC_MAKE_IS_GNUMAKE
@@ -498,6 +557,7 @@ PAC_MAKE_VPATH
 # stdlib.h is used mostly for things like malloc and free, so it isn't
 # so important that stdlib.h be exactly "right".
 PAC_CHECK_HEADERS(stdlib.h)
+PAC_CHECK_HEADERS(unistd.h string.h)
 #
 # Check for stdarg correct (used in test.h)
 PAC_STDARG_CORRECT(stdarg_ok)
@@ -523,6 +583,8 @@ PAC_CHECK_CC_PROTOTYPES(AC_DEFINE(HAVE_PROTOTYPES))
 # This is used in one of the TEST programs (sigchk.c)
 PAC_CHECK_HEADERS(signal.h)
 AC_HAVE_FUNCS(sigaction)
+#
+AC_HAVE_FUNCS(sleep)
 #
 INCLUDE_PATH=""
 USER_INCLUDE_PATH=""
@@ -569,6 +631,12 @@ if test -n "$MPILIBNAME" ; then
 fi
 
 #
+# We can check for MPICH by trying to compile a program that uses MPICH_NAME
+if test -z "$MPI_VERSION" ; then
+    AC_COMPILE_CHECK([whether MPI is MPICH],[#include "mpi.h"],[
+    int a=MPICH_NAME;],MPI_VERSION=MPICH)
+fi
+#
 # Check that we can link MPI_Init using the MPICC program (if not MPICH)
 # (We don't test mpich because we may be configuring this before MPICH 
 # is built.)
@@ -600,6 +668,13 @@ fi
 # Eventually add C++
 # For now, just test mpiCC
 AC_SUBST(HAS_CXX)
+#
+if test "$USE_BOOT" != "yes" ; then
+    MPIBOOT=""
+    MPIUNBOOT=""
+fi
+AC_SUBST(MPIBOOT)
+AC_SUBST(MPIUNBOOT)
 #
 AC_SUBST(MPIRUNARGS)
 # Substitute variables

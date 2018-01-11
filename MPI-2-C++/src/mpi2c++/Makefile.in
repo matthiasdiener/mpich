@@ -118,33 +118,39 @@ DIST_COMMON =  ./stamp-h.in Makefile.am Makefile.in mpi2c++_config.h.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = gnutar
+TAR = gtar
 GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
-$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
-	cd $(top_srcdir) && $(AUTOMAKE) --foreign src/mpi2c++/Makefile
+# Tru64 complains about empty SUFFIX lists
+.SUFFIXES: .c
+# Don't remake the makefile.in files!
+#$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+#	cd $(top_srcdir) && $(AUTOMAKE) --foreign src/mpi2c++/Makefile
 
-Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
-	cd $(top_builddir) \
-	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
-
-
-#mpi2c++_config.h: stamp-h
-#	@if test ! -f $@; then \
-#		rm -f stamp-h; \
-#		$(MAKE) stamp-h; \
-#	else :; fi
-#stamp-h: $(srcdir)/mpi2c++_config.h.in $(top_builddir)/config.status
+#Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 #	cd $(top_builddir) \
-#	  && CONFIG_FILES= CONFIG_HEADERS=src/mpi2c++/mpi2c++_config.h \
-#	     $(SHELL) ./config.status
-#	@echo timestamp > stamp-h 2> /dev/null
-#$(srcdir)/mpi2c++_config.h.in: $(srcdir)/stamp-h.in
-#	@if test ! -f $@; then \
-#		rm -f $(srcdir)/stamp-h.in; \
-#		$(MAKE) $(srcdir)/stamp-h.in; \
-#	else :; fi
+#	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+
+# mpi2c++_config.h: 
+# 	@if test ! -f $@; then \
+# 		rm -f stamp-h; \
+# 		$(MAKE) stamp-h; \
+# 	else :; fi
+# stamp-h: $(srcdir)/mpi2c++_config.h.in $(top_builddir)/config.status
+# 	cd $(top_builddir) \
+# 	  && CONFIG_FILES= CONFIG_HEADERS=src/mpi2c++/mpi2c++_config.h \
+# 	     $(SHELL) ./config.status
+# 	@echo timestamp > stamp-h 2> /dev/null
+# $(srcdir)/mpi2c++_config.h.in: $(srcdir)/stamp-h.in
+# 	@if test ! -f $@; then \
+# 		rm -f $(srcdir)/stamp-h.in; \
+# 		$(MAKE) $(srcdir)/stamp-h.in; \
+# 	else :; fi
+#
+# We can't run autoheader because the necessary acconfig files are not
+# available.
 #$(srcdir)/stamp-h.in: $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 #	cd $(top_srcdir) && $(AUTOHEADER)
 #	@echo timestamp > $(srcdir)/stamp-h.in 2> /dev/null
@@ -210,7 +216,7 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$d/$$file $(distdir)/$$file; \
+	    cp -pr $$/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
@@ -225,7 +231,8 @@ check-am: all-am
 check: check-am
 installcheck-am:
 installcheck: installcheck-am
-all-recursive-am: mpi2c++_config.h
+#all-recursive-am: mpi2c++_config.h
+all-recursive-am: 
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 install-exec-am:
@@ -241,7 +248,8 @@ install-am: all-am
 install: install-am
 uninstall-am: uninstall-pkgincludeHEADERS uninstall-local
 uninstall: uninstall-am
-all-am: Makefile $(HEADERS) mpi2c++_config.h
+#all-am: Makefile $(HEADERS) mpi2c++_config.h
+all-am: $(HEADERS) 
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install

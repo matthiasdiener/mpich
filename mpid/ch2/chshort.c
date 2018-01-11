@@ -1,5 +1,5 @@
 /*
- *  $Id: chshort.c,v 1.8 2000/08/09 22:29:37 gropp Exp $
+ *  $Id: chshort.c,v 1.9 2001/07/06 19:25:24 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -49,12 +49,15 @@ MPID_Msgrep_t msgrep;
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
     DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK"); 
-    MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest)
+    MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest);
 #endif
 
     /* These references are ordered to match the order they appear in the 
        structure */
-    pkt_len        = sizeof(MPID_PKT_HEAD_T) + sizeof(MPID_Aint);
+    /*pkt_len        = sizeof(MPID_PKT_HEAD_T) + sizeof(MPID_Aint); */
+    /* The size is the full size of the packet, minus the size of the
+       data area */
+    pkt_len        = sizeof(MPID_PKT_SHORT_T) - MPID_PKT_MAX_DATA_SIZE;
     pkt.mode	   = MPID_PKT_SHORT;
     pkt.context_id = context_id;
     pkt.lrank	   = src_lrank;
@@ -113,12 +116,13 @@ MPIR_SHANDLE *shandle;
 	MPID_DeviceCheck( MPID_BLOCKING );
     }  /* end while !ok loop */
     DEBUG_PRINT_MSG("Leaving while !MPID_PACKET_CHECK_OK"); 
-    MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest)
+    MPID_PACKET_ADD_SENT(MPID_MyWorldRank, dest);
 #endif
 
     /* These references are ordered to match the order they appear in the 
        structure */
-    pkt_len        = sizeof(MPID_PKT_HEAD_T) + sizeof(MPID_Aint);
+    /*pkt_len        = sizeof(MPID_PKT_HEAD_T) + sizeof(MPID_Aint); */
+    pkt_len        = sizeof(MPID_PKT_SHORT_T) - MPID_PKT_MAX_DATA_SIZE;
     pkt.mode	   = MPID_PKT_SHORT;
     pkt.context_id = context_id;
     pkt.lrank	   = src_lrank;

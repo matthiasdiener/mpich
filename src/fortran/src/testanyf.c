@@ -107,6 +107,7 @@ EXPORT_MPI_API void mpi_testany_( MPI_Fint *count, MPI_Fint array_of_requests[],
 	lrequest = 0;
 
     *__ierr = MPI_Testany((int)*count,lrequest,&lindex,&lflag,&c_status);
+    if (*__ierr != MPI_SUCCESS) return;
     if (lindex != -1) {
         if (lflag && !*__ierr) {
 	    array_of_requests[lindex] = MPI_Request_c2f(lrequest[lindex]);

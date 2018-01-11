@@ -1,5 +1,5 @@
 /*
- *  $Id: getpname.c,v 1.7 1999/08/30 15:45:57 swider Exp $
+ *  $Id: getpname.c,v 1.8 2001/04/03 15:46:02 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -30,7 +30,8 @@
   MPI_Get_processor_name - Gets the name of the processor
 
 Output Parameters:
-+ name - A unique specifier for the actual (as opposed to virtual) node. 
++ name - A unique specifier for the actual (as opposed to virtual) node. This
+  must be an array of size at least 'MPI_MAX_PROCESSOR_NAME'.
 - resultlen - Length (in characters) of the name 
 
 Notes:

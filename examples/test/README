@@ -49,6 +49,14 @@ To run the test, but not leave the executables around, do (in this directory)
 
   make TESTARGS=-small testing >& testing.out
 
+If your MPI requires a boot step before running programs, use the target
+testing-boot instead of testint:
+
+  make TESTARGS=-small testing-boot >& testing.out
+
+This will boot any MPI startup demons, and it will stop them at the end of the 
+test.
+
 If you are NOT using the MPICH implementation, then you can run the configure
 script in this directory.  If you need to view the configure options, then type
        configure -help

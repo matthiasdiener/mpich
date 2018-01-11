@@ -15,6 +15,7 @@ binbuild_dir = @binbuild_dir@
 top_srcdir   = @top_srcdir@
 srcdir       = @srcdir@
 
+RMIC       = @RMIC@
 JC         = @JC@
 JAR        = @JAR@
 JAVA_LIBS  = @JAVA_LIBS@
@@ -36,6 +37,8 @@ SRC = SLOG_Buffer.java SLOG_Const.java \
       SLOG_RecDef.java SLOG_RecDefs.java \
       SLOG_Preview.java \
       SLOG_String.java SLOG_bebits.java SLOG_tasklabel.java SLOG_global.java \
+      SLOG_RemoteInputStream.java SLOG_ProxyInputStream.java \
+      SLOG_RemoteServices.java SLOG_RemoteServer.java \
       SLOG_Thread.java iarray.java NegativeIntegerException.java
 
 OBJ = $(SRC:.java=.class)
@@ -46,26 +49,50 @@ CLASSPATH = $(JAVA_LIBS):.
 
 JFLAGS = -classpath $(CLASSPATH) -d . @JFLAGS@
 
-ALL:	CLASSFILES $(SLOG_LIB) slog_print
+ALL:	CLASSFILES RMIstub $(SLOG_LIB) slog_print slog_print_remote
 
 CLASSFILES: $(SRC)
 	$(JC) $(JFLAGS) $?
 
+RMIstub: SLOG_RemoteServer.class
+	@-if [ "X$(RMIC)" != "X" ] ; then \
+	      $(RMIC) $(JFLAGS) SLOG_RemoteServer ; \
+	  fi
+
+# remove Stub dependence to allow JDK-1.2 pre-release to compile.
+# $(SLOG_LIB): $(OBJ) SLOG_RemoteServer_Stub.class
 $(SLOG_LIB): $(OBJ)
-	$(JAR) cvf $@ $?
+	$(JAR) cvf $@ *.class
+	@-if [ "X@SWING_LIBS@" = "X" -a -s SLOG_RemoteServer_Stub.class ] ; then \
+	     rm -f slogd.manifest ; \
+	     echo "Main-Class: SLOG_RemoteServer" > slogd.manifest ; \
+	     $(JAR) umf slogd.manifest $@ ; \
+	     rm -f slogd.manifest ; \
+	  fi
 	mv -f $@ $(GUI_LIBDIR)
 
 slog_print: slog_print.java
 	$(JC) $(JFLAGS) $?
 	cp -f $@.class $(GUI_LIBDIR)
 
+slog_print_remote: slog_print_remote.java
+	$(JC) $(JFLAGS) $?
+	cp -f $@.class $(GUI_LIBDIR)
+
+ts_serializable: ts_serializable.java
+	$(JC) $(JFLAGS) $?
+
+ts_RMI: ts_RMI.java
+	$(JC) $(JFLAGS) $?
+
 clean:
-	rm -f $(OBJ) $(SLOG_LIB) slog_print.class *.class core
+	rm -f $(OBJ) $(SLOG_LIB) *.class core
 
 rmlib:
 	rm -f $(GUI_LIBDIR)/$(SLOG_LIB)
 	rm -f $(GUI_LIBDIR)/slog_print.class
+	rm -f $(GUI_LIBDIR)/slog_print_remote.class
 
 distclean: clean rmlib
-	rm -rf old
-	-rm -f Makefile
+	-rm -rf old
+	-rm -f Makefile *.class

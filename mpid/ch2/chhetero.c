@@ -1,5 +1,5 @@
 /*
- *  $Id: chhetero.c,v 1.6 2000/08/11 22:31:46 gropp Exp $
+ *  $Id: chhetero.c,v 1.7 2001/02/27 22:41:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -31,9 +31,7 @@ void MPID_ByteSwapInt ( int*, int );
  * This routine is called to initialize the information about datatype
  * representation at other processors.
  */
-int MPID_CH_Init_hetero( argc, argv )
-int  *argc;
-char ***argv;
+int MPID_CH_Init_hetero( int *argc, char **argv[] )
 {
     int  i, use_xdr;
     char *work;
@@ -237,6 +235,8 @@ else
  * This routine takes a communicator and determines the message representation
  * field for it
  */
+#ifdef MPID_HAS_HETERO
+
 int MPID_CH_Comm_msgrep( struct MPIR_COMMUNICATOR *comm_ptr )
 {
     MPID_H_TYPE my_byte_order;
@@ -282,6 +282,7 @@ int MPID_CH_Comm_msgrep( struct MPIR_COMMUNICATOR *comm_ptr )
     comm_ptr->msgform = MPID_MSG_OK;
     return MPI_SUCCESS;
 }
+#endif
 
 /* This routine is ensure that the elements in the packet HEADER can
    be read by the receiver without further processing (unless XDR is

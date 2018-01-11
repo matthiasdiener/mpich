@@ -84,6 +84,10 @@ struct connection {
 struct local_data {		/* local to each process */
     int listener_fd;
     int my_id;
+#ifdef P4_WITH_MPD
+    int my_job;			/* specific to mpd */
+    int parent_man_fd;		/* specific to mpd */
+#endif
 #ifdef THREAD_LISTENER
     /* This lock is used to coordinate access to the conntab between the
        main and listener threads in a process */
@@ -100,6 +104,7 @@ struct local_data {		/* local to each process */
     char *xdr_buff;
     XDR xdr_enc;
     XDR xdr_dec;
+    int  in_wait_for_exit;  /* true if in p4_wait_for_exit */
 };
 PUBLIC struct local_data *p4_local;
 
@@ -169,6 +174,9 @@ struct slave_listener_msg {
     int to_pid:32;
     int lport:32;
     int pad:32;
+#ifdef P4_WITH_MPD
+    char hostname[64];
+#endif
 };
 
 /* Messages between the bm and a rm at startup */

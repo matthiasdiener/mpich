@@ -98,6 +98,7 @@ EXPORT_MPI_API void mpi_cart_sub_ ( MPI_Fint *comm, MPI_Fint *remain_dims, MPI_F
 
     *__ierr = MPI_Cart_sub( MPI_Comm_f2c(*comm), lremain_dims, 
                             &lcomm_new);
-    *comm_new = MPI_Comm_c2f(lcomm_new);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *comm_new = MPI_Comm_c2f(lcomm_new);
 }
 

@@ -1,5 +1,7 @@
 #include "mpd.h"
 #include <sys/param.h>
+#include "mpdattach.h"	/* Interface to the debugger for process attachment */
+#include "merge.h"
 
 #define STDIN_STREAM    0
 #define STDOUT_STREAM   1
@@ -9,16 +11,26 @@
 #define TEMP_STREAM     6
 #define USER_STDIN      7
 
+#define PATSIZE 64
+#define TIMEOUTVAL 5
 
 struct fdentry fdtable[MAXFDENTRIES];  /* for external defn */
 extern int fdtable_high_water_mark;
 
+/* The following variables need only be present for the debugger to find; they are not
+   accessed by mpd or user code. */ 
+volatile int MPIR_i_am_starter;	/* Tell the debugger this process is not part
+				 * of the MPI world. */
+volatile int MPIR_partial_attach_ok; /* Tell the debugger that releasing this (console)
+				      process is sufficient to release all processes. */
 int cfd, debug = 0;
+int tvdebug;
 int listener_idx = -1;
 int ctl_idx = -1;
 int stdin_idx = -1;
 int stdout_idx = -1;
 int stderr_idx = -1;
+int user_stdin_idx = -1;
 
 int jobid, done;
 int control_input_closed = 0;
@@ -36,7 +48,9 @@ char myid[IDSIZE];
 
 struct passwd *pwent;
 
+/* Should these be static? */
 int mpdhelp( int, char** );
+int mpdclean( int, char** );
 int mpdcleanup( int, char** );
 int mpdtrace( int, char** );
 int mpdlistjobs( int, char** );
@@ -44,12 +58,15 @@ int mpdkilljob( int, char** );
 int mpddump( int, char** );
 int mpdmandump( int, char** );
 int mpdringtest( int, char** );
+int mpdringsize( int, char** );
 int mpdmpexec( int, char** );
 int mpdexit( int, char** );
 int mpdallexit( int, char** );
+int mpdshutdown( int, char** );
 int mpdbomb( int, char** );
 int mpirun( int, char** );
 int mpigdb( int, char** );
+void con_handle_input_fd( int );
 void handle_listen_input( int );
 void handle_control_input( int );
 void handle_stdout_input( int );
@@ -57,17 +74,24 @@ void handle_stderr_input( int );
 void handle_temp_input( int );
 void handle_user_stdin( int );
 void con_sig_handler( int );
-int  start_mpds( char * );
+int start_mpds( char * );
+int squash( char *, char [][PATSIZE] );
 void process_buf( char *, char *, int *, int * );
-
+static char * dupstr( const char * );
+void * MPIR_Breakpoint( void );
+static void sigalrm_handler( int );
+char pgmname[128]; 
 
 int main( int argc, char *argv[] )
 {
-    int rc;
+    int rc = 0;
+    char buf[MAXLINE];
 #   if defined(ROOT_ENABLED)
     int old_uid, old_gid;
 #   endif
-    char *s, pgmname[128], console_name[128];
+    char *s, console_name[128];
+    struct itimerval timelimit;
+    struct timeval tval, tzero;
 
     strcpy( myid, "mpdcon");
 
@@ -109,6 +133,16 @@ int main( int argc, char *argv[] )
 	sprintf( console_name, "%s_%s", CONSOLE_NAME, pwent->pw_name );
 #       endif
 	mpdprintf( debug, "connecting to console name :%s:\n", console_name );
+
+        signal(SIGALRM,sigalrm_handler);
+        tzero.tv_sec	      = 0;
+        tzero.tv_usec	      = 0;
+        timelimit.it_interval = tzero;       /* Only one alarm */
+        tval.tv_sec	      = TIMEOUTVAL;
+        tval.tv_usec	      = 0;
+        timelimit.it_value    = tval;
+        setitimer(ITIMER_REAL,&timelimit,0);
+
 	cfd = local_connect( console_name );
 #       if defined(AUTO_START)
 	if ( cfd == -1 ) {  
@@ -119,6 +153,28 @@ int main( int argc, char *argv[] )
 	error_check( cfd, "local_connect failed to connect to an mpd: " );
 	mpdprintf( debug, "local_connect; socket=%d\n", cfd );
 
+	if ( read_line( cfd, buf, MAXLINE ) != 0 ) {
+	    int version;
+	    mpd_parse_keyvals( buf );
+	    mpd_getval( "version", buf );
+	    version = atoi( buf );
+	    if ( version != MPD_VERSION ) {
+		mpdprintf( 1, "connected to mpd with mismatched version %d; mine is %d\n",
+			   version, MPD_VERSION );
+		exit( -1 );
+	    }
+	} 
+	else {
+	    mpdprintf( 1, "console lost contact with mpd unexpectedly\n" );
+	    exit ( -1 );
+	}
+
+        tzero.tv_sec	   = 0;
+        tzero.tv_usec	   = 0;
+        timelimit.it_value = tzero;   /* Turn off timer */
+        setitimer(ITIMER_REAL,&timelimit,0);
+        signal(SIGALRM,SIG_DFL);
+
 #       if defined(ROOT_ENABLED)
 	setuid(old_uid);  /* chg back now that I have the local socket */
 	setgid(old_gid);
@@ -126,6 +182,10 @@ int main( int argc, char *argv[] )
 
 	if ( strcmp( pgmname,"mpdringtest" ) == 0 )
 	    rc = mpdringtest( argc, argv );
+	else if ( strcmp( pgmname,"mpdringsize" ) == 0 )
+	    rc = mpdringsize( argc, argv );
+	else if ( strcmp( pgmname,"mpdclean" ) == 0 )
+	    rc = mpdclean( argc, argv );
 	else if ( strcmp( pgmname,"mpdtrace" ) == 0 )
 	    rc = mpdtrace( argc, argv );
 	else if ( strcmp( pgmname,"mpdlistjobs" ) == 0 )
@@ -142,6 +202,8 @@ int main( int argc, char *argv[] )
 	    rc = mpdexit( argc, argv );
 	else if ( strcmp( pgmname,"mpdallexit" ) == 0 )
 	    rc = mpdallexit( argc, argv );
+	else if ( strcmp( pgmname,"mpdshutdown" ) == 0 )
+	    rc = mpdshutdown( argc, argv );
 	else if ( strcmp( pgmname,"mpdbomb" ) == 0 )
 	    rc = mpdbomb( argc, argv );
 	else if ( strcmp( pgmname,"mpirun" ) == 0 )
@@ -153,12 +215,26 @@ int main( int argc, char *argv[] )
 	    exit( -1 );
 	}
     }
+    if (rc != 0) {
+	/* We've detected some problem but we do not handle it yet. */
+	printf( "Unexpected return %d from command\n", rc );
+    }
+    return 0;
+}
+
+int mpdclean( int argc, char *argv[] )
+{
+    char buf[MAXLINE];
+
+    sprintf( buf, "cmd=clean\n" );
+    send_msg( cfd, buf, strlen( buf ) );
+    read_line( cfd, buf, MAXLINE );  /* get ack_from_mpd */
+    read_line( cfd, buf, MAXLINE );  /* get clean completed msg */
+    printf( "mpdclean: clean completed\n" );
     return(0);
 }
 
-int mpdcleanup( argc, argv )
-int argc;
-char *argv[];
+int mpdcleanup( int argc, char *argv[] )
 {
     char file_name[MAXLINE];
     char cmd[MAXLINE];
@@ -178,9 +254,7 @@ char *argv[];
     return(0);
 }
 
-int mpdringtest(argc,argv)
-int argc;
-char *argv[];
+int mpdringtest( int argc, char *argv[] )
 {
     int  count;
     char buf[MAXLINE];
@@ -196,10 +270,31 @@ char *argv[];
         sprintf( buf, "cmd=ringtest laps=%d\n", count );
         send_msg( cfd, buf, strlen( buf ) );
     }
-    read_line( cfd, buf, MAXLINE );  /* get ack from mpd */
+    read_line( cfd, buf, MAXLINE );  /* get ack_from_mpd */
     mpdprintf( debug, "mpdringtest: msg from mpd: %s", buf );
     read_line( cfd, buf, MAXLINE );  /* get ringtest completed msg */
     printf( "mpdringtest: msg from mpd: %s", buf );
+    return(0);
+}
+
+int mpdringsize( int argc, char *argv[] )
+{
+    int execonly;
+    char buf[MAXLINE];
+	
+    if ( (argc == 2 ) && (strcmp( argv[1], "-e" ) ) == 0 )
+	execonly = 1;
+    else
+	execonly = 0;
+    sprintf( buf, "cmd=ringsize execonly=%d\n", execonly );
+    send_msg( cfd, buf, strlen( buf ) );
+    read_line( cfd, buf, MAXLINE );  /* get ack_from_mpd */
+    mpdprintf( debug, "mpdringsize: msg from mpd: %s", buf );
+    read_line( cfd, buf, MAXLINE );  /* get ringtest completed msg */
+    mpd_parse_keyvals( buf );
+    mpd_getval( "size", buf );
+    /* printf( "mpdringsize=%s\n", buf ); verbose */
+    printf( "%s\n", buf );
     return(0);
 }
 
@@ -275,8 +370,13 @@ char *argv[];
 int mpdtrace( int argc, char *argv[] )
 {
     char buf[MAXLINE];
+    int  execonly;
 	
-    sprintf( buf, "cmd=trace\n" );
+    if ( (argc == 2 ) && (strcmp( argv[1], "-e" ) ) == 0 )
+	execonly = 1;
+    else
+	execonly = 0;
+    sprintf( buf, "cmd=trace execonly=%d\n", execonly );
     send_msg( cfd, buf, strlen( buf ) );
     read_line( cfd, buf, MAXLINE );  /* get ack from mpd */
     mpdprintf( debug, "mpdtrace: msg from mpd: %s", buf );
@@ -327,16 +427,24 @@ int argc;
 char *argv[];
 {
     char buf[MAXLINE];
+    int rc;
 
     if (argc < 2)
     {
 	printf( "usage: mpdexit mpd_id \n" );
 	return(0);
     }
-    sprintf( buf, "cmd=exit mpd_id=%s\n", argv[1] );
+    if ( strcmp( argv[1], "me" ) == 0 ) {
+	mpdprintf( debug, "killing local mpd\n" );
+	sprintf( buf, "cmd=exit mpd_id=self\n" );
+    }
+    else
+	sprintf( buf, "cmd=exit mpd_id=%s\n", argv[1] );
     send_msg( cfd, buf, strlen( buf ) );
-    read_line( cfd, buf, MAXLINE );  /* get ack from mpd */
-    mpdprintf(debug,"mpdexit: msg from mpd: %s",buf);
+    rc = read_line( cfd, buf, MAXLINE );  /* get ack from mpd */
+    if ( rc == -1 )
+	printf( "lost contact with local mpd\n" );
+    mpdprintf( debug, "mpdexit: msg from mpd: %s", buf );
     return(0);
 }
 
@@ -358,9 +466,24 @@ char *argv[];
     return(0);
 }
 
-int mpdhelp(argc,argv)
+int mpdshutdown(argc,argv)
 int argc;
 char *argv[];
+{
+    char buf[MAXLINE];
+
+    if (argc < 2) {
+	printf( "usage: mpdshutdown mpd_id \n" );
+	return(0);
+    }
+    sprintf( buf, "cmd=shutdown mpd_id=%s\n", argv[1] );
+    send_msg( cfd, buf, strlen( buf ) );
+    read_line( cfd, buf, MAXLINE );  /* get ack from mpd */
+    mpdprintf( debug, "mpdshutdown: msg from mpd: %s", buf );
+    return(0);
+}
+
+int mpdhelp(int argc, char *argv[])
 {
     printf("\n" );
     printf("mpdhelp\n" );
@@ -382,6 +505,9 @@ char *argv[];
     printf("  sends a message around the ring \"count\" times\n");
     printf("mpdexit mpd_id \n" );
     printf("  causes the specified mpd_id to exit gracefully;\n");
+    printf("  mpd_id is specified as host_portnum or as \"me\" for the local mpd;\n");
+    printf("mpdshutdown mpd_id \n" );
+    printf("  shuts down the specified mpd; more robust version of mpdexit\n");
     printf("  mpd_id is specified as host_portnum;\n");
     printf("mpdallexit \n" );
     printf("  causes all mpds to exit gracefully;\n");
@@ -398,25 +524,31 @@ char *argv[];
 
 /******  This is the console that talks to managers  ****/
 
-int mpdmpexec( argc, argv )
-int argc;
-char *argv[];
+int mpdmpexec( int argc, char *argv[] )
 {
     int i, argcnt, envcnt, envflag, loccnt, locflag, rc, num_fds, optcount;
     int shmemgrpsize;
     char buf[MAXLINE], argbuf[MAXLINE], stuffed_arg[MAXLINE], wdirname[MAXPATHLEN];
-    char path[MAXPATHLEN], executable[MAXPATHLEN], jobidbuf[8];
+    char path[MAXPATHLEN], executable[MAXPATHLEN], jobinfobuf[8];
+    char display[MAXLINE], machinefile[MAXPATHLEN];
     char myhostname[MAXHOSTNMLEN];
+    char *p;
     fd_set readfds, writefds;
     struct timeval tv;
-    int path_was_supplied_by_user, user_stdin_idx, line_labels, close_stdin;
+    int path_was_supplied_by_user, line_labels, close_stdin, myrinet_job;
+    int first_at_console;  /* run first process on same node as console */
+    int whole_lines;
     size_t numgids;
     gid_t gidlist[MAXGIDS];
     char groups[5*MAXGIDS], groupbuf[6];
+    char hostlist_patterns[128][PATSIZE], tempbuf[128], hostlist_buf[MAXLINE];
+
+    machinefile[0] = '\0';
+    display[0]     = '\0';
 
     if (argc < 3) {
 	printf( "usage: mpdmpexec -n numprocs [-l] "
-	        "[-g <shmemgrpsize>] [-s] executable"
+	        "[-g <shmemgrpsize>] [-s] [-m machines_filename] executable"
 		" [args] [-MPDENV- env] [-MPDLOC- loc(s)]\n" );
 	return(0);
     }
@@ -439,10 +571,20 @@ char *argv[];
     getcwd(wdirname,MAXPATHLEN);
     mpdprintf( debug, "current console working directory = %s\n", wdirname );
     strcpy( path, getenv( "PATH" ) ); /* may want to propagate to manager */
+
+    if ( (p = getenv( "DISPLAY" ) ) != NULL )
+	strcpy( display, p ); /* For X11 programs */  
+
     mpdprintf( debug, "current path = %s\n", path );
-    line_labels  = 0;
-    shmemgrpsize = 1;
-    close_stdin = 0;
+    line_labels	     = 0;
+    whole_lines	     = 0;
+    shmemgrpsize     = 1;
+    close_stdin	     = 0;
+    myrinet_job	     = 0;
+    loccnt	     = 0;
+    tvdebug          = 0;
+    first_at_console = 1;
+
     while ( optcount < argc  &&  argv[optcount][0] == '-' ) {
 	if ( argv[optcount][1] == 'n' ) {
 	    for (i=0; i < strlen( argv[optcount+1] ); i++) {
@@ -462,8 +604,20 @@ char *argv[];
 	    line_labels = 1;
 	    optcount++;
 	}
+	else if ( argv[optcount][1] == 'w' ) {
+	    whole_lines = 1;
+	    optcount++;
+	}
+	else if ( argv[optcount][1] == '1' ) {
+	    first_at_console = 0;
+	    optcount++;
+	}
 	else if ( argv[optcount][1] == 's' ) {
 	    close_stdin = 1;
+	    optcount++;
+	}
+	else if ( argv[optcount][1] == 'y' ) {
+	    myrinet_job = 1;
 	    optcount++;
 	}
 	else if ( argv[optcount][1] == 'g' ) {
@@ -480,6 +634,18 @@ char *argv[];
 	    optcount++;		/* ignore this argument */
 	else if ( strcmp( argv[optcount], "-mvback" ) == 0 )
 	    optcount += 2;	/* ignore this argument and the next */
+	else if ( argv[optcount][1] == 'm' ) { /* note potential conflict with above 2 */
+	    strcpy( machinefile,argv[optcount+1] );
+	    squash( machinefile, hostlist_patterns );
+	    optcount += 2;
+	    hostlist_buf[0] = '\0';
+	    for (i=0; hostlist_patterns[i][0]; i++) {
+		loccnt++;
+		mpd_stuff_arg(hostlist_patterns[i],stuffed_arg);
+		sprintf( tempbuf, " loc%d=%s", loccnt, stuffed_arg );
+		strcat( hostlist_buf, tempbuf );
+	    }
+	}
 	else {
 	    if ( mpirunning )
 		usage_mpirun( );
@@ -490,6 +656,9 @@ char *argv[];
 	    return(-1);
 	}
     }
+    if ( MPIR_being_debugged )
+	tvdebug = 1;
+
     if ( gdb )
         strcpy( executable, "gdb" );
     else {
@@ -513,7 +682,7 @@ char *argv[];
 /* create string of group ids */
     groups[0] = '\0';		/* set group string to empty */
     for ( i = 0; i < numgids ; i++ ) {
-	sprintf( groupbuf, "%d,", gidlist[i] );
+	sprintf( groupbuf, "%d,", (int)gidlist[i] );
 	strncat( groups, groupbuf, sizeof( groupbuf ) );
     }
     groups[strlen(groups) - 1] = '\0'; /* chop off trailing comma */
@@ -521,14 +690,16 @@ char *argv[];
 
     sprintf( buf,
 	     "cmd=mpexec hostname=%s portnum=%d iotree=%d numprocs=%d "
-	     "executable=%s line_labels=%d shmemgrpsize=%d "
+	     "executable=%s gdb=%d tvdebug=%d line_labels=%d shmemgrpsize=%d "
+             "first_at_console=%d myrinet_job=%d "
+             "whole_lines=%d "
              "username=%s groupid=%d groups=%s ",
 	     myhostname, fdtable[listener_idx].portnum, iotree, jobsize,
-	     executable, line_labels, shmemgrpsize,
-             pwent->pw_name, getgid( ), groups );
+	     executable, gdb, tvdebug, line_labels, shmemgrpsize,
+	     first_at_console, myrinet_job, whole_lines,
+             pwent->pw_name, (int)getgid( ), groups );
     argcnt  = 0;
     envcnt  = 0;
-    loccnt  = 0;
     envflag = 0;
     locflag = 0;
     path_was_supplied_by_user = 0;
@@ -543,6 +714,14 @@ char *argv[];
 	strcat( buf,argbuf );
     }
 
+    if (loccnt) {
+	if ( ( strlen(buf) + strlen(hostlist_buf) ) < MAXLINE )
+            strcat(buf,hostlist_buf);
+	else {
+	    printf("exiting: squash buffer not large enough to handle host list\n");
+	    exit(-1);
+	}
+    }
     if (argc > optcount)
     {
 	strcat( buf, " " );  /* extra blank before args */
@@ -556,7 +735,7 @@ char *argv[];
 	        envflag = 0;
 	    }
 	    else {
-		stuff_arg(argv[i],stuffed_arg);
+		mpd_stuff_arg(argv[i],stuffed_arg);
 		if (locflag) {
 		    loccnt++;
 		    sprintf( argbuf, " loc%d=%s", loccnt, stuffed_arg );
@@ -579,13 +758,32 @@ char *argv[];
     strcat( buf, argbuf );
     if ( ! path_was_supplied_by_user ) {
 	sprintf( argbuf, "PATH=%s", path );
-	stuff_arg(argbuf,stuffed_arg);
+	mpd_stuff_arg(argbuf,stuffed_arg);
 	envcnt++;
 	sprintf( argbuf, " env%d=%s", envcnt, stuffed_arg );
 	strcat( buf, argbuf );
     }
+
+    if ( display[0] != '\0' ) {
+	sprintf( argbuf, "DISPLAY=%s", display);
+	mpd_stuff_arg(argbuf, stuffed_arg);
+	envcnt++;
+	sprintf( argbuf, " env%d=%s", envcnt, stuffed_arg );
+	strcat( buf, argbuf );
+    }
+
+/*  This code should be obsolete now that we handle the Myrinet file differently
+    if ( strcmp( machinefile, "" ) != 0 ) { 
+	sprintf( argbuf, "GMPI_CONF=%s.myr", machinefile);
+	mpd_stuff_arg(argbuf, stuffed_arg);
+	envcnt++;
+	sprintf( argbuf, " env%d=%s", envcnt, stuffed_arg );
+	strcat( buf, argbuf );
+    }
+*/
+    
     sprintf( argbuf, "PWD=%s", wdirname );
-    stuff_arg(argbuf,stuffed_arg);
+    mpd_stuff_arg(argbuf,stuffed_arg);
     envcnt++;
     sprintf( argbuf, " env%d=%s", envcnt, stuffed_arg );
     strcat( buf, argbuf );
@@ -598,11 +796,41 @@ char *argv[];
     strcat( buf, "\n" );
     mpdprintf( 0, "mpdmpexec: sending to mpd :%s:\n", buf );
     send_msg( cfd, buf, strlen( buf ) );
+
+    rc = read_line( cfd, buf, MAXLINE );  /* get ack_from_mpd */
+    if ( rc == -1 ) {
+	printf( "console lost contact with local mpd\n" );
+	exit ( -1 );
+    }
+    else {
+	mpdprintf( debug, "mpdmpexec: msg from mpd: %s", buf );
+	if ( strcmp( buf, "cmd=ack_from_mpd\n" ) != 0 ) {
+	    printf( "possible invalid cmd from user; invalid response from mpd: %s\n",
+		    buf );
+	    exit(-1);
+	}
+    }
+
+    /* receive and handle jobinfo msg */
     read_line( cfd, buf, MAXLINE ); /* get jobid from mpd */
     mpdprintf( debug, "mpdmpexec: msg from mpd: %s", buf );
-    parse_keyvals( buf );
-    getval( "jobid", jobidbuf );
-    jobid = atoi( jobidbuf );
+    mpd_parse_keyvals( buf );
+    mpd_getval( "cmd", jobinfobuf );
+    if ( strcmp( jobinfobuf, "jobinfo" ) != 0 ) {
+	mpdprintf( 1, "expecting jobinfo msg; got :%s:\n", jobinfobuf );
+	exit(-1);
+    }
+    mpd_getval( "jobid", jobinfobuf );
+    jobid = atoi( jobinfobuf );
+    mpd_getval( "status", jobinfobuf );
+    if ( strcmp( jobinfobuf, "started" ) != 0 ) {
+        mpdprintf( 1, "failed to start job %d; \n"
+	              "you may have invalid machine names \n"
+		      "or the set of mpds you specified may only run root jobs \n"
+		      "or mpd may not be able to find mpdman\n",
+		   jobid );
+	exit(-1);
+    }
     /* fprintf( stderr, "%s", buf );*/  	/* print job id */
 
     /* don't close socket to mpd until later when we get ctl stream from mpdman*/
@@ -613,9 +841,9 @@ char *argv[];
     }
     else {
         /* put stdin in fdtable */
-        user_stdin_idx		    = allocate_fdentry();
-        fdtable[user_stdin_idx].fd	    = 0;
-        fdtable[user_stdin_idx].read    = 1;
+        user_stdin_idx		        = allocate_fdentry();
+        fdtable[user_stdin_idx].fd      = 0;
+        fdtable[user_stdin_idx].read    = 0;  /* reset to 1 when recv conn from mgr */
         fdtable[user_stdin_idx].write   = 0;
         fdtable[user_stdin_idx].handler = USER_STDIN;
         strcpy( fdtable[user_stdin_idx].name, "user_stdin" );
@@ -652,10 +880,10 @@ char *argv[];
         for ( i=0; i <= fdtable_high_water_mark; i++ ) {
             if ( fdtable[i].active ) {
                 if ( FD_ISSET( fdtable[i].fd, &readfds ) )
-                    handle_input_fd( i );
+                    con_handle_input_fd( i );
             }
         }
-	mpdprintf( debug, "control_input_closed=%d stdout_input_closed=%d "
+	mpdprintf( 000, "control_input_closed=%d stdout_input_closed=%d "
 	                "stderr_input_closed=%d\n",control_input_closed,
 			stdout_input_closed,stderr_input_closed );
 	if ( control_input_closed && stdout_input_closed && stderr_input_closed )
@@ -690,7 +918,7 @@ int mpigdb( int argc, char *argv[] )
 }
 
 
-void handle_input_fd( int idx )
+void con_handle_input_fd( int idx )
 {
     if ( fdtable[idx].handler == NOTSET )
         mpdprintf( debug, "man:  handler not set for port %d\n", idx );
@@ -736,17 +964,17 @@ void handle_temp_input( int idx )
 	return;
     }
     strcpy( tmpbuf, message );             
-    parse_keyvals( tmpbuf );
-    getval( "cmd", cmd );
+    mpd_parse_keyvals( tmpbuf );
+    mpd_getval( "cmd", cmd );
     if ( strcmp( cmd, "new_ctl_stream" ) == 0 ) {
         ctl_idx = idx;
 	fdtable[ctl_idx].handler = CONTROL_STREAM;
 	fdtable[ctl_idx].read = 1;
 	strcpy( fdtable[ctl_idx].name, "ctl_stream" );
 	/* control connection now open, so set up to pass interrupts to manager */
-	Signal( SIGTSTP,  con_sig_handler );  /* Pass suspension to manager */
-	Signal( SIGCONT,  con_sig_handler );  /* Pass cont to manager  */
-	Signal( SIGINT,   con_sig_handler );  /* Pass kill to manager  */
+	mpd_Signal( SIGTSTP,  con_sig_handler );  /* Pass suspension to manager */
+	mpd_Signal( SIGCONT,  con_sig_handler );  /* Pass cont to manager  */
+	mpd_Signal( SIGINT,   con_sig_handler );  /* Pass kill to manager  */
 	dclose( cfd );  /* now that we have a ctl stream from mpdman */
 	if ( gdb )
 	    write_line( ctl_idx, "cmd=set stdin=all\n" );
@@ -762,6 +990,8 @@ void handle_temp_input( int idx )
 	fdtable[stdin_idx].handler = STDIN_STREAM;
 	fdtable[stdin_idx].read = 0;
 	strcpy( fdtable[stdin_idx].name, "stdin_stream" );
+	if ( user_stdin_idx != -1 )
+	    fdtable[user_stdin_idx].read = 1;
     }
     else if ( strcmp( cmd, "new_stdout_stream" ) == 0 ) {
         stdout_idx = idx;
@@ -780,6 +1010,18 @@ void handle_temp_input( int idx )
     }
 }
 
+static void dump_MPIR_proctable ( void )
+{
+    int i;
+
+    mpdprintf( debug, "Proctable (%d entries)\n",MPIR_proctable_size );
+    for (i=0; i<MPIR_proctable_size; i++) {
+	mpdprintf( debug, "%4d: %10s %d %s\n",
+		   i, MPIR_proctable[i].host_name, MPIR_proctable[i].pid,
+		   MPIR_proctable[i].executable_name);
+    }
+}
+
 void handle_control_input( int idx )
 {
     int length;
@@ -788,8 +1030,8 @@ void handle_control_input( int idx )
 
     if ( ( length = read_line(fdtable[idx].fd, buf, MAXLINE ) ) > 0 ) {
         mpdprintf( debug, "console received on control from manager: :%s:\n", buf );
-	parse_keyvals( buf );
-	getval( "cmd", cmd );
+	mpd_parse_keyvals( buf );
+	mpd_getval( "cmd", cmd );
 	if ( strcmp( cmd, "jobdead" ) == 0 ) {
 	    mpdprintf( debug, "handle_control_input sending allexit\n");
 	    sprintf( buf, "cmd=allexit\n" );
@@ -799,10 +1041,71 @@ void handle_control_input( int idx )
 	}
 	else if ( strcmp( cmd, "jobaborted" ) == 0 ) {
 	    printf( "job %d aborted with code %d by process %d\n",
-	            atoi( getval( "job", buf ) ),
-	            atoi( getval( "code", buf ) ),
-	            atoi( getval( "rank", buf ) ) );
+	            atoi( mpd_getval( "job", buf ) ),
+	            atoi( mpd_getval( "code", buf ) ),
+	            atoi( mpd_getval( "rank", buf ) ) );
+	    if ( strcmp( mpd_getval( "by", buf ), "mpdman") == 0 ) {
+		if ( strcmp( mpd_getval( "reason", buf ), "execvp_failed" ) == 0 ) {
+		    printf( "unable to execute program: %s\n",
+			    mpd_getval( "info", buf ) );
+		}
+		else if ( strcmp( mpd_getval( "reason", buf ), "probable_brokenpipe_to_client" ) == 0 ) {
+		    printf( "broken pipe to client\n" );
+		}
+	    }
 	    /* exit( 0 ); */ /* hang around until manager 0 ends */
+	}
+	else if ( strcmp( cmd, "client_info" ) == 0 ) {
+	    /* Save information from this message in the global
+	     * array, and see if we have all the info we're expecting
+	     */
+	    static int clients_received;
+	    int version;
+	    int rank = atoi( mpd_getval( "rank", buf ) );
+	    if ( rank < 0 || rank > jobsize ) {
+		mpdprintf( 1, "console received client_info from bad rank (%d)\n", rank);
+		return;
+	    }
+	    else
+		mpdprintf( debug, "console received client_info from rank %d\n", rank );
+	    
+	    if ( MPIR_proctable == 0 ) {
+		MPIR_proctable = (MPIR_PROCDESC *) calloc(
+		    jobsize , sizeof( MPIR_PROCDESC ) );
+		if ( MPIR_proctable == 0 ) {
+		    mpdprintf( 1, "cannot allocate proctable for %d procs\n",
+			   jobsize);
+		    return;
+		}
+	    }
+	    
+	    MPIR_proctable[rank].pid = atoi( mpd_getval( "pid", buf ) );
+	    MPIR_proctable[rank].host_name = dupstr( mpd_getval( "host", buf ) );
+	    MPIR_proctable[rank].executable_name = dupstr( mpd_getval( "execname", buf ) );
+	    
+	    version = atoi( mpd_getval( "version", buf ) );
+	    if ( version != MPD_VERSION ) {
+		mpdprintf( 1,
+			   "client %s, rank %d, on host %s has version %d; mine is %d\n",
+			   MPIR_proctable[rank].executable_name, rank,
+			   MPIR_proctable[rank].host_name, version, MPD_VERSION );
+	    }
+	    /* Has everyone checked in yet ? */
+	    clients_received ++;
+	    if ( clients_received == jobsize ) {
+		MPIR_proctable_size = jobsize;
+		MPIR_debug_state = MPIR_DEBUG_SPAWNED;
+		dump_MPIR_proctable();
+		if ( tvdebug ) {
+		    MPIR_Breakpoint(); /* Tell the debugger we're ready */
+		
+		    /* The debugger is happy, so now we can release the clients */
+		    mpdprintf( debug, "returned from MPIR_Breakpoint, releasing clients\n");
+		    sprintf( buf, "cmd=client_release\n" );
+		    write_line( ctl_idx, buf );
+		}
+	    }
+
 	}
 	else if ( strcmp( cmd, "man_ringtest_completed" ) == 0 )
 	    printf( "manringtest completed\n" );
@@ -821,6 +1124,7 @@ void handle_control_input( int idx )
 		   errno );
 }
 
+static struct merged *som = NULL; /* The merged output struct for stdout */
 void handle_stdout_input( int idx )
 {
     int n, promptsfound, len_stripped;
@@ -830,19 +1134,32 @@ void handle_stdout_input( int idx )
     if ( ( n = read( fdtable[idx].fd, buf, STREAMBUFSIZE ) ) > 0 ) {
 	buf[n] = '\0';		   /* null terminate for string processing */
 	if ( gdb ) {
-	    /* fprintf( stderr, "read |%s|\n", buf ); */
-	    process_buf( buf, newbuf, &promptsfound, &len_stripped );
-	    numprompts += promptsfound;
-	    mpdprintf( debug, "handle_stdout_input writing %d\n", n - ( len_stripped ) );
-	    write( 1, newbuf, n - ( len_stripped ) );
-	    if ( numprompts >= mergeprompts ) {
-		printf( "(mpigdb) " );
+            if (som == NULL)
+                som = merged_create(jobsize, DFLT_NO_LINES, stdout);
+
+            /* fprintf( stderr, "read |%s|\n", buf ); */
+	    if (som == NULL || merged_submit( som, buf ) < 0) { 
+	        process_buf( buf, newbuf, &promptsfound, &len_stripped );
+	        numprompts += promptsfound;
+	        mpdprintf( debug, "handle_stdout_input writing %d\n", n - ( len_stripped ) );
+	        write( 1, newbuf, n - ( len_stripped ) );
+            }
+
+	    if ( ( merged_num_ready(som) >= mergeprompts ) || ( numprompts >= mergeprompts ) ) {
+                merged_flush(som);
+                if ( !first_prompts )
+                    printf( "(mpigdb) " );
 		fflush( stdout );
-		numprompts = 0;
 		if ( first_prompts ) {
 		    first_prompts = 0;
+            write_line( stdin_idx, "set prompt\n" );
+            write_line( stdin_idx, "set confirm off\n" );
 		    write_line( stdin_idx, "handle SIGUSR1 nostop noprint\n" );
+		    write_line( stdin_idx, "handle SIGPIPE nostop noprint\n" );            
+            write_line( stdin_idx, "set confirm on\n" );
+            write_line( stdin_idx, "set prompt (gdb)\\n\n" );
 		}
+		numprompts = 0;
 	    }
 	}
 	else 
@@ -858,6 +1175,7 @@ void handle_stdout_input( int idx )
 	fprintf( stderr, "console failed to retrieve msg from stdout stream\n" );
 }
 
+static struct merged *sem = NULL; /* The merged output struct for stderr */
 void handle_stderr_input( int idx )
 {
     int n, promptsfound, len_stripped;
@@ -866,19 +1184,26 @@ void handle_stderr_input( int idx )
     if ( ( n = read( fdtable[idx].fd, buf, STREAMBUFSIZE ) ) > 0 ) {
 	buf[n] = '\0';		   /* null terminate for string processing */
 	if ( gdb ) {
-	    process_buf( buf, newbuf, &promptsfound, &len_stripped );
-	    numprompts += promptsfound;
-	    mpdprintf( debug, "handle_stderr_input writing %d\n", n - ( len_stripped ) );
-	    write( 2, ".", 1);	/* temporarily mark stderr - RL */
-	    write( 2, newbuf, n - ( len_stripped ) );
-	    if ( numprompts >= mergeprompts ) {
-		fprintf( stderr, ".(mpigdb) " );
-		fflush( stderr );
-		numprompts = 0;
+            if (sem == NULL)
+                sem = merged_create(jobsize, DFLT_NO_LINES, stderr);
+
+            if (sem == NULL || merged_submit( sem, buf ) < 0) {
+                process_buf( buf, newbuf, &promptsfound, &len_stripped );
+	        numprompts += promptsfound;
+	        mpdprintf( debug, "handle_stderr_input writing %d\n", n - ( len_stripped ) );
+	        /* write( 2, ".", 1);	 temporarily mark stderr - RL */
+	        write( 2, newbuf, n - ( len_stripped ) );
+            }
+
+            if ( ( merged_num_ready(sem) >= mergeprompts ) || ( numprompts >= mergeprompts ) ) {
+                merged_flush(sem); 
+	        fprintf( stderr, "(mpigdb) " );
+	        fflush( stderr );
+	        numprompts = 0;
 	    }
 	}
-	else { 
-	    write( 2, ".", 1);	/* temporarily mark stderr - RL */
+	else {
+	    /* write( 2, ".", 1);	temporarily mark stderr - RL */
 	    write( 2, buf, n );
 	}
     }
@@ -917,7 +1242,8 @@ void handle_user_stdin( int idx )
     
     if ( ( n = read_line( fdtable[idx].fd, buf, STREAMBUFSIZE ) ) > 0 ) {
 				   /* note n includes newline but not NULL */
-	mpdprintf( debug, "handle_user_stdin: got %s", buf ); 
+	mpdprintf( debug, "handle_user_stdin: stdin_idx=%d got :%s:\n",
+	                  stdin_idx, buf ); 
 	if ( buf[0] == '_' ) { /* escape character to access cntl */
 	    sprintf( buf2, "cmd=%s", buf + 1 );
 	    write_line( ctl_idx, buf2 );
@@ -963,9 +1289,11 @@ void handle_user_stdin( int idx )
 	dclose( fdtable[idx].fd ); /* console's own stdin */
 	deallocate_fdentry( idx );
 	/* close input connections to manager */
-	dclose( fdtable[stdin_idx].fd ); 
-	deallocate_fdentry( stdin_idx );
-	stdin_idx = -1;
+	if ( stdin_idx != -1 ) {
+	    dclose( fdtable[stdin_idx].fd ); 
+	    deallocate_fdentry( stdin_idx );
+	    stdin_idx = -1;
+	}
     }
     else 
 	fprintf( stderr, "console failed to retrieve msg from console's stdin\n" );
@@ -973,7 +1301,7 @@ void handle_user_stdin( int idx )
 
 void con_sig_handler( int signo )
 {
-    char buf[MAXLINE], signame[24];
+    char buf[MAXLINE], buf2[MAXLINE], signame[24];
     int pid;
 
     unmap_signum( signo, signame );
@@ -985,7 +1313,7 @@ void con_sig_handler( int signo )
 	sprintf( buf, "cmd=signal signo=%s\n", "SIGTSTP" );
 	write_line( ctl_idx, buf );
 	/* suspend self*/
-	Signal( SIGTSTP, SIG_DFL );  /* Set interrupt handler to default */
+	mpd_Signal( SIGTSTP, SIG_DFL );  /* Set interrupt handler to default */
 	pid = getpid();
 	kill( pid, SIGTSTP );
     }
@@ -993,14 +1321,83 @@ void con_sig_handler( int signo )
 	mpdprintf( debug, "parallel job resumed\n" );
 	sprintf( buf, "cmd=signal signo=%s\n", "SIGCONT" );
 	write_line( ctl_idx, buf );
-	Signal( SIGTSTP, con_sig_handler );   /* Restore this signal handler */
+	mpd_Signal( SIGTSTP, con_sig_handler );   /* Restore this signal handler */
     }
     else if ( signo == SIGINT ) {
-	mpdprintf( debug, "parallel job being killed\n" );
-	sprintf( buf, "cmd=signal signo=%s\n", "SIGINT" );
-	write_line( ctl_idx, buf );
-	dclose( fdtable[ctl_idx].fd );
-	exit( -1 );
+    if ( gdb ) {
+        char c;
+        int i, first_ready, n;
+
+        merged_reset_next_ready(som);
+        first_ready = merged_next_ready(som);
+        if (first_ready >= 0) {
+        while (1) {
+            merged_print_status(som);
+            printf("\nOptions:\n");
+            printf("(1) Switch to the first ready node\n");
+            printf("(2) Switch to a specific ready node\n");
+            printf("(3) Send a command to all ready nodes\n");
+            printf("\n");
+            printf("(Q) Quit\n\n");
+            printf("Enter your selection: ");
+            fflush(stdout);
+            if (scanf("%c", &c) != 1)
+                continue;
+            switch (c) {
+                case '1':
+				    mergeprompts = 1;
+				    sprintf( buf2, "cmd=set stdin=%d\n", first_ready );
+				    write_line( ctl_idx, buf2 );
+                    printf("(mpigdb) ");
+                    fflush(stdout);
+                    break;
+                case '2':
+                    printf("Which node: ");
+                    fflush(stdout);
+                    scanf("%d", &i);
+				    sprintf( buf2, "cmd=set stdin=%d\n", i );
+				    write_line( ctl_idx, buf2 );
+                    printf("(mpigdb) ");
+                    fflush(stdout);
+                    break;
+                case '3':
+                    printf("Enter command to send: ");
+                    fflush(stdout);
+                    buf[0] = '\0';
+                    n = read( STDIN_FILENO, buf, MAXLINE ); 
+                    for (i = first_ready; i >= 0; i = merged_next_ready(som)) {
+				    sprintf( buf2, "cmd=set stdin=%d\n", i );
+				    write_line( ctl_idx, buf2 );
+                    send_msg( fdtable[stdin_idx].fd, buf, n );
+                    }
+                    write_line( ctl_idx, "cmd=set stdin=all\n" );
+                    break;
+                case 'q':
+                    mpdprintf( debug, "parallel job being killed\n" );
+                    sprintf( buf, "cmd=signal signo=%s\n", "SIGINT" );
+                    write_line( ctl_idx, buf );
+                    dclose( fdtable[ctl_idx].fd );
+                    exit( -1 );
+                default:
+                    continue;
+            }
+            break;
+        }
+        mpd_Signal( SIGINT, con_sig_handler ); /* Restore this signal handler */
+        } else {
+        mpdprintf( debug, "parallel job being killed\n" );
+        sprintf( buf, "cmd=signal signo=%s\n", "SIGINT" );
+        write_line( ctl_idx, buf );
+        dclose( fdtable[ctl_idx].fd );
+        exit( -1 );
+        }
+    } else {
+        mpdprintf( debug, "parallel job being killed\n" );
+        sprintf( buf, "cmd=signal signo=%s\n", "SIGINT" );
+        write_line( ctl_idx, buf );
+        dclose( fdtable[ctl_idx].fd );
+        exit( -1 );
+    }
     }
     else {
 	mpdprintf( 1, "unknown signal %d (%s)\n", signo, signame );
@@ -1057,8 +1454,158 @@ void usage_mpirun()
 {
     fprintf( stderr, "Usage: mpirun <args> executable <args_to_executable>\n" );
     fprintf( stderr, "Arguments are:\n" );
-    fprintf( stderr, "  -np num_processes_to_run  (required)\n" );
+    fprintf( stderr, "  -np num_processes_to_run  (required as first two args)\n" );
     fprintf( stderr, "  [-s]  (close stdin; can run in bkgd w/o tty input problems)\n" );
-    fprintf( stderr, "  [-g shmem_group_size]\n" );
+    fprintf( stderr, "  [-g shmem_group_size]  (start shmem group per mpd)\n" );
+    fprintf( stderr, "  [-m machine_file]  (filename for allowed machines)\n" );
+    fprintf( stderr, "  [-i]  (do not pre-build the I/O tree; faster startup, but may lose some I/O\n" );
     fprintf( stderr, "  [-l]  (line labels; unique id for each process' output\n" );
+    fprintf( stderr, "  [-w]  (stdout is guaranteed to stay in whole lines)\n" );
+    fprintf( stderr, "  [-1]  (do NOT start first process locally)\n" );
+    fprintf( stderr, "  [-y]  (run as Myrinet job)\n" );
+}
+
+#define  MAXMACHINES 2048
+
+void parsename( char *, char *, int *, char * );
+
+int squash( char*  machines_filename, char outstring[][PATSIZE] )
+{
+    FILE *fp;
+    char buf[BUFSIZ], tempnum[16],
+	inpat1[MAXMACHINES][32],  inpat2[MAXMACHINES][32],
+	outpat1[MAXMACHINES][32], outpat2[MAXMACHINES][32], outnum[MAXMACHINES][32];
+    int  i, j, inidx, innum[MAXMACHINES], outidx = 0,
+	new_high_found, range_low, range_high;
+
+    if ( ( fp = fopen( machines_filename, "r" ) ) == NULL ) {
+	fprintf( stderr, "%s could not be opened\n", machines_filename );
+	exit( -1 );
+    }
+
+    for ( i = 0; i < MAXMACHINES; i++ ) {
+	innum[i] = -1;
+	inpat1[i][0] = '\0';
+	inpat2[i][0] = '\0';
+	outnum[i][0] = '\0';
+	outpat1[i][0] = '\0';
+	outpat2[i][0] = '\0';
+    }
+
+    inidx = 0;
+    while ( fgets( buf, BUFSIZ, fp ) != NULL ) {
+	parsename( buf, inpat1[inidx], &innum[inidx], inpat2[inidx] );
+	inidx++;
+    }
+
+    for (i=0; i < inidx; i++) {
+	if ( inpat1[i][0] )  {
+	    if ( innum[i] >= 0 ) {
+		range_low = innum[i];
+		range_high = innum[i];
+		for (j=0; j < inidx; j++) {
+		    if ( strcmp( inpat1[i],inpat1[j] ) == 0  &&
+			 strcmp( inpat2[i],inpat2[j] ) == 0  &&
+			 innum[j] == (range_low - 1))
+		    {
+			break;    /* skip for now */
+		    }
+		}
+		if ( j < inidx )
+		    continue;  /* skip for now */
+		new_high_found = 1;
+		while (new_high_found) {
+		    for (j=0; j < inidx; j++) {
+			if (j != i  &&  
+			    strcmp( inpat1[i],inpat1[j] ) == 0  &&
+			    strcmp( inpat2[i],inpat2[j] ) == 0  &&
+			    innum[j] == (range_high + 1))
+			{
+			    range_high = innum[j];
+			    new_high_found = 1;
+			    inpat1[j][0] = '\0'; /* skip this one from now on */
+			    innum[j] = -1;    /* skip this one from now on */
+			    break;
+			}
+			new_high_found = 0;
+		    }
+		}
+		if (range_high > range_low)  {
+		    sprintf( outpat1[outidx],inpat1[i] );
+		    sprintf( outnum[outidx], "%%d:%d-%d", range_low, range_high );
+		    sprintf( outpat2[outidx],inpat2[i] );
+		}
+		else {
+		    strcpy( outpat1[outidx],inpat1[i] );
+		    sprintf( tempnum,"%d",innum[i] );
+		    strcat( outpat1[outidx],tempnum );
+		    strcat( outpat1[outidx],inpat2[i] );
+		    inpat1[i][0] = '\0';    /* ignore on subsequent rounds */
+		    innum[i] = -1;    /* ignore on subsequent rounds */
+		}
+	    }
+	    else {
+		strcpy( outpat1[outidx],inpat1[i] );
+	    }
+	    outidx++;
+	}
+    }
+    for (i=0; i < outidx; i++) {
+	strcpy(outstring[i],outpat1[i]);
+	strcat(outstring[i],outnum[i]);
+	strcat(outstring[i],outpat2[i]);
+    }
+
+    return( 0 );
+}
+	 
+void parsename( char *buf, char *pattern1, int *num, char *pattern2 )
+{
+    char inpat1[16], inpat2[16], anum[8];
+    int i, j;
+
+    inpat1[0] = inpat2[0] = anum[0] = '\0';
+    i = 0;
+    j = 0;
+    while ( isalpha( buf[i] ) || buf[i] == '0' ) /* treat leading 0's as chars */
+	inpat1[j++] = buf[i++];
+    inpat1[j] = '\0';
+
+    j = 0;
+    while ( isdigit( buf[i] ) )
+	anum[j++] = buf[i++];
+    anum[j] = '\0';
+
+    j = 0;
+    while ( isalpha( buf[i] ) || ispunct( buf[i] ) )
+	inpat2[j++] = buf[i++];
+    inpat2[j] = '\0';
+
+    sprintf( pattern1, "%s", inpat1 );
+    if (anum[0])
+	*num = atoi( anum );
+    if (inpat2[0])
+	sprintf( pattern2, "%s", inpat2 );
+}
+
+static char *dupstr( const char * src )
+{
+    char * res = 0;
+
+    if (src) {
+	size_t l = strlen (src);
+	res = malloc (l+1);
+
+	if (res)
+	    memmove (res, src, l+1);
+    } 
+
+    return res;
+}
+
+static void sigalrm_handler(int signo)
+{
+    printf( "%s timed out after %d seconds waiting for mpd; exiting\n",
+	    pgmname, TIMEOUTVAL );
+    exit( -1 );
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: intra_fns.c,v 1.15 2000/08/23 17:52:30 gropp Exp $
+ *  $Id: intra_fns.c,v 1.17 2001/08/01 16:49:44 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -107,10 +107,26 @@ static struct _MPIR_COLLOPS intra_collops =  {
 #else
     intra_Bcast,
 #endif
-    intra_Gather, 
-    intra_Gatherv, 
+#ifdef MPID_Gather
+    MPID_FN_Gather,
+#else
+    intra_Gather,
+#endif
+#ifdef MPID_Gatherv
+    MPID_FN_Gatherv,
+#else
+    intra_Gatherv,
+#endif
+#ifdef MPID_Scatter
+    MPID_FN_Scatter,
+#else
     intra_Scatter,
+#endif
+#ifdef MPID_Scatterv
+    MPID_FN_Scatterv,
+#else
     intra_Scatterv,
+#endif
 #ifdef MPID_Allgather
     MPID_FN_Allgather,
 #else
@@ -121,8 +137,16 @@ static struct _MPIR_COLLOPS intra_collops =  {
 #else
     intra_Allgatherv,
 #endif
+#ifdef MPID_Alltoall
+    MPID_FN_Alltoall,
+#else
     intra_Alltoall,
+#endif
+#ifdef MPID_Alltoallv
+    MPID_FN_Alltoallv,
+#else
     intra_Alltoallv,
+#endif
     0, /* Fix me! a dummy for alltoallw */
 #ifdef MPID_Reduce
     MPID_FN_Reduce,
@@ -150,11 +174,15 @@ static struct _MPIR_COLLOPS intra_collops =  {
     intra_Scan,
 #else
     /* This is in intra_scan.c and is now the default */
+#ifdef MPID_Scan
+    MPID_FN_Scan,
+#else
     MPIR_intra_Scan,
 #endif
+#endif
     1                              /* Giving it a refcount of 1 ensures it
-				    * won't ever get freed.
-				    */
+                                    * won't ever get freed.
+                                    *                                     */
 };
 
 MPIR_COLLOPS MPIR_intra_collops = &intra_collops;
@@ -169,7 +197,7 @@ static int intra_Barrier ( struct MPIR_COMMUNICATOR *comm )
   /* Intialize communicator size */
   (void) MPIR_Comm_size ( comm, &size );
 
-#ifdef MPID_Barrier
+#if defined(MPID_Barrier)  &&  !defined(TOPOLOGY_INTRA_FNS_H)
   if (comm->ADIBarrier) {
       MPID_Barrier( comm->ADIctx, comm );
       return MPI_SUCCESS;
@@ -249,6 +277,10 @@ static int intra_Bcast (
   if (root >= size) 
       mpi_errno = MPIR_Err_setmsg( MPI_ERR_ROOT, MPIR_ERR_ROOT_TOOBIG, 
 				   myname, (char *)0, (char *)0, root, size );
+  else if (root < 0) 
+      /* This catches the use of MPI_ROOT in an intracomm broadcast */
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_ROOT, MPIR_ERR_DEFAULT, myname,
+				   (char *)0, (char *)0, root );
   if (mpi_errno)
       return MPIR_ERROR(comm, mpi_errno, myname );
 #endif
@@ -1000,7 +1032,7 @@ static int intra_Reduce (
   /* If the operation is predefined, we could check that the datatype's
      type signature is compatible with the operation.  
    */
-#ifdef MPID_Reduce
+#if defined(MPID_Reduce)  &&  !defined(TOPOLOGY_INTRA_FNS_H)
   /* Eventually, this could apply the MPID_Reduce routine in a loop for
      counts > 1 */
   if (comm->ADIReduce && count == 1) {

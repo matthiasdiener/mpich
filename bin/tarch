@@ -123,6 +123,14 @@ for LARCH in $ARCHLIST ; do
 	NetBSD)          FARCH=netbsd ; break ;;
 	i386)            GARCH=ipsc2 ;;
 	ULTRIX|RISC)     GARCH=dec5000 ;;
+	OSF*)            
+	    # Guess that this is a Compaq Alpha running some version of
+            # Tru64; 
+            machtype=`uname -m`
+	    if [ "$machtype" = "alpha" ] ; then
+                GARCH=ALPHA
+            fi
+        break;;
    esac
    LLARCH=$LARCH
 done

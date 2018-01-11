@@ -15,6 +15,9 @@ install:
 uninstall:
 	@-./sbin/uninstall-viewer
 
+exejar:
+	@-./sbin/exejar
+
 clean:
 	cd src; $(MAKE) clean
 
@@ -25,7 +28,8 @@ rmlib:
 	cd src; $(MAKE) rmlib
 
 distclean: rmprog
-	cd src; $(MAKE) distclean
-	cd doc/tex; $(MAKE) distclean
-	@-$(RM) -f sbin/install-viewer sbin/uninstall-viewer
-	@-$(RM) -f Makefile config.log config.status
+	-cd src; $(MAKE) distclean
+	-cd doc/tex; $(MAKE) distclean
+	@-$(RM) -f sbin/install-viewer sbin/uninstall-viewer \
+		sbin/exejar
+	@-$(RM) -f Makefile config.log config.status jumpshot.html

@@ -4,11 +4,27 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "mpi.h"
 #include "test.h"
 #ifdef HAVE_UNISTD_H
 /* For sleep */
 #include <unistd.h>
+#endif
+
+#ifndef HAVE_SLEEP
+void sleep( int secs )
+{
+#ifdef VX_WORKS
+    /* Also needs include <time.h>? */
+    struct timespec rqtp = { 10, 0 };
+    nanosleep(&rqtp, NULL);
+#else
+    double t;
+    t = MPI_Wtime();
+    while (MPI_Wtime() - t < (double)secs) ;
+#endif
+}
 #endif
 
 /* Define VERBOSE to get printed output */

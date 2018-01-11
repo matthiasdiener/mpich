@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_dup.c,v 1.9 2000/08/10 22:15:34 toonen Exp $
+ *  $Id: comm_dup.c,v 1.11 2001/08/14 14:43:42 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -40,7 +40,30 @@ Input Parameter:
 . comm - communicator (handle) 
 
 Output Parameter:
-. newcomm - copy of 'comm' (handle) 
+. newcomm - A new communicator over the same group as 'comm' but with a new
+  context. See notes.  (handle) 
+
+Notes:
+  This routine is used to create a new communicator that has a new
+  communication context but contains the same group of processes as
+  the input communicator.  Since all MPI communication is performed
+  within a communicator (specifies as the group of processes `plus`
+  the context), this routine provides an effective way to create a
+  private communicator for use by a software module or library.  In
+  particular, no library routine should use 'MPI_COMM_WORLD' as the
+  communicator; instead, a duplicate of a user-specified communicator
+  should always be used.  For more information, see Using MPI, 2nd
+  edition. 
+
+  Because this routine essentially produces a copy of a communicator,
+  it also copies any attributes that have been defined on the input
+  communicator, using the attribute copy function specified by the
+  'copy_function' argument to 'MPI_Keyval_create'.  This is
+  particularly useful for (a) attributes that describe some property
+  of the group associated with the communicator, such as its
+  interconnection topology and (b) communicators that are given back
+  to the user; the attibutes in this case can track subsequent
+  'MPI_Comm_dup' operations on this communicator.
 
 .N fortran
 
@@ -49,7 +72,8 @@ Output Parameter:
 .N MPI_ERR_COMM
 .N MPI_ERR_EXHAUSTED
 
-.seealso: MPI_Comm_free
+.seealso: MPI_Comm_free, MPI_Keyval_create, MPI_Attr_set, MPI_Attr_delete
+
 @*/
 EXPORT_MPI_API int MPI_Comm_dup ( 
 	MPI_Comm comm, 
@@ -79,8 +103,6 @@ EXPORT_MPI_API int MPI_Comm_dup (
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
   new_comm->np             = new_comm->group->np;
   new_comm->comm_name	   = 0;
-    if ((mpi_errno = MPID_CommInit( comm_ptr, new_comm )))
-	return mpi_errno;
   DBG(FPRINTF(OUTFILE,"Dup:About to copy attr for comm %ld\n",(long)comm);)
   /* Also free at least some of the parts of the commuicator */      
 
@@ -102,6 +124,8 @@ EXPORT_MPI_API int MPI_Comm_dup (
 	 return an MPI error class, or a user error code? */
       return MPIR_ERROR( comm_ptr, mpi_errno, myname );
   }
+  if ((mpi_errno = MPID_CommInit( comm_ptr, new_comm )))
+    return mpi_errno;
 
   /* Duplicate intra-communicators */
   if ( comm_ptr->comm_type == MPIR_INTRA ) {

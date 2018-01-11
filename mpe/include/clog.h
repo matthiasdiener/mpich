@@ -190,43 +190,33 @@ extern int    CLOG_nextstate;	/* next id for user-defined state  */
 extern char   CLOG_filename[];	/* name for log file */
 extern char   CLOG_tmpfilename[]; /* temp log file name (abhi) */ 
 extern int    CLOG_tempFD;      /* temp log file descriptor (abhi) */
-extern double *out_buffer, *left_buffer,
-              *right_buffer;    /* buffers for clog-merge (abhi) */ 
+extern double *CLOG_out_buffer, *CLOG_left_buffer,
+              *CLOG_right_buffer;    /* buffers for clog-merge (abhi) */ 
 extern int    CLOG_num_blocks;
-extern long   event_count;
+extern long   CLOG_event_count;
 extern void   *slog_buffer;
 /************************* function prototypes ***************************/
 
-#ifdef ANSI_ARGS
-#undef ANSI_ARGS
-#endif
-
-#if defined(__STDC__) || defined(__cplusplus)
-#define ANSI_ARGS(x) x
-#else
-#define ANSI_ARGS(x) ()
-#endif
-
-void CLOG_Init ANSI_ARGS(( void ));
-void CLOG_Finalize ANSI_ARGS(( void ));
-void CLOG_put_hdr ANSI_ARGS(( int ));
-void CLOG_LOGMSG ANSI_ARGS(( int, int, int, int, int ));
-void CLOG_LOGSRCLOC ANSI_ARGS(( int , int, char * ));
-void CLOG_LOGCOLL ANSI_ARGS(( int, int, int, int ));
-void CLOG_LOGRAW ANSI_ARGS(( int, int, char * ));
-void CLOG_LOGTIMESHIFT ANSI_ARGS(( double ));
-void CLOG_LOGCOMM ANSI_ARGS(( int, int, int ));
-void CLOG_LOGSTATE ANSI_ARGS(( int, int, int, char *, char * ));
-void CLOG_LOGEVENT ANSI_ARGS(( int, char * ));
-void CLOG_LOGENDBLOCK ANSI_ARGS(( void ));
-void CLOG_LOGENDLOG ANSI_ARGS(( void ));
-void CLOG_newbuff ANSI_ARGS(( CLOG_BLOCK **));
-int  CLOG_get_new_event ANSI_ARGS(( void ));
-int  CLOG_get_new_state ANSI_ARGS(( void ));
-void CLOG_setup ANSI_ARGS(( void ));
-void CLOG_init_tmpfilename ANSI_ARGS(( void ));
-void CLOG_nodebuffer2disk ANSI_ARGS(( void ));
-void CLOG_init_buffers ANSI_ARGS(( void ));
+void CLOG_Init ( void );
+void CLOG_Finalize ( void );
+void CLOG_put_hdr ( int );
+void CLOG_LOGMSG ( int, int, int, int, int );
+void CLOG_LOGSRCLOC ( int , int, char * );
+void CLOG_LOGCOLL ( int, int, int, int );
+void CLOG_LOGRAW ( int, int, char * );
+void CLOG_LOGTIMESHIFT ( double );
+void CLOG_LOGCOMM ( int, int, int );
+void CLOG_LOGSTATE ( int, int, int, char *, char * );
+void CLOG_LOGEVENT ( int, char * );
+void CLOG_LOGENDBLOCK ( void );
+void CLOG_LOGENDLOG ( void );
+void CLOG_newbuff ( CLOG_BLOCK **);
+int  CLOG_get_new_event ( void );
+int  CLOG_get_new_state ( void );
+void CLOG_setup ( void );
+void CLOG_init_tmpfilename ( void );
+void CLOG_nodebuffer2disk ( void );
+void CLOG_init_buffers ( void );
 
 /*********************** macros *******************************************/
 

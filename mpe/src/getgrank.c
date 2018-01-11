@@ -19,12 +19,12 @@ int      rank, *grank;
 {
 /* We could cache world_group, at least, but then we'd have no way to
    free it later */
-MPI_Group group, world_group;
-int lrank = rank;   /* Just in case rank has no address (passed in register) */
-
-MPI_Comm_group( comm, &group );
-MPI_Comm_group( MPI_COMM_WORLD, &world_group );
-MPI_Group_translate_ranks( group, 1, &lrank, world_group, grank );
-MPI_Group_free( &group );
-MPI_Group_free( &world_group );
+    MPI_Group group, world_group;
+    int lrank = rank;/* Just in case rank has no address (passed in register) */
+ 
+    MPI_Comm_group( comm, &group );
+    MPI_Comm_group( MPI_COMM_WORLD, &world_group );
+    MPI_Group_translate_ranks( group, 1, &lrank, world_group, grank );
+    MPI_Group_free( &group );
+    MPI_Group_free( &world_group );
 }

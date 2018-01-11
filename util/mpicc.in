@@ -16,8 +16,6 @@
 # vendor compiler and gcc, respectively.  These are selected by either setting
 # the environment variable CC, or using the -config name switch.
 #
-# 
-#
 DoLink=1
 DoCompile=0
 show_compile=0
@@ -56,6 +54,9 @@ LIB_PATH="@LIB_PATH@"
 MPILIBNAME="@MPILIBNAME@"
 MPIVERSION="@MPIVERSION@"
 FLIBNAME="@FLIBNAME@"
+# F77_IN_C_LIBS are the libraries needed to link with the Fortran routines
+# referenced from MPI_Init.  With any luck, this will usually be empty
+F77_IN_C_LIBS="@F77_IN_C_LIBS@"
 hasMPE=@hasMPE@
 #
 MPI_WITH_PMPI="@MPI_WITH_PMPI@"
@@ -133,7 +134,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ $hasMPE = "yes" ] ; then
+	if [ "$hasMPE" = "yes" ] ; then
 		MPILOG="-llmpe -lmpe"
 	else
 	    echo "-mpilog requires the MPE libraries"
@@ -146,7 +147,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ $hasMPE = "yes" ] ; then
+	if [ "$hasMPE" = "yes" ] ; then
    	    MPILOG=-ltmpe
 	else
 	    echo "-mpitrace requires the MPE libraries"
@@ -159,7 +160,7 @@ for arg in "$@" ; do
 	else
 	    UsesPmpi=1
         fi
-	if [ $hasMPE = "yes" ] ; then
+	if [ "$hasMPE" = "yes" ] ; then
 	    MPILOG="-lampe -lmpe"
 	else
 	    echo "-mpianim requires the MPE libraries"
@@ -200,6 +201,7 @@ for arg in "$@" ; do
 	;;
 	-v)
 	verbose=1
+	echo "mpicc for $MPIVERSION"
 	compileargs="$compileargs -v"
 	linkargs="$linkargs -v"
 	;;
@@ -352,7 +354,7 @@ if [ $DoLink = 1 -o $show_link = 1 ] ; then
     # used in some of the C/Fortran routines.  For Fortran subroutines,
     # we need to add the Fortran routines in a separate library 
     # ahead of the C implementation.
-    $Show $CLINKER $USER_CFLAGS $ROMIO_LFLAGS $clibpath $LIB_PATH $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST
+    $Show $CLINKER $USER_CFLAGS $ROMIO_LFLAGS $clibpath $LIB_PATH $linkobjs $MPILOG $linkargs $mpilibs $BASE_LIB_LIST $F77_IN_C_LIBS
     status=$?
 fi
 exit $status

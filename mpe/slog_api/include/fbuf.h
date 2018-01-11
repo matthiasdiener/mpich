@@ -20,7 +20,7 @@ typedef struct {
     FILE          *fd;
 } filebuf_t;
 
-fbuf_uint32_t byte2fbufunit( const fbuf_uint32_t bytesize );
+/* fbuf_uint32_t byte2fbufunit( const fbuf_uint32_t bytesize ); */
 
 filebuf_t *fbuf_create( const fbuf_uint32_t buffer_size );
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: testsome.c,v 1.10 1999/11/06 21:44:13 gropp Exp $
+ *  $Id: testsome.c,v 1.11 2001/04/04 15:16:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -90,6 +90,7 @@ EXPORT_MPI_API int MPI_Testsome(
 	case MPIR_SEND:
 	    if (MPID_SendRequestCancelled(request)) {
 		array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED; 
+		array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
 	        nfound++; }
 	    else {
 		if (request->shandle.is_complete || 

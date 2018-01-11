@@ -11,6 +11,11 @@ FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
 MAKE        = @MAKE@
 
+# mpiboot and mpiunboot are used to execute any steps that must
+# be executed before and after running programs.
+MPIBOOT     = @MPIBOOT@
+MPIUNBOOT   = @MPIUNBOOT@
+
 ### End User configurable options ###
 
 SHELL = /bin/sh
@@ -82,6 +87,28 @@ testing: runtest
 	fi
 
 #
+# These tests require that the boot and unboot steps are programs, not
+# programs with arguments.
+boot-mpi:
+	@if [ ! -x "${MPIBOOT}" ] ; then \
+	  echo "Could not find the MPI boot program" ; \
+	  echo "You may need to install MPICH before running the test suite"; \
+	fi
+	${MPIBOOT}
+unboot-mpi:
+	@if [ -x "${MPIUNBOOT}" ] ; then \
+	    ${MPIUNBOOT} ; \
+	fi
+
+# It is important to have the - in the make testing step to ensure that
+# the unboot is executed even if the tests fail
+testing-boot:
+	@-if [ -n "${MPIBOOT}" ] ; then \
+	    ${MAKE} boot-mpi ; fi
+	-${MAKE} testing
+	@-if [ -n "${MPIUNBOOT}" ] ; then \
+	    ${MAKE} unboot-mpi ; fi
+#
 # This is a version of testing, but it saves the "diff" files in the top 
 # level directory
 testing_save: runtest
@@ -116,8 +143,4 @@ distclean:
 	@-for dir in ${SUBDIRS} command ; do \
 	    (rm -f $$dir/Makefile $$dir/runtests ) ; \
 	done
-	-rm -f Makefile config.log
-
-# MPICH specific
-#$(MPIR_HOME)/util/mpirun:
-#	(cd $(MPIR_HOME) ; $(MAKE) mpirun )
+	-rm -f config.log Makefile command/runtests

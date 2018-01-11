@@ -22,7 +22,7 @@ void         **inbufs, **outbufs;
 char         **names;
 int          *counts, *bytesize, ntype;
 MPI_Comm     comms[20];
-int          ncomm = 20, rank, np, partner, tag, count;
+int          ncomm = 20, rank, np, partner=0, tag, count;
 int          i, j, k, err, world_rank, errloc;
 MPI_Status   status;
 char         *obuf, *ibuf;

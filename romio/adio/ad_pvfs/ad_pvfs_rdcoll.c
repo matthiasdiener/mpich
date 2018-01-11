@@ -1,11 +1,13 @@
 /* 
- *   $Id: ad_pvfs_rdcoll.c,v 1.1.1.1 1999/08/06 17:47:46 thakur Exp $    
+ *   $Id: ad_pvfs_rdcoll.c,v 1.2 2001/06/05 22:27:33 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
  */
 
 #include "ad_pvfs.h"
+
+/* not referenced from operations table */
 
 void ADIOI_PVFS_ReadStridedColl(ADIO_File fd, void *buf, int count,
                        MPI_Datatype datatype, int file_ptr_type,

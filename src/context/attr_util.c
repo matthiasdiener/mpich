@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.6 2000/06/10 15:39:32 gropp Exp $
+ *  $Id: attr_util.c,v 1.7 2001/04/20 19:38:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -68,12 +68,14 @@ int MPIR_Attr_copy_node (
 	     converting an int, stored in a void *, back to an int. */
 	  /* We may also need to do something about the "comm" argument */
 	  /* This needs to use Fints! and c2f for communicator */
-	  MPI_Aint  invall = (MPI_Aint)node->value;
-          int inval = (int)invall;
-          (*(attr_key->copy_fn.f77_copy_fn))(comm->self, &node->keyval->self, 
-                                             attr_key->extra_state,
-                                             &inval, 
-                                             &attr_ival, &flag, &copy_errno );
+	  MPI_Aint invall = (MPI_Aint)node->value;
+          MPI_Fint inval = (int)invall;
+	  MPI_Fint fcomm = MPI_Comm_c2f( comm->self );
+          (*(attr_key->copy_fn.f77_copy_fn))( &fcomm,
+					      &node->keyval->self, 
+					      attr_key->extra_state,
+					      &inval, 
+					      &attr_ival, &flag, &copy_errno );
           attr_val = (void *)(MPI_Aint)attr_ival;
           flag = MPIR_FROM_FLOG(flag);
 	  }
@@ -197,17 +199,20 @@ int MPIR_Attr_free_node (
 	  attr_key->ref_count, (long)attr_key, (long)comm );
 #endif
     if ( attr_key->delete_fn.c_delete_fn ) {
+#ifndef MPID_NO_FORTRAN
 	if (attr_key->FortranCalling) {
-	    MPI_Aint  invall = (MPI_Aint)node->value;
-	    int inval = (int)invall;
+	    MPI_Aint invall = (MPI_Aint)node->value;
+	    MPI_Fint inval = (int)invall;
+	    MPI_Fint fcomm = MPI_Comm_c2f( comm->self );
 	    /* We may also need to do something about the "comm" argument */
-	    (void ) (*(attr_key->delete_fn.f77_delete_fn))(comm->self, 
+	    (void ) (*(attr_key->delete_fn.f77_delete_fn))( &fcomm,
 					     &node->keyval->self, 
 					     &inval, 
 					   attr_key->extra_state, &mpi_errno );
 	    node->value = (void *)(MPI_Aint)inval;
 	    }
 	else
+#endif
 	    mpi_errno = (*(attr_key->delete_fn.c_delete_fn))(comm->self, 
 					     node->keyval->self, 
 					     node->value, 
@@ -352,15 +357,17 @@ int MPIR_Keyval_create (
 
   /* SEE ALSO THE CODE IN ENV/INIT.C; IT RELIES ON USING KEY AS THE
      POINTER TO SET THE PERMANENT FIELD */
+#ifndef MPID_NO_FORTRAN
   if (is_fortran) {
       new_key->copy_fn.f77_copy_fn      = 
-	  (void (*)ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, 
-				   int *, int * )))copy_fn;
+	  (void (*)( int *, int *, int *, int *, int *, 
+		     int *, int * ))copy_fn;
       new_key->delete_fn.f77_delete_fn  = 
-	  (void (*)ANSI_ARGS(( MPI_Comm, int *, int *, void *, int*)))
-	  delete_fn;
+	  (void (*)( int *, int *, int *, void *, int*)) delete_fn;
   }
-  else {
+  else 
+#endif
+  {
       new_key->copy_fn.c_copy_fn      = copy_fn;
       new_key->delete_fn.c_delete_fn  = delete_fn;
   }

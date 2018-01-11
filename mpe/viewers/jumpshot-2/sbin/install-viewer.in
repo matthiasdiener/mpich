@@ -41,8 +41,8 @@ else
 fi
 
 # File access mode
-MODE=0664
-XMODE=0775
+MODE=0644
+XMODE=0755
 replace=1
 # set failmode to soft to let failures accumulate
 failmode="hard"

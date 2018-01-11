@@ -184,6 +184,7 @@ EXPORT_MPI_API void mpi_sendrecv_( void *sendbuf, MPI_Fint *sendcount, MPI_Fint 
                            (int)*recvcount, MPI_Type_f2c(*recvtype),
 			   (int)*source, (int)*recvtag,
                            MPI_Comm_f2c(*comm), &c_status);
-    MPI_Status_c2f(&c_status, status);
+    if (*__ierr == MPI_SUCCESS) 
+        MPI_Status_c2f(&c_status, status);
 }
 #endif

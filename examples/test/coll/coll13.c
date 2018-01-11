@@ -20,8 +20,8 @@ int main( int argc, char *argv[] )
     int rank, size;
     int chunk = 4096;
     int i;
-    char *sb;
-    char *rb;
+    int *sb;
+    int *rb;
     int status, gstatus;
 
     MPI_Init(&argc,&argv);
@@ -42,12 +42,12 @@ int main( int argc, char *argv[] )
 	}
     }
 
-    sb = (char *)malloc(size*chunk*sizeof(int));
+    sb = (int *)malloc(size*chunk*sizeof(int));
     if ( !sb ) {
 	perror( "can't allocate send buffer" );
 	MPI_Abort(MPI_COMM_WORLD,EXIT_FAILURE);
     }
-    rb = (char *)malloc(size*chunk*sizeof(int));
+    rb = (int *)malloc(size*chunk*sizeof(int));
     if ( !rb ) {
 	perror( "can't allocate recv buffer");
 	free(sb);

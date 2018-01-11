@@ -25,7 +25,7 @@ rmlib:
 	cd src; $(MAKE) rmlib
 
 distclean: rmprog
-	cd src; $(MAKE) distclean
-	cd doc/tex; $(MAKE) distclean
+	@-cd src; $(MAKE) distclean
 	@-$(RM) -f sbin/install-viewer sbin/uninstall-viewer
+	@-$(RM) -f bin/jumpshot
 	@-$(RM) -f Makefile config.log config.status

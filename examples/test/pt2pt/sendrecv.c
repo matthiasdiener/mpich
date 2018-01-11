@@ -16,6 +16,7 @@
 #include "test.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "mpi.h"
 
 #ifdef HAVE_MPICHCONF_H
@@ -542,6 +543,7 @@ count argument, datatype argument, tag, rank, buffer send and buffer recv\n" );
     if (flag) 
 	MPI_Recv( ibuf, 10, MPI_INT, src, 15, MPI_COMM_WORLD, &status );
     }
+    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL );
     return;
 }
 

@@ -1,3 +1,6 @@
+#ifdef VXWORKS
+#include <types/vxANSI.h>
+#endif
 #include <stdarg.h>
 #include <stdlib.h>
 #include "mpiimpl.h"
@@ -138,15 +141,23 @@ va_dcl
 	    format = MPIR_Get_error_string( MPIR_ERRCLASS_TO_CODE(errclass,errkind) );
 	else
 	    format = default_string;
+#endif
 	/* Here is a fallback for no message string */
 	if (!format)
 	    format = generic_string;
-#endif
     }
     /* Use format if there are args, else use def_format */
     /* We need to replace this with code that is careful about the buffer
        lengths.  There is code like this in errmsg.c */
-    vsprintf( error_ring[error_ring_pos], format, Argp );
+    /* Grrr.  There is no easy way to see if there *ARE* any args.  
+       We need to place a boolean in the stdargs list that tells us
+       whether there are more values. */
+    if (0) {
+	strcpy( error_ring[error_ring_pos], def_format );
+    }
+    else {
+	vsprintf( error_ring[error_ring_pos], format, Argp );
+    }
     error_ring_idx[error_ring_pos] = error_ring_id;
     va_end( Argp );
 

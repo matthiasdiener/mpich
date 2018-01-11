@@ -82,6 +82,7 @@ EXPORT_MPI_API void mpi_request_free_( MPI_Fint *request, MPI_Fint *__ierr )
 {
     MPI_Request lrequest = MPI_Request_f2c(*request);
     *__ierr = MPI_Request_free( &lrequest );
-    *request = MPI_Request_c2f(lrequest);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *request = MPI_Request_c2f(lrequest);
 }
 

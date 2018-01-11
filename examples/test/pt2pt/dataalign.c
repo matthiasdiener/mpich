@@ -50,9 +50,9 @@ int main( int argc, char *argv[])
 		s, &(s[9].c), (char *)p2-(char *)p1 );
         }
 #endif
-	MPI_Type_size( str, &tsize );
 	MPI_Type_extent( str, &text );
 #ifdef DEBUG
+	MPI_Type_size( str, &tsize );
 	printf("Size of MPI struct is %d, extent is %d\n", tsize, (int)text );
 	printf("Size of C struct is %d\n", sizeof(struct a) );
 #endif
@@ -87,6 +87,8 @@ int main( int argc, char *argv[])
 	    if (toterrs > 0) printf( "Found %d errors\n", toterrs );
 	    else             printf( " No Errors\n" );
 	}
+	MPI_Type_free( &str );
+	MPI_Type_free( &con );
 	MPI_Finalize();
 	return 0;
 }

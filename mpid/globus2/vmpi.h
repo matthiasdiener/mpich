@@ -143,6 +143,11 @@ extern int *				VMPI_GRank_to_VGRank;
 #define mp_type_struct mpich_globus2_mp_type_struct
 #define mp_type_vector mpich_globus2_mp_type_vector
 #define mp_wait mpich_globus2_mp_wait
+/* START Special boostrap wrappers for vMPI functions */
+#define mp_bootstrap_bcast mpich_globus2_mp_bootstrap_bcast
+#define mp_bootstrap_gather mpich_globus2_mp_bootstrap_gather
+#define mp_bootstrap_gatherv mpich_globus2_mp_bootstrap_gatherv
+/* END Special boostrap wrappers for vMPI functions */
 
 int mp_init(
     int *				argc,
@@ -320,6 +325,21 @@ int mp_type_struct(
     void *				old_types, 
     void *				new_type);
 
+/******************************************************/
+/* START Special boostrap wrappers for vMPI functions */
+/******************************************************/
+
+int mp_bootstrap_bcast(void *buff, int  count, int type);
+int mp_bootstrap_gather(void *sbuff, int scnt, void *rbuff, int rcnt);
+int mp_bootstrap_gatherv(void *sendbuff,
+                        int sendcount,
+                        void *recvbuff,
+                        int *recvcounts,
+                        int *displs);
+
+/****************************************************/
+/* END Special boostrap wrappers for vMPI functions */
+/****************************************************/
 
 #if !defined(VMPI_NO_MPICH)
 

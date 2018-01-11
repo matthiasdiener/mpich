@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.6 2000/07/12 17:18:38 gropp Exp $
+ *  $Id: shmeminit.c,v 1.7 2001/06/22 22:28:22 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,6 +27,7 @@
 /* Forward refs */
 int MPID_SHMEM_End ( MPID_Device * );
 int MPID_SHMEM_Abort ( struct MPIR_COMMUNICATOR *, int, char * );
+extern MPID_Device *MPID_CH_InitMsgPass( int *, char ***, int, int );
 
 /* 
     In addition, Chameleon processes many command-line arguments 

@@ -1,5 +1,5 @@
 /*
- *  $Id: ibsend.c,v 1.9 1999/08/30 15:48:56 swider Exp $
+ *  $Id: ibsend.c,v 1.10 2001/03/06 20:50:58 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -59,8 +59,6 @@ EXPORT_MPI_API int MPI_Ibsend( void *buf, int count, MPI_Datatype datatype, int 
 {
     int         mpi_errno = MPI_SUCCESS;
     static char myname[] = "MPI_IBSEND";
-    int         psize;
-    void        *bufp;
     MPIR_SHANDLE *shandle;
     struct MPIR_COMMUNICATOR *comm_ptr;
     struct MPIR_DATATYPE     *dtype_ptr;
@@ -92,11 +90,6 @@ EXPORT_MPI_API int MPI_Ibsend( void *buf, int count, MPI_Datatype datatype, int 
 	shandle->is_complete = 1;
 	return MPI_SUCCESS;
     }
-
-    /* Allocate space if needed */
-    MPI_Pack_size( count, datatype, comm, &psize );
-    MPIR_CALL(MPIR_BsendAlloc( psize, *request, &bufp ),comm_ptr, myname );
-    /* Information stored in the bsend part by BsendAlloc */
 
     MPIR_IbsendDatatype( comm_ptr, buf, count, dtype_ptr, 
 			 comm_ptr->local_rank, tag, comm_ptr->send_context, 

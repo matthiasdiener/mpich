@@ -1,5 +1,6 @@
 #include "mpi.h"
 #include <stdio.h>
+#include <string.h>
 
 #if defined(NEEDS_STDLIB_PROTOTYPES)
 #include "protofix.h"

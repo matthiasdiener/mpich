@@ -6,9 +6,7 @@
  * local queue of messages already received.  If it finds one, it dequeues it 
  * if deq is true, and returns its address; otherwise it returns NULL.
  */
-struct p4_msg *search_p4_queue(req_type, req_from, deq)
-int req_type, req_from;
-P4BOOL deq;
+struct p4_msg *search_p4_queue( int req_type, int req_from, P4BOOL deq)
 {
     struct p4_queued_msg *qpp, *qp;
     struct p4_msg *tqp;
@@ -98,18 +96,20 @@ P4BOOL deq;
  *
  *   returns 0 if successful; non-zero if error
  */
-int p4_recv(req_type, req_from, msg, len_rcvd)
-int *req_type, *req_from, *len_rcvd;
-char **msg;
+int p4_recv( int *req_type, int *req_from, char **msg, int *len_rcvd)
 {
     struct p4_msg *tmsg, *tempmsg;
     P4BOOL good;
 
     p4_dprintfl(20, "receiving for type = %d, sender = %d\n",
 		*req_type, *req_from);
+    ALOG_LOG(p4_local->my_id,END_USER,0,"");
+    ALOG_LOG(p4_local->my_id,BEGIN_RECV,*req_from,"");
 
     for (good = P4_FALSE; !good;)
     {
+	ALOG_LOG(p4_local->my_id,END_RECV,0,"");
+	ALOG_LOG(p4_local->my_id,BEGIN_WAIT,0,"");
 	if (!(tmsg = search_p4_queue(*req_type, *req_from, 1)))
 	{
 	    tmsg = recv_message(req_type, req_from);
@@ -119,6 +119,8 @@ char **msg;
 		            tmsg->type,tmsg->from);
 	    *****/
 	}
+	ALOG_LOG(p4_local->my_id,END_WAIT,0,"");
+	ALOG_LOG(p4_local->my_id,BEGIN_RECV,0,"");
 	if (tmsg == NULL)
 	{
 	    p4_dprintfl(70,"p4_recv: got NULL back from recv_message\n");
@@ -167,6 +169,8 @@ char **msg;
 	tmsg->msg_id = (-1);
 	free_p4_msg(tmsg);
     }
+    ALOG_LOG(p4_local->my_id,END_RECV,*req_from,"");
+    ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
 
     return (0);
 }
@@ -175,7 +179,7 @@ char **msg;
 struct p4_msg *recv_message( int *req_type, int *req_from )
 {
 
-    p4_dprintfl( 20, "Starting recv_message for type = %d and sender = %d\n",
+    p4_dprintfl( 99, "Starting recv_message for type = %d and sender = %d\n",
 		 *req_type, *req_from );
 /* cut down to just this piece for MPD */
 #if  defined(CAN_DO_SOCKET_MSGS)
@@ -341,8 +345,10 @@ P4BOOL ack_req, p4_buff_ind;
 
     conntype = p4_local->conntab[to].type;
 
-    p4_dprintfl( 20, "send_message: to = %d, conntype=%d conntype=%s\n",
+    p4_dprintfl( 90, "send_message: to = %d, conntype=%d conntype=%s\n",
 		to, conntype, print_conn_type(conntype));
+    ALOG_LOG(p4_local->my_id,END_USER,0,"");
+    ALOG_LOG(p4_local->my_id,BEGIN_SEND,to,"");
 
     switch (conntype)
     {
@@ -366,18 +372,19 @@ P4BOOL ack_req, p4_buff_ind;
       case CONN_REMOTE_NON_EST:
 	if (establish_connection(to))
 	{
-	    p4_dprintfl(20, "send_message: conn just estabd to %d\n", to);
+	    p4_dprintfl(90, "send_message: conn just estabd to %d\n", to);
 	}
 	else
 	{
 	    p4_dprintf("send_message: unable to estab conn to %d\n", to);
+	    ALOG_LOG(p4_local->my_id,END_SEND,to,"");
+	    ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
 	    return (-1);
 	}
 	/* no break; - just fall into connected code */
       case CONN_REMOTE_EST:
 	if (data_type == P4NOX || p4_local->conntab[to].same_data_rep)
 	{
-	    p4_dprintfl( 20, "p4's send_message: calling socket_send to=%d\n", to);
 	    socket_send(type, from, to, msg, len, data_type, ack_req);
 	}
 	else
@@ -393,13 +400,19 @@ P4BOOL ack_req, p4_buff_ind;
 
       case CONN_REMOTE_DYING:
 	p4_dprintfl(90, "send_message: proc %d is dying\n", to);
+	ALOG_LOG(p4_local->my_id,END_SEND,to,"");
+	ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
 	return (-1);
 
       default:
 	p4_dprintf("send_message: to=%d; invalid conn type=%d\n",to,conntype);
+	ALOG_LOG(p4_local->my_id,END_SEND,to,"");
+	ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
 	return (-1);
     }
 
+    ALOG_LOG(p4_local->my_id,END_SEND,to,"");
+    ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
     return (0);
 }				/* send_message */
 

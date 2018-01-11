@@ -35,7 +35,7 @@ int main(int argc,char *argv[])
             printf("Enter the number of intervals: (0 quits) ");
             scanf("%d",&n);
 */
-	    if (n==0) n=100; else n=0;
+	    if (n==0) n=10000; else n=0;
 
 	    startwtime = MPI_Wtime();
         }

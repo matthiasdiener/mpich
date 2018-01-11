@@ -7,6 +7,7 @@
 #                    against Record Defineition Table
 # -DNO_ARROW_STAT  : Exclude arrows in statistics collection
 # -DCOMPRESSION    : Turn on various header compression code 
+# -DGCC296_VA_ARG_FIX
 
 e.g.
 

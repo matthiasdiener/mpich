@@ -1047,7 +1047,7 @@ fi
 #
 if test -z "$RSHCOMMAND" ; then
     machine=`hostname`
-    for program in remsh rsh ssh ; do
+    for program in remsh rsh ; do
         # First, check to see if the program exists
         
 if test -n "$pac_cv_cross_compiling" ; then
@@ -1058,7 +1058,7 @@ else
     echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
 echo "configure:1060: checking whether cross-compiling" >&2
     # If we cannot run a trivial program, we must be cross compiling.
-    if test "$cross_compiling" = yes; then
+            if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
@@ -1079,7 +1079,7 @@ rm -fr conftest*
 fi
 
     if test $pac_ok = 1 ; then
-         if test "$cross_compiling" = yes; then
+        if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
@@ -1150,7 +1150,7 @@ fi
         if test -n "$RSHCOMMAND" ; then
 	    echo $ac_n "checking whether $RSHCOMMAND works""... $ac_c" 1>&1
 echo "configure:1153: checking whether $RSHCOMMAND works" >&2
-            output=`$RSHCOMMAND $machine -n true 2>&1`
+            output=`$RSHCOMMAND $machine -n true 2>&1 </dev/null`
             if test -n "$output" ; then
 		echo "$ac_t""no" 1>&1
 		echo "Errors while trying to run true on $machine with $program"
@@ -1166,13 +1166,70 @@ echo "configure:1153: checking whether $RSHCOMMAND works" >&2
 	    fi
         fi
     done
+    # Check ssh with special options to avoid user prompting which causes the
+    # configure script to "hang"
+    if test -z "$RSHCOMMAND" ; then
+    	# Extract the first word of "ssh", so it can be a program name with args.
+set dummy ssh; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+echo "configure:1176: checking for $ac_word" >&2
+if eval "test \"`echo '$''{'ac_cv_path_RSHCOMMAND'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&1
+else
+  case "$RSHCOMMAND" in
+  /*)
+  ac_cv_path_RSHCOMMAND="$RSHCOMMAND" # Let the user override the test with a path.
+  ;;
+  ?:/*)			 
+  ac_cv_path_RSHCOMMAND="$RSHCOMMAND" # Let the user override the test with a dos path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="$PATH"
+  for ac_dir in $ac_dummy; do 
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_RSHCOMMAND="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  ;;
+esac
+fi
+RSHCOMMAND="$ac_cv_path_RSHCOMMAND"
+if test -n "$RSHCOMMAND"; then
+  echo "$ac_t""$RSHCOMMAND" 1>&1
+else
+  echo "$ac_t""no" 1>&1
+fi
+
+    	if test -n "$RSHCOMMAND" ; then
+    	    echo $ac_n "checking whether $RSHCOMMAND works""... $ac_c" 1>&1
+echo "configure:1210: checking whether $RSHCOMMAND works" >&2
+    	    output=`$RSHCOMMAND -o "StrictHostKeyChecking no" \
+    	      -o "BatchMode yes" $machine -n true 2>&1 </dev/null`
+    	    if test $? -ne 0 ; then
+    		echo "$ac_t""no" 1>&1
+    		echo "Errors while trying to run true on $machine with ssh"
+    		echo "$output"
+    		RSHCOMMAND=""
+    		# HORRIBLE, TERRIBLE BUG in AUTOCONF!!!
+    		# It is determined to INCORRECTLY remember some results,
+    		# while forgetting others (like "cross-compiling")
+    		unset ac_cv_path_RSHCOMMAND
+    	    else
+    		echo "$ac_t""yes" 1>&1
+    	    fi
+    	fi
+    fi
 fi
 if test -z "$RSHCOMMAND" ; then
     echo "configure: warning: You must use the secure server to start programs" 1>&2
 fi
 # Sizes of int and long (for sendid type)
 echo $ac_n "checking size of int""... $ac_c" 1>&1
-echo "configure:1176: checking size of int" >&2
+echo "configure:1233: checking size of int" >&2
 if eval "test \"`echo '$''{'ac_cv_sizeof_int'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&1
 else
@@ -1180,7 +1237,7 @@ else
   ac_cv_sizeof_int=0
 else
   cat > conftest.$ac_ext <<EOF
-#line 1184 "configure"
+#line 1241 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1191,7 +1248,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1195: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1252: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_int=`cat conftestval`
 else
@@ -1211,7 +1268,7 @@ EOF
 
 
 echo $ac_n "checking size of long""... $ac_c" 1>&1
-echo "configure:1215: checking size of long" >&2
+echo "configure:1272: checking size of long" >&2
 if eval "test \"`echo '$''{'ac_cv_sizeof_long'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&1
 else
@@ -1219,7 +1276,7 @@ else
   ac_cv_sizeof_long=0
 else
   cat > conftest.$ac_ext <<EOF
-#line 1223 "configure"
+#line 1280 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1230,7 +1287,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1234: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1291: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_long=`cat conftestval`
 else
@@ -1253,9 +1310,9 @@ EOF
 for ac_func in gettimeofday BSDgettimeofday
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&1
-echo "configure:1257: checking for $ac_func" >&2
+echo "configure:1314: checking for $ac_func" >&2
 cat > conftest.$ac_ext <<EOF
-#line 1259 "configure"
+#line 1316 "configure"
 #include "confdefs.h"
 #include <ctype.h> /* Arbitrary system header to define __stub macros. */
 #ifdef __cplusplus
@@ -1276,7 +1333,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:1280: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1337: \"$ac_link\") 1>&2; (eval $ac_link) 2>&2; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -1298,6 +1355,87 @@ else
 fi
 done
 
+#
+# Generate a default machines file
+rootdir="../.."
+if test ! -s ${rootdir}/util/machines/machines.$ARCH ; then
+    if test ! -d ${rootdir}/util ; then mkdir ${rootdir}/util ; fi
+    if test ! -d ${rootdir}/util/machines ; then 
+        mkdir ${rootdir}/util/machines
+    fi
+    if test "$COMM" != "bproc" ; then
+        HOST=""
+        # Extract the first word of "hostname", so it can be a program name with args.
+set dummy hostname; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+echo "configure:1372: checking for $ac_word" >&2
+ac_prog_where=""
+if test -n "$HOSTNAME_PGM"; then
+  ac_pg_HOSTNAME_PGM="$HOSTNAME_PGM" # Let the user override the test.
+else
+  ac_first_char=`expr "hostname" : "\(.\)"`
+  if test "$ac_first_char" = "/" -a -x "hostname" ; then
+       ac_pg_HOSTNAME_PGM=""
+       ac_prog_where=hostname
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_pg_HOSTNAME_PGM=""
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+fi;HOSTNAME_PGM="$ac_pg_HOSTNAME_PGM"
+if test -n "$ac_prog_where" ; then
+  echo "$ac_t""found $ac_prog_where ($HOSTNAME_PGM)" 1>&1
+   hostname=$ac_prog_where  
+else
+  echo "$ac_t""no" 1>&1
+fi
+
+        if test -x "$hostname" ; then
+            HOST="`$hostname`"
+        fi
+        # Note that uname -n may not produce a usable hostname.  
+        # Any suggestions?
+        if test "$HOST" = "" ; then
+            HOST="`uname -n`"
+        fi
+	echo "Creating util/machines/machines.$ARCH"
+        cat > ${rootdir}/util/machines/machines.$ARCH <<EOF
+# Change this file to contain the machines that you want to use
+# to run MPI jobs on.  The format is one host name per line, with either
+#    hostname
+# or 
+#    hostname:n
+# where n is the number of processors in an SMP.  The hostname should
+# be the same as the result from the command "hostname"
+$HOST
+$HOST
+$HOST
+$HOST
+$HOST
+EOF
+    else
+        # bproc version from Rick Niles, slightly modified
+	# This gets all possible nodes in the current setup, but 
+        #  may include nodes that will never come up/ don't really exist)
+        CNT=`bpstat -n`   # Get maximum node count
+        INDEX=-1
+        while test "$INDEX" -le "$CNT" ; do
+	    # Using machines.bproc allows coexistance with other devices
+            echo $INDEX >> ${rootdir}/util/machines/machines.bproc
+	    # Use expr because some shells (e.g., Solaris's) choke with
+	    # ((...)) syntax
+            INDEX=`expr $INDEX + 1`
+        done
+    fi
+fi
+#
 trap '' 1 2 15
 
 trap 'rm -fr conftest* confdefs* core core.* *.core $ac_clean_files; exit 1' 1 2 15

@@ -85,5 +85,6 @@ EXPORT_MPI_API void mpi_comm_create_ ( MPI_Fint *comm, MPI_Fint *group, MPI_Fint
 
     *__ierr = MPI_Comm_create( MPI_Comm_f2c(*comm), MPI_Group_f2c(*group),
                                &l_comm_out);
-    *comm_out = MPI_Comm_c2f(l_comm_out);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *comm_out = MPI_Comm_c2f(l_comm_out);
 }

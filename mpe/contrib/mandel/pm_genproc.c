@@ -23,6 +23,15 @@ double drand48();
 
 #define DISP( a, b ) (int)((char *)(&(a)) - (char *)(&(b)))
 
+void
+FreeMPITypes()
+{
+  MPI_Type_free(&winspecs_type);
+  MPI_Type_free(&flags_type);
+  MPI_Type_free(&rect_type);
+}
+
+void 
 DefineMPITypes()
 {
   Winspecs winspecs;
@@ -39,9 +48,10 @@ DefineMPITypes()
   MPI_Type_contiguous( 6, MPI_INT, &winspecs_type );
   MPI_Type_commit( &winspecs_type );
 
-  len[0] = 10;
-  len[1] = 2;
-  len[2] = 6;
+  len[0] = 10; /* 10 ints */
+  len[1] = 2;  /* 2 doubles */
+  len[2] = 6;  /* 6 NUM_types */
+
   MPI_Address( (void*)&flags.breakout, &a );
   MPI_Address( (void*)&flags, &b );
   disp[0] = a - b;
@@ -63,7 +73,6 @@ DefineMPITypes()
   MPI_Type_struct( 1, len, disp, types, &rect_type );
   MPI_Type_commit( &rect_type );
 
-  return 0;
 }
 
 
@@ -269,6 +278,19 @@ Flags *flags;
   MPI_Bcast( strLens, 3, MPI_INT, 0, MPI_COMM_WORLD );
 
   if (myid != 0) {
+
+    if (flags->logfile != 0) {
+      free(flags->logfile);
+      flags->logfile = 0;
+    }
+    if (flags->inf != 0) {
+      free(flags->inf);
+      flags->inf = 0;
+    }
+    if (flags->outf != 0) {
+      free(flags->outf);
+      flags->outf = 0;
+    }
     flags->logfile = (strLens[0]) ?
       (char *)malloc( strLens[0] * sizeof( char ) ) : 0;
     flags->inf = (strLens[1]) ?
@@ -400,7 +422,7 @@ rect_queue *q;
   }
 }
 
-
+void
 Q_Print( q )
 rect_queue *q;
 {
@@ -414,7 +436,7 @@ rect_queue *q;
   }
 }
 
-
+int
 Q_CheckValidity( q )
 rect_queue *q;
 {
@@ -519,7 +541,7 @@ rect *r;
 	     1;
 }
 
-
+void
 PrintHelp( progName )
 char *progName;
 {

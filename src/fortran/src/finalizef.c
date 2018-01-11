@@ -80,5 +80,4 @@ EXPORT_MPI_API void mpi_finalize_( MPI_Fint * );
 EXPORT_MPI_API void mpi_finalize_( MPI_Fint *__ierr )
 {
     *__ierr = MPI_Finalize();
-
 }

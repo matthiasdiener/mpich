@@ -1,6 +1,5 @@
 #include <globdev.h>
-
-#if defined(VMPI)
+#include "topology_clusters.h"
 
 extern void *			VMPI_Internal_Comm;
 
@@ -11,13 +10,16 @@ int MPID_Comm_init(
     struct MPIR_COMMUNICATOR *		newcomm)
 {
     int					rc;
+#ifdef VMPI
     int					i;
     int					vlnp;
+#endif   /* VMPI */
 
     DEBUG_FN_ENTRY(DEBUG_MODULE_COMM);
 
     rc = MPI_SUCCESS;
 
+#ifdef VMPI
     if (newcomm != NULL)
     {
 	newcomm->vmpi_comm = NULL;
@@ -336,8 +338,11 @@ int MPID_Comm_init(
     newcomm->lrank_to_vlrank = NULL;
     newcomm->vlrank_to_lrank = NULL;
     newcomm->vgrank_to_vlrank = NULL;
+#endif   /* VMPI */
 
   fn_exit:
+    if ( rc == MPI_SUCCESS  &&  newcomm )
+        rc = cluster_table(newcomm);
     DEBUG_FN_EXIT(DEBUG_MODULE_COMM);
     return rc;
 }
@@ -349,6 +354,7 @@ int MPID_Comm_free(
 {
     DEBUG_FN_ENTRY(DEBUG_MODULE_COMM);
 
+#ifdef VMPI
     if (comm->vmpi_comm != NULL)
     {
 	mp_comm_free(comm->vmpi_comm);
@@ -363,10 +369,11 @@ int MPID_Comm_free(
     comm->lrank_to_vlrank = NULL;
     comm->vlrank_to_lrank = NULL;
     comm->vgrank_to_vlrank = NULL;
+#endif   /* VMPI */
 
   fn_exit:
+    destroy_cluster_table(comm);
     DEBUG_FN_EXIT(DEBUG_MODULE_COMM);
     return MPI_SUCCESS;
 }
 
-#endif /* defined(VMPI) */

@@ -142,6 +142,7 @@ EXPORT_MPI_API void mpi_testsome_( MPI_Fint *incount, MPI_Fint array_of_requests
 	*__ierr = MPI_Testsome( (int)*incount, (MPI_Request *)0, &loutcount, 
 				l_indices, c_status );
 
+    if (*__ierr != MPI_SUCCESS) return;
     for (i=0; i<loutcount; i++) {
         MPI_Status_c2f(&c_status[i], &(array_of_statuses[i][0]) );
 	if (l_indices[i] >= 0)

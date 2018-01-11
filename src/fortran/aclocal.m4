@@ -205,12 +205,17 @@ dnl Output Effects:
 dnl Adds the following command line options to configure
 dnl+ \-\-with\-mpich[=path] - MPICH.  'path' is the location of MPICH commands
 dnl. \-\-with\-ibmmpi - IBM MPI
+dnl. \-\-with\-lammpi[=path] - LAM/MPI
 dnl- \-\-with\-sgimpi - SGI MPI
 dnl If no type is selected, and a default ("mpich", "ibmmpi", or "sgimpi")
 dnl is given, that type is used as if '--with-<default>' was given.
 dnl
 dnl Sets 'CC', 'F77', 'TESTCC', 'TESTF77', and 'MPILIBNAME'.  Does `not`
 dnl perform an AC_SUBST for these values.
+dnl Also sets 'MPIBOOT' and 'MPIUNBOOT'.  These are used to specify 
+dnl programs that may need to be run before and after running MPI programs.
+dnl For example, 'MPIBOOT' may start demons necessary to run MPI programs and
+dnl 'MPIUNBOOT' will stop those demons.
 dnl
 dnl See also:
 dnl PAC_LANG_PUSH_COMPILERS, PAC_LIB_MPI
@@ -224,6 +229,9 @@ AC_SUBST(F90)
 AC_ARG_WITH(mpich,
 [--with-mpich=path  - Assume that we are building with MPICH],
 ac_mpi_type=mpich)
+AC_ARG_WITH(lammpi,
+[--with-lammpi=path  - Assume that we are building with LAM/MPI],
+ac_mpi_type=lammpi)
 AC_ARG_WITH(ibmmpi,
 [--with-ibmmpi    - Use the IBM SP implementation of MPI],
 ac_mpi_type=ibmmpi)
@@ -236,6 +244,9 @@ if test "X$ac_mpi_type" = "X" ; then
     else
         ac_mpi_type=unknown
     fi
+fi
+if test "$ac_mpi_type" = "unknown" -a "$pac_lib_mpi_is_building" = "yes" ; then
+    ac_mpi_type="mpich"
 fi
 case $ac_mpi_type in
 	mpich)
@@ -264,6 +275,10 @@ case $ac_mpi_type in
             AC_PATH_PROG(MPICXX,mpiCC)
             TESTCXX=${CXX-CC}
             CXX="$MPICXX"
+	    # We may want to restrict this to the path containing mpirun
+	    AC_PATH_PROG(MPIRUN,mpirun)
+	    AC_PATH_PROG(MPIBOOT,mpichboot)
+	    AC_PATH_PROG(MPIUNBOOT,mpichstop)
 	    PATH="$save_PATH"
   	    MPILIBNAME="mpich"
         else 
@@ -271,6 +286,38 @@ case $ac_mpi_type in
 	    :
         fi
 	;;
+
+	lammpi)
+	dnl
+        dnl This isn't correct.  It should try to get the underlying compiler
+        dnl from the mpicc and mpif77 scripts or mpireconfig
+        save_PATH="$PATH"
+        if test "$with_mpich" != "yes" -a "$with_mpich" != "no" ; then 
+	    # Look for commands; if not found, try adding bin to the path
+		if test ! -x $with_lammpi/mpicc -a -x $with_lammpi/bin/mpicc ; then
+			with_lammpi="$with_lammpi/bin"
+		fi
+                PATH=$with_lammpi:${PATH}
+        fi
+        AC_PATH_PROG(MPICC,mpicc)
+        TESTCC=${CC-cc}
+        CC="$MPICC"
+        AC_PATH_PROG(MPIF77,mpif77)
+        TESTF77=${F77-f77}
+        F77="$MPIF77"
+        AC_PATH_PROG(MPIF90,mpif90)
+        TESTF90=${F90-f90}
+        F90="$MPIF90"
+        AC_PATH_PROG(MPICXX,mpiCC)
+        TESTCXX=${CXX-CC}
+        CXX="$MPICXX"
+	PATH="$save_PATH"
+  	MPILIBNAME="lammpi"
+	MPIBOOT="lamboot"
+	MPIUNBOOT="wipe"
+	MPIRUN="mpirun"
+	;;
+
 	ibmmpi)
 	TESTCC=${CC-xlC}; TESTF77=${F77-xlf}; CC=mpcc; F77=mpxlf
 	# There is no mpxlf90, but the options langlvl and free can
@@ -278,6 +325,7 @@ case $ac_mpi_type in
 	TESTF90=${F90-xlf90}; F90="mpxlf -qlanglvl=90ext -qfree=f90"
 	MPILIBNAME=""
 	;;
+
 	sgimpi)
 	TESTCC=${CC:=cc}; TESTF77=${F77:=f77}; 
 	TESTCXX=${CXX:=CC}; TESTF90=${F90:=f90}
@@ -285,8 +333,30 @@ case $ac_mpi_type in
 	if test "$ac_cv_lib_mpi_MPI_Init" = "yes" ; then
 	    MPILIBNAME="mpi"
 	fi	
+	MPIRUN=mpirun
+	MPIBOOT=""
+	MPIUNBOOT=""
 	;;
+
 	*)
+	# Find the compilers
+	PAC_PROG_CC
+	AC_PROG_F77
+	AC_PROG_CXX
+	PAC_PROG_F90
+	# Set defaults for the TEST versions if not already set
+	if test -z "$TESTCC" ; then 
+	    TESTCC=${CC:=cc}
+        fi
+	if test -z "$TESTF77" ; then 
+  	    TESTF77=${F77:=f77}
+        fi
+	if test -z "$TESTCXX" ; then
+	    TESTCXX=${CXX:=CC}
+        fi
+	if test -z "$TESTF90" ; then
+       	    TESTF90=${F90:=f90}
+	fi
 	;;
 esac
 ])
@@ -338,7 +408,7 @@ dnl
 dnlD*/
 AC_DEFUN(PAC_PROG_CC,[
 AC_PROVIDE([AC_PROG_CC])
-AC_CHECK_PROGS(CC, cc xlC xlc pgcc gcc )
+AC_CHECK_PROGS(CC, cc xlC xlc pgcc icc gcc )
 test -z "$CC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
 PAC_PROG_CC_WORKS
 AC_PROG_CC_GNU
@@ -459,11 +529,23 @@ dnlD*/
 AC_DEFUN(PAC_C_OPTIMIZATION,[
     for copt in "-O4 -Ofast" "-Ofast" "-fast" "-O3" "-xO3" "-O" ; do
         PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
-        if test $found_opt = "yes" ; then
+        if test "$found_opt" = "yes" ; then
 	    ifelse($1,,COPTIONS="$COPTIONS $copt",$1)
 	    break
         fi
     done
+    if test "$ac_cv_prog_gcc" = "yes" ; then
+	for copt in "-fomit-frame-pointer" "-finline-functions" \
+		 "-funroll-loops" ; do
+	    PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
+	    if test $found_opt = "yes" ; then
+	        ifelse($1,,COPTIONS="$COPTIONS $copt",$1)
+	        # no break because we're trying to add them all
+	    fi
+	done
+	# We could also look for architecture-specific gcc options
+    fi
+
 ])
 dnl
 dnl/*D
@@ -693,6 +775,26 @@ AC_TRY_COMPILE(,[volatile int a;],pac_cv_c_volatile="yes",
 pac_cv_c_volatile="no")])
 if test "$pac_cv_c_volatile" = "no" ; then
     AC_DEFINE(volatile,)
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_C_INLINE - Check if C supports inline
+dnl
+dnl Synopsis:
+dnl PAC_C_INLINE
+dnl
+dnl Output Effect:
+dnl Defines 'inline' as empty if inline is not available.
+dnl
+dnlD*/
+AC_DEFUN(PAC_C_INLINE,[
+AC_CACHE_CHECK([for inline],
+pac_cv_c_inline,[
+AC_TRY_COMPILE([inline int a( int b ){return b+1;}],[int a;],
+pac_cv_c_inline="yes",pac_cv_c_inline="no")])
+if test "$pac_cv_c_inline" = "no" ; then
+    AC_DEFINE(inline,)
 fi
 ])dnl
 dnl
@@ -1048,6 +1150,219 @@ if test "$notbroken" = "no" ; then
     AC_MSG_ERROR([installation or configuration problem: C compiler does not
 correctly set error code when a fatal error occurs])
 fi
+])
+dnl
+dnl/*D
+dnl PAC_FUNC_CRYPT - Check that the function crypt is defined
+dnl
+dnl Synopsis:
+dnl PAC_FUNC_CRYPT
+dnl
+dnl Output Effects:
+dnl 
+dnl In Solaris, the crypt function is not defined in unistd unless 
+dnl _XOPEN_SOURCE is defines and _XOPEN_VERSION is 4 or greater.
+dnl We test by looking for a missing crypt by defining our own
+dnl incompatible one and trying to compile it.
+dnl Defines NEED_CRYPT_PROTOTYPE if no prototype is found.
+dnlD*/
+AC_DEFUN(PAC_FUNC_CRYPT,[
+AC_CACHE_CHECK([if crypt defined in unistd.h],
+pac_cv_func_crypt_defined,[
+AC_TRY_COMPILE([
+#include <unistd.h>
+double crypt(double a){return a;}],[return 0];,
+pac_cv_func_crypt_defined="no",pac_cv_func_crypt_defined="yes")])
+if test "$pac_cv_func_crypt_defined" = "no" ; then
+    # check to see if defining _XOPEN_SOURCE helps
+    AC_CACHE_CHECK([if crypt defined in unistd with _XOPEN_SOURCE],
+pac_cv_func_crypt_xopen,[
+    AC_TRY_COMPILE([
+#define _XOPEN_SOURCE    
+#include <unistd.h>
+double crypt(double a){return a;}],[return 0];,
+pac_cv_func_crypt_xopen="no",pac_cv_func_crypt_xopen="yes")])
+fi
+if test "$pac_cv_func_crypt_xopen" = "yes" ; then
+    AC_DEFINE(_XOPEN_SOURCE)
+elif test "$pac_cv_func_crypt_defined" = "no" ; then
+    AC_DEFINE(NEED_CRYPT_PROTOTYPE)
+fi
+])dnl
+dnl/*D
+dnl PAC_ARG_STRICT - Add --enable-strict to configure.  
+dnl
+dnl Synopsis:
+dnl PAC_ARG_STRICT
+dnl 
+dnl Output effects:
+dnl Adds '--enable-strict' to the command line.  If this is enabled, then
+dnl if no compiler has been set, set 'CC' to 'gcc'.
+dnl If the compiler is 'gcc', 'COPTIONS' is set to include
+dnl.vb
+dnl	-O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL
+dnl.ve
+dnl
+dnl If the value 'all' is given to '--enable-strict', additional warning
+dnl options are included.  These are
+dnl.vb
+dnl -Wunused -Wshadow -Wmissing-declarations -Wno-long-long -Wpointer-arith
+dnl.ve
+dnl 
+dnl This only works where 'gcc' is available.
+dnl In addition, it exports the variable 'enable_strict_done'. This
+dnl ensures that subsidiary 'configure's do not add the above flags to
+dnl 'COPTIONS' once the top level 'configure' sees '--enable-strict'.  To ensure
+dnl this, 'COPTIONS' is also exported.
+dnl
+dnl Not yet available: options when using other compilers.  However, 
+dnl here are some possible choices
+dnl Solaris cc
+dnl  -fd -v -Xc
+dnl
+dnlD*/
+AC_DEFUN(PAC_ARG_STRICT,[
+AC_ARG_ENABLE(strict,
+[--enable-strict  - Turn on strict compilation testing when using gcc])
+export enable_strict_done
+export COPTIONS
+if test "$enable_strict_done" != "yes" ; then
+    if test "$enable_strict" = "yes" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+            if test "$CC" = "gcc" ; then 
+                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+    	    fi
+        fi
+    elif test "$enable_strict" = "all" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+            if test "$CC" = "gcc" ; then 
+                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+    	    fi
+        fi
+    fi
+fi
+])
+dnl/*D
+dnl PAC_ARG_CC_G - Add debugging flags for the C compiler
+dnl
+dnl Synopsis:
+dnl PAC_ARG_CC_G
+dnl
+dnl Output Effect:
+dnl Adds '-g' to 'COPTIONS' and exports 'COPTIONS'.  Sets and exports the 
+dnl variable 'enable_g_simple' so that subsidiary 'configure's will not
+dnl add another '-g'.
+dnl
+dnl Notes:
+dnl '--enable-g' should be used for all internal debugging modes if possible.
+dnl Use the 'enable_val' that 'enable_g' is set to to pass particular values,
+dnl and ignore any values that are not recognized (some other 'configure' 
+dnl may have used them.  Of course, if you need extra values, you must
+dnl add code to extract values from 'enable_g'.
+dnl
+dnl For example, to look for a particular keyword, you could use
+dnl.vb
+dnl SaveIFS="$IFS"
+dnl IFS=","
+dnl for key in $enable_g ; do
+dnl     case $key in 
+dnl         mem) # add code for memory debugging 
+dnl         ;;
+dnl         *)   # ignore all other values
+dnl         ;;
+dnl     esac
+dnl done
+dnl IFS="$SaveIFS"
+dnl.ve
+dnl
+dnlD*/
+AC_DEFUN(PAC_ARG_CC_G,[
+AC_ARG_ENABLE(g,
+[--enable-g  - Turn on debugging of the package (typically adds -g to COPTIONS)])
+export COPTIONS
+export enable_g_simple
+if test -n "$enable_g" -a "$enable_g" != "no" -a \
+   "$enable_g_simple" != "done" ; then
+    enable_g_simple="done"
+    if test "$enable_g" = "g" -o "$enable_g" = "yes" ; then
+        COPTIONS="$COPTIONS -g"
+    fi
+fi
+])
+dnl
+dnl Simple version for both options
+dnl
+AC_DEFUN(PAC_ARG_CC_COMMON,[
+PAC_ARG_CC_G
+PAC_ARG_STRICT
+])
+dnl
+dnl Eventually, this can be used instead of the funky Fortran stuff to 
+dnl access the command line from a C routine.
+dnl #
+dnl # Under IRIX (some version) __Argc and __Argv gave the argc,argv values
+dnl #Under linux, __libc_argv and __libc_argc
+dnl AC_MSG_CHECKING([for alternative argc,argv names])
+dnl AC_TRY_LINK([
+dnl extern int __Argc; extern char **__Argv;],[return __Argc;],
+dnl alt_argv="__Argv")
+dnl if test -z "$alt_argv" ; then
+dnl    AC_TRY_LINK([
+dnl extern int __libc_argc; extern char **__libc_argv;],[return __lib_argc;],
+dnl alt_argv="__lib_argv")
+dnl fi
+dnl if test -z "$alt_argv" ; then
+dnl   AC_MSG_RESULT(none found)) 
+dnl else 
+dnl   AC_MSG_RESULT($alt_argv) 
+dnl fi
+dnl 
+dnl
+dnl Check whether we need -fno-common to correctly compile the source code.
+dnl This is necessary if global variables are defined without values in
+dnl gcc.  Here is the test
+dnl conftest1.c:
+dnl extern int a; int a;
+dnl conftest2.c:
+dnl extern int a; int main(int argc; char *argv[] ){ return a; }
+dnl Make a library out of conftest1.c and try to link with it.
+dnl If that fails, recompile it with -fno-common and see if that works.
+dnl If so, add -fno-common to CFLAGS
+dnl An alternative is to use, on some systems, ranlib -c to force 
+dnl the system to find common symbols.
+dnl
+dnl NOT TESTED
+AC_DEFUN(PAC_PROG_C_BROKEN_COMMON,[
+AC_MSG_CHECKING([whether global variables handled properly])
+ac_cv_prog_cc_globals_work=no
+echo 'extern int a; int a;' > conftest1.c
+echo 'extern int a; int main( ){ return a; }' > conftest2.c
+if ${CC-cc} $CFLAGS -c conftest1.c >conftest.out 2>&1 ; then
+    if ${AR-ar} cr libconftest.a conftest1.o ; then
+        if ${RANLIB-:} libconftest.a ; then
+            if ${CC-cc} $CFLAGS -o conftest conftest2.c libconftest.a ; then
+		# Success!  C works
+		ac_cv_prog_cc_globals_work=yes
+	    else
+	        # Failure!  Do we need -fno-common?
+	        ${CC-cc} $CFLAGS -fno-common -c conftest1.c > conftest.out 2>&1
+		rm -f libconftest.a
+		${AR-ar} cr libconftest.a conftest1.o
+	        ${RANLIB-:} libconftest.a
+	        if ${CC-cc} $CFLAGS -o conftest conftest2.c libconftest.a ; then
+		    ac_cv_prob_cc_globals_work="needs -fno-common"
+		    CFLAGS="$CFLAGS -fno-common"
+		fi
+	    fi
+        fi
+    fi
+fi
+rm -f conftest* libconftest*
+AC_MSG_RESULT($ac_cv_prog_cc_globals_work)
 ])
 
 AC_DEFUN(AM_IGNORE,[])
@@ -1939,7 +2254,8 @@ EOF
    AC_LANG_SAVE
    AC_LANG_C   
    save_LIBS="$LIBS"
-   LIBS="fconftestf.o $LIBS"
+   dnl FLIBS comes from AC_F77_LIBRARY_LDFLAGS
+   LIBS="fconftestf.o $FLIBS $LIBS"
    AC_TRY_LINK(,my_name();,pac_cv_prog_f77_name_mangle="lower")
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      AC_TRY_LINK(,my_name_();,pac_cv_prog_f77_name_mangle="lower underscore")
@@ -2026,7 +2342,8 @@ if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
     AC_LANG_SAVE
     AC_LANG_C
     save_LIBS="$LIBS"
-    LIBS="conftestf.o $LIBS"
+    dnl Add the Fortran linking libraries
+    LIBS="conftestf.o $FLIBS $LIBS"
     AC_TRY_RUN([#include <stdio.h>
 #ifdef F77_NAME_UPPER
 #define cisize_ CISIZE
@@ -2215,8 +2532,25 @@ dnl performed on the compiler version that will be used.
 dnl
 dnl 'AC_SUBST' is called for all six variables.
 dnl
+dnl One complication is that on systems with multiple Fortran compilers, 
+dnl some libraries used by one Fortran compiler may have been (mis)placed
+dnl in a common location.  We have had trouble with libg2c in particular.
+dnl To work around this, we test whether iargc etc. work first.  This
+dnl will catch most systems and will speed up the tests.
+dnl
+dnl Next, the libraries are only added if they are needed to complete a 
+dnl link; they aren't added just because they exist.
+dnl
 dnl f77argdef
 dnlD*/
+dnl
+dnl Random notes
+dnl You can export the command line arguments from C to the g77 compiler
+dnl using
+dnl    extern char **__libc_argv;
+dnl    extern int  __libc_argc;
+dnl    f_setarg( __libc_argc, __libc_argv );
+dnl
 AC_DEFUN(PAC_PROG_F77_CMDARGS,[
 found_cached="yes"
 AC_MSG_CHECKING([for routines to access the command line from Fortran 77])
@@ -2224,15 +2558,61 @@ AC_CACHE_VAL(pac_cv_prog_f77_cmdarg,
 [
     AC_MSG_RESULT([searching...])
     found_cached="no"
+    # First, we perform a quick check.  Does iargc and getarg work?
+    fxx_module="${FXX_MODULE:-}"
+    f77_getargdecl="${F77_GETARGDECL:-external getarg}"
+    f77_getarg="${F77_GETARG:-call GETARG(i,s)}"
+    f77_iargc="${F77_IARGC:-IARGC()}"
+    #    
+    # Grumble.  The Absoft Fortran compiler computes i - i as 0 and then
+    # 1.0 / 0 at compile time, even though the code may never be executed.
+    # What we need is a way to generate an error, so the second usage of i
+    # was replaced with f77_iargc.  
+    cat > conftest.f <<EOF
+        program main
+$fxx_module
+        integer i, j
+        character*20 s
+        $f77_getargdecl
+	i = 0
+        $f77_getarg
+        i=$f77_iargc
+	if (i .gt. 1) then
+	    j = i - $f77_iargc
+	    j = 1.0 / j
+	endif
+        end
+EOF
+    found_answer="no"
+    if test -z "$ac_fcompilelink" ; then
+        ac_fcompilelink="${F77-f77} -o conftest $FFLAGS $flags conftest.f $LIBS 1>&AC_FD_CC"
+    fi
+    AC_MSG_CHECKING([if ${F77-f77} $flags $libs works with GETARG and IARGC])
+    if AC_TRY_EVAL(ac_fcompilelink) && test -x conftest ; then
+	if test "$ac_cv_prog_f77_cross" = "no" ; then
+	    if ./conftest >/dev/null 2>&1 ; then
+		found_answer="yes"
+	        FXX_MODULE="$fxx_module"
+		F77_GETARGDECL="$f77_getargdecl"
+		F77_GETARG="$f77_getarg"
+		F77_IARGC="$f77_iargc"
+		AC_MSG_RESULT(yes)
+     	    fi
+        fi
+    fi    
+    if test $found_answer = "no" ; then
+	AC_MSG_RESULT(no)
     # Grumph.  Here are a bunch of different approaches
     # We have several axes the check:
     # Library to link with (none, -lU77 (HPUX), -lg2c (LINUX f77))
+    # PEPCF90 (Intel ifc)
     # The first line is a dummy
     # (we experimented with using a <space>, but this caused other 
     # problems because we need <space> in the IFS)
-trial_LIBS="0
--lU77
--lg2c"
+    trial_LIBS="0 -lU77 -lPEPCF90"
+    if test "$NOG2C" != "1" ; then
+        trial_LIBS="$trial_LIBS -lg2c"
+    fi
     # Discard libs that are not availble:
     save_IFS="$IFS"
     # Make sure that IFS includes a space, or the tests that run programs
@@ -2366,8 +2746,8 @@ $flag"
 	   FXX_MODULE=""
 	   F77_GETARGDECL="external pxfgetarg"
 	   F77_GETARG="call pxfgetarg(i,s,l,ier)"
-	   F77_IARGC="ipxfiargc()"
-	   MSG="pxfgetarg and ipxfiargc"
+	   F77_IARGC="ipxfargc()"
+	   MSG="pxfgetarg and ipxfargc"
 	   ;;
 	4) # Nag f90_unix_env module
 	   FXX_MODULE="        use f90_unix_env"
@@ -2400,16 +2780,22 @@ $flag"
            break
 	   ;;
 	esac
-	# Create the program
+	# Create the program.  Make sure that we can run it.
+	# Force a divide-by-zero if there is a problem (but only at runtime!
+        # (the Absoft compiler does divide-by-zero at compile time)
         cat > conftest.f <<EOF
         program main
 $FXX_MODULE
-        integer i
+        integer i, j
         character*20 s
-
         $F77_GETARGDECL
+	i = 0
         $F77_GETARG
         i=$F77_IARGC
+	if (i .gt. 1) then
+	    j = i - $F77_IARGC
+	    j = 1.0 / j
+	endif
         end
 EOF
     #
@@ -2427,7 +2813,19 @@ EOF
 		IFS="$save_IFS"
 		dnl We need this here because we've fiddled with IFS
 	        ac_fcompilelink_test="${F77-f77} -o conftest $FFLAGS $flags conftest.f $libs $LIBS 1>&AC_FD_CC"
+		found_answer="no"
                 if AC_TRY_EVAL(ac_fcompilelink_test) && test -x conftest ; then
+		    if test "$ac_cv_prog_f77_cross" = "no" ; then
+			if ./conftest >/dev/null 2>&1 ; then
+			    found_answer="yes"
+			fi
+		    else 
+			found_answer="yes"
+		    fi
+                fi
+	        IFS=" 
+"
+		if test "$found_answer" = "yes" ; then
 	            AC_MSG_RESULT([yes])
 		    pac_cv_prog_f77_cmdarg="$MSG"
 		    pac_cv_prog_f77_cmdarg_fflags="$flags"
@@ -2438,14 +2836,13 @@ EOF
 		    echo "configure: failed program was:" >&AC_FD_CC
                     cat conftest.f >&AC_FD_CC
 	        fi
-		IFS=" 
-"
             done
         done
         IFS="$save_IFS"   
 	rm -f conftest.*
         trial=`expr $trial + 1`   
     done
+fi
 pac_cv_F77_GETARGDECL="$F77_GETARGDECL"
 pac_cv_F77_IARGC="$F77_IARGC"
 pac_cv_F77_GETARG="$F77_GETARG"
@@ -2641,7 +3038,7 @@ if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
     AC_LANG_SAVE
     AC_LANG_C
     save_LIBS="$LIBS"
-    LIBS="conftestf.o $LIBS"
+    LIBS="conftestf.o $FLIBS $LIBS"
     AC_TRY_RUN([#include <stdio.h>
 #ifdef F77_NAME_UPPER
 #define ftest_ FTEST
@@ -2657,5 +3054,145 @@ else
     cat conftest.f >&AC_FD_CC
 fi
 rm -f conftest*
+])
+dnl
+dnl PAC_PROG_F77_IN_C_LIBS
+dnl
+dnl Find the essential libraries that are needed to use the C linker to 
+dnl create a program that includes a trival Fortran code.  
+dnl
+dnl For example, all pgf90 compiled objects include a reference to the
+dnl symbol pgf90_compiled, found in libpgf90 .
+dnl
+AC_DEFUN(PAC_PROG_F77_IN_C_LIBS,[
+AC_MSG_CHECKING([what Fortran libraries are needed to link C with Fortran])
+F77_IN_C_LIBS="$FLIBS"
+/bin/rm -f conftest*
+cat <<EOF > conftest.f
+        subroutine ftest
+        end
+EOF
+dnl
+if test "X$ac_fcompile" = "X" ; then
+    ac_fcompile='${F77-f77} -c $FFLAGS conftest.f 1>&AC_FD_CC'
+fi
+if AC_TRY_EVAL(ac_fcompile) && test -s conftest.o ; then
+    mv conftest.o mconftestf.o
+    AC_LANG_SAVE
+    AC_LANG_C
+    save_LIBS="$LIBS"
+    dnl First try with no libraries
+    LIBS="mconftestf.o $save_LIBS"
+    AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+    if test "$link_worked" = "no" ; then
+        flibdirs=`echo $FLIBS | tr ' ' '\012' | grep '\-L' | tr '\012' ' '`
+        fliblibs=`echo $FLIBS | tr ' ' '\012' | grep -v '\-L' | tr '\012' ' '`
+        for flibs in $fliblibs ; do
+            LIBS="mconftestf.o $flibdirs $flibs $save_LIBS"
+            AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+            if test "$link_worked" = "yes" ; then 
+	        F77_IN_C_LIBS="$flibdirs $flibs"
+                break
+            fi
+        done
+    if test "$link_worked" = "no" ; then
+	# try to add libraries until it works...
+        flibscat=""
+        for flibs in $fliblibs ; do
+	    flibscat="$flibscat $flibs"
+            LIBS="mconftestf.o $flibdirs $flibscat $save_LIBS"
+            AC_TRY_LINK([#include <stdio.h>],[
+#ifdef F77_NAME_UPPER
+#define ftest_ FTEST
+#elif defined(F77_NAME_LOWER) || defined(F77_NAME_MIXED)
+#define ftest_ ftest
+#endif
+ftest_();
+], [link_worked=yes], [link_worked=no] )
+            if test "$link_worked" = "yes" ; then 
+	        F77_IN_C_LIBS="$flibdirs $flibscat"
+                break
+            fi
+        done
+    fi
+    else
+	# No libraries needed
+	F77_IN_C_LIBS=""
+    fi
+    LIBS="$save_LIBS"
+    AC_LANG_RESTORE
+else 
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.f >&AC_FD_CC
+fi
+rm -f conftest* mconftest*
+if test -z "$F77_IN_C_LIBS" ; then
+    AC_MSG_RESULT(none)
+else
+    AC_MSG_RESULT($F77_IN_C_LIBS)
+fi
+])
+dnl
+dnl Test to see if we should use C or Fortran to link programs whose
+dnl main program is in Fortran.  We may find that neither work because 
+dnl we need special libraries in each case.
+dnl
+AC_DEFUN([PAC_PROG_F77_LINKER_WITH_C],[
+AC_TRY_COMPILE(,
+long long a;,AC_DEFINE(HAVE_LONG_LONG,1,[Define if long long allowed]))
+AC_MSG_CHECKING([for linker for Fortran main programs])
+dnl
+dnl Create a program that uses multiplication and division in case
+dnl that requires special libraries
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#ifdef HAVE_LONG_LONG
+int f(int a, long long b) { int c; c = a * ( b / 3 ) / (b-1); return c ; }
+#else
+int f(int a, long b) { int c; c = a * b / (b-1); return c ; }
+#endif
+EOF
+AC_LANG_SAVE
+AC_LANG_C
+if AC_TRY_EVAL(ac_compile); then
+    mv conftest.o conftest1.o
+else
+    AC_MSG_ERROR([Could not compile C test program])
+fi
+AC_LANG_FORTRAN77
+cat > conftest.f <<EOF
+        program main
+        double precision d
+        print *, "hi"
+        end
+EOF
+if AC_TRY_EVAL(ac_compile); then
+    if ${F77} -o conftest conftest.o conftest1.o 2>&AC_FD_CC ; then
+	AC_MSG_RESULT([Use Fortran to link programs])
+    elif ${CC} -o conftest conftest.o conftest1.o $FLIBS 2>&AC_FD_CC ; then
+	AC_MSG_RESULT([Use C with FLIBS to link programs])
+	F77LINKER="$CC"
+        F77_LDFLAGS="$F77_LDFLAGS $FLIBS"
+    else
+	AC_MSG_RESULT([Unable to determine how to link Fortran programs with C])
+    fi
+else
+    AC_MSG_ERROR([Could not compile Fortran test program])
+fi
+AC_LANG_RESTORE
 ])
 

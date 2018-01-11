@@ -96,10 +96,12 @@ EXPORT_MPI_API void mpi_cart_get_ ( MPI_Fint *comm, MPI_Fint *maxdims, MPI_Fint 
 	}
     *__ierr = MPI_Cart_get( MPI_Comm_f2c(*comm), (int)*maxdims, ldims,
                             lperiods, lcoords);
+    if (*__ierr == MPI_SUCCESS) {
     for (i=0; i<(int)*maxdims; i++) {
 	   dims[i] = (MPI_Fint)ldims[i];
 	   periods[i] = MPIR_TO_FLOG(lperiods[i]);
 	   coords[i] = (MPI_Fint)lcoords[i];
+    }
     }
 }
 

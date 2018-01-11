@@ -1,5 +1,5 @@
 /* 
- *   $Id: delete.c,v 1.7 2000/02/09 21:30:10 thakur Exp $    
+ *   $Id: delete.c,v 1.10 2001/06/07 23:22:53 rross Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -36,8 +36,12 @@ Input Parameters:
 @*/
 int MPI_File_delete(char *filename, MPI_Info info)
 {
-    int flag, error_code;
+    int flag, error_code, file_system;
     char *tmp;
+    ADIOI_Fns *fsops;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "MPI_FILE_DELETE";
+#endif
 #ifdef MPI_hpux
     int fl_xmpi;
   
@@ -71,10 +75,30 @@ int MPI_File_delete(char *filename, MPI_Info info)
         ADIO_Init( (int *)0, (char ***)0, &error_code);
     }
 
+
+    /* resolve file system type from file name; this is a collective call */
+    ADIO_ResolveFileType(MPI_COMM_SELF, filename, &file_system, &fsops, 
+			 &error_code);
+    if (error_code != MPI_SUCCESS) {
+	/* ADIO_ResolveFileType() will print as informative a message as it
+	 * possibly can or call MPIR_Err_setmsg.  We just need to propagate 
+	 * the error up.  In the PRINT_ERR_MSG case MPI_Abort has already
+	 * been called as well, so we probably didn't even make it this far.
+	 */
+#ifdef PRINT_ERR_MSG
+	MPI_Abort(MPI_COMM_WORLD, 1); /* this is mostly here for clarity */
+#else
+	return ADIOI_Error(MPI_FILE_NULL, error_code, myname);
+#endif
+    }
+
+    /* skip prefix on filename if there is one */
     tmp = strchr(filename, ':');
     if (tmp) filename = tmp + 1;
 
-    ADIO_Delete(filename, &error_code);
+    /* call the fs-specific delete function */
+    (fsops->ADIOI_xxx_Delete)(filename, &error_code);
+	
 #ifdef MPI_hpux
     HPMP_IO_END(fl_xmpi, MPI_FILE_NULL, MPI_DATATYPE_NULL, -1);
 #endif /* MPI_hpux */

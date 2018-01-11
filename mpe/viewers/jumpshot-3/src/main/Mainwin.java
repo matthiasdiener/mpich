@@ -3,6 +3,7 @@ import java.util.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
+import java.rmi.*;
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -22,60 +23,67 @@ import javax.swing.border.*;
      drawing, printing, manipulation, etc.
 */
 
-public class Mainwin extends JFrame 
-implements ActionListener {
-          SLOG_InputStream        slog = null;
+public class Mainwin extends JPanel 
+                     implements ActionListener
+{
+          SLOG_ProxyInputStream   slog = null;
           ViewFrameChooser        frame_chooser;
 
   private SwingWorker readWorker;           //Thread doing reading
   
-  // File with default link to Color file and Help file 
-  private String      setupFile = "jumpshot.setup";
-  // Directory with the distribution 
-  private String      distributionDir = "./";
-          String      distributionUrl;
-  //Dir with byte code
-  private String      classDir1 = "js_classes";      
-  private String      classDir2 = "jumpshot.jar";
-  //Dir with the ASCII file
-  private String      dataDir = "";
-  private String      logFileDir = "logfiles";
+  // Relative Path to the files for the GUI system's configuration 
+  private String       configDefaultFile = "etc/jumpshot.conf";
+  private String       colorDefaultFile = "share/jumpshot.colors";
+  private String       tourDefaultFile = "doc/html/index.html";
+  private String       buttonDefaultFile = "doc/jumpshot.def";
+  private String       configFile = configDefaultFile;
+  private String       colorFile;
+  private String       tourHTMLFile;
+  private String       btnsDefnFile;
+  //Directory to the sample logfiles
+  private String       logFileDir = "logfiles";
   
-  private Object      openAppFileDlg;
-  private ApltFileDlg openApltFileDlg;
-  private MyTextField logFileField;
-  private JMenuItem   metalMenuItem, selectFileMenuItem;
-          String      logFileName;
+  // private Object       openAppFileDlg;
+  private JFileChooser openAppFileDlg;
+  private ApltFileDlg  openApltFileDlg;
+  private MyTextField  logFileField;
+  private JMenuItem    metalMenuItem, selectFileMenuItem;
+          String       logFileName;
   
           Font         frameFont; 
           Color        frameBColor, frameFColor;
   public  Dimension    dimPG;
   
-  private HTMLviewer  btns_viewer;
-  private HTMLviewer  tour_viewer;
-  private JMenuBar    menuBar;
-          Mainwin     startwin;
+  private HTMLviewer   btns_viewer;
+  private HTMLviewer   tour_viewer;
+  private JMenuBar     menuBar;
+          Mainwin      startwin;
   
   //This boolean value tells us if this instance of Mainwin is a child or not
   //If it is a child then when u exit it only its descendents will be terminated
   //If however, u exit the father all children will also be exited
-  private boolean     child;
+  private boolean      isChild;
   
-          jumpshot    parent;
-  boolean             aplt;
-  int                 dtype;
+          Component    parent;
+  private String       parent_superclass;
   
-  private String      about = "Jumpshot, the SLOG viewer, Version 3.0\n"
-                            + "Questions: mpi-maint@mcs.anl.gov";
+  private boolean      isApplet;
+          int          dtype;
   
-  private MyButton    read_btn;
-  private boolean     reader_alive;
+  private String       about = "Jumpshot, the SLOG viewer, Version 3.0\n"
+                             + "Questions: mpi-maint@mcs.anl.gov";
+  
+  private MyButton     read_btn;
+  private boolean      reader_alive;
   
 
-  public Mainwin ( jumpshot origin, boolean is_applet, boolean is_child,
-                   String filename, int frame_idx )
+  public Mainwin( Component origin, boolean is_child,
+                  String filename, int frame_idx )
   {
-      parent = origin; aplt = is_applet; child = is_child;
+      parent = origin;
+      parent_superclass = parent.getClass().getSuperclass().getName();
+      isApplet = parent_superclass.equals( "javax.swing.JApplet" );
+      isChild = is_child;
       startwin = this;
       logFileName = filename;
 
@@ -88,33 +96,28 @@ implements ActionListener {
       */
 
       if ( logFileName == null )
-          logFileName = new String ("No Name");
+          logFileName = new String( "No Name" );
 
       setup();
   }
   
+  public boolean getIsApplet()
+  {   return isApplet;  }
+
   //setup methods-----------------------------------------------------------------
   private void setup () 
   {
-    setupUI ();
-    adjustFrameStuff ();
-    setupData ();
-    setupDlgs ();
-    setupPanels ();
-    disableRead ();
-    setupEventHandlers ();
-    pack (); 
-    // setSize (getMinimumSize ()); setResizable (false);
-    setResizable (false);
-    setVisible (true);
-    if (!(logFileName.equals ("No Name"))) {
-      if (aplt) logFileName = distributionUrl + logFileName;
-      readLogFile();
-      /*
-      try { readLogFile (); }
-      catch ( IOException ioerr )
-          { System.err.println( "setup()'s readLogFile() has IO error" ); }
-      */
+    setupUI();
+    adjustFrameStuff();
+    setupData();
+    // setupDlgs();
+    setupPanels();
+    disableRead();
+    setupEventHandlers();
+    // setSize( getMinimumSize() ); setResizable( false );
+    setVisible(true);
+    if ( ! logFileName.equals( "No Name" ) ) {
+        readLogFile();
     }
   }
   
@@ -131,10 +134,9 @@ implements ActionListener {
   }
   
   private void adjustFrameStuff () {
-    if (child) setTitle ("Jumpshot: (Child)");
-    else setTitle ("Jumpshot");
-    Toolkit toolkit = getToolkit ();
-    Dimension dimScreen = new Dimension (toolkit.getScreenSize ());
+    if ( isChild )
+        ( (MainFrame)parent ).setTitle( "Jumpshot-3: Child" );
+    Dimension dimScreen = Toolkit.getDefaultToolkit().getScreenSize();
     dimPG = new Dimension ((int)Math.rint (dimScreen.width * 0.75), 
                            (int)Math.rint (dimScreen.height * 0.7));
     frameBColor = Color.lightGray;
@@ -142,127 +144,114 @@ implements ActionListener {
     frameFont = new Font ("Serif", Font.PLAIN, 10);
   }
   
-  private void setupData () {
+private void setupData()
+{
     //Obtain the settings specified by the user.
-    Properties settings = new Properties ();
+    Properties settings = new Properties();
+    URL setup_URL, color_URL;
+    boolean useDefaultSettings;
     InputStream setin, colorin;
-    String path;
     
-    if (!aplt) {
-      path = getDataPath ();
-      if (path == null) {
-	new ErrorDialog (null, "Jumpshot cannot locate setup files. Exiting");
-        return;
-      }
-      setin = getFileIn (path +  setupFile); 
+    setup_URL = getURL( configFile );
+    if ( setup_URL != null ) {
+        try {
+            setin = setup_URL.openStream();
+            settings.load( setin );
+            setin.close(); 
+        }
+        catch ( IOException err ) {
+            new WarnDialog( this, "IO Error:" + err.getMessage() + " "
+                          + "in reading the setup file. Use default settings" );
+            useDefaultSettings = true;
+        }
+        useDefaultSettings = false;
     }
     else {
-      path = getDataUrl ();
-      if (path == null) {
-	new ErrorDialog (null, "Jumpshot cannot locate setup files. Exiting");
-        return;
-      }
-      setin = getUrlIn (path + setupFile);
+        new WarnDialog( this, "Cannot locate setup file " + configFile + ". "
+                            + "Use default settings." );
+        useDefaultSettings = true;
     }
     
-    try {settings.load (setin); setin.close ();}
-    catch (IOException x)
-        {new ErrorDialog (this, "IO Error:" + x.getMessage ()); return;}
-    
-    String colorFile = settings.getProperty ("COLORFILE", "jumpshot.colors");
-    
-    if (!aplt)
-      colorin = getFileIn (path + colorFile);
-    else
-      colorin = getUrlIn (path + colorFile);
-        
-    ColorUtil.readColors (this, colorin);
+    // Load the settings if possible
+    if ( useDefaultSettings ) {
+        colorFile    = colorDefaultFile;
+        tourHTMLFile = tourDefaultFile;
+        btnsDefnFile = buttonDefaultFile;
+    }
+    else {
+        colorFile    = settings.getProperty( "COLORFILE", colorDefaultFile );
+        tourHTMLFile = settings.getProperty( "HTMLFILE", tourDefaultFile );
+        btnsDefnFile = settings.getProperty( "BUTTONFILE", buttonDefaultFile );
+    }
+
+    color_URL = getURL( colorFile );
+    if ( color_URL == null ) {
+        new ErrorDialog( this, "Cannot locate " + colorFile + ". Exiting!" );
+        close();
+    }
+
+    colorin = null;
+    try { colorin = color_URL.openStream(); }
+    catch ( IOException err ) {
+        new ErrorDialog( this, "IO Error:" + err.getMessage() + ". "
+                       + "Cannot open " + colorFile + ". Exiting!" );
+        close();
+    }
+    ColorUtil.readColors( this, colorin );
     
     reader_alive = false;
-  }
+}
     
   
-  //Bug: Method setCurrentDirectory of JFileChooser does not work completely.
-  //     So, method rescanCurrentDirectory has to be called also to get the 
-  //     desired effect. We want the JFileChooser dialog to open up with a 
-  //     listing of files of the directory from which Jumpshot was executed
-  private void setupDlgs () {
-    if (!aplt) {
-      Class c = null; openAppFileDlg = null;
-      try {c = Class.forName ("com.sun.java.swing.preview.JFileChooser");}
-      catch (ClassNotFoundException e1) {
-	try {c = Class.forName ("javax.swing.JFileChooser");}
-	catch (ClassNotFoundException e2)
-            {System.err.println (e2.toString ());}
-      }
-      
-      if (c != null) {
-	try {openAppFileDlg = c.newInstance ();}
-	catch (InstantiationException e)
-            {System.err.println (e.toString ());}
-	catch (IllegalAccessException e)
-            {System.err.println (e.toString ());}
-      }
-
-      //  ExFileFilter filter = new ExFileFilter( new String [] {"slog"},
-      //                                          "slog logfiles");
-      
-      if (openAppFileDlg != null) {
-        //  ROUTINES.invokeMethod( openAppFileDlg, "addChoosableFileFilter",
-        //                         filter, filter.getClass ());
-	//  ROUTINES.invokeMethod( openAppFileDlg, "setFileFilter", filter, 
-	//                         (filter.getClass ()).getSuperclass ());
-
-	String s = new String ("Select Logfile");
-	ROUTINES.invokeMethod (openAppFileDlg, "setDialogTitle", s);
-
-	File f = new File ((System.getProperties ()).getProperty ("user.dir"));
-	ROUTINES.invokeMethod (openAppFileDlg, "setCurrentDirectory", f);
-
-	ROUTINES.invokeMethod (openAppFileDlg, "rescanCurrentDirectory", null);
-      }
-      else selectFileMenuItem.setEnabled (false);
-    }
+/*
+private void setupDlgs()
+{
+    URL init_URL = getURL( tourHTMLFile );
+    if ( init_URL != null ) 
+        tour_viewer = new HTMLviewer( init_URL );
     else
-      openApltFileDlg = new ApltFileDlg (this, "Select Logfile");
-    URL init_URL = ClassLoader.getSystemResource( "doc/html/index.html" );
-    tour_viewer = new HTMLviewer( init_URL );
-    URL btns_URL = ClassLoader.getSystemResource( "doc/jumpshot.def" );
-    btns_viewer = new HTMLviewer( btns_URL );
-  }
+        tour_viewer = null;
+
+    URL btns_URL = getURL( btnsDefnFile );
+    if ( btns_URL != null )
+        btns_viewer = new HTMLviewer( btns_URL );
+    else
+        btns_viewer = null;
+}
+*/
   
-  private void setupPanels () {
-    getContentPane ().setLayout (new GridBagLayout ());
-    GridBagConstraints con = new GridBagConstraints ();
+private void setupPanels()
+{
+    setLayout( new GridBagLayout() );
+    GridBagConstraints con = new GridBagConstraints();
     con.anchor = GridBagConstraints.WEST; 
     con.fill = GridBagConstraints.HORIZONTAL;
     
-    getContentPane ().add (setupMenuBar (), con);
+    add( setupMenuBar(), con );
     
     con.fill = GridBagConstraints.NONE;
     //JPanels are used now. But, if the problem with using menus is solved
     //they should be used instead
     
-    Border border1, border2 = BorderFactory.createLoweredBevelBorder ();
+    Border border1, border2 = BorderFactory.createLoweredBevelBorder();
     
     //Logfile field
-    JPanel pl = new JPanel (new FlowLayout ());
-    border1 = BorderFactory.createEmptyBorder (4, 4, 2, 4);
-    pl.setBorder (BorderFactory.createCompoundBorder (border1, border2));
+    JPanel pl = new JPanel( new FlowLayout() );
+    border1 = BorderFactory.createEmptyBorder( 4, 4, 2, 4 );
+    pl.setBorder( BorderFactory.createCompoundBorder( border1, border2 ) );
 
-    pl.add (new JLabel ("Logfile")); 
-    // loadImageIcon ("images/jumpshot.gif"), JLabel.RIGHT));
+    pl.add( new JLabel( "Logfile" ) ); 
     
-    logFileField = new MyTextField (logFileName, 35, false);
-    pl.add (logFileField);
+    logFileField = new MyTextField( logFileName, 35, false );
+    pl.add( logFileField );
     
     con.gridy = 1; 
-    getContentPane ().add (pl, con);
+    add( pl, con );
     
     con.gridy = 2; con.gridx = 0;
-    read_btn = new MyButton ("Read", "Reading the selected logfile", this);
-    getContentPane ().add (read_btn, con);
-  }
+    read_btn = new MyButton( "Read", "Reading the selected logfile", this );
+    add( read_btn, con );
+}
   
   private JMenuBar setupMenuBar () {
     menuBar = new JMenuBar();
@@ -379,13 +368,9 @@ implements ActionListener {
     return menuBar;
   }
   
-  private void setupEventHandlers () {
+  private void setupEventHandlers()
+  {
     this.enableEvents (AWTEvent.ACTION_EVENT_MASK);
-    
-    // Define, instantiate and register a WindowListener object.
-    addWindowListener (new WindowAdapter () {
-      public void windowClosing (WindowEvent e) {close ();}
-    });
   }
   
   //End of setup methods-------------------------------------------------------
@@ -400,17 +385,31 @@ implements ActionListener {
   {
       String command = evt.getActionCommand();
       if ( command.equals( "New Frame" ) )
-          new Mainwin( parent, aplt, true, null, 0 );
+          new MainFrame( true, null, 0 );
       else if ( command.equals( "Select Logfile" ) )
-          selectFile ();
+          selectFile();
       else if ( command.equals( "Exit" ) )
           close();
-      else if ( command.equals( "Manual" ) ) 
-          btns_viewer.setVisible( true );
-      else if ( command.equals( "Tour" ) ) 
-          tour_viewer.setVisible( true );
+      else if ( command.equals( "Manual" ) ) {
+          URL btns_URL = getURL( btnsDefnFile );
+          if ( btns_URL != null ) {
+              btns_viewer = new HTMLviewer( btns_URL );
+              btns_viewer.setVisible( true );
+          }
+          else
+              new WarnDialog( this, "Cannot locate " + btnsDefnFile + "." );
+      }
+      else if ( command.equals( "Tour" ) ) {
+          URL init_URL = getURL( tourHTMLFile );
+          if ( init_URL != null ) {
+              tour_viewer = new HTMLviewer( init_URL );
+              tour_viewer.setVisible( true );
+          }
+          else
+              new WarnDialog( this, "Cannot locate " + tourHTMLFile + "." );
+      }
       else if ( command.equals( "About" ) ) {
-          URL icon_URL = ClassLoader.getSystemResource( "images/jumpshot.gif" );
+          URL icon_URL = getURL( "images/jumpshot.gif" );
           if ( icon_URL != null ) {
               ImageIcon js_icon = new ImageIcon( icon_URL );
               JOptionPane.showMessageDialog( this, about, "About",
@@ -423,112 +422,93 @@ implements ActionListener {
       }
       else if (command.equals( "Read" ) ) {
           readLogFile();
-          /*
-          try { readLogFile(); }
-          catch ( IOException ioerr ) { 
-              System.err.println( "Read Button's readLogFile() has IO error" );
-          }
-          */
       }
   }
 
   //End of event Handler methods----------------------------------------------
   
-  private void disableRead () {read_btn.setEnabled (false);}
+  private void disableRead()
+  {
+      read_btn.setEnabled(false);
+  }
   
   // private void enableRead () {read_btn.setEnabled (true);}
-  public void enableRead() { read_btn.setEnabled (true); }
+  public void enableRead()
+  {
+      read_btn.setEnabled(true);
+  }
   
   /**
    * selects the log file to be read
    */
+//Bug: Method setCurrentDirectory of JFileChooser does not work completely.
+//     So, method rescanCurrentDirectory has to be called also to get the 
+//     desired effect. We want the JFileChooser dialog to open up with a 
+//     listing of files of the directory from which Jumpshot was executed
   private void selectFile () 
   {
-    if (!aplt) { //Application - Read file from machine's memory
-      Component comp; Class c = this.getClass ();
-      
-      while (!(c.getName ().equals ("java.awt.Component"))) {
-	c = c.getSuperclass();
-      }
-            
-      int r = ( (Integer)ROUTINES.invokeMethod( openAppFileDlg,
-                                                "showOpenDialog", 
-                                                (Component)this, c )
-              ).intValue ();
-      if (r == 0) {
-	String file;
-	File f = (File)ROUTINES.invokeMethod(openAppFileDlg,
-                                             "getSelectedFile", null);
+    if ( !isApplet ) { //Application - Read file from machine's memory
+        openAppFileDlg = new JFileChooser();
 
-	if (f != null) file = f.toString (); else file = null;
+        if ( openAppFileDlg != null ) {
+            openAppFileDlg.setDialogTitle( "Select Logfile" );
+	        File f = new File( (System.getProperties())
+                               .getProperty( "user.dir" ) );
+            openAppFileDlg.setCurrentDirectory( f );
+            openAppFileDlg.rescanCurrentDirectory();
+        }
+        else
+            selectFileMenuItem.setEnabled( false );
+
+        int r = openAppFileDlg.showOpenDialog( this );
+        if ( r == 0 ) {
+            String file;
+            File f = openAppFileDlg.getSelectedFile();
+
+            if ( f != null )
+                file = f.toString ();
+            else
+                file = null;
 	
-	if (file != null) {
-	  logFileName = file;
-	  logFileField.setText (logFileName);
-          readLogFile();
-          /*
-          try { readLogFile (); }
-          catch ( IOException ioerr ) { 
-              System.err.println( "selectFIle()'s readLogFile() has IO error" );
-          }
-          */
-	}
-      }
-      else JOptionPane.showMessageDialog (this, "No file chosen");
-    } else { //Applet - Read file from host machine's memory 
-      openApltFileDlg.show ();
-      if (openApltFileDlg.select) {
-	String file = openApltFileDlg.getFile ();
-	if (file != null) {
-	  logFileName = file;
-	  logFileField.setText (logFileName);
-          readLogFile();
-          /*
-          try { readLogFile (); }
-          catch ( IOException ioerr ) { 
-              System.err.println( "selectFIle()'s readLogFile() has IO error" );
-          }
-          */
-	}
-      }
-      else JOptionPane.showMessageDialog (this, "No file chosen");
+            if ( file != null ) {
+                logFileName = file;
+                logFileField.setText( logFileName );
+                readLogFile();
+            }
+        }
+        else
+            JOptionPane.showMessageDialog( this, "No file chosen" );
+    }
+    else { //Applet - Read file from host machine's memory 
+        MainApplet top_applet = (MainApplet) parent;
+        openApltFileDlg = new ApltFileDlg( top_applet, "Select Logfile" );
+        openApltFileDlg.show();
+        if ( openApltFileDlg.getSelected() ) {
+            String file = openApltFileDlg.getFile();
+            if ( file != null ) {
+                logFileField.setText( file );
+                logFileName = top_applet.GetLogFileDirName() + "/" + file;
+                String prefix = top_applet.GetLogFilePathPrefix();
+                if ( prefix != null && prefix.length() > 0 )
+                    logFileName = prefix + "/" + logFileName ;
+                top_applet.showStatus( "Mainwin: After openApltFileDlg.show(), "
+                                     + "logFileName = " + logFileName + ",  "
+                                     + "file = " + file );
+                readLogFile();
+            }
+        }
+        else
+            JOptionPane.showMessageDialog( this, "No file chosen" );
     }
   }
   
     /**
      * reads a log file by creating a FrameReader instance 
      */
-/*
-    private void readLogFile()
-    throws IOException
-    {
-        if ( ChkFileExist( logFileName ) ) {
-            freeMem();
-            waitCursor();
-            disableRead();
-
-            if ( slog == null )
-                slog = new SLOG_InputStream( logFileName );
-            
-            //  The btn_names[] needs to be synchronized with SetIndexes()
-            //  of StateGroupLabel class 
-            String[] btn_names = { "Application", "Thread", "Processor" };
-            frame_chooser = new ViewFrameChooser( slog, btn_names );
-            frame_chooser.SetInitWindow( this );
-            frame_chooser.pack();
-            frame_chooser.setVisible( true );
-
-            normalCursor();
-        }
-    }
-*/
-
-    /**
-     * reads a log file by creating a FrameReader instance 
-     */
     private void readLogFile()
     {
-        if ( ChkFileExist( logFileName ) ) {
+        // if ( ChkFileExist( logFileName ) ) {
+        if ( true ) {
             // Clean up and free resources
             freeMem();
 
@@ -537,35 +517,75 @@ implements ActionListener {
             {
                 public Object construct() 
                 {
+                    MainApplet top_applet;
+                    String serviceURLname;
+                    String locationURL;
+
                     waitCursor();
                     disableRead();
                     reader_alive = true;
+                    if ( isApplet ) {
+                        top_applet = (MainApplet) parent;
+                        serviceURLname = top_applet.GetServiceURLname();
+                        locationURL    = serviceURLname;
+                    }
+                    else {
+                        serviceURLname = null;
+                        locationURL = "local filesystem";
+                    }
+                    /*
+                    top_applet.showStatus( "ServiceURLname = "
+                                         + top_applet.GetServiceURLname() );
+                    */
                     try {
-                        return ( new SLOG_InputStream( logFileName ) );
-                    } catch ( IOException err ) {
-                        new ErrorDialog( startwin,
-                                         "Reading SLOG header of file "
-                                        + logFileName + " fails" );
-                        return null;                  
+                        return ( new SLOG_ProxyInputStream( serviceURLname,
+                                                            logFileName )
+                               );
+                    }
+                    catch ( NotBoundException err ) {
+                            new ErrorDialog( startwin,
+                                             "NotBoundException: ServiceURL = "
+                                           + serviceURLname );
+                        return null;
+                    }
+                    catch ( FileNotFoundException err ) {
+                            new ErrorDialog( startwin,
+                                             "FileNotFoundException: File = "
+                                           + logFileName + " at "
+                                           + locationURL );
+                        return null;
+                    }
+                    catch ( IOException err ) {
+                            new ErrorDialog( startwin,
+                                             "IOException: Reading file = "
+                                           + logFileName + " fails at "
+                                           + locationURL );
+                        return null;
                     }
                 }
                 public void finished()
                 {
                     reader_alive = false;
-                    slog = ( SLOG_InputStream ) get();
+                    slog = ( SLOG_ProxyInputStream ) get();
 
-                    //  The btn_names[] needs to be synchronized with
-                    //   SetIndexes() of StateGroupLabel class 
-                    String[] btn_names = { "MPI-Process", "Thread",
-                                           "Processor" };
-                    frame_chooser = new ViewFrameChooser( slog, btn_names );
-                    frame_chooser.SetInitWindow( startwin );
-                    frame_chooser.pack();
-                    frame_chooser.setVisible( true );
+                    if ( slog != null ) {
+                        //  The btn_names[] needs to be synchronized with
+                        //  SetIndexes() of StateGroupLabel class 
+                        String[] btn_names = { "MPI-Process", "Thread",
+                                               "Processor" };
+                        frame_chooser = new ViewFrameChooser( slog, btn_names );
+                        frame_chooser.SetInitWindow( startwin );
+                        frame_chooser.pack();
+                        frame_chooser.setVisible( true );
+                    }
 
                     normalCursor();
                 }
             };
+
+            // Start the readWorker thread after the thread has been created.
+            // It is done to avoid race condition in SwingWorker2. 
+            readWorker.start();
 
         }
     }
@@ -574,11 +594,12 @@ implements ActionListener {
     {
         InputStream in;
 
-        if ( aplt ) {
+        if ( isApplet ) {
             URL url = null;
             try { url = new URL( filename ); }
             catch ( MalformedURLException e ) {
-                new ErrorDialog(this, "Bad URL:" + url);
+                new ErrorDialog(this, "Mainwin: ChkFileExist(): Bad URL: "
+                                    + url + ", filename = " + filename );
                 return false;
             }
 
@@ -602,18 +623,20 @@ implements ActionListener {
   /**
    * Destructor
    */
-  private void close () {
-    freeMem (); 
-    this.setVisible (false); this.dispose ();
+  private void close ()
+  {
+    freeMem(); 
+    this.setVisible( false );
+    parent.setVisible( false );
     //    System.runFinalization (); System.gc ();
-    if (!child && !aplt) System.exit (0);
+    if (!isChild && !isApplet) System.exit (0);
   }
   
   /**
    * frees up the memory - reader and display
    */
   private void freeMem () {
-    if ( reader_alive ) {
+    if ( readWorker != null && reader_alive ) {
         readWorker.interrupt();
         readWorker = null;
     }
@@ -673,7 +696,7 @@ implements ActionListener {
     
     try {url = new URL (name);}
     catch (MalformedURLException e) {
-      new ErrorDialog (this, "Bad URL:" + url);
+      new ErrorDialog (this, "Mainwin: getUrlIn: Bad URL:" + url);
       return null;
     }
    
@@ -686,79 +709,29 @@ implements ActionListener {
   }
  
    
-  /**
-   * This method returns the path to data directory (..../jumpshot.../data/) 
-   * in which data files including jumpshot.setup reside. This path is 
-   * extracted from Java class path present in the set of system properties. 
-   * Java class path contains a pointer to the classes directory having 
-   * all the bytecode. From this classes path, distribution path 
-   * (...jumpshot-1.0) is got to which data is added to obtain data 
-   * directory path
-   */
-  private String getDataPath () {
-    Properties s = System.getProperties ();
-    
-    String classpath = s.getProperty ("java.class.path");
-    
-    StringTokenizer tokens = new StringTokenizer( classpath,
-                                                  File.pathSeparator );
-    
-    int ct = tokens.countTokens ();
+    private URL getURL(String filename)
+    {
+        URL url = null;
 
-    for (int i = 0; i < ct; i++) {
-      String dir;
-      File f = new File (tokens.nextToken ());
-      try {dir = f.getCanonicalPath ();}
-      catch (IOException x) {
-	new ErrorDialog (this, "IO Exception:" + x.getMessage());
-	continue;
-      }
-      if (dir.endsWith (classDir1)) {
-        distributionDir = dir.substring (0, dir.lastIndexOf (classDir1));
-	return (distributionDir + dataDir + File.separator);
-      }
-      else if (dir.endsWith (classDir2)) {
-	distributionDir = dir.substring (0, dir.lastIndexOf (classDir2));
-	return (distributionDir + dataDir + File.separator);
-      }
-    }
-    new ErrorDialog (null, "Neither of " + classDir1 + " nor "
-                         + classDir2 + " could be found in "
-                         + "java.class.classpath");
-    return null;
-  }
-  
-  /**
-   * Similar explanation as above method
-   */
-  private String getDataUrl () {
-    String url = (parent.getCodeBase ()).toString ();
-    
-    int i = url.lastIndexOf (classDir1);
-    if (i == -1) distributionUrl = url;
-    else
-      distributionUrl = url.substring (0, i);
-    
-    return (distributionUrl + dataDir + "/"); 
-    //Here front slash "/" is used because this is the specified character 
-    //that is a file separator in url conventions
-  }
-  
-  private ImageIcon loadImageIcon(String filename) {
-    if(!aplt) {
-      return new ImageIcon (distributionDir + filename);
-    }
-    else {
-      URL url = null;
+        /*
+        if ( isApplet ) {
+            URL codeBase = ( (JApplet) parent ).getCodeBase();
+            try {
+                url = new URL( codeBase, filename );
+            } catch ( java.net.MalformedURLException e ) {
+                System.out.println("badly specified URL");
+                return null;
+            }
+        }
+        else
+           url = ClassLoader.getSystemResource( filename );
+        */
 
-      try {url = new URL (distributionUrl + filename);}
-      catch (MalformedURLException e) {
-	new ErrorDialog (this, "Bad URL:" + url);
-	return null;
-      }
-      return new ImageIcon(url);
+        url = getClass().getResource( filename );
+
+        return url;
     }
-  }
+
   
   void delDisp () {
     enableRead (); 
@@ -832,19 +805,22 @@ implements ActionListener {
     }
   }
   
-  private void makeUIChanges () {
-    SwingUtilities.updateComponentTreeUI(this);
+private void makeUIChanges()
+{
+    SwingUtilities.updateComponentTreeUI( this );
     // setResizable (true); setSize (getMinimumSize ()); setResizable (false);
-    setResizable (true); setSize (getPreferredSize ()); setResizable (false);
-    if (!aplt) 
-      SwingUtilities.updateComponentTreeUI ((Component)openAppFileDlg);
+    setSize( getPreferredSize() );
+    if ( !isApplet ) 
+        SwingUtilities.updateComponentTreeUI( (Component)openAppFileDlg );
     else
-      SwingUtilities.updateComponentTreeUI (openApltFileDlg);
+        SwingUtilities.updateComponentTreeUI( openApltFileDlg );
     
-    SwingUtilities.updateComponentTreeUI (btns_viewer);
-    SwingUtilities.updateComponentTreeUI (tour_viewer);
+    if ( btns_viewer != null )
+        SwingUtilities.updateComponentTreeUI( btns_viewer );
+    if ( tour_viewer != null )
+        SwingUtilities.updateComponentTreeUI( tour_viewer );
     //  if (disp != null) disp.makeUIChanges ();
-  }
+}
   
   protected void finalize() throws Throwable {super.finalize();}
 }

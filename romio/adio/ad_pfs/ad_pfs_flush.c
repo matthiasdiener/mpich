@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pfs_flush.c,v 1.4 2000/02/09 21:29:52 thakur Exp $    
+ *   $Id: ad_pfs_flush.c,v 1.5 2000/11/03 20:17:42 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -10,6 +10,9 @@
 void ADIOI_PFS_Flush(ADIO_File fd, int *error_code)
 {
     int err, np_total, np_comm;
+#ifndef PRINT_ERR_MSG
+    static char myname[] = "ADIOI_PFS_FLUSH";
+#endif
 
 /* fsync is not actually needed in PFS, because it uses something
    called fast-path I/O. However, it doesn't do any harm either. */

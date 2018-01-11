@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.22 2000/07/05 20:21:25 gropp Exp $
+ *  $Id: initutil.c,v 1.27 2001/08/14 14:43:48 lacour Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -10,7 +10,7 @@
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
-/* #include "cmnargs.h" */
+/* #include "cmnargs.h"  */
 #include "sbcnst2.h"
 /* Error handlers in pt2pt */
 #include "mpipt2pt.h"
@@ -75,13 +75,15 @@ static int MPI_TAG_UB_VAL, MPI_HOST_VAL, MPI_IO_VAL, MPI_WTIME_IS_GLOBAL_VAL;
 /* Command-line flags */
 int MPIR_Print_queues = 0;
 #ifdef MPIR_MEMDEBUG
-int MPIR_Dump_Mem = 0;
-#else
 int MPIR_Dump_Mem = 1;
+#else
+int MPIR_Dump_Mem = 0;
 #endif
+int MPIR_Dump_Ptrs = 0;
 
 /* MPICH extension keyvals */
-int MPICHX_QOS_BANDWIDTH = MPI_KEYVAL_INVALID;
+int MPICHX_QOS_BANDWIDTH  = MPI_KEYVAL_INVALID;
+int MPICHX_QOS_PARAMETERS = MPI_KEYVAL_INVALID;
 
 #ifndef MPID_NO_FORTRAN
 #include "mpi_fortran.h"
@@ -165,6 +167,10 @@ char ***argv;
 	MPIR_Errors_are_fatal( (MPI_Comm*)0, &mpi_errno, myname, 
 			       __FILE__, (int *)0 );
     }
+#ifdef HAVE_PRINT_BACKTRACE
+    MPIR_Save_executable_name( (const char *)(*argv)[0] );
+#endif
+
     DEBUG(MPIR_tid=MPID_MyWorldRank;)
 
 #ifdef MPID_HAS_PROC_INFO
@@ -268,9 +274,9 @@ char ***argv;
     MPIR_Errhandler_mark( MPI_ERRORS_ARE_FATAL, 1 );
     MPIR_COMM_WORLD->ref_count	   = 1;
     MPIR_COMM_WORLD->permanent	   = 1;
+    MPIR_Attr_create_tree ( MPIR_COMM_WORLD );
     (void)MPID_CommInit( (struct MPIR_COMMUNICATOR *)0, MPIR_COMM_WORLD );
 
-    MPIR_Attr_create_tree ( MPIR_COMM_WORLD );
     MPIR_COMM_WORLD->comm_cache	   = 0;
     MPIR_Comm_make_coll ( MPIR_COMM_WORLD, MPIR_INTRA );
 
@@ -366,8 +372,8 @@ char ***argv;
     MPIR_Errhandler_mark( MPI_ERRORS_ARE_FATAL, 1 );
     MPIR_COMM_SELF->ref_count	      = 1;
     MPIR_COMM_SELF->permanent	      = 1;
-    (void)MPID_CommInit( MPIR_COMM_WORLD, MPIR_COMM_SELF );
     MPIR_Attr_create_tree ( MPIR_COMM_SELF );
+    (void)MPID_CommInit( MPIR_COMM_WORLD, MPIR_COMM_SELF );
     MPIR_COMM_SELF->comm_cache	      = 0;
     MPIR_Comm_make_coll ( MPIR_COMM_SELF, MPIR_INTRA );
     /* Remember COMM_SELF for the debugger */
@@ -494,7 +500,7 @@ char ***argv;
 	      
 #ifdef MPIR_PTRDEBUG
 		else if (strcmp((*argv)[i],"-mpiptrs") == 0) {
-		    MPIR_Dump_Mem = 1;
+		    MPIR_Dump_Ptrs = 1;
 		}
 #endif
 #ifdef MPIR_MEMDEBUG

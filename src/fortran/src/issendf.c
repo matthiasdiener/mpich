@@ -154,6 +154,7 @@ EXPORT_MPI_API void mpi_issend_( void *buf, MPI_Fint *count, MPI_Fint *datatype,
                          (int)*dest, (int)*tag,
                          MPI_Comm_f2c(*comm),
 			 &lrequest);
-    *request = MPI_Request_c2f(lrequest);
+    if (*__ierr == MPI_SUCCESS) 
+        *request = MPI_Request_c2f(lrequest);
 }
 #endif

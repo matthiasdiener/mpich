@@ -3,14 +3,14 @@
 #include "comm.h"
 
 typedef union {
-    int (*c_copy_fn) ANSI_ARGS(( MPI_Comm, int, void *, void *, void *, 
-				 int * ));
-    void (*f77_copy_fn) ANSI_ARGS(( MPI_Comm, int *, int *, int *, int *, 
-				    int *, int * ));
+    int (*c_copy_fn) ( MPI_Comm, int, void *, void *, void *, 
+				 int * );
+    void (*f77_copy_fn) ( int *, int *, int *, int *, int *, 
+				    int *, int * );
 } MPIR_Copy_fn;
 typedef union {
-    int (*c_delete_fn) ANSI_ARGS(( MPI_Comm, int, void *, void * ));
-    void (*f77_delete_fn) ANSI_ARGS(( MPI_Comm, int *, int *, void *, int * ));
+    int (*c_delete_fn) ( MPI_Comm, int, void *, void * );
+    void (*f77_delete_fn) ( int *, int *, int *, void *, int * );
 } MPIR_Delete_fn;
 
 typedef struct  {

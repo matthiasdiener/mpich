@@ -1,5 +1,5 @@
 /* 
- *   $Id: iwrite_shf.c,v 1.6 2000/02/09 21:30:26 thakur Exp $    
+ *   $Id: iwrite_shf.c,v 1.7 2000/09/28 15:49:14 gropp Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -85,6 +85,9 @@
 #endif
 
 #if defined(MPIHP) || defined(MPILAM)
+/* Prototype to keep compiler happy */
+void mpi_file_iwrite_shared_(MPI_Fint *fh,void *buf,int *count,
+			     MPI_Fint *datatype,MPI_Fint *request, int *ierr );
 void mpi_file_iwrite_shared_(MPI_Fint *fh,void *buf,int *count,
                     MPI_Fint *datatype,MPI_Fint *request, int *ierr )
 {
@@ -99,6 +102,10 @@ void mpi_file_iwrite_shared_(MPI_Fint *fh,void *buf,int *count,
     *request = MPIO_Request_c2f(req_c);
 }
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_iwrite_shared_(MPI_Fint *fh,void *buf,int *count,
+			     MPI_Datatype *datatype,MPI_Fint *request, int *ierr ); 
+
 void mpi_file_iwrite_shared_(MPI_Fint *fh,void *buf,int *count,
                     MPI_Datatype *datatype,MPI_Fint *request, int *ierr )
 {

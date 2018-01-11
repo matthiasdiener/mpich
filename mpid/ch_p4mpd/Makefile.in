@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile.in,v 1.16 2000/09/05 14:23:16 gropp Exp $
+#  $Id: Makefile.in,v 1.17 2001/04/02 22:38:39 gropp Exp $
 #
 #  (C) 1993,1995 by Argonne National Laboratory and Mississipi State University.
 #      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -85,18 +85,18 @@ distclean:
 	@for file in $(SOURCE) ; do \
 	    if [ $$file != p4mpdpriv.c ] ; then \
 	        if [ -h $$file ] ; then \
-	            /bin/rm -f $$file ; fi ; \
+	            rm -f $$file ; fi ; \
 	    fi \
 	done
 	@for file in $(MPIDHEADERS) ; do \
 	    if [ -h $$file ] ; then \
-	        /bin/rm -f $$file ; fi ; \
+	        rm -f $$file ; fi ; \
 	done
 	@if [ -h mpiddev.h ] ; then \
-	    /bin/rm -f mpiddev.h ; fi
+	    rm -f mpiddev.h ; fi
 	@if [ -h sbcnst2.h ] ; then \
-	    /bin/rm -f sbcnst2.h ; fi
-	/bin/rm -f Makefile
+	    rm -f sbcnst2.h ; fi
+	rm -f Makefile
 	@(cd ../mpd; ${MAKE} distclean )
 
 MPIDHEADERS = mpid.h req.h comm.h datatype.h chhetero.h attach.h objtrace.h \
@@ -142,7 +142,7 @@ configure: configure.in
 	autoconf   --localdir=../..
 
 p4inmpi:
-	(cd $(P4_HOME); \
+	@(cd $(P4_HOME); \
 	$(MAKE) p4inmpi MPIARCH=@ARCH@ MPILIBNAME=@MPILIBNAME@)
 
 

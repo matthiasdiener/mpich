@@ -21,6 +21,7 @@ extern int    prevport;                 /* port that prev host is listening on *
 extern char   myid[IDSIZE];
 extern int    debug;
 extern int    allexiting;
+extern int    no_execute;
 
 /*
  *	Execute command at multiple nodes, using manager process
@@ -29,48 +30,60 @@ void con_mpexec( )
 {
     char mpexecbuf[MAXLINE];
     char program[256];
-    char buf[MAXLINE], eqbuf[80], locid[8], argid[8], envid[8];
+    char buf[MAXLINE], eqbuf[MAXLINE], locid[8], argid[8], envid[8];
     char console_hostname[MAXHOSTNMLEN];
     char username[MAXLINE];
     int  console_portnum, iotree;
-    int  numprocs, jid, line_labels, shmemgrpsize;
+    int  numprocs, jid, gdb, tvdebug, line_labels, shmemgrpsize, myrinet_job;
+    int  whole_lines;
     int  i, locc, envc, argc;
+    int  first_at_console;
     int  groupid;
     char groups[5*MAXGIDS];
 
-    getval( "hostname", console_hostname );
-    getval( "portnum", buf );
+    mpd_getval( "hostname", console_hostname );
+    mpd_getval( "portnum", buf );
     console_portnum = atoi( buf );
-    getval( "iotree", buf );
+    mpd_getval( "iotree", buf );
     iotree = atoi( buf );
-    getval( "line_labels", buf );
+    mpd_getval( "gdb", buf );
+    gdb = atoi( buf );
+    mpd_getval( "tvdebug", buf );
+    tvdebug = atoi( buf );
+    mpd_getval( "line_labels", buf );
     line_labels = atoi( buf );
-    getval( "numprocs", buf );
+    mpd_getval( "whole_lines", buf );
+    whole_lines = atoi( buf );
+    mpd_getval( "myrinet_job", buf );
+    myrinet_job = atoi( buf );
+    mpd_getval( "first_at_console", buf );
+    first_at_console = atoi( buf );
+    mpd_getval( "numprocs", buf );
     numprocs = atoi( buf );
-    getval( "shmemgrpsize", buf );
+    mpd_getval( "shmemgrpsize", buf );
     shmemgrpsize = atoi( buf );
-    getval( "executable", program );
-    getval( "username", username );
-    getval( "groupid", buf );
+    mpd_getval( "executable", program );
+    mpd_getval( "username", username );
+    mpd_getval( "groupid", buf );
     groupid = atoi( buf );
-    getval( "groups", groups );
+    mpd_getval( "groups", groups );
 
     jid = allocate_jobid();
     mpdprintf( debug, "con_mpexec: new job id allocated = %d\n", jid );
-    sprintf( buf, "jobid=%d\n", jid );
-    write_line( console_idx, buf );
 
     /* hopcount is for checking that an mpexec message has gone around the ring without
        any processes getting started, which indicates a bad machine name in MPDLOC */
     sprintf(mpexecbuf,
 	    "cmd=mpexec conhost=%s conport=%d rank=0 src=%s "
-	    "iotree=%d dest=anyone job=%d jobsize=%d prog=%s hopcount=0 line_labels=%d "
-	    "shmemgrpsize=%d username=%s groupid=%d, groups=%s ",
+	    "iotree=%d dest=anyone job=%d jobsize=%d prog=%s hopcount=0 gdb=%d "
+	    "tvdebug=%d line_labels=%d whole_lines=%d "
+	    "shmemgrpsize=%d username=%s groupid=%d groups=%s myrinet_job=%d ",
 	    console_hostname, console_portnum, myid, iotree, jid, numprocs, program,
-	    line_labels, shmemgrpsize, username, groupid, groups );
+	    gdb, tvdebug, line_labels, whole_lines, shmemgrpsize,
+	    username, groupid, groups, myrinet_job );
 
     /* now add other arguments, which are already in key=val form */
-    if ( getval( "locc", buf ) )
+    if ( mpd_getval( "locc", buf ) )
 	locc = atoi( buf );
     else
 	locc = 0;
@@ -78,12 +91,12 @@ void con_mpexec( )
     strcat( mpexecbuf, eqbuf );
     for ( i = 1; i <= locc; i++ ) {
 	sprintf( locid, "loc%d", i );
-	getval( locid, buf );
+	mpd_getval( locid, buf );
 	sprintf( eqbuf, "loc%d=%s ", i, buf );
 	strcat( mpexecbuf, eqbuf );
     }
 
-    if ( getval( "argc", buf ) )
+    if ( mpd_getval( "argc", buf ) )
 	argc = atoi( buf );
     else
 	argc = 0;
@@ -91,12 +104,12 @@ void con_mpexec( )
     strcat( mpexecbuf, eqbuf );
     for ( i=1; i <= argc; i++ ) {
 	sprintf( argid, "arg%d", i );
-	getval( argid, buf );
+	mpd_getval( argid, buf );
 	sprintf( eqbuf, "arg%d=%s ", i, buf );
 	strcat( mpexecbuf, eqbuf );
     }
 
-    if ( getval( "envc", buf ) )
+    if ( mpd_getval( "envc", buf ) )
 	envc = atoi( buf );
     else
 	envc = 0;
@@ -104,14 +117,23 @@ void con_mpexec( )
     strcat( mpexecbuf, eqbuf );
     for ( i=1; i <= envc; i++ ) {
 	sprintf( envid, "env%d", i );
-	getval( envid, buf );
+	mpd_getval( envid, buf );
 	sprintf( eqbuf, "env%d=%s ", i, buf );
 	strcat( mpexecbuf, eqbuf );
     }
 
     mpexecbuf[strlen(mpexecbuf)-1] = '\n';
     mpdprintf( debug, "con_mpexec sending :%s:\n", mpexecbuf );
-    write_line( rhs_idx, mpexecbuf );
+
+    if ( first_at_console && !no_execute )
+    {
+        mpd_parse_keyvals( mpexecbuf );  /* parse my own msg */
+        sib_mpexec( );
+    }
+    else
+    {
+        write_line( rhs_idx, mpexecbuf );
+    }
 }
 
 void con_killjob( )
@@ -119,7 +141,7 @@ void con_killjob( )
     char buf[MAXLINE];
     int  jobid;
 
-    jobid = atoi( getval( "jobid", buf) );
+    jobid = atoi( mpd_getval( "jobid", buf) );
     sprintf( buf, "src=%s bcast=true cmd=killjob jobid=%d\n", myid, jobid );
     write_line( rhs_idx, buf );
     mpdprintf( debug, "con_killjob: sending killjob jobid=%d\n", jobid );
@@ -129,7 +151,9 @@ void con_exit( )
 {
     char buf[MAXLINE], mpd_id[IDSIZE];
 
-    getval( "mpd_id", mpd_id );
+    mpd_getval( "mpd_id", mpd_id );
+    if ( strcmp( mpd_id, "self" ) == 0 )
+	strncpy( mpd_id, myid, IDSIZE );
     sprintf( buf, "src=%s dest=%s cmd=exit\n", myid, mpd_id );
     write_line( rhs_idx, buf );
 }
@@ -140,6 +164,15 @@ void con_allexit( )
 
     allexiting = 1;
     sprintf( buf, "src=%s bcast=true cmd=allexit\n", myid );
+    write_line( rhs_idx, buf );
+}
+
+void con_shutdown( )
+{
+    char buf[MAXLINE], mpd_id[IDSIZE];
+
+    mpd_getval( "mpd_id", mpd_id );
+    sprintf( buf, "src=%s dest=%s cmd=shutdown\n", myid, mpd_id );
     write_line( rhs_idx, buf );
 }
 
@@ -187,13 +220,13 @@ void con_debug()
     char buf[MAXLINE], dest[MAXLINE], src[MAXLINE];
     int  flag;
 	
-    getval( "dest", dest );
-    flag = atoi( getval( "flag", buf ) );
+    mpd_getval( "dest", dest );
+    flag = atoi( mpd_getval( "flag", buf ) );
     if ( strcmp( dest, myid ) == 0 )  {
         debug = flag;
     }
     else  {
-        getval( "src", src );
+        mpd_getval( "src", src );
         sprintf( buf, "src=%s dest=%s cmd=debug flag=%d\n", myid, dest, flag );
         write_line( rhs_idx, buf );
     }
@@ -206,7 +239,7 @@ void con_ringtest( )
     char buf[MAXLINE];
     double timestamp;
 
-    getval( "laps", buf );
+    mpd_getval( "laps", buf );
 
     if ( buf[0] == '\0' ) {
 	sprintf( buf, "must specify count for ringtest\n" );
@@ -223,12 +256,32 @@ void con_ringtest( )
     }
 }
 
-void con_trace( )
+void con_ringsize( )
 {
-    char tracebuf[MAXLINE];
+    char buf[MAXLINE], tmpbuf[MAXLINE];
+
+    sprintf( buf, "src=%s dest=anyone cmd=ringsize count=0 execonly=%s\n", 
+             myid, mpd_getval( "execonly", tmpbuf ) );
+    mpdprintf(debug, "con_ringsize sending to %s_%d\n", rhshost, rhsport);
+    write_line( rhs_idx, buf );
+}
+
+void con_clean( )
+{
+    char buf[MAXLINE];
 	
     /* send message to next mpd in ring; it will be forwarded all the way around */
-    sprintf( tracebuf, "src=%s bcast=true cmd=trace\n", myid );
+    sprintf( buf, "src=%s bcast=true cmd=clean\n", myid );
+    write_line( rhs_idx, buf );
+}
+
+void con_trace( )
+{
+    char tracebuf[MAXLINE], tmpbuf[MAXLINE];
+	
+    /* send message to next mpd in ring; it will be forwarded all the way around */
+    sprintf( tracebuf, "src=%s bcast=true cmd=trace execonly=%s\n",
+             myid, mpd_getval( "execonly", tmpbuf ) );
     write_line( rhs_idx, tracebuf );
     sprintf( tracebuf, "src=%s bcast=true cmd=trace_trailer\n", myid );
     write_line( rhs_idx, tracebuf );
@@ -249,7 +302,7 @@ void con_dump( )
 {
     char dumpbuf[MAXLINE], what[80];
 
-    getval( "what", what );
+    mpd_getval( "what", what );
     mpdprintf( debug, "conproc sending dump message to rhs, src=%s, what=%s\n",
 	       myid, what );
     sprintf( dumpbuf, "src=%s dest=anyone cmd=dump what=%s\n", myid, what );
@@ -261,11 +314,11 @@ void con_mandump( )
     char dumpbuf[MAXLINE], buf[MAXLINE], what[80];
     int  jobid, manrank;
 
-    getval( "jobid", buf );
+    mpd_getval( "jobid", buf );
     jobid = atoi( buf );
-    getval( "rank", buf );
+    mpd_getval( "rank", buf );
     manrank = atoi( buf );
-    getval( "what", what );
+    mpd_getval( "what", what );
     mpdprintf( debug,
 	       "conproc sending mandump message to rhs, src=%s, "
                "jobid=%d manrank=%d what=%s\n",
@@ -281,7 +334,7 @@ void con_ping( )
     char buf[MAXLINE];
     char *pingee_id;
 
-    pingee_id = getval( "pingee", buf );
+    pingee_id = mpd_getval( "pingee", buf );
     if ( !pingee_id ) {
 	mpdprintf( debug, "did not get expected id to ping\n" );
 	return;
@@ -295,7 +348,7 @@ void con_bomb( )
 {
     char buf[MAXLINE], mpd_id[IDSIZE];
 
-    getval( "mpd_id", mpd_id );
+    mpd_getval( "mpd_id", mpd_id );
     sprintf( buf, "src=%s dest=%s cmd=bomb\n", myid, mpd_id );
     write_line( rhs_idx, buf );
 }
@@ -306,8 +359,8 @@ void con_signaljob( )
     char buf[MAXLINE];
     int  jobid;
 
-    jobid = atoi( getval( "jobid", buf) );
-    strcpy( c_signum, getval( "signum", buf ) );
+    jobid = atoi( mpd_getval( "jobid", buf) );
+    strcpy( c_signum, mpd_getval( "signum", buf ) );
     sprintf( buf, "src=%s bcast=true cmd=signaljob jobid=%d signum=%s\n",
              myid, jobid, c_signum );
     write_line( rhs_idx, buf );

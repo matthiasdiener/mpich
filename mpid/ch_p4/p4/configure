@@ -26,6 +26,7 @@ print_error() {
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 usage_msg="
 Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
+		   [-p4device=device]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
                    [-rsh=command] [-rshnol] [-cflags=flags] 
                    [-threaded_listener] [-nothreaded_listener]
@@ -51,6 +52,11 @@ use_nonblock_read=1
 #
 for arg
 do
+    # Code from autoconf 2 to get any option after an =
+    case "$arg" in
+    -*=*) ac_optarg=`echo "$ac_option" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
+    *) ac_optarg= ;;
+    esac
 case $arg in
   -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=* | --s=*)
 	srcdir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
@@ -140,6 +146,21 @@ case $arg in
    -*disable-nonblockread)
 	use_nonblock_read=0
      ;;
+   -enable-g | --enable-g | --enable-g=* | -enable-g=* )
+     OPTFLAGS="$OPTFLAGS -g"	
+     ;;
+
+   -disable-g | --disable-g )
+     ;;
+
+   -*enable-*)
+     # ignore unrecognized options
+     : 
+     ;;
+   -*disable-*)
+     # ignore unrecognized options
+     :
+     ;;
    *)
      # Allow null args
      if test -n "$arg" ; then
@@ -161,6 +182,7 @@ FLINKER=$FC
 AR="ar lruv"
 RM=/bin/rm
 P4_OBJ="\$(P4_COMM_OBJ) \$(P4_SOCK_OBJ) \$(P4_SHMEM_OBJ)"
+
 #
 # date might include various quotes.  Just to be safe, remove anything
 # other than letters, numbers, space, and colon.
@@ -358,6 +380,21 @@ fi
 fi
 rm -rf conftest*
 
+fi
+# Set the device (might be either ch_p4 or ch_p4mpd, for example)
+if test -n "$p4device"; then
+    P4DEVICE=$p4device
+fi
+if test "$P4DEVICE" = "ch_p4mpd" ; then
+    
+{
+test -n "$verbose" && \
+echo "	defining P4_WITH_MPD"
+echo "#define" P4_WITH_MPD 1 >> confdefs.h
+DEFS="$DEFS -DP4_WITH_MPD=1"
+}
+
+    P4_OBJ="\$(P4_COMM_OBJ) \$(P4_SOCK_OBJ) \$(P4_SHMEM_OBJ) \$(P4_MPD_OBJ)"
 fi
 
 if test -n "$p4arch_SUN"; then
@@ -1362,6 +1399,7 @@ fi
     fi
 fi
 #						DEC Alpha workstation
+#                                               Possibly also Compaq OSF1 alpha
 if test -n "$p4arch_ALPHA"; then
     P4ARCH=ALPHA
     if test -n "$p4comm_shared"; then
@@ -6014,7 +6052,7 @@ else
 echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
 fi
     # If we cannot run a trivial program, we must be cross compiling.
-    cat > conftest.c <<EOF
+            cat > conftest.c <<EOF
 #include "confdefs.h"
 main(){exit(0);}
 EOF
@@ -6027,7 +6065,7 @@ else
 fi
 rm -fr conftest*
     if test $pac_ok = 1 ; then
-         cat > conftest.c <<EOF
+        cat > conftest.c <<EOF
 #include "confdefs.h"
 main(){exit(1);}
 EOF
@@ -6960,7 +6998,7 @@ cat > conftest.c <<EOF
 #include <rpc/rpc.h>
 
 int main() { exit(0); }
-int t() {  }
+int t() { return 0; }
 EOF
 if eval $compile; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -7049,7 +7087,7 @@ cat > conftest.c <<EOF
 #include <netinet/in.h>
 
 int main() { exit(0); }
-int t() {  }
+int t() { return 0; }
 EOF
 if eval $compile; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -7190,6 +7228,10 @@ fi
 # are quite happy to accept the *wrong* number of arguments to a macro!
 # Instead, we try to find a clean compile version, using our special
 # TRY_COMPILE_CLEAN command
+#
+# This approach fails for compilers that generate noise.  What we need to 
+# do is to run a program that makes use of stdarg and see if it works 
+# correctly.  We can fall back on this approach when cross-compiling
 #
 USE_STDARG=0
 
@@ -7471,6 +7513,97 @@ fi
 # We need to check that these functions are also available to 
 # the other compilers (C++ and Fortran).  For Solaris /usr/ucb/cc, these
 # are found but not for the stock C++ and Fortran compilers.
+#
+# Another grungy problem.  Even though some systems support sighold, 
+# the library might have various problems.  Sigaction should be used instead
+# if it is present.
+for func in sigprocmask sigemptyset sigaddset
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for ${func}""... $ac_c"
+else
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+done
+
 for func in sighold
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
@@ -7863,7 +7996,7 @@ cat > conftest.c <<EOF
 #include <signal.h>
 int main() { exit(0); }
 int t() { 
-struct sigaction act; sigaddset( &act.sa_mask, SIGINT ); }
+struct sigaction act; sigaddset( &act.sa_mask, SIGINT );return 0; }
 EOF
 if eval $compile; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -7896,6 +8029,8 @@ fi
 rm -f conftest*
 
 # XOPEN mandates that union semun NOT be defined(!)
+# The return 0 works around a but in ac compile check (the test is in a
+# function with no return value)
 if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
@@ -7941,7 +8076,7 @@ cat > conftest.c <<EOF
 #include <sys/sem.h>
 int main() { exit(0); }
 int t() { 
-union semun arg;arg.val=0; }
+union semun arg;arg.val=0;return 0; }
 EOF
 if eval $compile; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -7979,6 +8114,86 @@ fi
 rm -f conftest*
 
 # strerror is prefered over extern char *sys_errlist[];
+#
+# See if we can use an int in semctl or if we need the union
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for whether semctl needs union semun""... $ac_c"
+else
+echo $ac_n "checking for whether semctl needs union semun""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+int main() { exit(0); }
+int t() { 
+int arg = 0; semctl( 1, 1, SETVAL, arg );return 0; }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  
+{
+test -n "$verbose" && \
+echo "	defining SEMCTL_ARG_UNION"
+echo "#define" SEMCTL_ARG_UNION 1 >> confdefs.h
+DEFS="$DEFS -DSEMCTL_ARG_UNION=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+#
 for func in strerror
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
@@ -8230,17 +8445,10 @@ fi
 rm -f conftest*
 done
 
-
-#
-# Check that nonblocking read works:
-# Early SYSV (R2) had a design problem with nonblocking sockets:
-# there was no way to distinquish between EOF and no data on socket.
-# This code tests for this case; if an EOF on the socket gives the
-# correct value (-1), we note this.  If it fails, there is code in
-# p4 to work around this design bug, but it can introduce performance
-# penalties.  
-if test -s $top_srcdir/readblock.c -a $use_nonblock_read = 1 ; then
-    if test -z "$ac_echo_n" ; then
+for ac_hdr in sys/uio.h
+do
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+if test -z "$ac_echo_n" ; then
 ac_echo_n=yes
 if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
   # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
@@ -8262,43 +8470,156 @@ fi
 
 fi
 if test -z "$ac_echo_test" -a 1 = 1 ; then
-echo $ac_n "checking that read O_NDELAY works""... $ac_c"
+echo $ac_n "checking for $ac_hdr""... $ac_c"
 else
-echo $ac_n "checking that read O_NDELAY works""... $ac_c" 1>&1
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
 fi
-    readworks=0
-    cat > conftest.c <<EOF
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
 #include "confdefs.h"
-`cat $top_srcdir/readblock.c`
-EOF
-eval $compile
-if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  readworks=1
 
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  eval "ac_cv_header_$ac_safe=no"
+   
 fi
-rm -fr conftest*
-    if test $readworks = 1 ; then
-        if test -z "$ac_echo_test" -a 1 = 1 ; then
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
 echo "$ac_t""yes" 1>&1
 fi
-        
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
+  
 {
 test -n "$verbose" && \
-echo "	defining NONBLOCKING_READ_WORKS"
-echo "#define" NONBLOCKING_READ_WORKS 1 >> confdefs.h
-DEFS="$DEFS -DNONBLOCKING_READ_WORKS=1"
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
 }
-
-    else
-	if test -z "$ac_echo_test" -a 1 = 1 ; then
+ 
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""no"
 else
 echo "$ac_t""no" 1>&1
 fi
-    fi
 fi
+done
+
+for func in writev
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for ${func}""... $ac_c"
+else
+echo $ac_n "checking for ${func}""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+done
+
+
 #
 # Test for sgttyb and the ability to set noecho on terminals
 if test -z "$ac_echo_n" ; then
@@ -8457,8 +8778,8 @@ cat > conftest.c <<EOF
 #include <sys/types.h>
 #include <sys/socket.h>
 int main() { exit(0); }
-int t() { socklen_t dummy; int rc, skt; void *ssz;
-rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy); }
+int t() { socklen_t dummy; int rc, skt=0; void *ssz=0;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);return 0; }
 EOF
 if eval $compile; then
   if test -z "$ac_echo_test" -a 1 = 1 ; then
@@ -8539,7 +8860,7 @@ cat >conftest.c <<EOF
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/socket.h>
-int try(void){size_t dummy; int rc, skt; void *ssz;
+int try(void){size_t dummy; int rc, skt=0; void *ssz=0;
 rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);
 return rc;}
 EOF
@@ -8610,6 +8931,7 @@ echo $ac_n "checking if xdr_array wants u_int""... $ac_c"
 else
 echo $ac_n "checking if xdr_array wants u_int""... $ac_c" 1>&1
 fi
+# Initialize the variables to suppress warnings about usage.
 
 use_u_int=2
 rm -f conftest*
@@ -8635,7 +8957,7 @@ cat >conftest.c <<EOF
 #include <rpc/xdr.h>
 
 int try(void){
-u_int l, ms, el; xdrproc_t elproc; XDR *xdrs; int rc; char **arrp;
+u_int l=0, ms=0, el=0; xdrproc_t elproc=(xdrproc_t)xdr_int; XDR *xdrs=0; int rc; char **arrp=0;
 rc = xdr_array(xdrs,arrp,&l,ms,el,elproc);
 return rc;}
 EOF
@@ -8675,7 +8997,103 @@ echo "$ac_t""no" 1>&1
 fi
        ;;
 esac
+if test "$use_u_int" != "0" ; then
+    # Check whether unsigned int should be used for xdr_array 
+    use_unsigned_int=0
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
 
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking if xdr_array wants unsigned int""... $ac_c"
+else
+echo $ac_n "checking if xdr_array wants unsigned int""... $ac_c" 1>&1
+fi
+    
+use_unsigned_int=2
+rm -f conftest*
+if test -z "$TRY_COMPLILE_CLEAN" ; then
+    echo 'int try(void);int try(void){return 0;}' > conftest.c
+    if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+	if test -s conftest.bas ; then 
+	    TRY_COMPILE_CLEAN_OUT=`cat conftest.bas`
+        fi
+        TRY_COMPILE_CLEAN=1
+    else
+	if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""Warning: Could not compile simple test program!"
+else
+echo "$ac_t""Warning: Could not compile simple test program!" 1>&1
+fi
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+    fi
+fi
+rm -f conftest*
+cat >conftest.c <<EOF
+#include "confdefs.h"
+#include <rpc/xdr.h>
+
+int try(void){
+unsigned int l=0, ms=0, el=0; xdrproc_t elproc=(xdrproc_t)xdr_int; XDR *xdrs=0; int rc; char **arrp=0;
+rc = xdr_array(xdrs,arrp,&l,ms,el,elproc);
+return rc;}
+EOF
+if ${CC-cc} $CFLAGS -c conftest.c >conftest.bas 2>&1 ; then
+        if test "$TRY_COMPILE_CLEAN_OUT" = "`cat conftest.bas`" ; then
+	use_unsigned_int=0
+    else
+        cat conftest.c >>config.log
+	if test -s conftest.bas ; then 	cat conftest.bas >> config.log ; fi
+        use_unsigned_int=1
+    fi
+else
+        cat conftest.c >>config.log
+    if test -s conftest.bas ; then cat conftest.bas >> config.log ; fi
+    use_unsigned_int=2
+fi
+rm -f conftest*
+
+    case $use_unsigned_int in 
+        0) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+           MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_UNSIGNED_INT_FOR_XDR"
+           ;;
+        1) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no (compiler warnings)"
+else
+echo "$ac_t""no (compiler warnings)" 1>&1
+fi
+           ;;
+        2) if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+           ;;
+    esac
+fi
+#
+#
 if test $threaded_listener = 1 ; then
     # Try to find a thread package
     has_pthread=0
@@ -8980,6 +9398,271 @@ fi
 rm -f conftest*
 done
 
+
+#
+# If Scyld/bproc selected, (-p4comm=bproc), see if we can define it
+if test -n "$p4comm_bproc" ; then
+    for ac_hdr in sys/bproc.h
+do
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for $ac_hdr""... $ac_c"
+else
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  
+  
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  cat conftest.c >> config.log
+  if test -s conftest.out ; then cat conftest.out >> config.log 
+  else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+  fi
+  eval "ac_cv_header_$ac_safe=no"
+   
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
+  
+{
+test -n "$verbose" && \
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
+}
+ 
+else
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+fi
+done
+
+    LIBS_save="${LIBS}"
+LIBS="${LIBS} -lbproc"
+have_lib=""
+if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for -lbproc""... $ac_c"
+else
+echo $ac_n "checking for -lbproc""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  have_lib="1"
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   
+{
+test -n "$verbose" && \
+echo "	defining HAVE_LIBBPROC"
+echo "#define" HAVE_LIBBPROC 1 >> confdefs.h
+DEFS="$DEFS -DHAVE_LIBBPROC=1"
+}
+
+   LIBS="${LIBS} -lbproc"
+fi
+
+    if test -z "$ac_echo_n" ; then
+ac_echo_n=yes
+if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
+  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
+  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
+    ac_n= ac_c='
+' ac_t='	'
+  else
+    ac_n=-n ac_c= ac_t=
+  fi
+else
+  ac_n= ac_c='\c' ac_t=
+fi
+ac_echo_test=`echo foo 1>&1`
+if test -z "$ac_echo_test" ; then
+     print_error "Your sh shell does not handle the output redirection"
+     print_error "1>&1 correctly.  Configure will work around this problem,"
+     print_error "but you should report the problem to your vendor."
+fi
+
+fi
+if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo $ac_n "checking for bproc_numnodes""... $ac_c"
+else
+echo $ac_n "checking for bproc_numnodes""... $ac_c" 1>&1
+fi
+if test ! -f confdefs.h ; then
+    if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t"""!! SHELL ERROR !!""
+else
+echo "$ac_t"""!! SHELL ERROR !!"" 1>&1
+fi
+    echo "The file confdefs.h created by configure has been removed"
+    echo "This may be a problem with your shell; some versions of LINUX"
+    echo "have this problem.  See the Installation guide for more"
+    echo "information."
+    exit 1
+fi
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_bproc_numnodes) || defined (__stub___bproc_numnodes)
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char bproc_numnodes(); bproc_numnodes();
+#endif
+ }
+EOF
+if eval $compile; then
+  if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""yes"
+else
+echo "$ac_t""yes" 1>&1
+fi
+  
+  {
+test -n "$verbose" && \
+echo "	defining SCYLD_BEOWULF"
+echo "#define" SCYLD_BEOWULF 1 >> confdefs.h
+DEFS="$DEFS -DSCYLD_BEOWULF=1"
+}
+
+
+   else if test -z "$ac_echo_test" -a 1 = 1 ; then
+echo "$ac_t""no"
+else
+echo "$ac_t""no" 1>&1
+fi
+    cat conftest.c >> config.log
+    if test -s conftest.out ; then cat conftest.out >> config.log 
+    else
+      ${CC-cc} $CFLAGS conftest.c -o conftest $LIBS >> config.log 2>&1
+    fi
+
+fi
+rm -f conftest*
+
+    
+{
+test -n "$verbose" && \
+echo "	defining P4_DO_NOT_USE_SERVER"
+echo "#define" P4_DO_NOT_USE_SERVER 1 >> confdefs.h
+DEFS="$DEFS -DP4_DO_NOT_USE_SERVER=1"
+}
+
+fi
 #
 # We do NOT add the CFLAGS and DEFS to the MDEP_CFLAGS because they are 
 # used ONLY in building the p4 package itself.  However, we add USER_CFLAGS
@@ -9046,7 +9729,11 @@ do
   esac
 done
 
-trap 'rm -f Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile; exit 1' 1 3 15
+trap 'rm -f Makefile lib/Makefile alog/Makefile usc/Makefile \
+   usc/usctest/Makefile messages/Makefile include/Makefile \
+   lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile \
+   doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile \
+   servers/Makefile; exit 1' 1 3 15
 top_srcdir='$top_srcdir'
 exec_prefix='$exec_prefix'
 libdir='$libdir'
@@ -9055,6 +9742,7 @@ RANLIB='$RANLIB'
 VPATH='$VPATH'
 USE_STDARG='$USE_STDARG'
 P4ARCH='$P4ARCH'
+P4DEVICE='$P4DEVICE'
 MAKE='$MAKE'
 CC='$CC'
 DEFS='$DEFS'
@@ -9090,7 +9778,11 @@ cat >> config.status <<\EOF
 
 top_srcdir=$srcdir
 
-CONFIG_FILES=${CONFIG_FILES-"Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile"}
+CONFIG_FILES=${CONFIG_FILES-"Makefile lib/Makefile alog/Makefile usc/Makefile \
+   usc/usctest/Makefile messages/Makefile include/Makefile \
+   lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile \
+   doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile \
+   servers/Makefile"}
 for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   srcdir=$top_srcdir
   # Remove last slash and all that follows it.  Not all systems have dirname.
@@ -9113,6 +9805,7 @@ s%@RANLIB@%$RANLIB%g
 s%@VPATH@%$VPATH%g
 s%@USE_STDARG@%$USE_STDARG%g
 s%@P4ARCH@%$P4ARCH%g
+s%@P4DEVICE@%$P4DEVICE%g
 s%@MAKE@%$MAKE%g
 s%@CC@%$CC%g
 s%@DEFS@%$DEFS%g
@@ -9148,6 +9841,10 @@ EOF
 chmod +x config.status
 ${CONFIG_SHELL-/bin/sh} ./config.status
 
+#
+# ch_p4mpd device uses only the files Makefile lib/Makefile alog/Makefile
+# usc/Makefile usc/usctest/Makefile include/Makefile lib_f/Makefile
+# bin/Makefile servers/Makefile) 
 
 CONFIG_FILES="p4_config.h"
 export CONFIG_FILES

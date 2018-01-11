@@ -12,17 +12,42 @@ ac_help=
 ac_default_prefix=/usr/local
 # Any additions from configure.in:
 ac_help="$ac_help
---enable-echo                      - Turn on strong echoing.  The default is enable=no. "
+--enable-echo                      - Turn on strong echoing.  The default is 
+                                     enable=no. "
 ac_help="$ac_help
---enable-softerror                 - Turn on soft error, i.e. instead of issuing MSG_ERROR, MSG_WARN + exit 0 are used.  The default is enable=no."
+--enable-softerror                 - Turn on soft error, i.e. instead of 
+                                     issuing MSG_ERROR, MSG_WARN + exit 0 
+                                     are used.  The default is enable=no."
 ac_help="$ac_help
---enable-g                         - Turn on the debugging flags, -g, and uses jdb to run the GUI.  The default is enable=no"
+--enable-g                         - Turn on the debugging flags, -g, and 
+                                     uses jdb to run the GUI.  The default is 
+                                     enable=no"
 ac_help="$ac_help
---enable-checkversion              - Turn on the Java version checking code. Disabling this option means user needs to set JAVA_LIBS and SWING_LIBS by hand. The default is enable=yes"
+--enable-jdb                       - Turn on the use of jdb to run the GUI.  
+                                     The default is enable=no"
 ac_help="$ac_help
---with-java=JAVA_HOME              - The path of the top-level directory of the Java installation.  If this option is not given, configure will try to locate java for you."
+--enable-checkversion              - Turn on the Java version checking code. 
+                                     Disabling this option means user needs to
+                                     set JAVA_LIBS and SWING_LIBS by hand. 
+                                     The default is enable=yes"
 ac_help="$ac_help
---with-jflags=JFLAGS               - supply java compiler flags, e.g. optimization flags, -O, to the java compiler"
+--with-java=JAVA_HOME              - The path of the top-level directory of 
+                                     the Java installation.  If this option or
+                                     with-java1 is not given, configure will 
+                                     try to locate java for you.  Also, 
+                                     with-java1 option overwrites the 
+                                     with-java option to set JAVA_HOME."
+ac_help="$ac_help
+--with-java1=JAVA_HOME             - The path of the top-level directory of 
+                                      the Java installation.  If this option 
+                                      or with-java is not given, configure 
+                                      will try to locate java for you.  Also, 
+                                      with-java1 option overwrites the 
+                                      with-java option to set JAVA_HOME."
+ac_help="$ac_help
+--with-jflags=JFLAGS               - supply java compiler flags, e.g. 
+                                     optimization flags, -O, to the java 
+                                     compiler"
 
 # Initialize some variables set by options.
 # The variables have the same names as the options, with
@@ -551,6 +576,15 @@ else
   enable_g=no
 fi
 
+
+# Check whether --enable-jdb or --disable-jdb was given.
+if test "${enable_jdb+set}" = set; then
+  enableval="$enable_jdb"
+  :
+else
+  enable_jdb=no
+fi
+
  
 # Check whether --enable-checkversion or --disable-checkversion was given.
 if test "${enable_checkversion+set}" = set; then
@@ -570,7 +604,7 @@ if test "X$srcdir" != "X." -a -s $srcdir/src/Makefile.in ; then
 else
     
 echo $ac_n "checking for current directory name""... $ac_c" 1>&6
-echo "configure:574: checking for current directory name" >&5
+echo "configure:608: checking for current directory name" >&5
 top_srcdir_abs=$PWD
 if test "${top_srcdir_abs}" != "" -a -d "${top_srcdir_abs}" ; then 
     if test -r ${top_srcdir_abs}/.foo$$ ; then
@@ -624,10 +658,10 @@ fi
 if test ! -d "$top_srcdir_abs" ; then
     
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: *** $top_srcdir_abs is not a valid directory - cannot continue " 1>&2
+    echo "configure: warning:  *** $top_srcdir_abs is not a valid directory - cannot continue " 1>&2
     exit 0
 else
-    { echo "configure: error: *** $top_srcdir_abs is not a valid directory - cannot continue " 1>&2; exit 1; }
+    { echo "configure: error:  *** $top_srcdir_abs is not a valid directory - cannot continue " 1>&2; exit 1; }
 fi
 
 fi
@@ -643,6 +677,13 @@ else
 fi
 
  
+# Check whether --with-java1 or --without-java1 was given.
+if test "${with_java1+set}" = set; then
+  withval="$with_java1"
+  JAVA_HOME=$withval
+fi
+
+ 
 # Check whether --with-jflags or --without-jflags was given.
 if test "${with_jflags+set}" = set; then
   withval="$with_jflags"
@@ -651,8 +692,8 @@ fi
 
 
 # Append "-g" to JFLAGS if enable_g=yes
-if test $enable_g = "yes"; then
-    if test -z "`echo $JFLAGS | grep "\-g"`"; then
+if test $enable_g = "yes" -o $enable_jdb = "yes" ; then
+    if test -z "`echo $JFLAGS | grep "\-g"`" ; then
         JFLAGS="-g $JFLAGS"
     fi
 fi
@@ -661,7 +702,7 @@ fi
 MAKE=${MAKE:-make}
 
 echo $ac_n "checking gnumake""... $ac_c" 1>&6
-echo "configure:665: checking gnumake" >&5
+echo "configure:706: checking gnumake" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
@@ -687,7 +728,7 @@ str=""
 
 
 echo $ac_n "checking BSD 4.4 make""... $ac_c" 1>&6
-echo "configure:691: checking BSD 4.4 make" >&5
+echo "configure:732: checking BSD 4.4 make" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 ALL:
@@ -711,7 +752,7 @@ str=""
 
 
 echo $ac_n "checking OSF V3 make""... $ac_c" 1>&6
-echo "configure:715: checking OSF V3 make" >&5
+echo "configure:756: checking OSF V3 make" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
@@ -735,7 +776,7 @@ str=""
 
 
 echo $ac_n "checking for virtual path format""... $ac_c" 1>&6
-echo "configure:739: checking for virtual path format" >&5
+echo "configure:780: checking for virtual path format" >&5
 rm -rf conftest*
 mkdir conftestdir
 cat >conftestdir/a.c <<EOF
@@ -777,45 +818,57 @@ if test ! -s src/jumpshot.java -a -z "$VPATH" ; then
 	The GNU make (sometimes available as gnumake) can be used." 1>&2; exit 1; }
 fi
  
+# Check if --without-java is specified
+if test "$JAVA_HOME" = "no" ; then
+    
+if test "$enable_softerror" = "yes" ; then
+    echo "configure: warning:  --without-java is specified, exit! " 1>&2
+    exit 0
+else
+    { echo "configure: error:  --without-java is specified, exit! " 1>&2; exit 1; }
+fi
+
+fi
+
 # FOUND_ENV_JAVA_HOME shows how JAVA_HOME is found
 FOUND_ENV_JAVA_HOME=no
 if test -z "$JAVA_HOME" ; then
 #   Locate Java from user's PATH
     
 echo $ac_n "checking for Java in user's PATH""... $ac_c" 1>&6
-echo "configure:787: checking for Java in user's PATH" >&5
+echo "configure:840: checking for Java in user's PATH" >&5
 if test -n "$PATH" ; then
     JAVA_HOME=""
     Pac_USER_PATH=`echo $PATH | sed 's/:/ /g'`
     for dir in ${Pac_USER_PATH} ; do
         if test -d $dir ; then
-	    case "$dir" in
-	        *java-workshop* )
-		    if test -x "$dir/java" -a -x "$dir/javac" ; then
-		        Pac_JAVA_HOME="`echo $dir | sed -e 's%/JDK/bin/*$%%'`"
-			if test -d ${Pac_JAVA_HOME} ; then
-			    JAVA_HOME=${Pac_JAVA_HOME}
-			else
-			    JAVA_HOME=$dir/..
-			fi
-		    fi
-		    ;;
+            case "$dir" in
+                *java-workshop* )
+                    if test -x "$dir/java" -a -x "$dir/javac" ; then
+                        Pac_JAVA_HOME="`echo $dir | sed -e 's%/JDK/bin/*$%%'`"
+                        if test -d ${Pac_JAVA_HOME} ; then
+                            JAVA_HOME=${Pac_JAVA_HOME}
+                        else
+                            JAVA_HOME=$dir/..
+                        fi
+                    fi
+                    ;;
                 *java* | *jdk* )
-		    if test -x "$dir/java" -a -x "$dir/javac" ; then
-		        Pac_JAVA_HOME="`echo $dir | sed -e 's%/bin/*$%%'`"
-			if test -d ${Pac_JAVA_HOME} ; then
-			    JAVA_HOME=${Pac_JAVA_HOME}
-			else
-			    JAVA_HOME=$dir/..
-			fi
-	            fi
-		    ;;
-	    esac
-	    # Not all releases work.  Try a simple program
+                    if test -x "$dir/java" -a -x "$dir/javac" ; then
+                        Pac_JAVA_HOME="`echo $dir | sed -e 's%/bin/*$%%'`"
+                        if test -d ${Pac_JAVA_HOME} ; then
+                            JAVA_HOME=${Pac_JAVA_HOME}
+                        else
+                            JAVA_HOME=$dir/..
+                        fi
+                    fi
+                    ;;
+            esac
+            # Not all releases work.  Try a simple program
             if test -n "${JAVA_HOME}" ; then
-	        echo "$ac_t""found ${JAVA_HOME}" 1>&6
-	        echo $ac_n "checking if ${JAVA_HOME}/bin/javac compiles""... $ac_c" 1>&6
-echo "configure:819: checking if ${JAVA_HOME}/bin/javac compiles" >&5
+                echo "$ac_t""found ${JAVA_HOME}" 1>&6
+                echo $ac_n "checking if ${JAVA_HOME}/bin/javac compiles""... $ac_c" 1>&6
+echo "configure:872: checking if ${JAVA_HOME}/bin/javac compiles" >&5
                 
 pac_JC="${JAVA_HOME}/bin/javac"
 pac_JFLAGS=""
@@ -829,26 +882,26 @@ class conftest {
     {
         System.out.println( "Hello world" );
     }
-	        
+                
 }
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:838: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:891: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
     fi
 
-	        if test "$pac_java_working" = "yes" ; then
-	            echo "$ac_t""yes" 1>&6
-		    break
+                if test "$pac_java_working" = "yes" ; then
+                    echo "$ac_t""yes" 1>&6
+                    break
                 else
-		    echo "$ac_t""no" 1>&6
-		    echo $ac_n "checking for working Java in user's PATH""... $ac_c" 1>&6
-echo "configure:850: checking for working Java in user's PATH" >&5
-	            JAVA_HOME=""
-	        fi
+                    echo "$ac_t""no" 1>&6
+                    echo $ac_n "checking for working Java in user's PATH""... $ac_c" 1>&6
+echo "configure:903: checking for working Java in user's PATH" >&5
+                    JAVA_HOME=""
+                fi
             fi
         fi
     done
@@ -889,7 +942,7 @@ else { echo "configure: error: can not run $ac_config_sub" 1>&2; exit 1; }
 fi
 
 echo $ac_n "checking host system type""... $ac_c" 1>&6
-echo "configure:893: checking host system type" >&5
+echo "configure:946: checking host system type" >&5
 
 host_alias=$host
 case "$host_alias" in
@@ -911,53 +964,53 @@ echo "$ac_t""$host" 1>&6
 
 case "$host" in
     mips-sgi-irix*)
-	if test -d "/software/irix" ; then
+        if test -d "/software/irix" ; then
             subdir="irix"
-	elif test -d "/software/irix-6" ; then
+        elif test -d "/software/irix-6" ; then
             subdir="irix-6"
-	fi
+        fi
         ;;
     *linux*)
-	if test -d "/software/linux" ; then
+        if test -d "/software/linux" ; then
             subdir="linux"
-	fi
+        fi
         ;;
    *solaris*)
-	if test -d "/software/solaris" ; then
+        if test -d "/software/solaris" ; then
             subdir="solaris"
-	elif test -d "/software/solaris-2" ; then
+        elif test -d "/software/solaris-2" ; then
             subdir="solaris-2"
-	fi
+        fi
         ;;
     *sun4*)
-	if test -d "/software/sun4" ; then
+        if test -d "/software/sun4" ; then
             subdir="sun4"
-	fi
+        fi
         ;;
    *aix*)
-	if test -d "/software/aix-4" ; then
-	    subdir="aix-4"
+        if test -d "/software/aix-4" ; then
+            subdir="aix-4"
         fi
         ;;
    *rs6000*)
-	if test -d "/software/aix-4" ; then
-	    subdir="aix-4"
+        if test -d "/software/aix-4" ; then
+            subdir="aix-4"
         fi
         ;;
    *freebsd*)
-	if test -d "/software/freebsd" ; then
-	    subdir="freebsd"
-   	fi
+        if test -d "/software/freebsd" ; then
+            subdir="freebsd"
+   	    fi
 esac
 #
 if test -z "$subdir" ; then
     if test -d "/software/common" ; then
-	subdir="common"
+       subdir="common"
     fi
 fi
 #
 echo $ac_n "checking for Java in known locations""... $ac_c" 1>&6
-echo "configure:961: checking for Java in known locations" >&5
+echo "configure:1014: checking for Java in known locations" >&5
 for dir in \
     /usr \
     /usr/jdk* \
@@ -984,26 +1037,26 @@ for dir in \
     /local/encap/jdk* \
     /local/encap/java* ; do
     if test -d $dir ; then
-	case "$dir" in
-	    *java-workshop* )
-	        if test -d "$dir/JDK/bin" ; then
-		    if test -x "$dir/JDK/bin/java" \
-		         -a -x "$dir/JDK/bin/javac" ; then
+        case "$dir" in
+            *java-workshop* )
+                if test -d "$dir/JDK/bin" ; then
+                    if test -x "$dir/JDK/bin/java" \
+                         -a -x "$dir/JDK/bin/javac" ; then
                         JAVA_HOME="$dir/JDK"
-		    fi
-		fi
+                    fi
+                fi
                 ;;
             *java* | *jdk* )
-	        if test -x "$dir/bin/java" -a -x "$dir/bin/javac" ; then
-		    JAVA_HOME="$dir"
-		fi
+                if test -x "$dir/bin/java" -a -x "$dir/bin/javac" ; then
+                    JAVA_HOME="$dir"
+                fi
                 ;;
-	esac
-	# Not all releases work.  Try a simple program
+        esac
+        # Not all releases work.  Try a simple program
         if test -n "${JAVA_HOME}" ; then
-	    echo "$ac_t""found ${JAVA_HOME}" 1>&6
-	    echo $ac_n "checking if ${JAVA_HOME}/bin/javac compiles""... $ac_c" 1>&6
-echo "configure:1007: checking if ${JAVA_HOME}/bin/javac compiles" >&5
+            echo "$ac_t""found ${JAVA_HOME}" 1>&6
+            echo $ac_n "checking if ${JAVA_HOME}/bin/javac compiles""... $ac_c" 1>&6
+echo "configure:1060: checking if ${JAVA_HOME}/bin/javac compiles" >&5
             
 pac_JC="${JAVA_HOME}/bin/javac"
 pac_JFLAGS=""
@@ -1017,26 +1070,26 @@ class conftest {
     {
         System.out.println( "Hello world" );
     }
-	    
+            
 }
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1026: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1079: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
     fi
 
-	    if test "$pac_java_working" = "yes" ; then
-	        echo "$ac_t""yes" 1>&6
-		break
+            if test "$pac_java_working" = "yes" ; then
+                echo "$ac_t""yes" 1>&6
+                break
             else
-		echo "$ac_t""no" 1>&6
-		echo $ac_n "checking for working Java in known locations""... $ac_c" 1>&6
-echo "configure:1038: checking for working Java in known locations" >&5
-	        JAVA_HOME=""
-	    fi
+                echo "$ac_t""no" 1>&6
+                echo $ac_n "checking for working Java in known locations""... $ac_c" 1>&6
+echo "configure:1091: checking for working Java in known locations" >&5
+                JAVA_HOME=""
+            fi
         fi
     fi
 done
@@ -1049,10 +1102,10 @@ fi
         echo "configure: warning: Cannot locate JAVA in known locations and \$PATH !" 1>&2
         
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: Put JAVA in your path or supply it as an argument to configure " 1>&2
+    echo "configure: warning:  Put JAVA in your path or supply it as an argument to configure " 1>&2
     exit 0
 else
-    { echo "configure: error: Put JAVA in your path or supply it as an argument to configure " 1>&2; exit 1; }
+    { echo "configure: error:  Put JAVA in your path or supply it as an argument to configure " 1>&2; exit 1; }
 fi
 
     else
@@ -1064,7 +1117,7 @@ fi
 # Set the JAVA related tools, like javac and jar.
 JC="$JAVA_HOME/bin/javac"
 JAR="$JAVA_HOME/bin/jar"
-if test $enable_g = "yes"; then
+if test $enable_jdb = "yes" ; then
     JVM="$JAVA_HOME/bin/jdb"
 else
     JVM="$JAVA_HOME/bin/java"
@@ -1072,7 +1125,7 @@ fi
 
 if test "$FOUND_ENV_JAVA_HOME" = "no" ; then
     echo $ac_n "checking if $JC compiles""... $ac_c" 1>&6
-echo "configure:1076: checking if $JC compiles" >&5
+echo "configure:1129: checking if $JC compiles" >&5
     if test -x "$JC" ; then
         
 pac_JC="$JC"
@@ -1092,7 +1145,7 @@ class conftest {
 EOF
 
     pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
-    if { (eval echo configure:1096: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+    if { (eval echo configure:1149: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
         rm -rf conftest* ;  pac_java_working=yes 
     else
         rm -rf conftest* ;  pac_java_working=no  
@@ -1104,10 +1157,10 @@ EOF
             echo "$ac_t""no" 1>&6
             
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: $exe does NOT compile" 1>&2
+    echo "configure: warning:  $JC does not compile, check JAVA_HOME = $JAVA_HOME " 1>&2
     exit 0
 else
-    { echo "configure: error: $exe does NOT compile" 1>&2; exit 1; }
+    { echo "configure: error:  $JC does not compile, check JAVA_HOME = $JAVA_HOME " 1>&2; exit 1; }
 fi
 
         fi
@@ -1115,10 +1168,10 @@ fi
         echo "$ac_t""no" 1>&6
         
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: $exe does NOT exist" 1>&2
+    echo "configure: warning:  $JC does not exist, check JAVA_HOME = $JAVA_HOME " 1>&2
     exit 0
 else
-    { echo "configure: error: $exe does NOT exist" 1>&2; exit 1; }
+    { echo "configure: error:  $JC does not exist, check JAVA_HOME = $JAVA_HOME " 1>&2; exit 1; }
 fi
 
     fi
@@ -1126,68 +1179,116 @@ fi
 
 for exe in "$JAR" "$JVM" ; do
     echo $ac_n "checking if $exe exists""... $ac_c" 1>&6
-echo "configure:1130: checking if $exe exists" >&5
+echo "configure:1183: checking if $exe exists" >&5
     if test -x "$exe" ; then
         echo "$ac_t""yes" 1>&6
     else
         echo "$ac_t""no" 1>&6
         
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: $exe does NOT exist" 1>&2
+    echo "configure: warning:  $exe does NOT exist, check JAVA_HOME = $JAVA_HOME " 1>&2
     exit 0
 else
-    { echo "configure: error: $exe does NOT exist" 1>&2; exit 1; }
+    { echo "configure: error:  $exe does NOT exist, check JAVA_HOME = $JAVA_HOME " 1>&2; exit 1; }
 fi
 
     fi
 done
 
+echo $ac_n "checking if $JC compiles Swing code""... $ac_c" 1>&6
+echo "configure:1200: checking if $JC compiles Swing code" >&5
+
+pac_JC="$JC"
+pac_JFLAGS=""
+
+    rm -f conftest*
+    cat > conftest.java <<EOF
+
+import javax.swing.*;
+
+class conftest {
+
+public static void main( String args[] )
+{
+    JFrame frame = new JFrame();
+    System.out.println( "Checking Swing" );
+}
+
+}
+EOF
+
+    pac_jcompile='${pac_JC} ${pac_JFLAGS} conftest.java 1>&5'
+    if { (eval echo configure:1222: \"$pac_jcompile\") 1>&5; (eval $pac_jcompile) 2>&5; } && test -s conftest.class ; then
+        rm -rf conftest* ;  pac_java_working=yes 
+    else
+        rm -rf conftest* ;  pac_java_working=no  
+    fi
+
+if test "$pac_java_working" = "yes" ; then
+    echo "$ac_t""yes, assume Java 2 SDK!" 1>&6
+    enable_internalswing=no
+    SWING_LIBS=""
+else
+    echo "$ac_t""no, assume Java 1 SDK!" 1>&6
+    enable_internalswing=yes
+    if test -f "$JAVA_HOME/lib/classes.zip" ; then
+        JAVA_LIBS="$JAVA_HOME/lib/rt.jar:$JAVA_HOME/lib/classes.zip:$JAVA_HOME/classes"
+    else
+        echo "configure: warning: $JAVA_HOME/lib/classes.zip does NOT exist" 1>&2
+        
+if test "$enable_softerror" = "yes" ; then
+    echo "configure: warning:  JAVA_LIBS cannot be set, neither can CLASSPATH ! " 1>&2
+    exit 0
+else
+    { echo "configure: error:  JAVA_LIBS cannot be set, neither can CLASSPATH ! " 1>&2; exit 1; }
+fi
+
+    fi
+fi
+
 # CHECK the version of Java used
+# Filter out the version of JDK that causes problem
 if test "$enable_checkversion" = "yes" ; then
     echo $ac_n "checking for Java version""... $ac_c" 1>&6
-echo "configure:1149: checking for Java version" >&5
+echo "configure:1254: checking for Java version" >&5
     VERSION=`$JAVA_HOME/bin/java -fullversion 2>&1`
     case "$VERSION" in
         *1.0*)
-            echo "$ac_t""1.0" 1>&6
+            echo "$ac_t""$VERSION, i.e. 1.0" 1>&6
             echo "configure: warning: Java $VERSION is too old to be used with Jumpshot-2 !" 1>&2
             
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: Jumpshot-2 is designed to be used with Java 1.1 " 1>&2
+    echo "configure: warning:  Jumpshot-2 is designed to be used with Java 1.1 " 1>&2
     exit 0
 else
-    { echo "configure: error: Jumpshot-2 is designed to be used with Java 1.1 " 1>&2; exit 1; }
+    { echo "configure: error:  Jumpshot-2 is designed to be used with Java 1.1 " 1>&2; exit 1; }
+fi
+
+            ;;
+        *1.1.1*|*1.1.2*|*1.1.3*|*1.1.4*)
+            echo "$ac_t""$VERSION, i.e. older than 1.1.5" 1>&6
+            echo "configure: warning: Java $VERSION is too old to be used with Jumpshot-2 !" 1>&2
+            
+if test "$enable_softerror" = "yes" ; then
+    echo "configure: warning:  Jumpshot-2 is designed to be used with Java 1.1.5 or better but not Java 2. " 1>&2
+    exit 0
+else
+    { echo "configure: error:  Jumpshot-2 is designed to be used with Java 1.1.5 or better but not Java 2. " 1>&2; exit 1; }
 fi
 
             ;;
         *1.1*)
-            echo "$ac_t""1.1" 1>&6
-            enable_internalswing=yes
-            if test -f "$JAVA_HOME/lib/classes.zip" ; then
-                JAVA_LIBS="$JAVA_HOME/lib/rt.jar:$JAVA_HOME/lib/classes.zip:$JAVA_HOME/classes"
-            else
-                echo "configure: warning: $JAVA_HOME/lib/classes.zip does NOT exist" 1>&2
-                
-if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: JAVA_LIBS cannot be set" 1>&2
-    exit 0
-else
-    { echo "configure: error: JAVA_LIBS cannot be set" 1>&2; exit 1; }
-fi
-
-            fi
+            echo "$ac_t""$VERSION, i.e. newer than 1.1.5" 1>&6
             ;;
-        *1.2*|*1.3*)
-            echo "$ac_t""1.2 or higher" 1>&6
-            enable_internalswing=no
-            SWING_LIBS=""
+        *1.2*|*1.3*|*1.4*|*1.5*)
+            echo "$ac_t""$VERSION, i.e. Java 2" 1>&6
             echo "configure: warning: $VERSION is incompatible with Jumpshot-2 !" 1>&2
             
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: Jumpshot-2 is designed to be used with Java 1.1" 1>&2
+    echo "configure: warning:  Jumpshot-2 is designed to be used with Java 1.1, preferably 1.1.6 or better, and Swing 1.0.3. " 1>&2
     exit 0
 else
-    { echo "configure: error: Jumpshot-2 is designed to be used with Java 1.1" 1>&2; exit 1; }
+    { echo "configure: error:  Jumpshot-2 is designed to be used with Java 1.1, preferably 1.1.6 or better, and Swing 1.0.3. " 1>&2; exit 1; }
 fi
 
             ;;
@@ -1195,14 +1296,16 @@ fi
             echo "$ac_t""unknown" 1>&6
             echo "configure: warning: Jumpshot-2 is designed to be used with Java 1.1, preferably 1.1.6 or better, and Swing 1.0.3." 1>&2
             echo "configure: warning: Any higher version of Java, like 1.2, is likely to cause problems" 1>&2
-            
+            if test "$enable_internalswing" = "no" ; then
+                
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: Check if $JAVA_HOME is valid " 1>&2
+    echo "configure: warning:  Check if $JAVA_HOME is valid " 1>&2
     exit 0
 else
-    { echo "configure: error: Check if $JAVA_HOME is valid " 1>&2; exit 1; }
+    { echo "configure: error:  Check if $JAVA_HOME is valid " 1>&2; exit 1; }
 fi
 
+            fi
             ;;
     esac
 fi
@@ -1218,7 +1321,7 @@ if test "$enable_internalswing" = "yes" ; then
     fi
     if test ! -d $swingbuild_dir ; then
         echo "creating $swingbuild_dir from source"
-        $CPRP -pr $srcdir/swing $swingbuild_dir ;
+        $CPRP -pr $srcdir/swing $swingbuild_dir
     fi
     
 
@@ -1229,18 +1332,18 @@ if test "$enable_internalswing" = "yes" ; then
     SWING_LIBRARIES=`echo $SWING_LIBS | sed 's/:/ /g'`
     for library in $SWING_LIBRARIES ; do
         echo $ac_n "checking for $library""... $ac_c" 1>&6
-echo "configure:1233: checking for $library" >&5
-        if test -f "$library"; then
+echo "configure:1336: checking for $library" >&5
+        if test -f "$library" ; then
             echo "$ac_t""yes" 1>&6
         else
             echo "$ac_t""no" 1>&6
             echo "configure: warning: $library in \$SWING_LIBS does NOT exist!" 1>&2
             
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: hence CLASSPATH cannot be set " 1>&2
+    echo "configure: warning:  hence CLASSPATH cannot be set " 1>&2
     exit 0
 else
-    { echo "configure: error: hence CLASSPATH cannot be set " 1>&2; exit 1; }
+    { echo "configure: error:  hence CLASSPATH cannot be set " 1>&2; exit 1; }
 fi
 
         fi
@@ -1268,29 +1371,29 @@ done
 # VPATH build: Set the libbuild_dir
 if test ! -d $libbuild_dir ; then
     echo "creating $libbuild_dir from source"
-    $CPRP -pr $srcdir/lib $libbuild_dir ;
+    $CPRP -pr $srcdir/lib $libbuild_dir
 fi
 
 
 # VPATH build: Set the docbuild_dir
 if test ! -d $docbuild_dir ; then
     echo "creating $docbuild_dir from source"
-    $CPRP -pr $srcdir/doc $docbuild_dir ;
-    $RM -rf $docbuild_dir/old ;
+    $CPRP -pr $srcdir/doc $docbuild_dir
+    $RM -rf $docbuild_dir/old
 fi
 
 
 # VPATH build: Set the logfilesbuild_dir
 if test ! -d $logfilesbuild_dir ; then
     echo "creating $logfilesbuild_dir from source"
-    $CPRP -pr $srcdir/logfiles $logfilesbuild_dir ;
+    $CPRP -pr $srcdir/logfiles $logfilesbuild_dir
 fi
 
 
 # VPATH: Set the binbuild_dir
 if test ! -d $binbuild_dir ; then
     echo "creating directory $binbuild_dir"
-    $MKDIR $binbuild_dir ; 
+    $MKDIR $binbuild_dir
 fi
 
 
@@ -1528,10 +1631,10 @@ for script in "bin/jumpshot" "sbin/install-viewer"; do
     else
         
 if test "$enable_softerror" = "yes" ; then
-    echo "configure: warning: $script is not a valid file - Make sure you have configured with a valid Jumpshot-2 source directory " 1>&2
+    echo "configure: warning:  $script is not a valid file - Make sure you have configured with a valid Jumpshot-2 source directory " 1>&2
     exit 0
 else
-    { echo "configure: error: $script is not a valid file - Make sure you have configured with a valid Jumpshot-2 source directory " 1>&2; exit 1; }
+    { echo "configure: error:  $script is not a valid file - Make sure you have configured with a valid Jumpshot-2 source directory " 1>&2; exit 1; }
 fi
 
     fi

@@ -32,5 +32,17 @@ By default, the colors
 <TT>MPE_FORESTGREEN</TT>, <TT>MPE_ORANGE</TT>, <TT>MPE_VIOLET</TT>, <TT>MPE_BROWN</TT>, 
 <TT>MPE_PINK</TT>, <TT>MPE_CORAL</TT> and <TT>MPE_GRAY</TT> are defined.
 <BR></TD></TR></TABLE>
+<P>
+<P>
+<H2>Notes For Fortran Interface </H2>
+The Fortran interface to this routine is different from its C
+counterpart and it has an additional argument, ierr, at the end
+of the argument list, i.e. the returned function value (the error
+code) in C interface is returned as the additional argument in
+Fortran interface.  The Fortran interface is invoked with the
+CALL statement.
+<P>
+All MPI and MPE objects, MPI_Comm, MPE_XGraph and MPE_Color, are
+of type INTEGER in Fortran.
 <P><B>Location:</B>mpe_graphics.c<P>
 </BODY></HTML>

@@ -273,7 +273,11 @@ int nitems;
   return 0;
 }
 
-
+static int is_oldstyle = 0;
+int oldstyle_function( void )
+{
+    return is_oldstyle;
+}
 
 
 int PrintHelp() {

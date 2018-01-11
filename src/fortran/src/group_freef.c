@@ -82,7 +82,8 @@ EXPORT_MPI_API void mpi_group_free_ ( MPI_Fint *group, MPI_Fint *__ierr )
 {
     MPI_Group l_group = MPI_Group_f2c(*group);
     *__ierr = MPI_Group_free(&l_group);
-    *group = MPI_Group_c2f(l_group);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *group = MPI_Group_c2f(l_group);
 }
 
 

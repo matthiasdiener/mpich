@@ -25,6 +25,9 @@
 #       define MPID_HAS_GET_COUNT
 #   endif
 
+#   define MPID_CommInit MPID_Comm_init
+#   define MPID_CommFree MPID_Comm_free
+
 #   if defined(VMPI)
 #       define MPID_HAS_TYPE_PERMANENT_SETUP
 #       define MPID_HAS_TYPE_COMMIT
@@ -33,11 +36,6 @@
 #       define MPID_HAS_TYPE_HINDEXED
 #       define MPID_HAS_TYPE_HVECTOR
 #       define MPID_HAS_TYPE_STRUCT
-#       define MPID_CommInit MPID_Comm_init
-#       define MPID_CommFree MPID_Comm_free
-#   else
-#       define MPID_CommInit(oldcomm,newcomm) (MPI_SUCCESS)
-#       define MPID_CommFree(comm) (MPI_SUCCESS)
 #   endif
 #endif
 

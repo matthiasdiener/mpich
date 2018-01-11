@@ -21,11 +21,16 @@
 */
 
 
+#include "mpeconf.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
-#include <unistd.h>
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
+#endif
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h>
+#endif
 #include "clog2slog.h"
 
 int main (int argc, char **argv) {
@@ -68,11 +73,11 @@ int main (int argc, char **argv) {
 	num_args++;
 	break;
       default:
-	printHelp();
+	CLOG_printHelp();
 	exit(0);
       }
     else {
-      printHelp();
+      CLOG_printHelp();
       exit(0);
     }
     optchar = getopt(argc,argv,optstring);
@@ -87,18 +92,18 @@ int main (int argc, char **argv) {
   else {
     fprintf(stderr, "clog2slog.c:%d: No clog file specified in command line.\n",
 	    __LINE__);
-    printHelp();
+    CLOG_printHelp();
     exit(1);
   }
  
   if(strstr(clog_file,".clog") == NULL) {
     fprintf(stderr, "clog2slog.c:%d: specified file is not a clog file.\n",
 	    __LINE__);
-    printHelp();
+    CLOG_printHelp();
     exit(1);
   }
   
-  if((clogfd = open(clog_file, O_RDONLY, 0)) == -1) {
+  if((clogfd = OPEN(clog_file, O_RDONLY, 0)) == -1) {
     fprintf(stderr,"clog2slog.c:%d: Could not open clog file %s for"
 	    " reading.\n",__LINE__,clog_file);
     exit(1);
@@ -118,10 +123,10 @@ int main (int argc, char **argv) {
 	      __LINE__,CLOG_BLOCK_SIZE);
       exit(1);
     }
-    if((err_chk = init_state_defs(membuff)) == CLOG_ENDLOG)
+    if((err_chk = CLOG_init_state_defs(membuff)) == CLOG_ENDLOG)
       break;
     else if(err_chk == C2S_ERROR) {
-      freeStateInfo();
+      CLOG_freeStateInfo();
       exit(1);
     }
   }
@@ -139,7 +144,7 @@ int main (int argc, char **argv) {
   }
   /*
     making second pass of clog file to log slog intervals using clog events.
-    the function used here is makeSLOG()
+    the function used here is CLOG_makeSLOG()
   */
   while((err_chk = read(clogfd, membuff, CLOG_BLOCK_SIZE)) != -1) {
     if(err_chk != CLOG_BLOCK_SIZE) {
@@ -148,7 +153,7 @@ int main (int argc, char **argv) {
       exit(1);
     }
 
-    if((err_chk = makeSLOG(membuff)) == CLOG_ENDLOG)
+    if((err_chk = CLOG_makeSLOG(membuff)) == CLOG_ENDLOG)
       break;
     else if(err_chk == C2S_ERROR)
       exit(1);
@@ -156,7 +161,7 @@ int main (int argc, char **argv) {
   
  
   close(clogfd);
-  free_resources();
+  CLOG_free_resources();
   return 0;
 }
 

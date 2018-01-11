@@ -256,11 +256,16 @@ void reaper(int sigval)
 #else
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) ;
 #endif
+    if (pid < 0) { 
+        /* dummy to make compiler happy about declaring pid */
+	/* Note that since this is called in a signal handler, there isn't
+	   much that we can do */
+	fprintf( logfile_fp, "Error %d from wait in reaper (%s)\n", errno,
+		 strerror(errno) );
+    }
 }
 
-int main(argc, argv)
-int argc;
-char **argv;
+int main(int argc, char *argv[])
 {
     int c;
     struct sockaddr_in name;
@@ -1411,8 +1416,14 @@ char *server_path;
 void net_setup_anon_listener(backlog, port, skt)
 int backlog, *port, *skt;
 {
-int sinlen;
-struct sockaddr_in sin;
+#ifdef USE_SIZE_T_FOR_SOCKLEN_T
+    size_t sinlen;
+#elif defined(USE_SOCKLEN_T)
+    socklen_t sinlen;
+#else
+    int sinlen;
+#endif
+    struct sockaddr_in sin;
 
     *skt = socket(AF_INET, SOCK_STREAM, 0);
 

@@ -1,3 +1,4 @@
+
 /* 
    util.c
    This file contains routines needed by both the mpd daemons and
@@ -5,9 +6,16 @@
    Main routines linking to this should set the string mpdid to identify 
    sources of error messages 
 */
+
+#ifdef FOO
+/* to make code below using SA_RESTART/SA_INTERRUPT compile on linux
+   we are not sure about portability right now, but it seems fine on 
+   linux for now
+*/
+#define _BSD_SOURCE
+#endif
+
 #include "mpd.h"
-#include <string.h>
-#include <stdarg.h>
 
 struct procentry proctable[MAXPROCS];
 struct jobentry jobtable[MAXJOBS];
@@ -18,8 +26,8 @@ int fdtable_high_water_mark = -1;
 extern int  debug;
 extern char myid[IDSIZE];
 
-struct keyval_pairs keyval_tab[64];
-int keyval_tab_idx;
+extern struct mpd_keyval_pairs mpd_keyval_tab[64];
+extern int mpd_keyval_tab_idx;
 
 /*
  *	port table routines
@@ -231,8 +239,7 @@ int rank;
     return -2;
 }
 
-void remove_from_proctable( pid )
-int pid;
+void remove_from_proctable( int pid )
 {
     int i;
  
@@ -263,7 +270,7 @@ void kill_job( int jobid, int signum )
 	if ( proctable[i].active  &&  jobid == proctable[i].jobid ) {
 	    mpdprintf( debug, "kill_job: killing jobid=%d pid=%d\n",
 		       jobid, proctable[i].pid );
-	    kill( proctable[i].pid, signum );
+	    killpg( proctable[i].pid, signum );
 	}
 }
 
@@ -288,10 +295,11 @@ void dump_proctable( char *identifier )
     for ( i = 0; i < MAXPROCS; i++ ) {
 	if ( proctable[i].active == 1 )
 	    mpdprintf( 1,
-	       "proc[%d]: pid=%d, jid=%d, jrank=%d, jfd=%d, lport=%d, name=%s, state=%s\n",
-		i, proctable[i].pid, proctable[i].jobid, proctable[i].jobrank,
-  	        proctable[i].clientfd, proctable[i].lport, proctable[i].name,
-		pstate( proctable[i].state ) );
+		       "proc[%d]: pid=%d, jid=%d, jrank=%d, jfd=%d, lport=%d, "
+		       "myrport=%d name=%s, state=%s\n", i, proctable[i].pid,
+		       proctable[i].jobid, proctable[i].jobrank, proctable[i].clientfd,
+		       proctable[i].lport, proctable[i].myrinet_port,
+		       proctable[i].name, pstate( proctable[i].state ) );
     }
 }
 
@@ -371,297 +379,6 @@ int handler;
     else
 	return "UNKNOWN";
 }
-/*
- *	Networking routines
- */
-int local_connect( name )	
-char *name;
-{
-    int s, rc;
-    struct sockaddr_un sa;
-
-    bzero( (void *)&sa, sizeof( sa ) );
-
-    sa.sun_family = AF_UNIX;
-    strncpy( sa.sun_path, name, sizeof( sa.sun_path ) - 1 );
-
-    s = socket( AF_UNIX, SOCK_STREAM, 0 );
-    error_check( s, "local_connect: socket" );
-
-    rc = connect( s, ( struct sockaddr * ) &sa, sizeof( sa ) );
-
-    if ( rc != -1 ) {
-	mpdprintf( debug, "local_connect; socket = %d\n", s );
-	return ( s );
-    }
-    else
-	return( rc );
-}
-
-void send_msg( fd, buf, size )	
-int fd;
-char *buf;
-int size;
-{
-    int n;
-
-    /* maybe should check whether size < MAXLINE? */
-    n = write( fd, buf, size );
-    if ( n < 0 )
-	mpdprintf(1, "error on write; buf=:%s:\n", buf );
-    error_check( n, "send_msg write" );
-}
-
-void write_line( idx, buf )	
-int idx;
-char *buf;
-{
-    int size, n;
-
-    size = strlen( buf );
-    if ( size > MAXLINE ) {
-	buf[MAXLINE] = '\0';
-	mpdprintf( 1, "write_line: message string too big: :%s:\n", buf );
-    }
-    else if ( buf[strlen( buf ) - 1] != '\n' )  /* error:  no newline at end */
-	    mpdprintf( 1, "write_line: message string doesn't end in newline: :%s:\n",
-		       buf );
-    else {
-	if ( idx != -1 ) {
-	    n = write( fdtable[idx].fd, buf, size );
-	    if ( n < size)
-		mpdprintf( 1, "write_line did not write whole message\n" );
-	    if ( n < 0 )
-		mpdprintf( 1, "write_line error; fd=%d buf=:%s:\n", fdtable[idx].fd, buf );
-	    error_check( n, "write_line write" );
-	}
-	else
-	    mpdprintf( debug, "write_line attempted write to idx -1\n" );
-    }
-}
-
-int setup_network_socket( port ) /* returns fd */
-int *port;
-{
-    int backlog = 15;
-    int rc;
-    mpd_sockopt_len_t sinlen;
-    int skt_fd;
-    struct sockaddr_in sin;
-
-    sin.sin_family	= AF_INET;
-    sin.sin_addr.s_addr	= INADDR_ANY;
-    sin.sin_port	= htons( *port );
-    sinlen              = sizeof( sin );
-
-    skt_fd = socket( AF_INET, SOCK_STREAM, 0 );
-    error_check( skt_fd, "setup_network_socket: socket" );
-
-    rc = bind( skt_fd, ( struct sockaddr * ) &sin, sizeof( sin ) );
-    error_check( rc, "setup_network_socket: bind" );
-
-    rc = getsockname( skt_fd, (struct sockaddr *) &sin, &sinlen ); 
-    error_check( rc, "setup_network_socket: getsockname" );
-
-    mpdprintf( 0, "network socket port is %d, len = %d\n",
-	    ntohs(sin.sin_port), sinlen);
-    *port = ntohs(sin.sin_port);
-
-    rc = listen( skt_fd, backlog );
-    error_check( rc, "setup_network_socket: listen" );
-    mpdprintf( debug, "listening on network socket %d\n", skt_fd );
-
-    return skt_fd;
-}
-
-/* versions of basic stream routines from Stevens */
-
-int writen( fd, buf, n )
-int fd, n;
-char *buf;
-{
-    int nleft, nwritten;
-    char *ptr;
-
-    ptr	  = buf;
-    nleft = n;
-
-    while ( nleft > 0 ) {
-	if ( ( nwritten = write( fd, ptr, nleft ) ) <= 0 ) {
-	    if ( errno == EINTR )
-		nwritten = 0;	/* try again */
-	    else
-		return( -1 );	/* error */
-	}
-	nleft -= nwritten;
-	ptr   += nwritten;
-    }	    
-    return( n );
-}
-
-/* This function reads until it finds a newline character.  It returns the number of
-   characters read, including the newline character.  The newline character is stored
-   in buf, as in fgets.  It does not supply a string-terminating null character.
-*/
-int read_line( fd, buf, maxlen )
-int fd, maxlen;
-char *buf;
-{
-    int n, rc;
-    char c, *ptr;
-
-    ptr = buf;
-    for ( n = 1; n < maxlen; n++ ) {
-      again:
-	if ( ( rc = read( fd, &c, 1 ) ) == 1 ) {
-	    *ptr++ = c;
-	    if ( c == '\n' )	/* note \n is stored, like in fgets */
-		break;
-	}
-	else if ( rc == 0 ) {
-	    if ( n == 1 )
-		return( 0 );	/* EOF, no data read */
-	    else
-		break;		/* EOF, some data read */
-	}
-	else {
-	    if ( errno == EINTR )
-		goto again;
-	    return ( -1 );	/* error, errno set by read */
-	}
-    }
-    *ptr = 0;			/* null terminate, like fgets */
-    return( n );
-}
-
-/*
- * 
- *  from Stevens book 
- *
- */
-Sigfunc *Signal( signo, func )
-int signo;
-Sigfunc *func;
-{
-    struct sigaction act, oact;
-
-    act.sa_handler = func;
-    sigemptyset( &act.sa_mask );
-    act.sa_flags = 0;
-    if ( signo == SIGALRM ) {
-#ifdef  SA_INTERRUPT
-        act.sa_flags |= SA_INTERRUPT;   /* SunOS 4.x */
-#endif
-    } else {
-#ifdef SA_RESTART
-        act.sa_flags |= SA_RESTART;     /* SVR4, 4.4BSD */
-#endif
-    }
-    if ( sigaction( signo,&act, &oact ) < 0 )
-        return ( SIG_ERR );
-    return( oact.sa_handler );
-}
-
-
-int parse_keyvals( char *st )
-{
-    char *p, *keystart, *valstart;
-
-    if ( !st )
-	return( -1 );
-
-    keyval_tab_idx = 0;          
-    p = st;
-    while ( 1 ) {
-	while ( *p == ' ' )
-	    p++;
-	/* got non-blank */
-	if ( *p == '=' ) {
-	    mpdprintf( 1, "parse_keyvals:  unexpected = at character %d in %s\n",
-		       p - st, st );
-	    return( -1 );
-	}
-	if ( *p == '\n' || *p == '\0' )
-	    return( 0 );	/* normal exit */
-	/* got normal character */
-	keystart = p;		/* remember where key started */
-	while ( *p != ' ' && *p != '=' && *p != '\n' && *p != '\0' )
-	    p++;
-	if ( *p == ' ' || *p == '\n' || *p == '\0' ) {
-	    mpdprintf( 1,
-		       "parse_keyvals: unexpected key delimiter at character %d in %s\n",
-		       p - st, st );
-	    return( -1 );
-	}
-        strncpy( keyval_tab[keyval_tab_idx].key, keystart, p - keystart );
-	keyval_tab[keyval_tab_idx].key[p - keystart] = '\0'; /* store key */
-
-	valstart = ++p;			/* start of value */
-	while ( *p != ' ' && *p != '\n' && *p != '\0' )
-	    p++;
-        strncpy( keyval_tab[keyval_tab_idx].value, valstart, p - valstart );
-	keyval_tab[keyval_tab_idx].value[p - valstart] = '\0'; /* store value */
-	keyval_tab_idx++;
-	if ( *p == ' ' )
-	    continue;
-	if ( *p == '\n' || *p == '\0' )
-	    return( 0 );	/* value has been set to empty */
-    }
-}
- 
-#if 0
-void parse_keyvals( st )
-char *st;
-{
-    char *p, stcp[MAXLINE];
-
-    keyval_tab_idx = 0;
-    strcpy( stcp, st );
-    if (! (p = strtok(stcp,"= ")) )
-        return;
-    strcpy(keyval_tab[keyval_tab_idx].key,p);
-    strcpy(keyval_tab[keyval_tab_idx++].value,strtok(NULL," \n"));
-    while ( (p = strtok(NULL,"= ")) )
-    {
-	strcpy(keyval_tab[keyval_tab_idx].key,p);
-	strcpy(keyval_tab[keyval_tab_idx++].value,strtok(NULL," \n"));
-    }
-}
-#endif
-
-void dump_keyvals()
-{
-    int i;
-    for (i=0; i < keyval_tab_idx; i++) 
-	mpdprintf(1, "  %s=%s\n",keyval_tab[i].key, keyval_tab[i].value);
-}
-
-char *getval(keystr,valstr)
-char *keystr;
-char *valstr;
-{
-    int i;
-
-    for (i=0; i < keyval_tab_idx; i++) {
-       if ( strcmp( keystr, keyval_tab[i].key ) == 0 ) { 
-	    strcpy( valstr, keyval_tab[i].value );
-	    return valstr;
-       } 
-    }
-    valstr[0] = '\0';
-    return NULL;
-}
-
-void chgval( keystr, valstr )
-char *keystr, *valstr;
-{
-    int i;
-
-    for ( i = 0; i < keyval_tab_idx; i++ ) {
-       if ( strcmp( keystr, keyval_tab[i].key ) == 0 )
-	    strcpy( keyval_tab[i].value, valstr );
-    }
-}
 
 void reconstruct_message_from_keyvals( buf )
 char *buf;
@@ -670,8 +387,8 @@ char *buf;
     char tempbuf[MAXLINE];
 
     buf[0] = '\0';
-    for (i=0; i < keyval_tab_idx; i++) {
-	sprintf( tempbuf, "%s=%s ", keyval_tab[i].key, keyval_tab[i].value );
+    for (i=0; i < mpd_keyval_tab_idx; i++) {
+	sprintf( tempbuf, "%s=%s ", mpd_keyval_tab[i].key, mpd_keyval_tab[i].value );
 	strcat( buf, tempbuf );
     }
     buf[strlen(buf)-1] = '\0';  /* chop off trailing blank */
@@ -726,6 +443,8 @@ char *st;
     fprintf( stderr, "-w <working directory>\n" );
     fprintf( stderr, "-l <listener port>\n" );
     fprintf( stderr, "-b (background; daemonize)\n" );
+    fprintf( stderr, "-e (don't let this mpd start processes, unless root)\n" );
+    fprintf( stderr, "-t (echo listener port at startup)\n" );
     exit( 1 );
 }
 
@@ -751,76 +470,6 @@ void mpd_cleanup()
     }
     /* Kill off all child processes by looping thru proctable */
     kill_allproc( SIGINT );	/* SIGKILL seems too violent */
-}
-
-void mpdprintf( int print_flag, char *fmt, ... )
-{
-    va_list ap;
-
-    if (print_flag) {
-	fprintf( stderr, "[%s]: ", myid );
-	va_start( ap, fmt );
-	vfprintf( stderr, fmt, ap );
-	va_end( ap );
-	fflush( stderr );
-    }
-}
-
-#define     END ' '
-#define ESC_END '"'
-#define     ESC '\\'
-#define ESC_ESC '\''
-
-void stuff_arg(arg,stuffed)
-char arg[], stuffed[];
-{
-    int i,j;
-
-    for (i=0, j=0; i < strlen(arg); i++)
-    {
-	switch (arg[i]) {
-	    case END:
-		stuffed[j++] = ESC;
-		stuffed[j++] = ESC_END;
-		break;
-	    case ESC:
-		stuffed[j++] = ESC;
-		stuffed[j++] = ESC_ESC;
-		break;
-	    default:
-		stuffed[j++] = arg[i];
-	}
-    }
-    stuffed[j] = '\0';
-}
-
-void destuff_arg(stuffed,arg)
-char stuffed[], arg[];
-{
-    int i,j;
-
-    i = 0;
-    j = 0;
-    while (stuffed[i]) {        /* END pulled off in parse */
-	switch (stuffed[i]) {
-	    case ESC:
-		i++;
-		switch (stuffed[i]) {
-		    case ESC_END:
-			arg[j++] = END;
-			i++;
-			break;
-		    case ESC_ESC:
-			arg[j++] = ESC;
-			i++;
-			break;
-		}
-		break;
-	    default:
-		arg[j++] = stuffed[i++];
-	}
-    }
-    arg[j] = '\0';
 }
 
 double mpd_timestamp()
@@ -867,3 +516,282 @@ void unmap_signum( int signum, char *signo )
     return;
 }
 	    
+/* The following two routines are for management of Myrinet ports.
+   Just for MPICH-1, where it is needed for having the manager
+   (actually, the client-before-exec) write out the Myrinet port
+   file before execing the clients.  The client-before-exec will
+   use put-fence-get to acquire the information to be written to the
+   file.  Currently, this code hands out port numbers from 3 to 7,
+   returning -1 if there are no more port numbers.
+*/
+
+static int myrinet_port_counter;
+static int myrinet_valid_ports[6] = { 1, 2, 4, 5, 6, 7 };
+
+void init_myrinet_port_counter( void )
+{
+    myrinet_port_counter = 0;
+}
+
+int get_next_myrinet_port( void )
+{
+    int port;
+
+    if ( myrinet_port_counter > 5 )
+	port = -1;
+    else {
+	port = myrinet_valid_ports[myrinet_port_counter];
+	myrinet_port_counter++; 
+    }
+    return ( port );
+}
+
+/* The following collection of routines are for detailed, user-friendly error
+   messages.  We will add to them incrementally.  The idea is to have detailed
+   explanations for errors that users are likely to bring on themselves
+   accidentally, not necessary errors that represent bugs in the system and
+   require code fixes.  At least until we understand them better, we will use
+   one routine per error, with its own arguments, to enable the errors to be
+   context sensitive.
+*/
+
+void console_setup_failed( char * myhostname )
+{
+
+    mpdprintf( 1, "Could not set up unix socket on %s\n", myhostname );
+    mpdprintf( 1, "by which the mpd is contacted.  The most likely cause\n" );
+    mpdprintf( 1, "is that there is already an mpd running on %s.\n",
+	       myhostname );
+    mpdprintf( 1, "If you want to start a second mpd in the same ring with\n" );
+    mpdprintf( 1, "the first, use the -n option when starting the second\n" );
+    mpdprintf( 1, "and subsequent mpd's.  If the already-running mpd is an\n" );
+    mpdprintf( 1, "old one and you wish to start a new one in a new ring,\n" );
+    mpdprintf( 1, "kill the old ring (with mpdallexit) and then start the new\n" );
+    mpdprintf( 1, "mpd.  It may be that there is no mpd running but a former\n" );
+    mpdprintf( 1, "mpd left a bad state.  Run mpdcleanup to clean it up.\n" );
+}
+
+#ifdef FOO
+/* see FOO comments at top of file */
+int read_line_with_timeout( int fd, char *buf, int maxlen, int seconds, int useconds)
+{
+    int rc;
+
+    setup_timeout( seconds, useconds );
+    rc = read_line( fd, buf, maxlen );
+    if ( check_timeout( ) )
+	mpdprintf( 1, "read_line_with_time_out: timed out\n" );
+    return( rc );
+}
+#endif
+
+/* This function reads until it finds a newline character.  It returns the number of
+   characters read, including the newline character.  The newline character is stored
+   in buf, as in fgets.  It does not supply a string-terminating null character.
+*/
+int read_line( int fd, char *buf, int maxlen )
+{
+    int n, rc;
+    char c, *ptr;
+
+    ptr = buf;
+    for ( n = 1; n < maxlen; n++ ) {
+      again:
+	rc = read( fd, &c, 1 );
+	/* mpdprintf( 1111, "read_line rc=%d c=:%c:\n",rc,c ); */
+	if ( rc == 1 ) {
+	    *ptr++ = c;
+	    if ( c == '\n' )	/* note \n is stored, like in fgets */
+		break;
+	}
+	else if ( rc == 0 ) {
+	    if ( n == 1 )
+		return( 0 );	/* EOF, no data read */
+	    else
+		break;		/* EOF, some data read */
+	}
+	else {
+	    if ( errno == EINTR )
+		goto again;
+	    return ( -1 );	/* error, errno set by read */
+	}
+    }
+    *ptr = 0;			/* null terminate, like fgets */
+    return( n );
+}
+
+int write_line( int idx, char *buf )	
+{
+    int size, n;
+
+    size = strlen( buf );
+    if ( size > MAXLINE ) {
+	buf[MAXLINE-1] = '\0';
+	mpdprintf( 1, "write_line: message string too big: :%s:\n", buf );
+    }
+    else if ( buf[strlen( buf ) - 1] != '\n' )  /* error:  no newline at end */
+	    mpdprintf( 1, "write_line: message string doesn't end in newline: :%s:\n",
+		       buf );
+    else {
+        if ( idx != -1 ) {
+	    n = write( fdtable[idx].fd, buf, size );
+	    if ( n < 0 ) {
+	        mpdprintf( 1, "write_line error; fd=%d buf=:%s:\n", fdtable[idx].fd, buf );
+		perror("system msg for write_line failure ");
+	        return(-1);
+	    }
+	    if ( n < size)
+	        mpdprintf( 1, "write_line failed to write entire message\n" );
+        }
+        else
+	    mpdprintf( debug, "write_line attempted write to idx -1\n" );
+    }
+    return 0;
+}
+
+void mpdprintf( int print_flag, char *fmt, ... )
+{
+    va_list ap;
+
+    if (print_flag) {
+	fprintf( stderr, "[%s]: ", myid );
+	va_start( ap, fmt );
+	vfprintf( stderr, fmt, ap );
+	va_end( ap );
+	fflush( stderr );
+    }
+}
+
+#ifdef FOO
+/* commentd out temporarily; see comments for FOO at top of file also */
+/* Note that signal.h is also needed for killpg */
+#include <signal.h>
+
+static int sigalrm_flag = 0;
+static struct sigaction nact, oact;
+
+static void sigalrm_handler(int signo)
+{
+    sigalrm_flag = 1;
+}
+
+void setup_timeout(int seconds, int microseconds)
+{
+    struct itimerval timelimit;
+    struct timeval tval, tzero;
+
+    /* signal(SIGALRM,sigalrm_handler); */
+    nact.sa_handler = sigalrm_handler;
+    sigemptyset(&nact.sa_mask);
+    /* nact.sa_flags = SA_INTERRUPT; */
+    nact.sa_flags &= !(SA_RESTART);    /* turning it OFF */
+    if (sigaction(SIGALRM, &nact, &oact) < 0)
+    {
+	printf("mpd: setup_timeout: sigaction failed\n");
+	return;
+    }
+    tzero.tv_sec	  = 0;
+    tzero.tv_usec	  = 0;
+    timelimit.it_interval = tzero;       /* Only one alarm */
+    tval.tv_sec		  = seconds;
+    tval.tv_usec	  = microseconds;
+    timelimit.it_value	  = tval;
+    setitimer(ITIMER_REAL,&timelimit,0);
+}
+
+int check_timeout( void )
+{
+    struct itimerval timelimit;
+    struct timeval tzero;
+
+    if (sigalrm_flag)
+    {
+        tzero.tv_sec	   = 0;
+        tzero.tv_usec	   = 0;
+        timelimit.it_value = tzero;   /* Turn off timer */
+        setitimer( ITIMER_REAL, &timelimit, 0 );
+        /* signal(SIGALRM,SIG_DFL); */
+	if (sigaction( SIGALRM, &oact, NULL ) < 0)
+        {
+	    printf( "mpd: check_timeout: sigaction failed\n" );
+	}
+        sigalrm_flag = 0;
+	return(1);
+    }
+    return(0);
+}
+#endif
+
+void strcompress( char *i )
+{
+    char *initial = i, f[4096], *final;
+
+    mpdprintf( 0, "strcompress: compressing :%s:\n", i );
+    final = f;
+    while ( *initial ) {
+        while ( ( *initial != ' ' ) && *initial ) {
+            *final++ = *initial++;
+        }
+        *final++ = *initial++;
+	while ( ( *initial == ' ') && ( *initial++ ) )
+	    ;
+    }
+    *final = '\0';
+    strcpy( i, f );
+    mpdprintf( 0, "strcompress: returning :%s:\n", i );
+}
+
+void datastr_to_xml( char *inbuf, char *src, char *xmlbuf )
+{
+    char subbuf1[80], subbuf2[80], subbuf3[80], tbuf1[80], buf[MAXLINE];
+    char *data[3], *temp, *temp2;
+    int i;
+
+    i = 0;
+    strcpy( buf, inbuf );
+    sprintf( tbuf1, "<node name='%s'>", src );
+    strcpy( xmlbuf, tbuf1 );
+    data[0] = strtok( buf, "," );
+    data[1] = strtok( NULL, "," );
+    data[2] = strtok( NULL, "," );
+    while ( data[i] && ( i < 3 ) )
+    {
+	if ( strstr( data[i], "loadavg" ) ) {
+	    mpdprintf( debug, "entering loadavg subsection, data[%i] is %s\n", i, data[i] );
+	    strcat( xmlbuf, "<loadavg>" );
+	    temp = strstr( data[i], "loadavg:" ) + 8;
+	    strcat( xmlbuf, temp );
+	    strcat( xmlbuf, "</loadavg>" );
+	}
+	if ( strstr( data[i], "memusage" ) ) {
+	    mpdprintf( debug, "entering memusage subsection, data[%i] is %s\n", i, data[i] );
+	    strcat( xmlbuf, "<memusage>" );
+	    temp = strstr( data[i], "memusage:" ) + 9;
+	    temp2 = strtok( temp, "\n" );
+	    while ( temp2 ) {
+		sscanf( temp2, "%s %s", subbuf1, subbuf2 );
+		subbuf1[strlen( subbuf1 ) - 1] = '\0';
+		sprintf( subbuf3, "<%s>%s</%s>", subbuf1, subbuf2, subbuf1 );
+		strcat( xmlbuf, subbuf3 );
+		temp2 = strtok( NULL, "\n" );
+	    }
+	    strcat( xmlbuf, "</memusage>" );
+	}
+	if ( strstr( data[i], "myrinfo" ) ) {
+	    mpdprintf( debug, "entering myrinfo subsection, data[%i] is %s\n", i, data[i] );
+	    strcat( xmlbuf, "<myrinfo>" );
+	    temp = strstr( data[i], "myrinfo:" ) + 8;
+	    temp2 = strtok( temp, "\n" );
+	    mpdprintf( debug, "in myrinfo temp2 after strtokking is %s\n", temp2 );
+	    while ( temp2 ) {
+		sscanf( temp2, "%s %s", subbuf1, subbuf2 );
+		sprintf( subbuf3, "<%s>%s</%s>", subbuf1, subbuf2, subbuf1 );
+		strcat( xmlbuf, subbuf3 );
+		temp2 = strtok( NULL, "\n" );
+	    }
+	    strcat( xmlbuf, "</myrinfo>" );
+	}
+	i++;
+    }
+    strcat( xmlbuf, "</node>\n" );
+}

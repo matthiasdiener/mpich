@@ -56,17 +56,17 @@ $cached_env_img{$key} = q|<IMG
  SRC="|."$dir".q|img12.gif"
  ALT="\resizebox*{0.7\textwidth}{!}{\includegraphics{pic/timeline_manipulations.ps}}">|; 
 
-$key = q/resizebox*{0.9textwidth}{!}{includegraphics{picslashpreview_line.ps}};LFS=12;AAT/;
-$cached_env_img{$key} = q|<IMG
- WIDTH="500" HEIGHT="420" ALIGN="BOTTOM" BORDER="0"
- SRC="|."$dir".q|img3.gif"
- ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview_line.ps}}">|; 
-
 $key = q/resizebox*{0.8textwidth}{!}{includegraphics{picslashstatview_main_sm.ps}};LFS=12;AAT/;
 $cached_env_img{$key} = q|<IMG
  WIDTH="444" HEIGHT="303" ALIGN="BOTTOM" BORDER="0"
  SRC="|."$dir".q|img7.gif"
  ALT="\resizebox*{0.8\textwidth}{!}{\includegraphics{pic/statview_main_sm.ps}}">|; 
+
+$key = q/resizebox*{0.9textwidth}{!}{includegraphics{picslashpreview_line.ps}};LFS=12;AAT/;
+$cached_env_img{$key} = q|<IMG
+ WIDTH="500" HEIGHT="420" ALIGN="BOTTOM" BORDER="0"
+ SRC="|."$dir".q|img3.gif"
+ ALT="\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/preview_line.ps}}">|; 
 
 $key = q/resizebox*{0.3textwidth}{!}{includegraphics{picslashpreview_legends.ps}};LFS=12;AAT/;
 $cached_env_img{$key} = q|<IMG

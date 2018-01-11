@@ -1,5 +1,5 @@
 /* 
- *   $Id: write_shf.c,v 1.7 2000/08/24 16:18:29 gropp Exp $    
+ *   $Id: write_shf.c,v 1.8 2000/11/03 20:17:49 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -84,11 +84,11 @@
 #endif
 #endif
 
+#if defined(MPIHP) || defined(MPILAM)
 /* Prototype to keep compiler happy */
 void mpi_file_write_shared_(MPI_Fint *fh,void *buf,int *count,
-		    MPI_Datatype *datatype,MPI_Status *status, int *ierr );
+		    MPI_Fint *datatype,MPI_Status *status, int *ierr );
 
-#if defined(MPIHP) || defined(MPILAM)
 void mpi_file_write_shared_(MPI_Fint *fh,void *buf,int *count,
                    MPI_Fint *datatype,MPI_Status *status, int *ierr )
 {
@@ -101,6 +101,10 @@ void mpi_file_write_shared_(MPI_Fint *fh,void *buf,int *count,
     *ierr = MPI_File_write_shared(fh_c, buf,*count,datatype_c,status);
 }
 #else
+/* Prototype to keep compiler happy */
+void mpi_file_write_shared_(MPI_Fint *fh,void *buf,int *count,
+		    MPI_Datatype *datatype,MPI_Status *status, int *ierr );
+
 void mpi_file_write_shared_(MPI_Fint *fh,void *buf,int *count,
                    MPI_Datatype *datatype,MPI_Status *status, int *ierr )
 {

@@ -20,9 +20,14 @@ extern int    my_listener_port;
 extern char   mynickname[MAXHOSTNMLEN];
 extern int    rhs_idx;
 extern int    lhs_idx;
+extern int    mon_idx;
 extern struct keyval_pairs keyval_tab[64];
 extern int    keyval_tab_idx;
 extern char   mpd_passwd[PASSWDLEN];
+extern int    pulse_chkr;
+extern int    shutting_down;
+
+int connecting_to_self_as_lhs = 0;
 
 void handle_lhs_input( int idx )
 {
@@ -36,16 +41,16 @@ void handle_lhs_input( int idx )
 
     mpdprintf( 0, "handling lhs input\n" );
     if ( (length = read_line(fdtable[idx].fd, message, MAXLINE ) ) != 0 ) {
-        mpdprintf( debug, "message from lhs to handle =:%s: (read %d)\n", 
+        mpdprintf( 0, "message from lhs to handle =:%s: (read %d)\n", 
 		   message, length );
 	/* parse whole message */ 
 	strcpy( fwdbuf, message );             
-	parse_keyvals( message );
+	mpd_parse_keyvals( message );
 	/* dump_keyvals(); */
-	getval( "src", srcid );
-	getval( "dest", destid );
-	getval( "bcast", bcastval );
-	getval( "cmd", cmdval );
+	mpd_getval( "src", srcid );
+	mpd_getval( "dest", destid );
+	mpd_getval( "bcast", bcastval );
+	mpd_getval( "cmd", cmdval );
         if ( strlen(cmdval) == 0 ) 
 	{
             mpdprintf( debug, "no command specified in msg\n" );
@@ -82,6 +87,10 @@ void handle_lhs_input( int idx )
 	    sib_ping_ack();
 	else if ( strcmp( cmdval, "ringtest" ) == 0 )
 	    sib_ringtest();
+	else if ( strcmp( cmdval, "ringsize" ) == 0 )
+	    sib_ringsize();
+	else if ( strcmp( cmdval, "clean" ) == 0 )
+	    sib_clean();
 	else if ( strcmp( cmdval, "trace" ) == 0 )
 	    sib_trace();
 	else if ( strcmp( cmdval, "trace_info" ) == 0 )
@@ -110,8 +119,16 @@ void handle_lhs_input( int idx )
 	    sib_exit();
 	else if ( strcmp( cmdval, "allexit" ) == 0 )
 	    sib_allexit();
+	else if ( strcmp( cmdval, "shutdown" ) == 0 )
+	    sib_shutdown();
+	else if ( strcmp( cmdval, "req_perm_to_shutdown" ) == 0 )
+            sib_req_perm_to_shutdown();
+	else if ( strcmp( cmdval, "perm_to_shutdown" ) == 0 )
+            sib_perm_to_shutdown();
 	else if ( strcmp( cmdval, "mpexec" ) == 0 )
 	    sib_mpexec();
+	else if ( strcmp( cmdval, "jobstarted" ) == 0 )
+	    sib_jobstarted();
 	else if ( strcmp( cmdval, "jobsync" ) == 0 )
 	    sib_jobsync();
 	else if ( strcmp( cmdval, "jobgo" ) == 0 )
@@ -124,6 +141,12 @@ void handle_lhs_input( int idx )
 	    sib_needjobids();
 	else if ( strcmp( cmdval, "newjobids" ) == 0 )
 	    sib_newjobids();
+	else if ( strcmp( cmdval, "pulse" ) == 0 )
+	    sib_pulse();
+	else if ( strcmp( cmdval, "moninfo_req" ) == 0 )
+	    sib_moninfo();
+	else if ( strcmp( cmdval, "moninfo_data" ) == 0 )
+	    sib_moninfo_data();
 	else
 	    mpdprintf( 1, "invalid msg string from lhs = :%s:\n", fwdbuf );
         return;        
@@ -144,6 +167,7 @@ void handle_lhs_input( int idx )
 void handle_console_input( idx )
 int idx;
 {
+    int rc;
     char buf[MAXLINE];
     char parsebuf[MAXLINE];
     char errbuf[MAXLINE];
@@ -155,15 +179,25 @@ int idx;
 		   buf );
         /* get first word and branch accordingly, but pass whole buf */
 	strcpy( parsebuf, buf );
-	parse_keyvals( parsebuf );
-	getval( "cmd", cmd );
+	rc = mpd_parse_keyvals( parsebuf );
+	if ( rc < 0 ) {
+	    sprintf( errbuf,
+		     "cmd=jobstarted status=failed reason=invalid_msg_from_console\n" );
+	    write_line( console_idx, errbuf );
+	    return;
+	}
+	mpd_getval( "cmd", cmd );
 	if ( cmd[0] ) {
 	    if ( strcmp( cmd, "mpexec" ) == 0 )
 		con_mpexec( );
 	    else if ( strcmp( cmd, "ringtest" ) == 0 )
 		con_ringtest( );
+	    else if ( strcmp( cmd, "ringsize" ) == 0 )
+		con_ringsize( );
 	    else if ( strcmp( cmd, "debug" ) == 0 )
 		con_debug( );
+	    else if ( strcmp( cmd, "clean" ) == 0 )
+		con_clean( );
 	    else if ( strcmp( cmd, "trace" ) == 0 )
 		con_trace( );
 	    else if ( strcmp( cmd, "dump" ) == 0 )
@@ -178,6 +212,8 @@ int idx;
 		con_exit( );
 	    else if ( strcmp( cmd, "allexit" ) == 0 )
 		con_allexit( );
+	    else if ( strcmp( cmd, "shutdown" ) == 0 )
+		con_shutdown( );
 	    else if ( strcmp( cmd, "listjobs" ) == 0 )
 		con_listjobs( );
 	    else if ( strcmp( cmd, "signaljob" ) == 0 )
@@ -192,9 +228,9 @@ int idx;
 		    write_line( console_idx, errbuf );
 		}
 	    }
+            sprintf( buf, "cmd=ack_from_mpd\n" );
+            write_line( console_idx, buf );
 	}
-        strcpy( buf, "ack_from_mpd\n" );
-        write_line( console_idx, buf );
     }
     else {                        /* console gone away */
         mpdprintf( 0,
@@ -212,17 +248,30 @@ void handle_listener_input( int idx )
     
     mpdprintf( debug, "handling listener input, accept here\n" ); 
     new_idx = allocate_fdentry();
-    strcpy( fdtable[new_idx].name, "temp" );
     fdtable[new_idx].fd      = accept_connection( fdtable[idx].fd );
     fdtable[new_idx].read    = 1;
-    fdtable[new_idx].handler = NEWCONN;
+    if ( connecting_to_self_as_lhs ) {
+        strcpy( fdtable[new_idx].name, "lhs" );
+        fdtable[new_idx].handler = LHS;
+        strcpy( lhshost, mynickname );
+	lhsport = my_listener_port;
+	lhs_idx = new_idx;
+	mpdprintf( debug, "set newconn as LHS\n" );
+	connecting_to_self_as_lhs = 0;
+	pulse_chkr = 0;
+    }
+    else {
+        strcpy( fdtable[new_idx].name, "temp" );
+        fdtable[new_idx].handler = NEWCONN;
+    }
     mpdprintf( debug, "accepted new tmp connection on %d\n", fdtable[new_idx].fd ); 
 }
 
 void handle_console_listener_input( int idx )
 {
     int new_idx;
-    
+    char buf[MAXLINE];
+
     mpdprintf( debug, "handling console listener input\n" );
     if ( console_idx == -1 ) {
 	new_idx = allocate_fdentry();
@@ -233,6 +282,8 @@ void handle_console_listener_input( int idx )
 	fdtable[new_idx].handler = CONSOLE;
 	mpdprintf( 0, "accepted new console connection on %d\n", fdtable[new_idx].fd );
 	console_idx = new_idx;
+	sprintf( buf, "cmd=version_check version=%d\n", MPD_VERSION );
+	write_line( console_idx, buf );
     }
     else 
 	mpdprintf( 0, "delaying new console connection\n" );
@@ -248,39 +299,52 @@ void handle_rhs_input( int idx )
     else {
 	buf[0] = '\0';
 	n = read_line( fdtable[idx].fd, buf, MAXLINE );
-	if ( n == 0 ) { /* EOF, next sib died */
-	    mpdprintf( debug, "next sibling died; reconnecting to rhs2\n" );
-	    dclose( fdtable[idx].fd );
-	    fdtable[idx].fd      = network_connect( rhs2host, rhs2port );
-	    fdtable[idx].read    = 1;
-	    fdtable[idx].write   = 0;
-	    fdtable[idx].handler = RHS;
-	    strcpy( rhshost, rhs2host );
-	    rhsport = rhs2port;
-	    sprintf( buf, "src=%s dest=%s_%d cmd=new_lhs_req host=%s port=%d\n",
-		     myid, rhshost, rhsport, mynickname, my_listener_port );
-	    write_line( idx, buf );
-	    recv_msg( fdtable[idx].fd, buf );
-	    strcpy( parse_buf, buf );
-	    parse_keyvals( parse_buf );
-	    getval( "cmd", cmd );
-	    if ( strcmp( cmd, "challenge" ) != 0 ) {
-		mpdprintf( 1, "handle_rhs_input: expecting challenge, got %s\n", buf );
-		exit( -1 );
-	    }
-	    newconn_challenge( idx );
-	    /* special case logic */
-	    if ( strcmp( lhshost, rhshost ) != 0  ||  lhsport != rhsport )
-	    {
-		sprintf( buf, "src=%s dest=%s_%d cmd=rhs2info rhs2host=%s rhs2port=%d\n",
-			 myid, lhshost, lhsport, rhs2host, rhs2port );
-		write_line( idx, buf );
-	    }
-	    rhs_idx = idx;
+	if ( n == 0 || (n == -1 && errno == EPIPE) ) { /* EOF, next sib died */
+	    mpdprintf( debug,
+		       "next sibling died; n=%d strerror=:%s: reconnecting to rhs2host=%s rhs2port=%d\n",
+	               n, strerror(errno), rhs2host, rhs2port );
+	    chg_rhs_to_rhs2( idx );
 	}
 	else {
-	    mpdprintf( 1, "unexpected non-EOF message on rhs; n=%d msg=:%s:\n",n,buf );
+	    strcpy( parse_buf, buf );
+	    mpd_parse_keyvals( parse_buf );
+	    mpd_getval( "cmd", cmd );
+	    if ( strcmp( cmd, "pulse_ack" ) == 0 )
+	        pulse_chkr = 0;
+	    else
+		mpdprintf( 1, "handle_rhs_input: got n=%d unexpected msg=:%s:\n", n, buf );
 	}
+    }
+}
+
+void handle_monitor_input( int idx )
+{
+    char buf[MAXLINE], cmdval[MAXLINE], typeval[MAXLINE], monwhat[MAXLINE];
+
+    mpdprintf( debug, "handling monitor input\n" );
+    if ( read_line( fdtable[idx].fd, buf, MAXLINE ) != 0 ) {
+	mpdprintf( debug, "got monitor information request :%s:\n", buf );
+	mpd_parse_keyvals( buf );
+	mpd_getval( "cmd", cmdval );
+	if ( strcmp( cmdval, "moninfo_req" ) == 0 ) {
+	    mpd_getval( "vals", typeval );
+	    mpd_getval( "monwhat", monwhat );
+	    sprintf( buf, "cmd=moninfo_req dest=anyone src=%s monwhat=%s vals=%s\n",
+		     myid, monwhat, typeval );
+	    write_line( rhs_idx, buf );
+	}
+	else if ( strcmp( cmdval, "moninfo_conn_close" ) == 0 ) {
+	    dclose( fdtable[idx].fd );
+	    deallocate_fdentry( idx );
+	}
+	else {
+	    mpdprintf( 1, "unexpected monitor request = :%s:\n", cmdval );
+	}
+    }
+    else {
+        mpdprintf( 1, "lost contact with monitor\n" );
+        dclose( fdtable[idx].fd );
+        deallocate_fdentry( idx );
     }
 }
 
@@ -292,15 +356,22 @@ void handle_manager_input( int idx )
     mpdprintf( debug, "handling manager input\n" );
     if ( read_line( fdtable[idx].fd, buf, MAXLINE ) != 0 ) {
         mpdprintf( debug, "mpd handling msg from manager :%s\n", buf );
-	parse_keyvals( buf );
-	getval( "cmd", cmdval );
+	mpd_parse_keyvals( buf );
+	mpd_getval( "cmd", cmdval );
 	/* handle msg from manager */
 	if (strcmp(cmdval,"killjob") == 0)
 	{
-	    jobid = atoi( getval( "jobid", buf ) );
+	    jobid = atoi( mpd_getval( "jobid", buf ) );
 	    mpdprintf( debug, "handle_manager_input:  sending killjob jobid=%d\n", jobid );
             sprintf( buf, "src=%s bcast=true cmd=killjob jobid=%d\n", myid, jobid );
             write_line( rhs_idx, buf );
+	}
+	else if (strcmp(cmdval,"terminating") == 0)
+	{
+	    jobid = atoi( mpd_getval( "jobid", buf ) );
+	    mpdprintf( debug, "handle_manager_input:  got terminating from jobid=%d\n",
+		       jobid );
+            syslog( LOG_INFO, "job %d is terminating", jobid );
 	}
 	else if (strcmp(cmdval,"mandump_output") == 0)
 	{
@@ -329,10 +400,10 @@ void handle_newconn_input( int idx )
 	deallocate_fdentry( idx ); 
 	return;
     }
-    mpdprintf( debug, "handling newconn msg=:%s:\n",buf ); 
+    mpdprintf( debug, "handling newconn msg=:%s:\n", buf ); 
     strcpy( parse_buf, buf );             
-    parse_keyvals( parse_buf );
-    getval( "cmd", cmdval );
+    mpd_parse_keyvals( parse_buf );
+    mpd_getval( "cmd", cmdval );
     if ( strcmp( cmdval, "new_rhs_req" ) == 0 )
 	newconn_new_rhs_req( idx );
     else if (strcmp( cmdval, "new_rhs" ) == 0 )
@@ -343,8 +414,61 @@ void handle_newconn_input( int idx )
 	newconn_new_lhs( idx );
     else if ( strcmp( cmdval, "challenge" ) == 0 )
 	newconn_challenge( idx );
+    else if ( strcmp( cmdval, "moninfo_conn_req" ) == 0 )
+	newconn_moninfo_conn_req( idx );
+    else if ( strcmp( cmdval, "new_moninfo_conn" ) == 0 )
+	newconn_moninfo_conn( idx );
     else
-	mpdprintf( 1, "invalid msg from newconn: msg=:%s:\n",buf );
+	mpdprintf( 1, "invalid msg from newconn: msg=:%s:\n", buf );
+}
+
+void newconn_moninfo_conn_req( int idx )
+{
+    int version;
+    struct timeval tv;
+    char challenge_buf[MAXLINE], buf[MAXLINE];
+
+    /* don't validate peer host, not doing it in newconn_new_rhs_req anyway */
+    mpd_getval( "version", buf );
+    version = atoi( buf );
+
+    if ( version != MPD_VERSION ) {
+	mpdprintf( 1, "got request for new monitoring connection, "
+		   "with mismatched version %d, my version is %d\n",
+		   version, MPD_VERSION ); 
+    }
+    else {
+	mpdprintf( debug, "got cmd=moninfo_conn_req\n" ); 
+	gettimeofday( &tv, ( struct timezone * ) 0 );
+	srandom( tv.tv_usec * 167.5 );
+	fdtable[idx].rn = random( );
+	sprintf( challenge_buf, "cmd=challenge dest=anyone rand=%d type=new_moninfo\n",
+		 fdtable[idx].rn );
+	write_line( idx, challenge_buf );
+    }
+}
+
+void newconn_moninfo_conn( int idx )
+{
+    char buf[MAXLINE], encoded_num[16];
+
+    mpd_getval( "encoded_num", encoded_num );
+    /* validate response */
+    encode_num( fdtable[idx].rn, buf );
+    if ( strcmp( buf, encoded_num ) != 0 ) {
+	/* response did not meet challenge */
+	mpdprintf( 1, "response did not match challenge in newconn_moninfo_conn\n" );
+	dclose( fdtable[idx].fd );
+	deallocate_fdentry( idx );
+	return;
+    }
+    /* make this port our monitoring port */ 
+    mpdprintf( debug, "new monitoring connection successfully set up\n" );
+    fdtable[idx].handler = MONITOR;
+    mon_idx = idx;
+    strncpy( fdtable[idx].name, "monitor", strlen( "monitor" ) + 1 );
+    sprintf( buf, "cmd=moninfo_conn_ok\n" );
+    write_line( idx, buf );
 }
 
 void newconn_challenge( int idx )
@@ -352,8 +476,8 @@ void newconn_challenge( int idx )
     char buf[MAXLINE], encoded_num[16], type[MAXLINE];
     int  challenge_num;
 
-    getval( "rand", buf );
-    getval( "type", type );
+    mpd_getval( "rand", buf );
+    mpd_getval( "type", type );
     challenge_num = atoi( buf );
     encode_num( challenge_num, encoded_num );
     sprintf( buf, "cmd=%s dest=anyone encoded_num=%s host=%s port=%d\n",
@@ -368,16 +492,18 @@ void newconn_challenge( int idx )
 void newconn_new_rhs_req( int idx )
 {
     /* validate new mpd attempting to enter the ring */
-    int newport;
+    int newport, version;
     mpd_sockopt_len_t salen;
     struct timeval tv;
     struct hostent *hp;
     struct sockaddr_in sa;
     char buf[MAXLINE], challenge_buf[MAXLINE], newhost[MAXHOSTNMLEN], *fromhost;
 
-    getval( "port", buf ); 
+    mpd_getval( "port", buf ); 
     newport = atoi( buf );
-    getval( "host", newhost ); 
+    mpd_getval( "host", newhost ); 
+    mpd_getval( "version", buf );
+    version = atoi( buf );
 
     /* validate remote host */
     salen = sizeof( sa );
@@ -395,12 +521,20 @@ void newconn_new_rhs_req( int idx )
     }
     /* Someday, check this host name or its address against list of approved hosts */
 
-    mpdprintf( debug, "got cmd=new_rhs_req host=%s port=%d\n", newhost, newport ); 
-    gettimeofday( &tv, ( struct timezone * ) 0 );
-    srandom( tv.tv_usec * 167.5 );
-    fdtable[idx].rn = random( );
-    sprintf( challenge_buf, "cmd=challenge dest=anyone rand=%d type=new_rhs\n", fdtable[idx].rn );
-    write_line( idx, challenge_buf );
+    if ( version != MPD_VERSION ) {
+	mpdprintf( 1, "got request to enter ring from host %s, "
+		   "with mismatched version %d, my version is %d\n",
+		   fromhost, version, MPD_VERSION ); 
+    }
+    else {
+	mpdprintf( debug, "got cmd=new_rhs_req host=%s port=%d\n", newhost, newport ); 
+	gettimeofday( &tv, ( struct timezone * ) 0 );
+	srandom( tv.tv_usec * 167.5 );
+	fdtable[idx].rn = random( );
+	sprintf( challenge_buf, "cmd=challenge dest=anyone rand=%d type=new_rhs\n",
+		 fdtable[idx].rn );
+	write_line( idx, challenge_buf );
+    }
 }
 
 void newconn_new_lhs_req( int idx )
@@ -413,9 +547,9 @@ void newconn_new_lhs_req( int idx )
     struct sockaddr_in sa;
     char buf[MAXLINE], challenge_buf[MAXLINE], newhost[MAXHOSTNMLEN], *fromhost;
 
-    getval( "port", buf ); 
+    mpd_getval( "port", buf ); 
     newport = atoi( buf );
-    getval( "host", newhost ); 
+    mpd_getval( "host", newhost ); 
 
     /* validate remote host */
     salen = sizeof( sa );
@@ -445,10 +579,10 @@ void newconn_new_rhs( int idx )
     int  newport;
     char buf[MAXLINE], new_rhs[MAXHOSTNMLEN], encoded_num[16];
 
-    getval( "host", new_rhs ); 
-    getval( "port", buf ); 
+    mpd_getval( "host", new_rhs ); 
+    mpd_getval( "port", buf ); 
     newport = atoi( buf );
-    getval( "encoded_num", encoded_num );
+    mpd_getval( "encoded_num", encoded_num );
     mpdprintf( debug, "newconn_new_rhs: host=%s port=%d, encoded_num=%s\n",
 	       new_rhs, newport, encoded_num ); 
     /* validate response */
@@ -504,9 +638,9 @@ int idx;
     int  newport;
     char buf[MAXLINE], new_lhs[MAXHOSTNMLEN], encoded_num[16];
 
-    getval( "host", new_lhs ); 
-    newport = atoi( getval( "port", buf ) ); 
-    getval( "encoded_num", encoded_num );
+    mpd_getval( "host", new_lhs ); 
+    newport = atoi( mpd_getval( "port", buf ) ); 
+    mpd_getval( "encoded_num", encoded_num );
     mpdprintf( debug, "got cmd=new_lhs host=%s port=%d, encoded_num=%s\n",
 	       new_lhs, newport, encoded_num ); 
     /* validate response */
@@ -532,5 +666,65 @@ int idx;
     sprintf( buf, "src=%s dest=%s_%d cmd=rhs2info rhs2host=%s rhs2port=%d\n",
 	     myid, lhshost, lhsport, rhshost, rhsport );
     write_line( rhs_idx, buf );
+    if ( shutting_down ) {
+        sprintf( buf, "cmd=req_perm_to_shutdown\n" );
+        write_line( lhs_idx, buf );
+    }
 }
 
+void chg_rhs_to_rhs2( int idx )
+{
+    char buf[MAXLINE], parse_buf[MAXLINE], cmd[MAXLINE];
+
+    dclose( fdtable[idx].fd );
+    mpdprintf( debug,"reconnecting to: %s_%d\n",rhs2host,rhs2port );
+    if ( strcmp( rhs2host, mynickname ) == 0 && rhs2port == my_listener_port )
+        connecting_to_self_as_lhs = 1;  /* reset in handler */
+    fdtable[idx].fd      = network_connect( rhs2host, rhs2port );
+    fdtable[idx].read    = 1;
+    fdtable[idx].write   = 0;
+    fdtable[idx].handler = RHS;
+    strcpy( fdtable[idx].name, "rhs" );
+    if ( connecting_to_self_as_lhs ) {
+        strcpy( rhshost, rhs2host );
+	rhsport = rhs2port;
+	rhs_idx = idx;
+	mpdprintf( debug, "set RHS to myself\n" );
+    }
+    else {
+        sprintf( buf, "src=%s dest=%s_%d cmd=new_lhs_req host=%s port=%d\n",
+	         myid, rhs2host, rhs2port, mynickname, my_listener_port );
+        write_line( idx, buf );
+        recv_msg( fdtable[idx].fd, buf, MAXLINE );
+        strcpy( parse_buf, buf );
+        mpd_parse_keyvals( parse_buf );
+        mpd_getval( "cmd", cmd );
+        if ( strcmp( cmd, "challenge" ) != 0 ) {
+	    mpdprintf( 1, "handle_rhs_input: expecting challenge, got %s\n", buf );
+	    exit( -1 );
+        }
+        newconn_challenge( idx );
+        /* special case logic */
+        if ( strcmp( lhshost, rhshost ) != 0  ||  lhsport != rhsport ) {
+	    sprintf( buf, "src=%s dest=%s_%d cmd=rhs2info rhs2host=%s rhs2port=%d\n",
+		     myid, lhshost, lhsport, rhs2host, rhs2port );
+	    write_line( idx, buf );
+        }
+        strcpy( rhshost, rhs2host );
+        rhsport = rhs2port;
+        rhs_idx = idx;
+    }
+    pulse_chkr = 0;
+}
+
+#ifdef NEED_CRYPT_PROTOTYPE
+extern char *crypt (const char *, const char *);
+#endif
+
+void encode_num( int rn, char *buf )
+{
+    char tempbuf[PASSWDLEN+32];
+
+    sprintf( tempbuf, "%s%d", mpd_passwd, rn );
+    strcpy( buf, crypt( tempbuf, "el" ) );
+}

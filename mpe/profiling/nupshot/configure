@@ -1675,7 +1675,7 @@ else
 echo $ac_n "checking whether cross-compiling""... $ac_c" 1>&1
 fi
     # If we cannot run a trivial program, we must be cross compiling.
-    cat > conftest.c <<EOF
+            cat > conftest.c <<EOF
 #include "confdefs.h"
 main(){exit(0);}
 EOF
@@ -1688,7 +1688,7 @@ else
 fi
 rm -fr conftest*
     if test $pac_ok = 1 ; then
-         cat > conftest.c <<EOF
+        cat > conftest.c <<EOF
 #include "confdefs.h"
 main(){exit(1);}
 EOF

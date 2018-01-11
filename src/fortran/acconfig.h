@@ -21,6 +21,19 @@
 
 /* Define is #pragma _CRI duplicate x as y supported */
 #undef HAVE_PRAGMA_CRI_DUP
+
+/* Define if crypt requires a prototype */
+#undef NEED_CRYPT_PROTOTYPE
+
+/* Define as empty if C does not support any form of restrict or define 
+   as the appropriate extension */
+#undef restrict
+
+/* Define if the XOPEN versions of routines and header files are needed */
+#undef _XOPEN_SOURCE
+
+/* Define as empty if C does not support inline */
+#undef inline
 /* acconfig_f77.h */
 /* Define if Fortran uses lowercase name mangling */
 #undef F77_NAME_LOWER
@@ -78,3 +91,8 @@
 #undef USE_STDARG
 
 #undef USE_OLDSTYLE_STDARG
+
+/* Define if MPI_Fint is the same as a C int */
+#undef FINT_IS_INT
+
+#undef USE_POINTER_FOR_BOTTOM

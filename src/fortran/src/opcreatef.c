@@ -122,5 +122,6 @@ EXPORT_MPI_API void mpi_op_create_(
     *__ierr = MPI_Op_create(function,MPIR_FROM_FLOG((int)*commute),
                             &l_op);
 #endif
-    *op = MPI_Op_c2f(l_op);
+    if (*__ierr == MPI_SUCCESS) 
+        *op = MPI_Op_c2f(l_op);
 }

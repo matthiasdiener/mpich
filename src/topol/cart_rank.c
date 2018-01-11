@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_rank.c,v 1.6 1999/08/30 15:50:50 swider Exp $
+ *  $Id: cart_rank.c,v 1.7 2001/04/19 20:56:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -39,6 +39,10 @@ Input Parameters:
 
 Output Parameter:
 . rank - rank of specified process (integer) 
+
+Notes:
+ Out-of-range coordinates are erroneous for non-periodic dimensions.  Versions
+ of MPICH before 1.2.2 returned 'MPI_PROC_NULL' for the rank in this case.
 
 .N fortran
 
@@ -84,7 +88,9 @@ EXPORT_MPI_API int MPI_Cart_rank (
     if ( ((*rank) >= topo->cart.dims[ndims-1]) ||
          ((*rank) <  0) ) {
       (*rank) = MPI_PROC_NULL;
-      return (mpi_errno);
+      mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_DEFAULT, myname, 
+				   (char *)0, (char *)0, "coords" );
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname );
     }
   }
   else {
@@ -102,7 +108,9 @@ EXPORT_MPI_API int MPI_Cart_rank (
       if ( (coord >= topo->cart.dims[i]) ||
            (coord <  0) ) {
         (*rank) = MPI_PROC_NULL;
-        return (mpi_errno);
+	mpi_errno = MPIR_Err_setmsg( MPI_ERR_ARG, MPIR_ERR_DEFAULT, myname, 
+				   (char *)0, (char *)0, "coords" );
+        return MPIR_ERROR( comm_ptr, mpi_errno, myname );
       }
     }
     else {

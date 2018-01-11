@@ -5,11 +5,11 @@ MPI_Type_create_indexed_block \-  Creates an indexed datatype with constant size
 .nf
 #include "mpi.h"
 int MPI_Type_create_indexed_block( 
- int count, 
- int blocklength, 
- int array_of_displacements[], 
- MPI_Datatype old_type, 
- MPI_Datatype *newtype )
+        int count, 
+        int blocklength, 
+        int array_of_displacements[], 
+        MPI_Datatype old_type, 
+        MPI_Datatype *newtype )
 .fi
 .SH INPUT PARAMETERS
 .PD 0

@@ -79,13 +79,15 @@ RunTest errhand2 1 "*** Tests of error handling reference counting ***"
 
 RunTest sigchk 1 "*** Tests of signals used ***"
 
+RunTest getproc 1 "*** Test Get Processor Name ***"
+
 OutTime
 testfiles="$testfiles cmdline.out"
 /bin/rm -f cmdline.out
 MakeExe cmdline
 echo "*** Tests of command line handling ***"
 echo "*** Tests of command line handling ***" >> cmdline.out
-$mpirun $args -np 2 cmdline a "b c" "d'e" 'f"g" h' $* </dev/null l>> cmdline.out 2>&1
+$mpirun $args -np 2 ./cmdline a "b c" "d'e" 'f"g" h' $* </dev/null l>> cmdline.out 2>&1
 echo "*** Tests of command line handling ***" >> cmdline.out
 CleanExe cmdline
 if [ ! -s cmdline.stdo ] ; then
@@ -111,7 +113,9 @@ MakeExe aborttest
 echo "*** Tests of MPI_Abort ***"
 echo "*** Tests of MPI_Abort ***" >> aborttest.out
 $PSPGM | grep $LOGNAME > aborttest.p1
-$mpirun $args -np 2 aborttest $* < /dev/null > /dev/null 2>&1
+$mpirun $args -np 2 ./aborttest $* < /dev/null > /dev/null 2>&1
+# allow some time for processes to exit
+sleep 5
 $PSPGM | grep $LOGNAME > aborttest.p2
 # If there was a consistant format, we could process it ...
 ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
@@ -136,7 +140,8 @@ OutTime
 echo "*** Tests of MPI_Abort (alt) ***"
 echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
 $PSPGM | grep $LOGNAME > aborttest.p1
-$mpirun $args -np 2 aborttest -altmaster $* > /dev/null 2>&1
+$mpirun $args -np 2 ./aborttest -altmaster $* > /dev/null 2>&1
+sleep 5
 $PSPGM | grep $LOGNAME > aborttest.p2
 ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
 ndiff=`expr $ndiff`
@@ -144,10 +149,12 @@ if test "$ndiff" = 0 ; then
     echo "All processes aborted" >> aborttest.out    
 else
     echo "Suspicious processes remain" >> aborttest.out
-    echo "Processes before" >> aborttest.out
-    cat aborttest.p1 >> aborttest.out
-    echo "Processes after" >> aborttest.out
-    cat aborttest.p2 >> aborttest.out
+    #echo "Processes before" >> aborttest.out
+    #cat aborttest.p1 >> aborttest.out
+    #echo "Processes after" >> aborttest.out
+    #cat aborttest.p2 >> aborttest.out
+    echo "Differences are" >> aborttest.out
+    diff -b aborttest.p1 aborttest.p2 >> aborttest.out
 fi
 echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
 /bin/rm -f aborttest.p1 aborttest.p2
@@ -161,6 +168,7 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
 
     RunTest getprocf 1 "*** Test MPI_Get_processor_name in Fortran ***"
 
+    RunTest errhandf 1 "*** Tests of error handling in Fortran ***"
 fi
 
 else

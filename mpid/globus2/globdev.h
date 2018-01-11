@@ -1,6 +1,11 @@
 #ifndef __globdev__
 #define __globdev__
 
+/* used for all message headers */
+#define HEADERLEN 10
+
+#include "mpi2.h" /* MPI-2 Extensions */
+
 #include <globus_io.h>
 #include <globus_dc.h>
 #include "debug.h" /* debug must come before the other globus2 header files */
@@ -10,6 +15,23 @@
 #include "mem.h"
 #include "vmpi.h"
 #include "mpipt2pt.h"
+
+/**************************/
+/* begin MPI-2 Extensions */
+/**************************/
+
+struct commworldchannels
+{
+    int nprocs;
+    char name[COMMWORLDCHANNELSNAMELEN];
+    struct channel_t *channels;
+}; /* end struct commworldchannels */
+
+#define COMMWORLDCHANNELS_TABLE_STEPSIZE 100
+
+/************************/
+/* end MPI-2 Extensions */
+/************************/
 
 #if defined(VMPI)
 
@@ -96,7 +118,15 @@ struct mpi_posted_queue
 /*************************/
 
 /* init_g.c */
-void print_channels(int nprocs, struct channel_t *channels);
+void build_channels(int nprocs,
+		    globus_byte_t **mi_protos_vector,
+		    struct channel_t **channels);
+void select_protocols(int nprocs, struct channel_t *channels);
+void print_channels();
+struct channel_t *get_channel(int grank);
+int get_channel_rowidx(int grank, int *displ /* optional */); 
+int commworld_name_to_rowidx(char *name);
+int commworld_name_displ_to_grank(char *name, int displ);
 
 /* send_g.c */
 int enqueue_tcp_send(struct tcpsendreq *sr);

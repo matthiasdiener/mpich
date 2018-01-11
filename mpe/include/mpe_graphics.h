@@ -90,6 +90,11 @@ struct MPE_XGraph_s {
   long     input_mask;          /* Input mask of enabled events */
     /* Routine to call for events */
   int      (*event_routine) ( MPE_XGraph, XEvent * );  
+
+    /* The following are used to provide a Fortran interface on systems
+       where pointers are longer than Fortran integers */
+  int      fort_index;
+  MPE_XGraph next;
 };
 #define MPE_G_COOKIE 0xfeeddada
 

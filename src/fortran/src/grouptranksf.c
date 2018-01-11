@@ -87,11 +87,14 @@ EXPORT_MPI_API void mpi_group_translate_ranks_ ( MPI_Fint *group_a,
 				  MPI_Fint *__ierr )
 {
 
-    if (sizeof(MPI_Fint) == sizeof(int))
+    if (sizeof(MPI_Fint) == sizeof(int)) {
+	/* We cast ranges here in case MPI_Fint != int and the compiler
+	   wants to complain...*/
         *__ierr = MPI_Group_translate_ranks(MPI_Group_f2c(*group_a),*n,
-                                            ranks_a,
+                                            (int *)ranks_a,
                                             MPI_Group_f2c(*group_b), 
-                                            ranks_b);
+                                            (int *)ranks_b);
+    }
     else {
         int *l_ranks_a;
         int *l_ranks_b;

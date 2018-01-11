@@ -21,14 +21,19 @@
 */
 
 
+#include "mpeconf.h"
 #include <stdio.h>
 #include <fcntl.h> 
 #include <string.h>
-#include <unistd.h> 
+#if defined( STDC_HEADERS ) || defined( HAVE_STDLIB_H )
 #include <stdlib.h>
-#include "mpeconf.h"
+#endif
+#if defined( HAVE_UNISTD_H )
+#include <unistd.h> 
+#endif
 #include "clog2slog.h"
 #include "slog.h"
+#include "mpi.h"
 
 #if defined( C2S_BYTESWAP )
 #undef C2S_BYTESWAP
@@ -67,6 +72,27 @@ static long events = 0;
 
 static SLOG slog;                       /* a handle to the slog format.      */
 
+/* Forward refs */
+static int logEvent( CLOG_HEADER *, CLOG_RAW * );
+static int handle_extra_state_defs(CLOG_STATE *);
+static int writeSLOGInterval(CLOG_HEADER *, CLOG_RAW *, struct list_elemnt);
+static int handleStartEvent(int, CLOG_HEADER *, CLOG_RAW *);
+static int addState(int, int, int, CLOG_CNAME, CLOG_DESC);
+static int replace_state_in_list(int, int, CLOG_CNAME, CLOG_DESC);
+static int findState_strtEvnt(int);
+static int findState_endEvnt(int);
+static int addToList(int, int, int, double);
+static int addToMsgList(int, int, int, int, double);
+static int find_elemnt(int, int, int, struct list_elemnt *);
+static int find_msg_elemnt(int, int, int, int, struct list_elemnt *);
+static void freeList(void);
+static void freeMsgList(void);
+#ifdef DEBUG_PRINT
+static void printEventList(void);
+static void printMsgEventList(void);
+#endif
+static int get_new_state_id(void);
+
 
 /****
      initialize clog2slog data structures.
@@ -101,8 +127,8 @@ int init_clog2slog(char *clog_file, char **slog_file) {
 /****
      returns memory resources used by clog2slog
 ****/
-void free_resources() {
-  freeStateInfo();
+void CLOG_free_resources() {
+  CLOG_freeStateInfo();
   freeList();
   freeMsgList();
   SLOG_CloseOutputStream( slog );
@@ -121,7 +147,7 @@ void free_resources() {
      WARNING: to be used when a first pass is made for initializing
      state definitions.
 ****/
-int init_state_defs(double *membuff) {
+int CLOG_init_state_defs(double *membuff) {
 
   int rec_type;
   CLOG_HEADER* headr;         /* pointer to a clog header.          */
@@ -227,7 +253,7 @@ int init_state_defs(double *membuff) {
      it provides the very first state definitions in the linked list of 
      state definitions.
 ****/
-int init_all_mpi_state_defs ( ) {
+int CLOG_init_all_mpi_state_defs ( ) {
   int event_id = 1;  /* identical to the state initializations in
 		        "log_wrap.c" in the mpe direcory under
 			MPI_Init's definition.
@@ -510,7 +536,7 @@ int init_SLOG (long num_frames, long frame_size, char *slog_file ) {
   if(slog == NULL) {
     fprintf(stderr, __FILE__":%d: SLOG_OpenOutputStream returns null - "
 	    "check SLOG documentation for more information.\n",__LINE__);
-    freeStateInfo();
+    CLOG_freeStateInfo();
     return C2S_ERROR;
   }
   
@@ -551,7 +577,7 @@ int init_SLOG (long num_frames, long frame_size, char *slog_file ) {
 /****
      initialize number of events and number of processes
 ****/
-void init_essential_values(long event_count, int process_count) {
+void CLOG_init_essential_values(long event_count, int process_count) {
   num_events = event_count;
   proc_num   = process_count;
 }
@@ -561,7 +587,7 @@ void init_essential_values(long event_count, int process_count) {
      it looks for CLOG_RAWEVENT types and then passes it on to the logEvent
      function where all the details are handled.
 ****/
-int makeSLOG(double *membuff) {
+int CLOG_makeSLOG(double *membuff) {
 
   int  rec_type;
   CLOG_HEADER* headr;
@@ -651,7 +677,7 @@ int makeSLOG(double *membuff) {
      the arguments to the function include a pointer to the header of the 
      event log as well as a pointer to the event log itself.
 ****/
-int logEvent( CLOG_HEADER *headr, CLOG_RAW *event_ptr )
+static int logEvent( CLOG_HEADER *headr, CLOG_RAW *event_ptr )
 {
   /*
   static int N_mpi_proc_null = 0;
@@ -737,12 +763,14 @@ int logEvent( CLOG_HEADER *headr, CLOG_RAW *event_ptr )
 	                       ",state=%d,processid=%d,data=%d,timestamp=%f\n",
 		 	       __LINE__, stat_id, headr->procid,
 			       event_ptr->data, headr->timestamp );
+#ifdef DEBUG_PRINT
 	      /*
 	      printEventList();
-	      printStateInfo();
+	      CLOG_printStateInfo();
 	      free(one);
-	      free_resources();
+	      CLOG_free_resources();
 	      */
+#endif
 	      return C2S_ERROR;
           }
       }
@@ -758,7 +786,7 @@ int logEvent( CLOG_HEADER *headr, CLOG_RAW *event_ptr )
      handles state definitions during parsing of log file when slog conversion
      begins.
 ****/
-int handle_extra_state_defs(CLOG_STATE *state) {
+static int handle_extra_state_defs(CLOG_STATE *state) {
 
   SLOG_intvltype_t intvltype;
   SLOG_bebit_t     bebit_0 = 1;
@@ -796,7 +824,7 @@ int handle_extra_state_defs(CLOG_STATE *state) {
   if( ierr != SLOG_SUCCESS ) {
     fprintf( stderr, __FILE__":%d: SLOG Record Definition initialization"
 	     " failed. \n", __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
 
@@ -807,7 +835,7 @@ int handle_extra_state_defs(CLOG_STATE *state) {
     fprintf( stderr, __FILE__":%d: SLOG_PROF_AddExtraIntvlInfo failed - "
 	     "check SLOG documentation for more information. \n",
 	     __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
   return C2S_SUCCESS;
@@ -816,7 +844,7 @@ int handle_extra_state_defs(CLOG_STATE *state) {
 /****
      wirtes an SLOG interval
 ****/
-int writeSLOGInterval(CLOG_HEADER *headr, CLOG_RAW *event_ptr,
+static int writeSLOGInterval(CLOG_HEADER *headr, CLOG_RAW *event_ptr,
 		       struct list_elemnt one) {
   /*
     SLOG STUFF:
@@ -911,7 +939,7 @@ int writeSLOGInterval(CLOG_HEADER *headr, CLOG_RAW *event_ptr,
      add incoming event to list of start events. aka "list_first/list_last"
      list. 
 ****/
-int handleStartEvent(int stat_id, CLOG_HEADER *headr, 
+static int handleStartEvent(int stat_id, CLOG_HEADER *headr, 
 		      CLOG_RAW *event_ptr) {
   /*
     SLOG STUFF:
@@ -1001,7 +1029,7 @@ int init_SLOG_TTAB() {
 
   if( SLOG_TTAB_Open( slog ) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_TTAB_Open() fails! \n",__LINE__ );
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
 
@@ -1013,14 +1041,14 @@ int init_SLOG_TTAB() {
     if( ierr != SLOG_SUCCESS ) {
       fprintf( stderr,__FILE__":%d: SLOG Thread Table initialization "
 	       "failed.\n",__LINE__);
-      free_resources();
+      CLOG_free_resources();
       return C2S_ERROR;
     }
   }
 
   if((ierr = SLOG_TTAB_Close( slog )) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_TTAB_Close() fails! \n", __LINE__ );
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
   return C2S_SUCCESS;
@@ -1044,7 +1072,7 @@ int init_SLOG_PROF_RECDEF() {
   
   if( SLOG_PROF_Open( slog ) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_PROF_Open() fails! \n", __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
 
@@ -1067,7 +1095,7 @@ int init_SLOG_PROF_RECDEF() {
       if( ierr != SLOG_SUCCESS ) {
 	fprintf( stderr,__FILE__":%d: SLOG Profile initialization failed.\n",
 		  __LINE__);
-	free_resources();
+	CLOG_free_resources();
 	return C2S_ERROR;
       }
       ierr = SLOG_PROF_AddIntvlInfo( slog, BACKWARD_MSG, bebit_0, bebit_1,
@@ -1079,7 +1107,7 @@ int init_SLOG_PROF_RECDEF() {
     if( ierr != SLOG_SUCCESS ) {
       fprintf( stderr,__FILE__":%d: SLOG Profile initialization failed. \n",
 	        __LINE__);
-      free_resources();
+      CLOG_free_resources();
       return C2S_ERROR;
     }
       
@@ -1090,12 +1118,12 @@ int init_SLOG_PROF_RECDEF() {
     fprintf(stderr, __FILE__
                     ":%d: SLOG_PROF_SetExtraNumOfIntvlInfos() fails! \n", 
 	            __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
   if( SLOG_RDEF_Open( slog ) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_RDEF_Open() fails! \n", __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
 
@@ -1115,7 +1143,7 @@ int init_SLOG_PROF_RECDEF() {
       if( ierr != SLOG_SUCCESS ) {
 	fprintf( stderr,__FILE__":%d: SLOG Record Definition initialization"
 		 " failed. \n",__LINE__);
-	free_resources();
+	CLOG_free_resources();
 	return C2S_ERROR;
       }
       ierr = SLOG_RDEF_AddRecDef( slog, BACKWARD_MSG,
@@ -1125,7 +1153,7 @@ int init_SLOG_PROF_RECDEF() {
     if( ierr != SLOG_SUCCESS ) {
       fprintf( stderr,__FILE__":%d: SLOG Record Definition initialization"
 	       " failed. \n", __LINE__);
-      free_resources();
+      CLOG_free_resources();
       return C2S_ERROR;
     }
   }
@@ -1133,7 +1161,7 @@ int init_SLOG_PROF_RECDEF() {
   if( SLOG_RDEF_SetExtraNumOfRecDefs( slog,EXTRA_STATES ) != SLOG_SUCCESS ) {
     fprintf(stderr, __FILE__":%d: SLOG_RDEF_SetExtraNumOfRecDefs() fails! \n",
 	    __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
   return C2S_SUCCESS;
@@ -1146,7 +1174,7 @@ int init_SLOG_PROF_RECDEF() {
 ****/
 
 /*
-void checkForBigEndian() {
+static void checkForBigEndian() {
     union {
 	long l;
 	char ch[sizeof(long)];
@@ -1165,7 +1193,7 @@ void checkForBigEndian() {
 /****
      add a new state definition to the end of the state definition list.
 ****/
-int addState(int stat_id, int strt_id, int end_id,
+static int addState(int stat_id, int strt_id, int end_id,
 	      CLOG_CNAME colr, CLOG_DESC desc) {
 
   struct state_info *temp_ptr;
@@ -1199,7 +1227,7 @@ int addState(int stat_id, int strt_id, int end_id,
   if(temp_ptr == NULL) {
     fprintf(stderr,__FILE__":%d: not enough memory for start event list!\n",
 	    __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
   if(stat_id != MSG_STATE)
@@ -1228,7 +1256,7 @@ int addState(int stat_id, int strt_id, int end_id,
 	
 }
 
-int replace_state_in_list(int start_id, int end_id, 
+static int replace_state_in_list(int start_id, int end_id, 
 			  CLOG_CNAME colr, CLOG_DESC desc) {
   struct state_info *one = NULL,
                     *two = NULL;
@@ -1250,7 +1278,7 @@ int replace_state_in_list(int start_id, int end_id,
 /****
      finds a state id for the given start event id from the state def list.
 ****/
-int findState_strtEvnt(int strt_id) {
+static int findState_strtEvnt(int strt_id) {
   struct state_info *one = NULL,
                     *two = NULL;
   for(one = first; one != NULL; one = two){
@@ -1264,7 +1292,7 @@ int findState_strtEvnt(int strt_id) {
 /****
      finds a state id for the given end event id from the state def list.
 ****/
-int findState_endEvnt(int end_id){
+static int findState_endEvnt(int end_id){
 
   struct state_info *one = NULL,
                     *two = NULL;
@@ -1279,7 +1307,7 @@ int findState_endEvnt(int end_id){
 /****
      frees up memory malloced for state definitions in the list of state defs.
 ****/
-void freeStateInfo() {
+void CLOG_freeStateInfo(void) {
   struct state_info *one = NULL,
                     *two = NULL;
   for(one = first; one != NULL; one = two) {
@@ -1292,7 +1320,8 @@ void freeStateInfo() {
      print all the elements in the state definition list. helps a lot in
      debugging if the need be.
 ****/
-void printStateInfo() {
+#ifdef DEBUG_PRINT
+void CLOG_printStateInfo(void) {
   struct state_info *one = NULL,
                     *two = NULL;
   for(one = first; one != NULL; one = two) {
@@ -1303,7 +1332,7 @@ void printStateInfo() {
     fflush(stdout);
   }
 }
-
+#endif
 /****
      adds a start event to the start event list. the only relevant info 
      needed for slogging are state id, the data from CLOG_RAWEVENT and the 
@@ -1312,7 +1341,7 @@ void printStateInfo() {
      list - why??? - well, just in case there are nested events(threads) or 
      non-blocking MPI calls. hasnt been tested on those two conditions yet.
 ****/
-int addToList(int stat_id, int data, int proc_id, double strt_time) {
+static int addToList(int stat_id, int data, int proc_id, double strt_time) {
 
   struct list_elemnt *temp_ptr =
     (struct list_elemnt *)MALLOC
@@ -1321,7 +1350,7 @@ int addToList(int stat_id, int data, int proc_id, double strt_time) {
   if(temp_ptr == NULL) {
     fprintf(stderr,__FILE__":%d: not enough memory for start event list!\n",
 	    __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
 
@@ -1356,7 +1385,7 @@ int addToList(int stat_id, int data, int proc_id, double strt_time) {
      list - why??? - well, just in case there are nested events(threads) or 
      non-blocking MPI calls. hasnt been tested on those two conditions yet.
 ****/
-int addToMsgList(int stat_id, int data, int proc_id,
+static int addToMsgList(int stat_id, int data, int proc_id,
                  int rec_type, double strt_time) {
 
   struct list_elemnt *temp_ptr =
@@ -1365,7 +1394,7 @@ int addToMsgList(int stat_id, int data, int proc_id,
   if(temp_ptr == NULL) {
     fprintf(stderr,__FILE__":%d: not enough memory for message list!\n",
 	    __LINE__);
-    free_resources();
+    CLOG_free_resources();
     return C2S_ERROR;
   }
 
@@ -1398,7 +1427,7 @@ int addToMsgList(int stat_id, int data, int proc_id,
      that start event is then removed from the list and passed by reference to
      the calling function through the variable "element".
 ****/
-int find_elemnt(int stat_id, int data,int procid, struct list_elemnt *element){
+static int find_elemnt(int stat_id, int data,int procid, struct list_elemnt *element){
   struct list_elemnt *one   = NULL,
                      *two   = NULL,
                      *three = NULL;
@@ -1435,7 +1464,7 @@ int find_elemnt(int stat_id, int data,int procid, struct list_elemnt *element){
   return C2S_ERROR;
 }
 
-int find_msg_elemnt(int stat_id, int data, int procid, int record_type,
+static int find_msg_elemnt(int stat_id, int data, int procid, int record_type,
                     struct list_elemnt *element){
   struct list_elemnt *one   = NULL,
                      *two   = NULL,
@@ -1481,7 +1510,7 @@ int find_msg_elemnt(int stat_id, int data, int procid, int record_type,
      of the second pass but wierd things happen when you dont know how the
      clog file got generated.
 ****/
-void freeList(){
+static void freeList(void){
   struct list_elemnt *one = NULL,
                      *two = NULL;
   for(one = list_first; one != NULL; one = two) {
@@ -1494,7 +1523,7 @@ void freeList(){
 /****
      frees memory malloced to the message event list.
 ****/
-void freeMsgList(){
+static void freeMsgList(void){
   struct list_elemnt *one = NULL,
                      *two = NULL;
   for(one = msg_list_first; one != NULL; one = two) {
@@ -1505,11 +1534,12 @@ void freeMsgList(){
   msg_list_last = NULL;
 }
 
+#ifdef DEBUG_PRINT
 /****
      print all the elements in the start event list. helps a lot in
      debugging if the need be.
 ****/
-void printEventList() {
+static void printEventList(void) {
   struct list_elemnt *one = NULL,
 	             *two = NULL;
   for(one = list_first; one != NULL; one = two) {
@@ -1518,7 +1548,7 @@ void printEventList() {
     two = one->next;
   }
 }
-void printMsgEventList() {
+static void printMsgEventList(void) {
   struct list_elemnt *one = NULL,
 	             *two = NULL;
   for(one = msg_list_first; one != NULL; one = two) {
@@ -1527,11 +1557,12 @@ void printMsgEventList() {
     two = one->next;
   }
 }
-    
+#endif
+
 /****
      prints all the options available with this program.
 ****/
-void printHelp() {
+void CLOG_printHelp(void) {
     fprintf(stdout,"Usage : clog2slog [ -d=FrameNum ] [ -f=FrameSize ]"
 	    " [ -h ] file.clog\n"
 	    "        where file.clog is a clog file\n"
@@ -1555,7 +1586,7 @@ void printHelp() {
     fflush(stdout);
 }
     
-int get_new_state_id() {
+static int get_new_state_id(void) {
   return state_id++;
 }
 

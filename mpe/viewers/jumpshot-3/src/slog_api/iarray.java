@@ -2,6 +2,7 @@ import java.io.*;
 import java.util.*;
 
 public class iarray extends Vector
+                    implements Serializable
 {
     private int bytesize;
 

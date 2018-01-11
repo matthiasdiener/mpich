@@ -44,7 +44,7 @@ FindMPIRUN () {
 # MakeExe program-name
 MakeExe() {
     if [ -s $STOPFILE ] ; then 
-        echo "Found stopfile; exiting"
+        echo "Found stopfile $STOPFILE; exiting"
 	exit 0
     fi
     if [ ! -x $1 ] ; then
@@ -128,14 +128,12 @@ RunTest() {
     echo "$mname"
     mvarg=""
     if [ -n "$5" ] ; then rm -f $5 ; 
-	if [ "$device" != "ch_p4mpd" ] ; then
-            if [ -n "$MPIRUNMVBACK" ] ; then mvarg="$MPIRUNMVBACK \"$5\"" ;
-fi 
-	fi
+        if [ -n "$MPIRUNMVBACK" ] ; then mvarg="$MPIRUNMVBACK \"$5\"" ; fi 
     fi
     # The eval is necessary to ensure that the mvarg value is properly
-    # tokenized.
-    eval $mpirun $args -np $2 $mvarg $1 $4 </dev/null >> $1.out 2>&1
+    # tokenized.  The ./$1 ensures that the program will be found,
+    # even if . is not in the PATH.
+    eval $mpirun $args -np $2 $mvarg ./$1 $4 </dev/null >> $1.out 2>&1
     if [ -n "$5" ] ; then 
         for file in $5 ; do 
             if [ -s $file ] ; then 

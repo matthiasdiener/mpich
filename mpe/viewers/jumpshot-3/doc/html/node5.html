@@ -54,11 +54,10 @@ Time Lines Window </A>
 <P>
 
 <P></P>
-<DIV ALIGN="CENTER"><A NAME="fig:_TimeLine_in_Thread_with_all"></A><A NAME="192"></A>
+<DIV ALIGN="CENTER"><A NAME="fig:_TimeLine_in_Thread_with_all"></A><A NAME="296"></A>
 <TABLE>
-<CAPTION ALIGN="BOTTOM"><STRONG>Figure 7:</STRONG>
-Time Line window in <I>Thread</I>
-view</CAPTION>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
+Timeline window in <I>Thread</I> view</CAPTION>
 <TR><TD>
 <DIV ALIGN="CENTER"><!-- MATH
  $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/timeline_thread_all.ps}}$
@@ -75,25 +74,25 @@ view</CAPTION>
 </DIV><P></P>
 
 <P>
-Assume <I>Connected States</I> in <I>Thread</I> view in ``Preview'' is selected,
-as soon as user clicks on the <I>Display</I> buttons in the ``View &amp; Frame
-Selector'' window. A Time Lines window as shown in Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_with_all">7</A>
-will pop up. Time Lines window provides a detailed display of the sppm's trace
-data as a GANTT chart with x-axis as time and y-axis as thread ID. The control
-buttons in the top panel provide zoom <I>IN</I> and <I>OUT</I> operations around
-the zoom focus which could be set by putting the cursor at the point of interest
-on the GANNT chart and press the key ``z''. In Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_with_all">7</A>,
-the zoom focus is marked by a white line drawn from top to botton of the diagram
-and is labeled as Z<SMALL>OOM </SMALL>L<SMALL>OCK</SMALL> in red.
+Let's assume that you select <I>Connected States</I> in <I>Thread</I> view in
+``Preview'', when you click on the <I>Display</I> buttons in the ``View
+&amp; Frame Selector'' window. A Time Lines window as shown in Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_with_all"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>
+will pop up. The Time Lines window provides a detailed display of the sppm trace
+data as a GANTT chart with the x-axis as time and the y-axis as thread ID. The
+control buttons in the top panel provide zoom <I>IN</I> and <I>OUT</I> operations
+around the zoom focus, which could be set by putting the cursor at the point
+of interest on the GANNT chart and pressing the key ``z''. In Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_with_all"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>,
+the zoom focus is marked by a white line drawn from the top to the botton of
+the diagram and is labeled as Z<SMALL>OOM </SMALL>L<SMALL>OCK</SMALL> in red.
 
 <P>
 
 <P></P>
-<DIV ALIGN="CENTER"><A NAME="fig:_TimeLine_in_Thread_view_all_zoomed_in"></A><A NAME="195"></A>
+<DIV ALIGN="CENTER"><A NAME="fig:_TimeLine_in_Thread_view_all_zoomed_in"></A><A NAME="299"></A>
 <TABLE>
-<CAPTION ALIGN="BOTTOM"><STRONG>Figure 8:</STRONG>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
 A zoomed in view of the
-Time LIne window.</CAPTION>
+Time Lines window.</CAPTION>
 <TR><TD>
 <DIV ALIGN="CENTER"><!-- MATH
  $\resizebox*{0.9\textwidth}{!}{\includegraphics{pic/timeline_thread_all_zoomed.ps}}$
@@ -127,46 +126,47 @@ Time LIne window.</CAPTION>
 </DIV><P></P>
 
 <P>
-After being zoomed in several times, the Time Line window looks like Figure
-<A HREF="node5.html#fig:_TimeLine_in_Thread_view_all_zoomed_in">8</A>. At this resolution, a lot
-more details are exposed. For instance, the MPI_Isend states which are in navy
-blue in the figure become noticeable. Clicking on any rectangle in the time
-line canvas will pop up a ``Rectangle Info'' box which contains various information
-regarding to the subroutine call, like start and end time of the call, various
-call arguments and instruction address(es) if there are any. Clicking on the
-``Rectangle Info'' box again will remove the box from the screen. Also, clicking
-on the red circle at the end of the arrow will pop up a ``Arrow Info'' box
-which provides similar function as ``Rectangle Info''. In Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_view_all_zoomed_in">8</A>,
-MPI_Isend, MPI_Irecv and MPI_Wait are all nested within the user defined
-state ``bdrys''. This suggests ``bdrys'', which is a user defined subroutine
-call, makes all these MPI calls. Also the regularity on the pattern of arrows
-provides insight to the end user of how data are exchanged.
+After being zoomed in several times, the Time Lines window looks like Figure
+<A HREF="node5.html#fig:_TimeLine_in_Thread_view_all_zoomed_in"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>. At this resolution, many
+more details are exposed. For instance, the MPI_Isend states that are in navy
+blue in the figure become noticeable. Clicking on any rectangle in the Time
+Lines canvas will pop up a ``Rectangle Info'' box which contains various
+information regarding the subroutine call(e.g. start and end time of the call),
+and various call arguments and instruction address(es) if there are any. Clicking
+on the ``Rectangle Info'' box again will remove the box from the screen.
+Also, clicking on the red circle at the end of the arrow will pop up a ``Arrow
+Info'' box, which provides a function similar to that of ``Rectangle Info''.
+In Figure <A HREF="node5.html#fig:_TimeLine_in_Thread_view_all_zoomed_in"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>, MPI_Isend, MPI_Irecv,
+and MPI_Wait are all nested within the user-defined state ``bdrys''.
+This suggests that ``bdrys'', which is a user-defined subroutine call,
+makes all these MPI calls. Also, the regularity of the pattern of arrows can
+provide insight about how data are exchanged.
 
 <P>
-There are several tricks and hidden operations that are worth mentioning. Firstly,
-it is the trick in locating small rectangles: since all the rectangles have
-white border surrounding them, when many small rectangles are next to each other
-in very low resolution, they form a completely white rectangle. A totally white
-rectangle usually means a lot more details are hidden inside. Secondly, a trick
-about scrolling: user can drag on the scroll tab to advance to later time, but
-it is slow when there are many threads with a lot of objects. In this scenario,
-it is recommended to click on the white space between the scroll tab and the
-end arrow tab in the direction that one would want to advance to. The operation
-will allow the redraw of the next time frame in the canvas to be carried out
-immediately. Thirdly, the label of the y-axis in <I>Thread</I> view is ( MPI-rank,
-local thread ID ), but it is different in different view. Because of the limited
-space on the canvas, the label of the y-axis is actually written in the tooltip
-of the two vertical y-axis label. The tooltip can be activated by simply putting
-the cursor over any y-axis integer doublet for few seconds. Fourthly, doubly
-click on any integer doublet label will invoke the ``Time Lines Manipulation''
-window as shown in Figure <A HREF="node5.html#fig:_TimeLines_Manipulation">9</A>. This window provides
-various operations on the selected time line. For instance, the adjustment of
-time line by changing the offset of the time line for alignment of rectangles,
-swapping different time lines for organizational purpose, ...
+Several tricks and hidden operations are worth mentioning. First, it is the
+trick in locating small rectangles: since all the rectangles have a white border
+surrounding them, when many small rectangles are next to each other in very
+low resolution, they form a completely white rectangle. A totally white rectangle
+usually means a lot more details are hidden inside. Second, a trick about scrolling:
+you can drag on the scroll tab to advance to later time, but scrolling becomes
+slow when there are many threads with a lot of objects. In this case, click
+on the white space between the scroll tab and the end arrow tab in the direction
+that you want to advance to. The operation will allow the next time frame in
+the canvas to be redrawn immediately. Third, the label of the y-axis in <I>Thread</I>
+view is (MPI-rank, local thread ID), but it is different in different views.
+Because of the limited space on the canvas, the label of the y-axis is actually
+written in the tooltip of the two vertical y-axis label. The tooltip can be
+activated by simply putting the cursor over any y-axis integer doublet for few
+seconds. Fourth, doubly clicking on any integer doublet label will invoke the
+``Time Lines Manipulation'' window as shown in Figure <A HREF="node5.html#fig:_TimeLines_Manipulation"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>.
+This window provides various operations on the selected time line, for instance,
+the adjustment of time line by changing the offset of the time line for alignment
+of rectangles, or the swapping of different time lines for organizational purposes.
+
 <P></P>
-<DIV ALIGN="CENTER"><A NAME="fig:_TimeLines_Manipulation"></A><A NAME="197"></A>
+<DIV ALIGN="CENTER"><A NAME="fig:_TimeLines_Manipulation"></A><A NAME="301"></A>
 <TABLE>
-<CAPTION ALIGN="BOTTOM"><STRONG>Figure 9:</STRONG>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
 The Time Lines Manipulation window.</CAPTION>
 <TR><TD>
 <DIV ALIGN="CENTER"><!-- MATH
@@ -182,24 +182,24 @@ The Time Lines Manipulation window.</CAPTION>
 <P></TD></TR>
 </TABLE>
 </DIV><P></P>
-Fifthly, this trick is about the Definitions window which is located at the
-bottom of the Time Line window. The Definitions windows consists of a collection
-of definition panels. Each definition panel which has a checkbox and a definition
-button corresponds to each state/arrow in the Time Lines canvas. The Definitions
-window can be torn out of the Time Lines window as a standalone window or it
-can be re-attached to any one of the four side of the Time Lines window. This
-allows user to change the arrangement of the state and arrow definitions to
-optimize the use of the Time Lines canvas. All the states' and arrows' definitions
-are checked by default. Unchecking any of definitions will make the corresponding
-states or arrows invisible. The goal is to help the user to highlight what he/she
-is interesed in by hiding the uninteresting ones. Clicking on any of the definition
-buttons will bring up the histogram window of the corresponding state/arrow.
-For example, the forward arrow button will invoke the a window as shown in the
-Figure <A HREF="node5.html#fig:_histogram__forward_arrow">10</A>.
+Fifth, there is a trick about the Definitions window, which is located at the
+bottom of the Time Lines window. The Definitions windows consists of a collection
+of definition panels, each has a checkbox and a definition button corresponding
+to each state/arrow in the Time Lines canvas. The Definitions window can be
+torn out of the Time Lines window as a standalone window, or it can be re-attached
+to any one of the four sides of the Time Lines window. This allows the user
+to change the arrangement of the state and arrow definitions to optimize the
+use of the Time Lines canvas. All states and arrows definitions are checked
+by default. Unchecking any of definitions will make the corresponding states
+or arrows invisible. The goal is to help users highlight what they are interesed
+in by hiding the uninteresting ones. Clicking on any of the definition buttons
+will bring up the histogram window of the corresponding state/arrow. For example,
+the forward arrow button will invoke a window as shown in Figure <A HREF="node5.html#fig:_histogram__forward_arrow"><IMG  ALIGN="BOTTOM" BORDER="1" ALT="[*]" SRC="crossref.gif"></A>.
+
 <P></P>
-<DIV ALIGN="CENTER"><A NAME="fig:_histogram__forward_arrow"></A><A NAME="199"></A>
+<DIV ALIGN="CENTER"><A NAME="fig:_histogram__forward_arrow"></A><A NAME="303"></A>
 <TABLE>
-<CAPTION ALIGN="BOTTOM"><STRONG>Figure 10:</STRONG>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
 The histogram for the forward arrow in
 the frame.</CAPTION>
 <TR><TD>
@@ -219,13 +219,13 @@ the frame.</CAPTION>
 The Histogram window provides basic statistics and statistical distribution
 of the duration of the selected state. The ``Blink States'' button enables
 the selected state/arrow in the Time Lines window to flash. Again the goal is
-to help to highlight the objects. Finally, worth mentioning about the memory
-demand for Time Line window. It is very high especially on Linux box, our experience
-seems to indicate that the amount of X server memory needed to have one instance
-of Time Lines window running is proportional to the size of the Time Lines window
-and the color depth of X server. If one plans to run multiple instances of Time
-Lines windows at the same time, be sure to have enough physical memory for the
-X server and Java Virtual Machine.
+to help highlight the objects. Finally, we note that the memory demand for Time
+Lines window is very high, especially on Linux box with JDK-1.1(running green
+thread). Our experience indicates that the amount of X server memory needed
+to have one instance of Time Lines window running is proportional to the size
+of the Time Lines window and the color depth of the X server. If one plans to
+run multiple instances of Time Lines windows at the same time, be sure to have
+enough physical memory for the X server and Java Virtual Machine.
 
 <P>
 <HR>

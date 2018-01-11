@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_putval.c,v 1.9 1999/09/15 22:43:40 gropp Exp $
+ *  $Id: attr_putval.c,v 1.10 2001/04/20 19:38:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -98,15 +98,18 @@ EXPORT_MPI_API int MPI_Attr_put ( MPI_Comm comm, int keyval, void *attr_value )
 	 MPI_ATTR_PUT, however, the delete routine IS called.
        */
 	if ( attr_key->delete_fn.c_delete_fn ) {
+#ifndef MPID_NO_FORTRAN
 	    if (attr_key->FortranCalling) {
-		MPI_Aint  invall = (MPI_Aint)attr->value;
-		int inval = (int)invall;
-		(void) (*attr_key->delete_fn.f77_delete_fn)(comm, 
+		MPI_Aint invall = (MPI_Aint)attr->value;
+		MPI_Fint inval = (int)invall;
+		MPI_Fint fcomm = MPI_Comm_c2f(comm);
+		(void) (*attr_key->delete_fn.f77_delete_fn)(&fcomm, 
 					   &keyval, &inval,
 					   attr_key->extra_state, &mpi_errno );
 		attr->value = (void *)(MPI_Aint)inval;
 	    }
 	    else
+#endif
 		mpi_errno = (*attr_key->delete_fn.c_delete_fn)(comm, keyval, 
 					   attr->value,
 					   attr_key->extra_state );

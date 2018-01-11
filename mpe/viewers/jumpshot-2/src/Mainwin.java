@@ -456,6 +456,7 @@ implements ActionListener {
 	displayStuff ();
       }
     };
+    readWorker.start();
   }
     
   /**
@@ -472,7 +473,10 @@ implements ActionListener {
    * frees up the memory - reader and display
    */
   private void freeMem () {
-    if (reader_alive) {readWorker.interrupt (); readWorker = null;}
+    if (readWorker != null && reader_alive) {
+      readWorker.interrupt ();
+      readWorker = null;
+    }
     if (disp != null) disp.kill ();
     mainTool = null;
     //    System.runFinalization (); System.gc ();

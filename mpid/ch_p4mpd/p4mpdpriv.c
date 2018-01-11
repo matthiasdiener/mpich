@@ -9,8 +9,10 @@
 
 int __P4FROM, __P4LEN, __P4TYPE, __P4GLOBALTYPE;
 
+#ifdef FOO
 static char **P4Args = 0;
 static char *P4Argstr = 0;
+#endif
 
 /*
  * This routine must be careful NOT to update argv[0], the name of the
@@ -113,6 +115,7 @@ char ***argv;
 
 void MPID_P4_End()
 {
+#ifdef FOO
     /* String containing the values */
     if (P4Argstr) {
 	FREE( P4Argstr );
@@ -121,6 +124,7 @@ void MPID_P4_End()
 	/* P4Args is the argv vector */
 	FREE( P4Args );
     }
+#endif
     p4_wait_for_end();
 }
 

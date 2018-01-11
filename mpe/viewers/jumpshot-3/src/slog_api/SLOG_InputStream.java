@@ -1,32 +1,32 @@
 import java.io.*;
 
 
-public class SLOG_InputStream
+public class SLOG_InputStream implements Serializable
 {
-    private String            filename;
-    private int               frame_bsize;
-    private RandomAccessFile  file_stm;
-    private DataInputStream   data_istm;
+    private transient RandomAccessFile  file_stm;
+    private transient SLOG_Buffer       buffer;
 
-    public  SLOG_Header       header;
-    public  SLOG_Statistics   statistics;
-    public  SLOG_Preview      preview;
-    public  SLOG_Profile      profile;
+    private           int               frame_bsize;
+    private           String            filename;
 
-    public  SLOG_ThreadInfos  threadinfos;
-    public  SLOG_RecDefs      recdefs;
+    private           SLOG_Header       header;
+    private           SLOG_Statistics   statistics;
+    private           SLOG_Preview      preview;
+    private           SLOG_Profile      profile;
+
+    private           SLOG_ThreadInfos  threadinfos;
+    private           SLOG_RecDefs      recdefs;
 
     //  For now there is only 1 directory.  Eventually there will be collection
     //  of directories, like "Vector of SLOG_Dir", i.e. dirs
-    public  SLOG_Dir          dir;
+    private           SLOG_Dir          dir;
 
-    private SLOG_Buffer       buffer;
 
     public SLOG_InputStream( String file_name )
     throws IOException
     {
-        filename = new String( file_name );
-        file_stm = new RandomAccessFile( filename, "r" );
+        filename    = new String( file_name );
+        file_stm    = new RandomAccessFile( filename, "r" );
 
         header      = new SLOG_Header( file_stm );
         statistics  = new SLOG_Statistics( file_stm,
@@ -64,10 +64,53 @@ public class SLOG_InputStream
 
         buffer.ReadFrame( file_ptr );
         frame.Init();
-        data_istm = buffer.GetDataInputStream();
-        frame.ReadFromDataStream( data_istm, recdefs );
+        frame.ReadFromDataStream( buffer.GetDataInputStream(), recdefs );
 
         return( frame );
+    }
+
+    public SLOG_Header GetHeader()
+    {
+        return header;
+    }
+
+    public SLOG_Statistics GetStatistics()
+    {
+        return statistics;
+    }
+
+    public SLOG_Preview GetPreview()
+    {
+        return preview;
+    }
+
+    public SLOG_Profile GetProfile()
+    {
+        return profile;
+    }
+
+    public SLOG_ThreadInfos GetThreadInfos()
+    {
+        return threadinfos;
+    }
+
+    public SLOG_RecDefs GetRecDefs()
+    {
+        return recdefs;
+    }
+
+    public SLOG_Dir GetDir()
+    {
+        return dir;
+    }
+
+    public void Close()
+    throws IOException
+    {
+        if ( file_stm != null )
+            file_stm.close();
+        if ( buffer != null )
+            buffer.Close();
     }
 
     public String toString()

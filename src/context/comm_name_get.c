@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_name_get.c,v 1.6 1999/08/20 02:26:28 ashton Exp $
+ *  $Id: comm_name_get.c,v 1.8 2001/06/22 22:24:46 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,11 +14,43 @@
 #include "mpiimpl.h"
 #include "mpimem.h"
 
-/*+
+#ifdef HAVE_WEAK_SYMBOLS
+
+#if defined(HAVE_PRAGMA_WEAK)
+#pragma weak MPI_Comm_get_name = PMPI_Comm_get_name
+#elif defined(HAVE_PRAGMA_HP_SEC_DEF)
+#pragma _HP_SECONDARY_DEF PMPI_Comm_get_name  MPI_Comm_get_name
+#elif defined(HAVE_PRAGMA_CRI_DUP)
+#pragma _CRI duplicate MPI_Comm_get_name as PMPI_Comm_get_name
+/* end of weak pragmas */
+#endif
+
+/* Include mapping from MPI->PMPI */
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+/* Insert the prototypes for the PMPI routines */
+#undef __MPI_BINDINGS
+#include "binding.h"
+#endif
+
+/*@
 
 MPI_Comm_get_name - return the print name from the communicator
 
-+*/
+  Input Parameter:
+. comm - Communicator to get name of (handle)
+
+  Output Parameters:
++ namep - One output, contains the name of the communicator.  It must
+  be an array of size at least 'MPI_MAX_NAME_STRING'.
+- reslen - Number of characters in name
+
+.N fortran
+
+.N Errors
+.N MPI_SUCCESS
+.N MPI_ERR_COMM
+@*/
 EXPORT_MPI_API int MPI_Comm_get_name( MPI_Comm comm, char *namep, int *reslen )
 {
   struct MPIR_COMMUNICATOR *comm_ptr = MPIR_GET_COMM_PTR(comm);

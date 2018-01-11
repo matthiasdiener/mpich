@@ -152,7 +152,7 @@ int  xx_getbuf ANSI_ARGS((struct head_trace_buf *));
     defined(PARAGON)      ||                          \
     defined(TITAN)        || defined(SYMMETRY_PTX) || \
     defined(HP)           || defined(NCUBE)
-#define getwd(X)  getcwd(X)
+#define getwd(X)  getcwd(X,sizeof(X))
 #endif
 
 #if defined(CRAY) || defined(TITAN)  ||  defined(NCUBE)

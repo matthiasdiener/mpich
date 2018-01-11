@@ -57,3 +57,31 @@ typedef struct fd_set {
 	do {                                         \
 	    RC = SYSCALL;                            \
 	} while (RC < 0 && errno == EINTR);
+
+/* Signal blocking.  Block and then release the old sig */
+#if defined(HAVE_SIGPROCMASK)
+#define P4_BLOCK_SIG_DECL 
+#define P4_BLOCK_SIG(sig) \
+    { sigset_t set;\
+    sigemptyset( &set );\
+    sigaddset( &set, sig );\
+    sigprocmask( SIG_BLOCK, &set, (sigset_t *)0 );\
+    }
+#define P4_RELEASE_SIG(sig) \
+    { sigset_t set;\
+    sigemptyset( &set );\
+    sigaddset( &set, sig );\
+    sigprocmask( SIG_UNBLOCK, &set, (sigset_t *)0 ); \
+    }
+#elif defined(HAVE_SIGHOLD)
+#define P4_BLOCK_SIG_DECL 
+#define P4_BLOCK_SIG(sig)  sighold(sig)
+#define P4_RELEASE_SIG(sig) sigrelse(sig)
+#elif defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK)
+#define P4_BLOCK_SIG_DECL     int blockoldmask
+#define P4_BLOCK_SIG(sig)     blockoldmask = sigblock(sigmask(sig)))
+#define P4_RELEASE_SIG(sig)   sigsetmask(blockoldmask)
+#else
+#error 'Unknown signal handling'
+#endif
+

@@ -2,6 +2,12 @@
 #
 # Simple script to build shared libraries
 #
+#
+# Load the mpich configuration data
+if [ -s ../util/mpichlib.conf ] ; then 
+    . ../util/mpichlib.conf
+fi
+#
 kind=""
 nolink=0
 islocal=0
@@ -9,6 +15,9 @@ created_shared=0
 Verbose=echo
 setecho=0
 GetPathSpec="no"
+# OtherLibs contains any additional information, such as additional libraries,
+# that are needed to create a shared library.  Currently used only for gcc.
+OtherLibs=""
 for arg in "$@" ; do
     case $arg in
 	-lib=*) lib=`echo A$arg | sed -e 's/A-lib=//g'`
@@ -83,7 +92,7 @@ if [ -z "$AR" ] ; then
     AR=ar
 fi
 if [ -z "$LD" ] ; then
-    LD=ld
+    LD="ld"
 fi
 if [ -z "$CLINKER" ] ; then
     if [ -n "$CC" ] ; then
@@ -134,6 +143,10 @@ fi
 # they are ignored.
 case $kind in
     gcc)
+    # Include any other libraries needed to link with in case they are
+    # needed to resolve any symbols.  This is needed for Scyld and should
+    # be harmless in general.
+    OtherLibs="$BASE_LIB_LIST"
     for libname in $SHLIBS ; do
         $Verbose "Making a shared library of $libname"
         rm -rf .tmp
@@ -152,7 +165,9 @@ case $kind in
 	    cd .tmp
 	fi
         libbase=`basename $libname .a`
-        $CLINKER -shared -o ../shared/$libbase.$slsuffix *.o
+	# The -h name sets the name of the object; this is necessary to 
+	# ensure that the dynamic linker can find the proper shared library.
+        $CLINKER -shared -Wl,-h,$libbase.$slsuffix -o ../shared/$libbase.$slsuffix *.o $OtherLibs 
         cd ..
         # Make a link in the library directory to the shared library in the
         # shared directory.
@@ -172,7 +187,7 @@ case $kind in
         rm -rf .tmp
     done
     ;;
-    solaris)
+    solaris|solaris64)
     for libname in $SHLIBS ; do
         $Verbose "Making a shared library of $libname"
         rm -rf .tmp
@@ -187,8 +202,14 @@ case $kind in
 	    cp $objs .tmp
 	    cd .tmp
 	fi
+        # Note that we may need LD_LIBRARY_PATH_64 (!) for 64 bit builds
 	libbase=`basename $libname .a`
-        $LD -G -h $libbase.$slsuffix -o ../shared/$libbase.$slsuffix *.o
+        if $LD -G -h $libbase.$slsuffix -o ../shared/$libbase.$slsuffix *.o ; then
+	    :
+	else
+	    # Exit if we fail to build the library
+	    exit 1
+	fi
         cd ..
 	if [ $islocal = 1 ] ; then
 	    mv shared/$libbase.$slsuffix .
@@ -230,7 +251,11 @@ case $kind in
 	    sed -e 's/^\.//g' >  $libbase.exp
         # xlC doesn't work with this!
         # cc misses the iargc/getarg libraries
-        xlf -r -o ../shared/$libbase.so *.o -bE:$libbase.exp -bM:SRE -bnoentry
+        if xlf -r -o ../shared/$libbase.so *.o -bE:$libbase.exp -bM:SRE -bnoentry ; then
+	    :
+	else
+	    exit 1
+        fi
         # create new shared file name
         newfile="${libbase}shared.a"
         /bin/rm -f $newfile
@@ -257,8 +282,12 @@ case $kind in
 	    cd .tmp
 	fi
 	libbase=`basename $libname .a`
-        $CLINKER -elf -no_library_replacement -shared -rdata_shared -all \
-	    -o ../shared/$libbase.$slsuffix *.o
+        if $CLINKER -elf -no_library_replacement -shared -rdata_shared -all \
+	    -o ../shared/$libbase.$slsuffix *.o ; then
+	    :
+	else
+	    exit 1
+        fi
         cd ..
 	if [ $islocal = 1 ] ; then
 	    mv shared/$libbase.$slsuffix .
@@ -274,6 +303,14 @@ case $kind in
         fi
         rm -rf .tmp
     done
+    ;;
+
+    hpux*)
+    echo "HPUX is not supported"
+    # From libtools' ltconfig, we might try (except for hpux9)
+    # ld -b +h libmpich.so +b $installdir -o libmpich $objs ...
+    # Note that libtool notes that shared libraries need to have 
+    # permissions 555 (chmod 555 $lib)
     ;;
 
     *)	

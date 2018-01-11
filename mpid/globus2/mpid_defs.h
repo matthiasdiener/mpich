@@ -866,4 +866,24 @@
 #define MPI_Wtime MPQ_Wtime
 #define PMPI_Wtime PMPQ_Wtime
 
+/**************************/
+/* Begin MPI-2 Extensions */
+/**************************/
+
+#define MPI_Open MPQ_Open
+#define PMPI_Open PMPQ_Open
+
+#define MPI_Close MPQ_Close
+#define PMPI_Close PMPQ_Close
+
+#define MPI_Comm_connect MPQ_Comm_connect
+#define PMPI_Comm_connect PMPQ_Comm_connect
+
+#define MPI_Comm_accept MPQ_Comm_accept
+#define PMPI_Comm_accept PMPQ_Comm_accept
+
+/************************/
+/* End MPI-2 Extensions */
+/************************/
+
 #endif /* !defined(MPID_DEFS_H) */

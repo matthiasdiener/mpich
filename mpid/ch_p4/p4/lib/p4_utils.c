@@ -9,6 +9,10 @@ static char hold_machine_type[16];
 extern char *getenv();
 #endif
 
+#ifdef SCYLD_BEOWULF
+static void beowulf_init(void);
+#endif
+
 void p4_post_init()
 {
     /* This routine can be called to do any further initialization after p4
@@ -89,6 +93,10 @@ char **argv;
 
 #   if defined(MEIKO_CS2)
     mpsc_init();
+#   endif
+
+#   if defined(SCYLD_BEOWULF)
+    beowulf_init();
 #   endif
 
 #   if defined(IPSC860) || defined(CM5)     || defined(NCUBE)  \
@@ -400,10 +408,11 @@ P4VOID **cluster_shmem;
   Then call xx_shmalloc() and xx_shfree() as usual.
 */
 
+/* IBM AIX 4.3.3 defined ALIGNMENT in sys/socket.h (!) */
 #define LOG_ALIGN 6
-#define ALIGNMENT (1 << LOG_ALIGN)
+#define P4_MEM_ALIGNMENT (1 << LOG_ALIGN)
 
-/* ALIGNMENT is assumed below to be bigger than sizeof(p4_lock_t) +
+/* P4_MEM_ALIGNMENT is assumed below to be bigger than sizeof(p4_lock_t) +
    sizeof(Header *), so do not reduce LOG_ALIGN below 4 */
 
 union header
@@ -413,7 +422,7 @@ union header
 	union header *ptr;	/* next block if on free list */
 	unsigned size;		/* size of this block */
     } s;
-    char align[ALIGNMENT];	/* Align to ALIGNMENT byte boundary */
+    char align[P4_MEM_ALIGNMENT]; /* Align to P4_MEM_ALIGNMENT byte boundary */
 };
 
 typedef union header Header;
@@ -434,11 +443,11 @@ unsigned nbytes;
 
     /* Quick check that things are OK */
 
-    if (ALIGNMENT != sizeof(Header) ||
-	ALIGNMENT < (sizeof(Header *) + sizeof(p4_lock_t)))
+    if (P4_MEM_ALIGNMENT != sizeof(Header) ||
+	P4_MEM_ALIGNMENT < (sizeof(Header *) + sizeof(p4_lock_t)))
     {
         p4_dprintfl(40,"%d %d\n",sizeof(Header),sizeof(p4_lock_t));
-	p4_error("xx_init_shmem: Alignment is wrong", ALIGNMENT);
+	p4_error("xx_init_shmem: alignment is wrong", P4_MEM_ALIGNMENT);
     }
 
     if (!region)
@@ -700,7 +709,7 @@ P4VOID remove_sysv_ipc()
 #ifndef TIMEOUT_VALUE_WAIT 
 #define TIMEOUT_VALUE_WAIT 60
 #endif
-P4VOID p4_accept_wait_timeout ANSI_ARGS((int));
+P4VOID p4_accept_wait_timeout (int);
 P4VOID p4_accept_wait_timeout(sigval)
 int sigval;
 {
@@ -722,7 +731,7 @@ p4_error( "Timeout in waiting for processes to exit.  This may be due to a defec
 /* exit(1); */
 }
 
-int p4_wait_for_end()
+int p4_wait_for_end( void )
 {
     int status;
     int i, n_forked_slaves, pid;
@@ -730,6 +739,10 @@ int p4_wait_for_end()
     struct slave_listener_msg msg;
 #endif
     char job_filename[64];
+
+    /* p4_socket_stat is a routine that conditionally prints information
+       about the socket status.  -p4sctrl stat=y must be selected */
+    p4_socket_stat( stdout );
 
     ALOG_LOG(p4_local->my_id,END_USER,0,"");
     ALOG_OUTPUT;
@@ -786,6 +799,10 @@ int p4_wait_for_end()
 #else
     alarm( TIMEOUT_VALUE_WAIT );
 #endif
+    /* Note that we are now in this routine (ignore some errors, such as
+       failure to write on sockets as we are closing them) */
+    p4_local->in_wait_for_exit = 1;
+
     if (p4_local->listener_fd == (-1))
         n_forked_slaves = p4_global->n_forked_pids;
     else
@@ -814,10 +831,16 @@ int p4_wait_for_end()
     {
 	if (p4_local->conntab[i].type == CONN_REMOTE_EST)
 	{
-	    socket_close_conn( p4_local->conntab[i].port );
-	    /* We could wait for the partner to close; but this should be
-	       enough */
-	    p4_local->conntab[i].type = CONN_REMOTE_CLOSED;
+	    /* Check the socket for any remaining messages, including socket 
+	       close.  Resets connection type to closed if found */
+	    p4_look_for_close( i );
+	    /* If it is still open, send the close message */
+	    if (p4_local->conntab[i].type == CONN_REMOTE_EST) {
+		socket_close_conn( p4_local->conntab[i].port );
+		/* We could wait for the partner to close; but this should be
+		   enough */
+		p4_local->conntab[i].type = CONN_REMOTE_CLOSED;
+	    }
 	}
     }
     /* Tell the listener to die and wait for him to do so (only if it is 
@@ -892,6 +915,14 @@ int p4_wait_for_end()
 /* static variables private to fork_p4 and zap_p4_processes */
 static int n_pids = 0;
 static int pid_list[P4_MAXPROCS];
+
+#ifdef SCYLD_BEOWULF
+int reset_fork_p4()
+{
+    n_pids = 0;
+    return 0;
+}
+#endif
 
 int fork_p4()
 /*
@@ -1049,7 +1080,7 @@ char *str;
        (defined(SP1_EUIH))
     strcpy(str,"cube_node");
 #   else
-#       if defined(SUN_SOLARIS)
+#       if defined(SUN_SOLARIS) || defined(MEIKO_CS2)
         if (*str == '\0') {
             if (p4_global)
 		strcpy(str,p4_global->my_host_name);
@@ -1063,7 +1094,7 @@ char *str;
             if (p4_global)
                 strcpy(str,p4_global->my_host_name);
             else
-                gethostname(str, 100);
+                gethostname_p4(str, 100);
 	}
 #       endif
     if (*local_domain != '\0'  &&  !index(str,'.'))
@@ -1256,8 +1287,54 @@ int (*sigf)();
 }
 #endif
 
+#ifdef SCYLD_BEOWULF
+extern int beowulf_sched_shim(char *type, int **map) __attribute__ ((weak));
 
+static void
+beowulf_init(void)
+{
+  int node;
+  int *map=NULL;
+  int count=0;
+  struct p4_procgroup_entry *pe;
+  struct passwd *pwent = getpwuid( getuid() );
 
+  /* If execer is already used don't overwrite it. */
+  if (execer_pg)
+    return;
 
+  /* If procgroup_file is set externally, don't use scheduler */
+#if 1
+  if (strncmp (procgroup_file, "procgroup", 8) != 0)
+    return;
+#endif
 
+  /* Call the Schedule Shim (if available) */
+  if (beowulf_sched_shim)
+    count = beowulf_sched_shim ("mpich-p4", &map);
+  else
+    return;
+     
+  /* Allocate a process group and copy the map into it. */
+  execer_pg = p4_alloc_procgroup();
+  pe = execer_pg->entries;
+  execer_pg->num_entries = count;
+  for (node = 0; node < count; node++) {
+    snprintf (pe->host_name, HOSTNAME_LEN, "%d", map[node]);
+    pe->numslaves_in_group = (node != 0);
+    strncpy(pe->slave_full_pathname, "self", 4);
+    strncpy(pe->username, pwent->pw_name, 10);
+    pe++;
+  }
 
+  /* Need to move to rank 0 node. */
+  if (map[0] != -1)
+    bproc_move (map[0]);
+
+  free (map);
+
+  dump_procgroup(execer_pg, 50);
+
+  return;
+}
+#endif /* SCYLD_BEOWULF */

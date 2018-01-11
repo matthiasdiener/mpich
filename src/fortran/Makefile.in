@@ -29,8 +29,8 @@ all: Makefile ${PROGRAMS} flibs
 
 # A phony target
 flibs:
-	cd src ; ${MAKE} all
-	if [ "@MPI_WITH_PMPI@" != "yes" ] ; then \
+	@cd src ; ${MAKE} all
+	@if [ "@MPI_WITH_PMPI@" != "yes" ] ; then \
 	    cd src ; ${MAKE} profile ; fi
 
 OBJECTS = 
@@ -86,7 +86,7 @@ distclean: clean
 	@-rm -f mpi_fortconf.h
 	@-for dir in ${SUBDIRS} ; do \
 	    (cd $$dir ; ${MAKE} distclean ) ; done
-	@-rm -f include/mpif.h include/mpi_fortdefs.h
+	@-rm -f include/mpif.h include/mpi_fortdefs.h include/mpif_bottom.h
 
 maintainer-clean: distclean 
 	@-rm -f configure 
@@ -98,6 +98,8 @@ configure: configure.in makeconfigure
 
 f77name:
 	@echo "${F77}"
+f77in_clibs:
+	@echo "@F77_IN_C_LIBS@"
 f90_suffix:
 	@echo "@F90_SUFFIX@"
 f90_modincflag:

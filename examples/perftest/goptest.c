@@ -230,9 +230,9 @@ void time_gop_function( int reps, int first, int last, int incr,
     }
 
     /* Generate C.It output */
-    if (doinfo && myproc == 0) {
+    if (myproc == 0) {
 	DataendForGop( outctx );
-	if (dotail) {
+	if (doinfo && dotail) {
 	    RateoutputGraph( outctx, 
 			     sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
 			     ntest, &s, &r );
@@ -390,7 +390,7 @@ int PrintHelp( char *argv[] )
 combinations of\n" );
     fprintf( stderr, 
 "  Message sizes:\n\
-  -size start end stride                  (default 0 1024 32)\n\
+  -size start end stride                  (default 0 1024 256)\n\
                Messages of length (start + i*stride) for i=0,1,... until\n\
                the length is greater than end.\n\
   -sizelist n1,n2,...\n\
@@ -399,7 +399,8 @@ combinations of\n" );
 
     fprintf( stderr, "\n\
   Number of tests\n\
-  -reps n      Number of times message is sent (default 1000)\n\
+  -reps n      Number of times message is sent (default %d)\n", DEFAULT_REPS );
+    fprintf( stderr, "\
   -autoreps    Compute the number of times a message is sent automatically\n\
   -tgoal  d    Time that each test should take, in seconds.  Use with \n\
                -autoreps\n\
@@ -430,4 +431,14 @@ void ClearTimes( void )
     sumlen2	   = 0.0;
     sumtime2   = 0.0;
     ntest	   = 0;
+}
+int GetRepititions( double T1, double T2, int Len1, int Len2, int len, 
+		    int reps )
+{
+    if (__MYPROCID == 0) {
+	if (T1 > 0 && T2 > 0) 
+	    reps = ComputeGoodReps( T1, Len1, T2, Len2, len );
+    }
+    MPI_Bcast(&reps, 1, MPI_INT, 0, MPI_COMM_WORLD );
+    return reps;
 }

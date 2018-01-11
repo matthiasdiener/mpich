@@ -28,9 +28,13 @@ ac_help="$ac_help
 ac_help="$ac_help
 --enable-mpich                     - Indicates if this MPE will be built as part of the MPICH build.  The default is enable=no"
 ac_help="$ac_help
+----with-mpiio                     - Include/exclude MPI-IO from mpe logging.  The default is include.  This flag is relevant only when --enable-mpich is used"
+ac_help="$ac_help
 --enable-checkMPI                  - Turn on/off the linking test for the MPI include files, MPI libraries and MPI_CC compiler. The default is enable=yes"
 ac_help="$ac_help
 --enable-checkMPIwtime             - Turn on/off the linking test for the MPI_Wtime(). The default is enable=no"
+ac_help="$ac_help
+--enable-checkMPIO                 - Turn on/off the linking test for MPI-IO routines in MPI implementation.  The default is enable=yes."
 ac_help="$ac_help
 --with-mpelibname=MPE_LIBNAME      - Set the MPE library name instead of the default 'mpe'.  e.g. if MPE_LIBNAME='mpe_new', then the libraries generated will be libmpe_new.a, liblmpe_new.a, libtmpe_new.a and libampe_new.a."
 ac_help="$ac_help
@@ -560,6 +564,7 @@ else
 fi
 
 
+set +x
 
 #
 echo "Configuring MPE Profiling Libraries with $ac_configure_args"
@@ -571,7 +576,7 @@ if test "X$srcdir" != "X." -a -s $srcdir/include/mpe.h ; then
 else
     
 echo $ac_n "checking for current directory name""... $ac_c" 1>&6
-echo "configure:575: checking for current directory name" >&5
+echo "configure:580: checking for current directory name" >&5
 top_srcdir_abs=$PWD
 if test "${top_srcdir_abs}" != "" -a -d "${top_srcdir_abs}" ; then 
     if test -r ${top_srcdir_abs}/.foo$$ ; then
@@ -647,6 +652,7 @@ LOG_LIBS=""
 PROF_LIBS=""
 TRACE_LIBS=""
 ANIM_LIBS=""
+XGRAPH_LIBS=""
 DBX_NAME=""
 GDB_NAME=""
 # CPRP is the version of cp that accepts -r and -p arguments.
@@ -658,7 +664,7 @@ MAKE=${MAKE:-make}
 # Fixup for make
 
 echo $ac_n "checking gnumake""... $ac_c" 1>&6
-echo "configure:662: checking gnumake" >&5
+echo "configure:668: checking gnumake" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
@@ -684,7 +690,7 @@ str=""
 
 
 echo $ac_n "checking BSD 4.4 make""... $ac_c" 1>&6
-echo "configure:688: checking BSD 4.4 make" >&5
+echo "configure:694: checking BSD 4.4 make" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 ALL:
@@ -708,7 +714,7 @@ str=""
 
 
 echo $ac_n "checking OSF V3 make""... $ac_c" 1>&6
-echo "configure:712: checking OSF V3 make" >&5
+echo "configure:718: checking OSF V3 make" >&5
 /bin/rm -f conftest
 cat > conftest <<.
 SHELL=/bin/sh
@@ -732,7 +738,7 @@ str=""
 
 
 echo $ac_n "checking for virtual path format""... $ac_c" 1>&6
-echo "configure:736: checking for virtual path format" >&5
+echo "configure:742: checking for virtual path format" >&5
 rm -rf conftest*
 mkdir conftestdir
 cat >conftestdir/a.c <<EOF
@@ -852,6 +858,15 @@ else
     MPICH=0
 fi
 
+# Check whether --with-mpiio or --without-mpiio was given.
+if test "${with_mpiio+set}" = set; then
+  withval="$with_mpiio"
+  :
+else
+  with_mpiio=yes 
+fi
+
+
 # Check whether --enable-checkMPI or --disable-checkMPI was given.
 if test "${enable_checkMPI+set}" = set; then
   enableval="$enable_checkMPI"
@@ -870,6 +885,13 @@ else
 fi
 
 
+# Check whether --with-checkMPIO or --without-checkMPIO was given.
+if test "${with_checkMPIO+set}" = set; then
+  withval="$with_checkMPIO"
+  :
+else
+  enable_checkMPIO=yes 
+fi
 
 #
 # Set the MPE Libraries name
@@ -924,7 +946,7 @@ if test $enable_g = "yes"; then
     fi
 
     echo $ac_n "checking for malloc in -lefence""... $ac_c" 1>&6
-echo "configure:928: checking for malloc in -lefence" >&5
+echo "configure:950: checking for malloc in -lefence" >&5
 ac_lib_var=`echo efence'_'malloc | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -932,7 +954,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lefence  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 936 "configure"
+#line 958 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -943,7 +965,7 @@ int main() {
 malloc()
 ; return 0; }
 EOF
-if { (eval echo configure:947: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:969: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -992,7 +1014,7 @@ else { echo "configure: error: can not run $ac_config_sub" 1>&2; exit 1; }
 fi
 
 echo $ac_n "checking host system type""... $ac_c" 1>&6
-echo "configure:996: checking host system type" >&5
+echo "configure:1018: checking host system type" >&5
 
 host_alias=$host
 case "$host_alias" in
@@ -1105,7 +1127,7 @@ for dir in include lib bin sbin ; do
             if mkdir -p $dirvalue ; then
                 :
             else
-		{ echo "configure: error: Could not create directory $dirvalue" 1>&2; exit 1; }
+                { echo "configure: error: Could not create directory $dirvalue" 1>&2; exit 1; }
             fi
         fi
     fi
@@ -1158,7 +1180,7 @@ fi
 # Extract the first word of "gcc", so it can be a program name with args.
 set dummy gcc; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1162: checking for $ac_word" >&5
+echo "configure:1184: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1188,7 +1210,7 @@ if test -z "$CC"; then
   # Extract the first word of "cc", so it can be a program name with args.
 set dummy cc; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1192: checking for $ac_word" >&5
+echo "configure:1214: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1239,7 +1261,7 @@ fi
       # Extract the first word of "cl", so it can be a program name with args.
 set dummy cl; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1243: checking for $ac_word" >&5
+echo "configure:1265: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1271,7 +1293,7 @@ fi
 fi
 
 echo $ac_n "checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works""... $ac_c" 1>&6
-echo "configure:1275: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works" >&5
+echo "configure:1297: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) works" >&5
 
 ac_ext=c
 # CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
@@ -1282,12 +1304,12 @@ cross_compiling=$ac_cv_prog_cc_cross
 
 cat > conftest.$ac_ext << EOF
 
-#line 1286 "configure"
+#line 1308 "configure"
 #include "confdefs.h"
 
 main(){return(0);}
 EOF
-if { (eval echo configure:1291: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1313: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   ac_cv_prog_cc_works=yes
   # If we can't run a trivial program, we are probably using a cross compiler.
   if (./conftest; exit) 2>/dev/null; then
@@ -1313,12 +1335,12 @@ if test $ac_cv_prog_cc_works = no; then
   { echo "configure: error: installation or configuration problem: C compiler cannot create executables." 1>&2; exit 1; }
 fi
 echo $ac_n "checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler""... $ac_c" 1>&6
-echo "configure:1317: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler" >&5
+echo "configure:1339: checking whether the C compiler ($CC $CFLAGS $LDFLAGS) is a cross-compiler" >&5
 echo "$ac_t""$ac_cv_prog_cc_cross" 1>&6
 cross_compiling=$ac_cv_prog_cc_cross
 
 echo $ac_n "checking whether we are using GNU C""... $ac_c" 1>&6
-echo "configure:1322: checking whether we are using GNU C" >&5
+echo "configure:1344: checking whether we are using GNU C" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_gcc'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1327,7 +1349,7 @@ else
   yes;
 #endif
 EOF
-if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:1331: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
+if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:1353: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
   ac_cv_prog_gcc=yes
 else
   ac_cv_prog_gcc=no
@@ -1346,7 +1368,7 @@ ac_test_CFLAGS="${CFLAGS+set}"
 ac_save_CFLAGS="$CFLAGS"
 CFLAGS=
 echo $ac_n "checking whether ${CC-cc} accepts -g""... $ac_c" 1>&6
-echo "configure:1350: checking whether ${CC-cc} accepts -g" >&5
+echo "configure:1372: checking whether ${CC-cc} accepts -g" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_cc_g'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1408,7 +1430,7 @@ if test -d "$SLOG_HOME"; then
 fi
  
 echo $ac_n "checking whether MPI_CC has been set ""... $ac_c" 1>&6
-echo "configure:1412: checking whether MPI_CC has been set " >&5
+echo "configure:1434: checking whether MPI_CC has been set " >&5
 if test -z "$MPI_CC" ; then
     MPI_CC=$CC
 fi
@@ -1421,7 +1443,7 @@ do
 # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1425: checking for $ac_word" >&5
+echo "configure:1447: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_F77'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1454,7 +1476,7 @@ done
 fi
 
 echo $ac_n "checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) works""... $ac_c" 1>&6
-echo "configure:1458: checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) works" >&5
+echo "configure:1480: checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) works" >&5
 
 ac_ext=f
 ac_compile='${F77-f77} -c $FFLAGS conftest.$ac_ext 1>&5'
@@ -1467,7 +1489,7 @@ cat > conftest.$ac_ext << EOF
       end
 
 EOF
-if { (eval echo configure:1471: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1493: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   ac_cv_prog_f77_works=yes
   # If we can't run a trivial program, we are probably using a cross compiler.
   if (./conftest; exit) 2>/dev/null; then
@@ -1493,12 +1515,12 @@ if test $ac_cv_prog_f77_works = no; then
   { echo "configure: error: installation or configuration problem: Fortran 77 compiler cannot create executables." 1>&2; exit 1; }
 fi
 echo $ac_n "checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) is a cross-compiler""... $ac_c" 1>&6
-echo "configure:1497: checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) is a cross-compiler" >&5
+echo "configure:1519: checking whether the Fortran 77 compiler ($F77 $FFLAGS $LDFLAGS) is a cross-compiler" >&5
 echo "$ac_t""$ac_cv_prog_f77_cross" 1>&6
 cross_compiling=$ac_cv_prog_f77_cross
 
 echo $ac_n "checking whether we are using GNU Fortran 77""... $ac_c" 1>&6
-echo "configure:1502: checking whether we are using GNU Fortran 77" >&5
+echo "configure:1524: checking whether we are using GNU Fortran 77" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_g77'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1507,7 +1529,7 @@ else
   yes
 #endif
 EOF
-if { ac_try='$F77 -E conftest.fpp'; { (eval echo configure:1511: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
+if { ac_try='$F77 -E conftest.fpp'; { (eval echo configure:1533: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
   ac_cv_prog_g77=yes
 else
   ac_cv_prog_g77=no
@@ -1522,7 +1544,7 @@ if test $ac_cv_prog_g77 = yes; then
   ac_save_FFLAGS="$FFLAGS"
   FFLAGS=
   echo $ac_n "checking whether $F77 accepts -g""... $ac_c" 1>&6
-echo "configure:1526: checking whether $F77 accepts -g" >&5
+echo "configure:1548: checking whether $F77 accepts -g" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_f77_g'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1556,7 +1578,7 @@ fi
         NOF77=1
     fi
     echo $ac_n "checking whether MPI_F77 has been set ""... $ac_c" 1>&6
-echo "configure:1560: checking whether MPI_F77 has been set " >&5
+echo "configure:1582: checking whether MPI_F77 has been set " >&5
     if test -z "$MPI_F77" ; then
         MPI_F77=$F77
     fi
@@ -1578,6 +1600,7 @@ PROF_LIBS="-l$PROF_LIBNAME"
 LOG_LIBS="-l$LOG_LIBNAME $PROF_LIBS"
 TRACE_LIBS="-l$TRACE_LIBNAME"
 ANIM_LIBS="-l$ANIM_LIBNAME $PROF_LIBS"
+XGRAPH_LIBS="$PROF_LIBS"
 
 if test "$NOF77" = "0" ; then
     if test "$enable_f2cmpilib" = "yes" ; then
@@ -1595,7 +1618,7 @@ fi
 #
 if test "$enable_checkMPI" = "yes" ; then
     echo $ac_n "checking for the linkage of the supplied MPI C definitions ""... $ac_c" 1>&6
-echo "configure:1599: checking for the linkage of the supplied MPI C definitions " >&5
+echo "configure:1622: checking for the linkage of the supplied MPI C definitions " >&5
     
     pac_MPI_CC="$MPI_CC"
     pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
@@ -1615,7 +1638,7 @@ cross_compiling=$ac_cv_prog_cc_cross
     CFLAGS="$pac_MPI_CFLAGS"
     LIBS="$pac_MPI_LIBS"
     cat > conftest.$ac_ext <<EOF
-#line 1619 "configure"
+#line 1642 "configure"
 #include "confdefs.h"
 #include "mpi.h"
 int main() {
@@ -1628,7 +1651,7 @@ int main() {
                  
 ; return 0; }
 EOF
-if { (eval echo configure:1632: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1655: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_mpi_working=yes
 else
@@ -1658,13 +1681,13 @@ cross_compiling=$ac_cv_prog_cc_cross
         echo "$ac_t""yes" 1>&6
     else
         echo "$ac_t""no" 1>&6
-	{ echo "configure: error: Cannot link with basic MPI C program!
+        { echo "configure: error: Cannot link with basic MPI C program!
 	Check your MPI include paths, MPI libraries and MPI CC compiler " 1>&2; exit 1; }
     fi
 fi
 if test "$enable_checkMPI" = "yes" -a "$NOF77" = "0" ; then
     echo $ac_n "checking for the linkage of the supplied MPI F77 definitions ""... $ac_c" 1>&6
-echo "configure:1668: checking for the linkage of the supplied MPI F77 definitions " >&5
+echo "configure:1691: checking for the linkage of the supplied MPI F77 definitions " >&5
     
     pac_MPI_F77="$MPI_F77"
     pac_MPI_FFLAGS="$FFLAGS $MPI_INC"
@@ -1692,7 +1715,7 @@ cross_compiling=$ac_cv_prog_f77_cross
 	
 	integer mytid
 	integer ierr
-	
+    
 	call MPI_Init( pac_ierr )
 	 call MPI_Comm_rank( MPI_COMM_WORLD, mytid, ierr ) 
 	call MPI_Finalize( pac_ierr )
@@ -1700,7 +1723,7 @@ cross_compiling=$ac_cv_prog_f77_cross
                  
       end
 EOF
-if { (eval echo configure:1704: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1727: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_mpi_working=yes
 else
@@ -1742,7 +1765,7 @@ fi
 #
 if test "$enable_checkMPI" = "yes" -a "$enable_checkMPIwtime" = "yes" ; then
     echo $ac_n "checking for the C version of MPI_Wtime() ""... $ac_c" 1>&6
-echo "configure:1746: checking for the C version of MPI_Wtime() " >&5
+echo "configure:1769: checking for the C version of MPI_Wtime() " >&5
     
     pac_MPI_CC="$MPI_CC"
     pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
@@ -1762,7 +1785,7 @@ cross_compiling=$ac_cv_prog_cc_cross
     CFLAGS="$pac_MPI_CFLAGS"
     LIBS="$pac_MPI_LIBS"
     cat > conftest.$ac_ext <<EOF
-#line 1766 "configure"
+#line 1789 "configure"
 #include "confdefs.h"
 #include "mpi.h"
 int main() {
@@ -1775,7 +1798,7 @@ int main() {
                  
 ; return 0; }
 EOF
-if { (eval echo configure:1779: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1802: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_mpi_working=yes
 else
@@ -1803,27 +1826,262 @@ cross_compiling=$ac_cv_prog_cc_cross
 
     if test "$mpe_link_ok" = "yes" ; then
         echo "$ac_t""yes" 1>&6
-	cat >> confdefs.h <<\EOF
+        cat >> confdefs.h <<\EOF
 #define HAVE_MPI_WTIME  1
 EOF
 
     else
         echo "$ac_t""no" 1>&6
-	{ echo "configure: error: Cannot link with MPI_Wtime()!
+        { echo "configure: error: Cannot link with MPI_Wtime()!
 	Check your MPI include paths, MPI libraries and MPI CC compiler  " 1>&2; exit 1; }
     fi
 fi
 
+if test "$enable_checkMPI" = "yes" -a "$enable_checkMPIO" = "yes" ; then
+    echo $ac_n "checking for the C version of MPI_File_open() ""... $ac_c" 1>&6
+echo "configure:1843: checking for the C version of MPI_File_open() " >&5
+    
+    pac_MPI_CC="$MPI_CC"
+    pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
+    pac_MPI_LIBS="$MPI_LIBS"
+    
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
 
-#
+    pac_saved_CC="$CC"
+    pac_saved_CFLAGS="$CFLAGS"
+    pac_saved_LIBS="$LIBS"
+    CC="$pac_MPI_CC"
+    CFLAGS="$pac_MPI_CFLAGS"
+    LIBS="$pac_MPI_LIBS"
+    cat > conftest.$ac_ext <<EOF
+#line 1863 "configure"
+#include "confdefs.h"
+#include "mpi.h"
+int main() {
+
+    int argc; char **argv;
+     int itmp; MPI_File fh  ; 
+    MPI_Init(&argc, &argv);
+     itmp=MPI_File_open( MPI_COMM_WORLD, "mpiiotest", MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &fh )  ;
+    MPI_Finalize();
+                 
+; return 0; }
+EOF
+if { (eval echo configure:1876: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  pac_mpi_working=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  pac_mpi_working=no 
+fi
+rm -f conftest*
+    CC="$pac_saved_CC"
+    CFLAGS="$pac_saved_CFLAGS"
+    LIBS="$pac_saved_LIBS"
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    if test "$pac_mpi_working" = "yes" ; then
+        mpe_link_ok=yes 
+    else
+        mpe_link_ok=no  
+    fi
+
+    if test "$mpe_link_ok" = "yes" ; then
+        echo "$ac_t""yes" 1>&6
+        cat >> confdefs.h <<\EOF
+#define HAVE_MPI_IO  1
+EOF
+
+    else
+        echo "$ac_t""no, assumed No MPI-IO routines" 1>&6
+    fi
+fi
+
+# When it is built with MPICH, MPE configure observes --with[out]-mpiio
+if test "$MPI_IMPL" = "MPICH" -a "$with_mpiio" = "yes" ; then
+    cat >> confdefs.h <<\EOF
+#define HAVE_MPI_IO  1
+EOF
+
+fi
+
+
+ 
 if test -z "$CC" -o -z "$MPI_CC"; then
     { echo "configure: error: You must configure MPE with a specific MPI " 1>&2; exit 1; }
 fi
-#
+ 
 if test -n "$F77" -a "$NOF77" = 0 ; then 
+    echo $ac_n "checking for Fortran 77 libraries""... $ac_c" 1>&6
+echo "configure:1929: checking for Fortran 77 libraries" >&5
+
+
+if eval "test \"`echo '$''{'ac_cv_flibs'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  echo "      END" > conftest.f
+foutput=`${F77} -v -o conftest conftest.f 2>&1`
+xlf_p=`echo $foutput | grep xlfentry`
+if test -n "$xlf_p"; then
+  foutput=`echo $foutput | sed 's/,/ /g'`
+fi
+ld_run_path=`echo $foutput | \
+  sed -n -e 's/^.*LD_RUN_PATH *= *\([^ ]*\).*/\1/p'`
+case "$ld_run_path" in
+  /*)
+    if test "$ac_cv_prog_gcc" = yes; then
+      ld_run_path="-Xlinker -R -Xlinker $ld_run_path"
+    else
+      ld_run_path="-R $ld_run_path"
+    fi
+  ;;
+  *)
+    ld_run_path=
+  ;;
+esac
+flibs=
+lflags=
+want_arg=
+for arg in $foutput; do
+  old_want_arg=$want_arg
+  want_arg=
+  if test -n "$old_want_arg"; then
+    case "$arg" in
+      -*)
+        old_want_arg=
+      ;;
+    esac
+  fi
+  case "$old_want_arg" in
+    '')
+      case $arg in
+        /*.a)
+          exists=false
+          for f in $lflags; do
+            if test x$arg = x$f; then
+              exists=true
+            fi
+          done
+          if $exists; then
+            arg=
+          else
+            lflags="$lflags $arg"
+          fi
+        ;;
+        -bI:*)
+          exists=false
+          for f in $lflags; do
+            if test x$arg = x$f; then
+              exists=true
+            fi
+          done
+          if $exists; then
+            arg=
+          else
+            if test "$ac_cv_prog_gcc" = yes; then
+              lflags="$lflags -Xlinker $arg"
+            else
+              lflags="$lflags $arg"
+            fi
+          fi
+        ;;
+        -lang* | -lcrt0.o | -lc | -lgcc)
+          arg=
+        ;;
+        -[lLR])
+          want_arg=$arg
+          arg=
+        ;;
+        -[lLR]*)
+          exists=false
+          for f in $lflags; do
+            if test x$arg = x$f; then
+              exists=true
+            fi
+          done
+          if $exists; then
+            arg=
+          else
+            case "$arg" in
+              -lkernel32)
+                case "$canonical_host_type" in
+                  *-*-cygwin*)
+                    arg=
+                  ;;
+                  *)
+                    lflags="$lflags $arg"
+                  ;;
+                esac
+              ;;
+              -lm)
+              ;;
+              *)
+                lflags="$lflags $arg"
+              ;;
+            esac
+          fi
+        ;;
+        -u)
+          want_arg=$arg
+          arg=
+        ;;
+        -Y)
+          want_arg=$arg
+          arg=
+        ;;
+        *)
+          arg=
+        ;;
+      esac
+    ;;
+    -[lLR])
+      arg="$old_want_arg $arg"
+    ;;
+    -u)
+      arg="-u $arg"
+    ;;
+    -Y)
+      arg=`echo $arg | sed -e 's%^P,%%'`
+      SAVE_IFS=$IFS
+      IFS=:
+      list=
+      for elt in $arg; do
+        list="$list -L$elt"
+      done
+      IFS=$SAVE_IFS
+      arg="$list"
+    ;;
+  esac
+  if test -n "$arg"; then
+    flibs="$flibs $arg"
+  fi
+done
+if test -n "$ld_run_path"; then
+  flibs_result="$ld_run_path $flibs"
+else
+  flibs_result="$flibs"
+fi
+ac_cv_flibs="$flibs_result"
+fi
+
+FLIBS="$ac_cv_flibs"
+echo "$ac_t""$FLIBS" 1>&6
+
     
 echo $ac_n "checking for Fortran 77 name mangling""... $ac_c" 1>&6
-echo "configure:1827: checking for Fortran 77 name mangling" >&5
+echo "configure:2085: checking for Fortran 77 name mangling" >&5
 if eval "test \"`echo '$''{'pac_cv_prog_f77_name_mangle'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1847,7 +2105,7 @@ EOF
    if test "X$ac_fcompile" = "X" ; then
        ac_fcompile='${F77-f77} -c $FFLAGS conftest.f 1>&5'
    fi
-   if { (eval echo configure:1851: \"$ac_fcompile\") 1>&5; (eval $ac_fcompile) 2>&5; } && test -s conftest.o ; then
+   if { (eval echo configure:2109: \"$ac_fcompile\") 1>&5; (eval $ac_fcompile) 2>&5; } && test -s conftest.o ; then
 	mv conftest.o fconftestf.o
    else 
 	echo "configure: failed program was:" >&5
@@ -1863,16 +2121,16 @@ ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$a
 cross_compiling=$ac_cv_prog_cc_cross
    
    save_LIBS="$LIBS"
-   LIBS="fconftestf.o $LIBS"
+   LIBS="fconftestf.o $FLIBS $LIBS"
    cat > conftest.$ac_ext <<EOF
-#line 1869 "configure"
+#line 2127 "configure"
 #include "confdefs.h"
 
 int main() {
 my_name();
 ; return 0; }
 EOF
-if { (eval echo configure:1876: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2134: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_cv_prog_f77_name_mangle="lower"
 else
@@ -1882,14 +2140,14 @@ fi
 rm -f conftest*
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      cat > conftest.$ac_ext <<EOF
-#line 1886 "configure"
+#line 2144 "configure"
 #include "confdefs.h"
 
 int main() {
 my_name_();
 ; return 0; }
 EOF
-if { (eval echo configure:1893: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2151: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_cv_prog_f77_name_mangle="lower underscore"
 else
@@ -1900,14 +2158,14 @@ rm -f conftest*
    fi
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      cat > conftest.$ac_ext <<EOF
-#line 1904 "configure"
+#line 2162 "configure"
 #include "confdefs.h"
 
 int main() {
 MY_NAME();
 ; return 0; }
 EOF
-if { (eval echo configure:1911: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2169: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_cv_prog_f77_name_mangle="upper"
 else
@@ -1918,14 +2176,14 @@ rm -f conftest*
    fi
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      cat > conftest.$ac_ext <<EOF
-#line 1922 "configure"
+#line 2180 "configure"
 #include "confdefs.h"
 
 int main() {
 my_name__();
 ; return 0; }
 EOF
-if { (eval echo configure:1929: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2187: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_cv_prog_f77_name_mangle="lower doubleunderscore"
 else
@@ -1936,14 +2194,14 @@ rm -f conftest*
    fi
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      cat > conftest.$ac_ext <<EOF
-#line 1940 "configure"
+#line 2198 "configure"
 #include "confdefs.h"
 
 int main() {
 MY_name();
 ; return 0; }
 EOF
-if { (eval echo configure:1947: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2205: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_cv_prog_f77_name_mangle="mixed"
 else
@@ -1954,14 +2212,14 @@ rm -f conftest*
    fi
    if test  "X$pac_cv_prog_f77_name_mangle" = "X" ; then
      cat > conftest.$ac_ext <<EOF
-#line 1958 "configure"
+#line 2216 "configure"
 #include "confdefs.h"
 
 int main() {
 MY_name_();
 ; return 0; }
 EOF
-if { (eval echo configure:1965: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2223: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_cv_prog_f77_name_mangle="mixed underscore"
 else
@@ -2017,13 +2275,25 @@ esac
 
 
 fi
-#
 
-if test "${F2CMPI_LIBS}" = "-l${F2CMPI_LIBNAME}" ; then
+if test "$enable_mpe_graphics" = "yes" -a "$NOF77" = "0" ; then
+    if test "$enable_checkMPI" = "yes" ; then
+        enable_f2c_graphicslib=yes
+    else
+        enable_f2c_graphicslib=no
+        if test "$MPI_IMPL" = "MPICH" ; then
+            cat >> confdefs.h <<\EOF
+#define HAVE_MPI_COMM_F2C  1
+EOF
 
+        fi
+    fi
+fi
+
+if test "$enable_f2c_graphicslib" = "yes" ; then
 #   Determine MPI_Fint
     echo $ac_n "checking for MPI_Fint ""... $ac_c" 1>&6
-echo "configure:2027: checking for MPI_Fint " >&5
+echo "configure:2297: checking for MPI_Fint " >&5
     
     pac_MPI_CC="$MPI_CC"
     pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
@@ -2043,7 +2313,7 @@ cross_compiling=$ac_cv_prog_cc_cross
     CFLAGS="$pac_MPI_CFLAGS"
     LIBS="$pac_MPI_LIBS"
     cat > conftest.$ac_ext <<EOF
-#line 2047 "configure"
+#line 2317 "configure"
 #include "confdefs.h"
 #include "mpi.h"
 int main() {
@@ -2056,7 +2326,7 @@ int main() {
                  
 ; return 0; }
 EOF
-if { (eval echo configure:2060: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2330: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_mpi_working=yes
 else
@@ -2088,16 +2358,96 @@ cross_compiling=$ac_cv_prog_cc_cross
     else
         echo "$ac_t""no, assumed MPI_Fint to be int" 1>&6
         MPI_FINT_TYPE=int
-	cat >> confdefs.h <<\EOF
+        cat >> confdefs.h <<\EOF
 #define MPI_Fint int 
 EOF
 
     fi
 
+#   Determmine if MPI_Comm_f2c() and MPI_Comm_c2f() are there
+    echo $ac_n "checking for MPI_Comm_c2f() and MPI_Comm_f2c() ""... $ac_c" 1>&6
+echo "configure:2370: checking for MPI_Comm_c2f() and MPI_Comm_f2c() " >&5
+    
+    pac_MPI_CC="$MPI_CC"
+    pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
+    pac_MPI_LIBS="$MPI_LIBS"
+    
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    pac_saved_CC="$CC"
+    pac_saved_CFLAGS="$CFLAGS"
+    pac_saved_LIBS="$LIBS"
+    CC="$pac_MPI_CC"
+    CFLAGS="$pac_MPI_CFLAGS"
+    LIBS="$pac_MPI_LIBS"
+    cat > conftest.$ac_ext <<EOF
+#line 2390 "configure"
+#include "confdefs.h"
+#include "mpi.h"
+int main() {
+
+    int argc; char **argv;
+    
+			  MPI_Comm comm; ${MPI_FINT_TYPE} aa;
+			   ; 
+    MPI_Init(&argc, &argv);
+     
+			  aa=MPI_Comm_c2f(comm) ;
+			  comm=MPI_Comm_f2c(aa) ;
+			   ;
+    MPI_Finalize();
+                 
+; return 0; }
+EOF
+if { (eval echo configure:2408: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  pac_mpi_working=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  pac_mpi_working=no 
+fi
+rm -f conftest*
+    CC="$pac_saved_CC"
+    CFLAGS="$pac_saved_CFLAGS"
+    LIBS="$pac_saved_LIBS"
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    if test "$pac_mpi_working" = "yes" ; then
+        mpe_link_ok=yes 
+    else
+        mpe_link_ok=no  
+    fi
+
+    if test "$mpe_link_ok" = "yes" ; then
+        echo "$ac_t""yes" 1>&6
+        cat >> confdefs.h <<\EOF
+#define HAVE_MPI_COMM_F2C  1
+EOF
+
+    else
+        echo "$ac_t""no" 1>&6
+    fi
+fi
+
+
+if test "${F2CMPI_LIBS}" = "-l${F2CMPI_LIBNAME}" ; then
+
 #   Determine MPI_STATUS_SIZE
     mpe_tmpfile=mpe_mpistatusvalue
     echo $ac_n "checking for the value of MPI_STATUS_SIZE ""... $ac_c" 1>&6
-echo "configure:2101: checking for the value of MPI_STATUS_SIZE " >&5
+echo "configure:2451: checking for the value of MPI_STATUS_SIZE " >&5
     
     pac_MPI_CC="$MPI_CC"
     pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
@@ -2135,12 +2485,12 @@ main()
                         
 EOF
     pac_compile='${CC-cc} -c $CFLAGS conftest.c 1>&5'
-    if { (eval echo configure:2139: \"$pac_compile\") 1>&5; (eval $pac_compile) 2>&5; } && test -s conftest.o ; then
+    if { (eval echo configure:2489: \"$pac_compile\") 1>&5; (eval $pac_compile) 2>&5; } && test -s conftest.o ; then
         CC="$pac_SER_CC"
         CFLAGS="$pac_SER_CFLAGS"
         LIBS="$pac_SER_LIBS"
 	pac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $LDFLAGS conftest.o $LIBS 1>&5'
-        if { (eval echo configure:2144: \"$pac_link\") 1>&5; (eval $pac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest${ac_exeext} ; exit) 2>/dev/null ; then
+        if { (eval echo configure:2494: \"$pac_link\") 1>&5; (eval $pac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest${ac_exeext} ; exit) 2>/dev/null ; then
 	    pac_mpi_working=yes
 	else
 	    pac_mpi_working=no
@@ -2166,20 +2516,20 @@ cross_compiling=$ac_cv_prog_cc_cross
     fi
 
     if test "$mpe_run_ok" = "yes" ; then
-	mpe_MPI_STATUS_SIZE="`cat ${mpe_tmpfile} | sed -e 's/ //g'`"
-	cat >> confdefs.h <<EOF
+        mpe_MPI_STATUS_SIZE="`cat ${mpe_tmpfile} | sed -e 's/ //g'`"
+        cat >> confdefs.h <<EOF
 #define MPI_STATUS_SIZE $mpe_MPI_STATUS_SIZE 
 EOF
 
-	echo "$ac_t""${mpe_MPI_STATUS_SIZE} " 1>&6
-	rm -f ${mpe_tmpfile}
+        echo "$ac_t""${mpe_MPI_STATUS_SIZE} " 1>&6
+        rm -f ${mpe_tmpfile}
     else
-	{ echo "configure: error: could NOT determine! " 1>&2; exit 1; }
+        { echo "configure: error: could NOT determine! " 1>&2; exit 1; }
     fi
 
 #   Determmine if MPI_Status_f2c() and MPI_Status_c2f() are there
     echo $ac_n "checking for MPI_Status_c2f() and MPI_Status_f2c() ""... $ac_c" 1>&6
-echo "configure:2183: checking for MPI_Status_c2f() and MPI_Status_f2c() " >&5
+echo "configure:2533: checking for MPI_Status_c2f() and MPI_Status_f2c() " >&5
     
     pac_MPI_CC="$MPI_CC"
     pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
@@ -2199,7 +2549,7 @@ cross_compiling=$ac_cv_prog_cc_cross
     CFLAGS="$pac_MPI_CFLAGS"
     LIBS="$pac_MPI_LIBS"
     cat > conftest.$ac_ext <<EOF
-#line 2203 "configure"
+#line 2553 "configure"
 #include "confdefs.h"
 #include "mpi.h"
 int main() {
@@ -2219,7 +2569,7 @@ int main() {
                  
 ; return 0; }
 EOF
-if { (eval echo configure:2223: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2573: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_mpi_working=yes
 else
@@ -2248,16 +2598,16 @@ cross_compiling=$ac_cv_prog_cc_cross
     if test "$mpe_link_ok" = "yes" ; then
         echo "$ac_t""yes" 1>&6
         cat >> confdefs.h <<\EOF
-#define HAVE_MPI_STATUS_C2F  1
+#define HAVE_MPI_STATUS_F2C  1
 EOF
 
     else
         echo "$ac_t""no" 1>&6
     fi
 
-#   Determmine if MPI_xxx_f2c() and MPI_xxx_c2f() are there
-    echo $ac_n "checking for other MPI_xxxx_c2f() and MPI_xxxx_f2c() ""... $ac_c" 1>&6
-echo "configure:2261: checking for other MPI_xxxx_c2f() and MPI_xxxx_f2c() " >&5
+#   Determmine if MPI_Type_f2c() and MPI_Type_c2f() are there
+    echo $ac_n "checking for MPI_Type_c2f() and MPI_Type_f2c() ""... $ac_c" 1>&6
+echo "configure:2611: checking for MPI_Type_c2f() and MPI_Type_f2c() " >&5
     
     pac_MPI_CC="$MPI_CC"
     pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
@@ -2277,25 +2627,25 @@ cross_compiling=$ac_cv_prog_cc_cross
     CFLAGS="$pac_MPI_CFLAGS"
     LIBS="$pac_MPI_LIBS"
     cat > conftest.$ac_ext <<EOF
-#line 2281 "configure"
+#line 2631 "configure"
 #include "confdefs.h"
 #include "mpi.h"
 int main() {
 
     int argc; char **argv;
     
-			  MPI_Request request; ${MPI_FINT_TYPE} aa;
+			  MPI_Datatype type; ${MPI_FINT_TYPE} aa;
 			   ; 
     MPI_Init(&argc, &argv);
      
-			  aa=MPI_Request_c2f(request) ;
-			  request=MPI_Request_f2c(aa) ;
+			  aa=MPI_Type_c2f(type) ;
+			  type=MPI_Type_f2c(aa) ;
 			   ;
     MPI_Finalize();
                  
 ; return 0; }
 EOF
-if { (eval echo configure:2299: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2649: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   pac_mpi_working=yes
 else
@@ -2324,7 +2674,311 @@ cross_compiling=$ac_cv_prog_cc_cross
     if test "$mpe_link_ok" = "yes" ; then
         echo "$ac_t""yes" 1>&6
         cat >> confdefs.h <<\EOF
-#define HAVE_MPI_XXXX_F2C  1
+#define HAVE_MPI_TYPE_F2C  1
+EOF
+
+    else
+        echo "$ac_t""no" 1>&6
+    fi
+
+#   Determmine if MPI_Group_f2c() and MPI_Group_c2f() are there
+    echo $ac_n "checking for MPI_Group_c2f() and MPI_Group_f2c() ""... $ac_c" 1>&6
+echo "configure:2687: checking for MPI_Group_c2f() and MPI_Group_f2c() " >&5
+    
+    pac_MPI_CC="$MPI_CC"
+    pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
+    pac_MPI_LIBS="$MPI_LIBS"
+    
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    pac_saved_CC="$CC"
+    pac_saved_CFLAGS="$CFLAGS"
+    pac_saved_LIBS="$LIBS"
+    CC="$pac_MPI_CC"
+    CFLAGS="$pac_MPI_CFLAGS"
+    LIBS="$pac_MPI_LIBS"
+    cat > conftest.$ac_ext <<EOF
+#line 2707 "configure"
+#include "confdefs.h"
+#include "mpi.h"
+int main() {
+
+    int argc; char **argv;
+    
+			  MPI_Group group; ${MPI_FINT_TYPE} aa;
+			   ; 
+    MPI_Init(&argc, &argv);
+     
+			  aa=MPI_Group_c2f(group) ;
+			  group=MPI_Group_f2c(aa) ;
+			   ;
+    MPI_Finalize();
+                 
+; return 0; }
+EOF
+if { (eval echo configure:2725: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  pac_mpi_working=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  pac_mpi_working=no 
+fi
+rm -f conftest*
+    CC="$pac_saved_CC"
+    CFLAGS="$pac_saved_CFLAGS"
+    LIBS="$pac_saved_LIBS"
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    if test "$pac_mpi_working" = "yes" ; then
+        mpe_link_ok=yes 
+    else
+        mpe_link_ok=no  
+    fi
+
+    if test "$mpe_link_ok" = "yes" ; then
+        echo "$ac_t""yes" 1>&6
+        cat >> confdefs.h <<\EOF
+#define HAVE_MPI_GROUP_F2C  1
+EOF
+
+    else
+        echo "$ac_t""no" 1>&6
+    fi
+
+#   Determmine if MPI_Request_f2c() and MPI_Request_c2f() are there
+    echo $ac_n "checking for MPI_Request_c2f() and MPI_Request_f2c() ""... $ac_c" 1>&6
+echo "configure:2763: checking for MPI_Request_c2f() and MPI_Request_f2c() " >&5
+    
+    pac_MPI_CC="$MPI_CC"
+    pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
+    pac_MPI_LIBS="$MPI_LIBS"
+    
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    pac_saved_CC="$CC"
+    pac_saved_CFLAGS="$CFLAGS"
+    pac_saved_LIBS="$LIBS"
+    CC="$pac_MPI_CC"
+    CFLAGS="$pac_MPI_CFLAGS"
+    LIBS="$pac_MPI_LIBS"
+    cat > conftest.$ac_ext <<EOF
+#line 2783 "configure"
+#include "confdefs.h"
+#include "mpi.h"
+int main() {
+
+    int argc; char **argv;
+    
+			  MPI_Request request; ${MPI_FINT_TYPE} aa;
+			   ; 
+    MPI_Init(&argc, &argv);
+     
+			  aa=MPI_Request_c2f(request) ;
+			  request=MPI_Request_f2c(aa) ;
+			   ;
+    MPI_Finalize();
+                 
+; return 0; }
+EOF
+if { (eval echo configure:2801: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  pac_mpi_working=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  pac_mpi_working=no 
+fi
+rm -f conftest*
+    CC="$pac_saved_CC"
+    CFLAGS="$pac_saved_CFLAGS"
+    LIBS="$pac_saved_LIBS"
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    if test "$pac_mpi_working" = "yes" ; then
+        mpe_link_ok=yes 
+    else
+        mpe_link_ok=no  
+    fi
+
+    if test "$mpe_link_ok" = "yes" ; then
+        echo "$ac_t""yes" 1>&6
+        cat >> confdefs.h <<\EOF
+#define HAVE_MPI_REQUEST_F2C  1
+EOF
+
+    else
+        echo "$ac_t""no" 1>&6
+    fi
+
+#   Determmine if MPI_Op_f2c() and MPI_Op_c2f() are there
+    echo $ac_n "checking for MPI_Op_c2f() and MPI_Op_f2c() ""... $ac_c" 1>&6
+echo "configure:2839: checking for MPI_Op_c2f() and MPI_Op_f2c() " >&5
+    
+    pac_MPI_CC="$MPI_CC"
+    pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
+    pac_MPI_LIBS="$MPI_LIBS"
+    
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    pac_saved_CC="$CC"
+    pac_saved_CFLAGS="$CFLAGS"
+    pac_saved_LIBS="$LIBS"
+    CC="$pac_MPI_CC"
+    CFLAGS="$pac_MPI_CFLAGS"
+    LIBS="$pac_MPI_LIBS"
+    cat > conftest.$ac_ext <<EOF
+#line 2859 "configure"
+#include "confdefs.h"
+#include "mpi.h"
+int main() {
+
+    int argc; char **argv;
+    
+			  MPI_Op op; ${MPI_FINT_TYPE} aa;
+			   ; 
+    MPI_Init(&argc, &argv);
+     
+			  aa=MPI_Op_c2f(op) ;
+			  op=MPI_Op_f2c(aa) ;
+			   ;
+    MPI_Finalize();
+                 
+; return 0; }
+EOF
+if { (eval echo configure:2877: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  pac_mpi_working=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  pac_mpi_working=no 
+fi
+rm -f conftest*
+    CC="$pac_saved_CC"
+    CFLAGS="$pac_saved_CFLAGS"
+    LIBS="$pac_saved_LIBS"
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    if test "$pac_mpi_working" = "yes" ; then
+        mpe_link_ok=yes 
+    else
+        mpe_link_ok=no  
+    fi
+
+    if test "$mpe_link_ok" = "yes" ; then
+        echo "$ac_t""yes" 1>&6
+        cat >> confdefs.h <<\EOF
+#define HAVE_MPI_OP_F2C  1
+EOF
+
+    else
+        echo "$ac_t""no" 1>&6
+    fi
+
+#   Determmine if MPI_Errhandler_f2c() and MPI_Errhandler_c2f() are there
+    echo $ac_n "checking for MPI_Errhandler_c2f() and MPI_Errhandler_f2c() ""... $ac_c" 1>&6
+echo "configure:2915: checking for MPI_Errhandler_c2f() and MPI_Errhandler_f2c() " >&5
+    
+    pac_MPI_CC="$MPI_CC"
+    pac_MPI_CFLAGS="$CFLAGS $MPI_INC"
+    pac_MPI_LIBS="$MPI_LIBS"
+    
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    pac_saved_CC="$CC"
+    pac_saved_CFLAGS="$CFLAGS"
+    pac_saved_LIBS="$LIBS"
+    CC="$pac_MPI_CC"
+    CFLAGS="$pac_MPI_CFLAGS"
+    LIBS="$pac_MPI_LIBS"
+    cat > conftest.$ac_ext <<EOF
+#line 2935 "configure"
+#include "confdefs.h"
+#include "mpi.h"
+int main() {
+
+    int argc; char **argv;
+    
+			  MPI_Errhandler errhandler; ${MPI_FINT_TYPE} aa;
+			   ; 
+    MPI_Init(&argc, &argv);
+     
+			  aa=MPI_Errhandler_c2f(errhandler) ;
+			  errhandler=MPI_Errhandler_f2c(aa) ;
+			   ;
+    MPI_Finalize();
+                 
+; return 0; }
+EOF
+if { (eval echo configure:2953: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  pac_mpi_working=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  pac_mpi_working=no 
+fi
+rm -f conftest*
+    CC="$pac_saved_CC"
+    CFLAGS="$pac_saved_CFLAGS"
+    LIBS="$pac_saved_LIBS"
+    ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+    if test "$pac_mpi_working" = "yes" ; then
+        mpe_link_ok=yes 
+    else
+        mpe_link_ok=no  
+    fi
+
+    if test "$mpe_link_ok" = "yes" ; then
+        echo "$ac_t""yes" 1>&6
+        cat >> confdefs.h <<\EOF
+#define HAVE_MPI_ERRHANDLER_F2C  1
 EOF
 
     else
@@ -2334,7 +2988,7 @@ EOF
 #   Determine the Fortran logical values in MPI C program
     mpe_tmpfile=mpe_f77logicals
     echo $ac_n "checking for values of Fortran logicals in MPI C program ""... $ac_c" 1>&6
-echo "configure:2338: checking for values of Fortran logicals in MPI C program " >&5
+echo "configure:2992: checking for values of Fortran logicals in MPI C program " >&5
     
     pac_MPI_F77="$F77"
     pac_MPI_FFLAGS="$FFLAGS"
@@ -2366,7 +3020,7 @@ cross_compiling=$ac_cv_prog_f77_cross
                                  
 EOF
     pac_Fcompile='${F77-f77} -c $FFLAGS conftestf.f 1>&5'
-    if { (eval echo configure:2370: \"$pac_Fcompile\") 1>&5; (eval $pac_Fcompile) 2>&5; } && test -s conftestf.o ; then
+    if { (eval echo configure:3024: \"$pac_Fcompile\") 1>&5; (eval $pac_Fcompile) 2>&5; } && test -s conftestf.o ; then
         pac_mpi_working=yes
     else
         pac_mpi_working=no
@@ -2405,12 +3059,12 @@ int main()
                                  
 EOF
     pac_Ccompile='${CC-cc} -c $CFLAGS conftestc.c 1>&5'
-    if test "$pac_mpi_working" = "yes" && { (eval echo configure:2409: \"$pac_Ccompile\") 1>&5; (eval $pac_Ccompile) 2>&5; } && test -s conftestc.o ; then
+    if test "$pac_mpi_working" = "yes" && { (eval echo configure:3063: \"$pac_Ccompile\") 1>&5; (eval $pac_Ccompile) 2>&5; } && test -s conftestc.o ; then
         CC="$pac_SER_CC"
 	CFLAGS="$pac_SER_CFLAGS"
 	LIBS="$pac_SER_LIBS"
         pac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $LDFLAGS conftestc.o conftestf.o $LIBS 1>&5'
-	if { (eval echo configure:2414: \"$pac_link\") 1>&5; (eval $pac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest${ac_exeext} ; exit) 2>/dev/null ; then
+	if { (eval echo configure:3068: \"$pac_link\") 1>&5; (eval $pac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest${ac_exeext} ; exit) 2>/dev/null ; then
             pac_mpi_working=yes
         else
             pac_mpi_working=no
@@ -2436,25 +3090,25 @@ cross_compiling=$ac_cv_prog_cc_cross
     fi
 
     if test "$mpe_run_ok" = "yes" ; then
-	mpe_f77logicals="`cat ${mpe_tmpfile}`"
-	true_val="`echo ${mpe_f77logicals} | sed -e 's/ .*//g'`"
-	false_val="`echo ${mpe_f77logicals} | sed -e 's/.*  *//g'`"
-	if test -n "$true_val" -a -n "$false_val" ; then
-	    cat >> confdefs.h <<EOF
+        mpe_f77logicals="`cat ${mpe_tmpfile}`"
+        true_val="`echo ${mpe_f77logicals} | sed -e 's/ .*//g'`"
+        false_val="`echo ${mpe_f77logicals} | sed -e 's/.*  *//g'`"
+        if test -n "$true_val" -a -n "$false_val" ; then
+            cat >> confdefs.h <<EOF
 #define MPE_F77_TRUE_VALUE $true_val 
 EOF
 
-	    cat >> confdefs.h <<EOF
+            cat >> confdefs.h <<EOF
 #define MPE_F77_FALSE_VALUE $false_val 
 EOF
 
-	    echo "$ac_t""True=$true_val and False=$false_val " 1>&6
+            echo "$ac_t""True=$true_val and False=$false_val " 1>&6
         else
-	    { echo "configure: error: could NOT determine! " 1>&2; exit 1; }
-	fi
-	rm -f ${mpe_tmpfile}
+            { echo "configure: error: could NOT determine! " 1>&2; exit 1; }
+	    fi
+        rm -f ${mpe_tmpfile}
     else
-	{ echo "configure: error: could NOT determine! " 1>&2; exit 1; }
+        { echo "configure: error: could NOT determine! " 1>&2; exit 1; }
     fi
 fi
 
@@ -2463,6 +3117,10 @@ fi
 # otherwise, top_srcdir/Makefile.in and top_srcdir/sbin/mpeinstall will need
 # to define MPE_HEADERS separately.
 MPE_HEADERS="mpe.h mpe_graphics.h mpe_log.h mpetools.h mpeexten.h basex11.h protofix.h"
+if test "$NOF77" = 0 ; then
+    # Add the Fortran version of mpef.h
+    MPE_HEADERS="$MPE_HEADERS mpef.h"
+fi
 
 
 MPE_GRPAHICS=""
@@ -2471,7 +3129,7 @@ MPEGRAPHICS_FSOURCE=""
 #
 # We need to check that this has worked.  The autoconf macro is broken
 echo $ac_n "checking how to run the C preprocessor""... $ac_c" 1>&6
-echo "configure:2475: checking how to run the C preprocessor" >&5
+echo "configure:3133: checking how to run the C preprocessor" >&5
 # On Suns, sometimes $CPP names a directory.
 if test -n "$CPP" && test -d "$CPP"; then
   CPP=
@@ -2486,13 +3144,13 @@ else
   # On the NeXT, cc -E runs the code through the compiler's parser,
   # not just through cpp.
   cat > conftest.$ac_ext <<EOF
-#line 2490 "configure"
+#line 3148 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2496: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3154: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -2503,13 +3161,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -E -traditional-cpp"
   cat > conftest.$ac_ext <<EOF
-#line 2507 "configure"
+#line 3165 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2513: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3171: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -2520,13 +3178,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -nologo -E"
   cat > conftest.$ac_ext <<EOF
-#line 2524 "configure"
+#line 3182 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2530: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3188: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -2559,7 +3217,7 @@ if test "$enable_mpe_graphics" = "yes" ; then
 # Uses ac_ vars as temps to allow command line to override cache and checks.
 # --without-x overrides everything else, but does not touch the cache.
 echo $ac_n "checking for X""... $ac_c" 1>&6
-echo "configure:2563: checking for X" >&5
+echo "configure:3221: checking for X" >&5
 
 # Check whether --with-x or --without-x was given.
 if test "${with_x+set}" = set; then
@@ -2621,12 +3279,12 @@ if test "$ac_x_includes" = NO; then
 
   # First, try using that file with no special directory specified.
 cat > conftest.$ac_ext <<EOF
-#line 2625 "configure"
+#line 3283 "configure"
 #include "confdefs.h"
 #include <$x_direct_test_include>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2630: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3288: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -2695,14 +3353,14 @@ if test "$ac_x_libraries" = NO; then
   ac_save_LIBS="$LIBS"
   LIBS="-l$x_direct_test_library $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 2699 "configure"
+#line 3357 "configure"
 #include "confdefs.h"
 
 int main() {
 ${x_direct_test_function}()
 ; return 0; }
 EOF
-if { (eval echo configure:2706: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3364: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   LIBS="$ac_save_LIBS"
 # We can link X programs with no special library path.
@@ -2800,11 +3458,13 @@ if test -z "$no_x" ; then
         X_INC=-I$x_includes
     fi
     if test -n "$x_libraries" ; then
-	X_LIB="-L$x_libraries -lX11"
+        X_LIB="-L$x_libraries -lX11"
         ANIM_LIBS="$ANIM_LIBS -L$x_libraries -lX11"
+        XGRAPH_LIBS="$XGRAPH_LIBS -L$x_libraries -lX11"
     else
-	X_LIB="-lX11"
+        X_LIB="-lX11"
         ANIM_LIBS="$ANIM_LIBS -lX11"
+        XGRAPH_LIBS="$XGRAPH_LIBS -lX11"
     fi
 else
     echo "configure: warning: *# Could not find appropriate X windows libraries.  MPE routines that make use of X11 graphics will NOT be built unless you put X windows libraries in your path and reconfigure" 1>&2
@@ -2816,7 +3476,7 @@ fi
 # Extract the first word of "dbx", so it can be a program name with args.
 set dummy dbx; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2820: checking for $ac_word" >&5
+echo "configure:3480: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_DBX_NAME'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2848,18 +3508,11 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-if test -z "$DBX_NAME" ; then
-    if test -n "$MPICH_WARNING_SEP" ; then echo '>'$MPICH_WARNING_SEP ; fi
-    echo "*# Cannot find dbx in your path.  You can put dbx in your path and "
-    echo "*# reconfigure or else you will not be able to run the debugger code"
-    echo "*# using the dbx debugger."
-    if test -n "$MPICH_WARNING_SEP" ; then echo '<'$MPICH_WARNING_SEP ; fi
-fi
 #
 # Extract the first word of "gdb", so it can be a program name with args.
 set dummy gdb; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2863: checking for $ac_word" >&5
+echo "configure:3516: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_path_GDB_NAME'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2891,21 +3544,14 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-if test -z "$GDB_NAME" ; then
-    if test -n "$MPICH_WARNING_SEP" ; then echo '>'$MPICH_WARNING_SEP ; fi
-    echo "*# Cannot find gdb in your path.  You can put gdb in your path and"
-    echo "*# reconfigure or else you will not be able to run the debugger code"
-    echo "*# using the gdb debugger."
-    if test -n "$MPICH_WARNING_SEP" ; then echo '<'$MPICH_WARNING_SEP ; fi
-fi
 #   
 echo $ac_n "checking for working const""... $ac_c" 1>&6
-echo "configure:2904: checking for working const" >&5
+echo "configure:3550: checking for working const" >&5
 if eval "test \"`echo '$''{'ac_cv_c_const'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2909 "configure"
+#line 3555 "configure"
 #include "confdefs.h"
 
 int main() {
@@ -2954,7 +3600,7 @@ ccp = (char const *const *) p;
 
 ; return 0; }
 EOF
-if { (eval echo configure:2958: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3604: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_c_const=yes
 else
@@ -2975,14 +3621,14 @@ EOF
 fi
 
 echo $ac_n "checking whether byte ordering is bigendian""... $ac_c" 1>&6
-echo "configure:2979: checking whether byte ordering is bigendian" >&5
+echo "configure:3625: checking whether byte ordering is bigendian" >&5
 if eval "test \"`echo '$''{'ac_cv_c_bigendian'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_cv_c_bigendian=unknown
 # See if sys/param.h defines the BYTE_ORDER macro.
 cat > conftest.$ac_ext <<EOF
-#line 2986 "configure"
+#line 3632 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/param.h>
@@ -2993,11 +3639,11 @@ int main() {
 #endif
 ; return 0; }
 EOF
-if { (eval echo configure:2997: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3643: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   # It does; now see whether it defined to BIG_ENDIAN or not.
 cat > conftest.$ac_ext <<EOF
-#line 3001 "configure"
+#line 3647 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/param.h>
@@ -3008,7 +3654,7 @@ int main() {
 #endif
 ; return 0; }
 EOF
-if { (eval echo configure:3012: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3658: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_c_bigendian=yes
 else
@@ -3028,7 +3674,7 @@ if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 3032 "configure"
+#line 3678 "configure"
 #include "confdefs.h"
 main () {
   /* Are we little or big endian?  From Harbison&Steele.  */
@@ -3041,7 +3687,7 @@ main () {
   exit (u.c[sizeof (long) - 1] == 1);
 }
 EOF
-if { (eval echo configure:3045: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:3691: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_c_bigendian=no
 else
@@ -3065,12 +3711,12 @@ EOF
 fi
 
 echo $ac_n "checking for ANSI C header files""... $ac_c" 1>&6
-echo "configure:3069: checking for ANSI C header files" >&5
+echo "configure:3715: checking for ANSI C header files" >&5
 if eval "test \"`echo '$''{'ac_cv_header_stdc'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3074 "configure"
+#line 3720 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 #include <stdarg.h>
@@ -3078,7 +3724,7 @@ else
 #include <float.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:3082: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3728: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -3095,7 +3741,7 @@ rm -f conftest*
 if test $ac_cv_header_stdc = yes; then
   # SunOS 4.x string.h does not declare mem*, contrary to ANSI.
 cat > conftest.$ac_ext <<EOF
-#line 3099 "configure"
+#line 3745 "configure"
 #include "confdefs.h"
 #include <string.h>
 EOF
@@ -3113,7 +3759,7 @@ fi
 if test $ac_cv_header_stdc = yes; then
   # ISC 2.0.2 stdlib.h does not declare free, contrary to ANSI.
 cat > conftest.$ac_ext <<EOF
-#line 3117 "configure"
+#line 3763 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 EOF
@@ -3134,7 +3780,7 @@ if test "$cross_compiling" = yes; then
   :
 else
   cat > conftest.$ac_ext <<EOF
-#line 3138 "configure"
+#line 3784 "configure"
 #include "confdefs.h"
 #include <ctype.h>
 #define ISLOWER(c) ('a' <= (c) && (c) <= 'z')
@@ -3145,7 +3791,7 @@ if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
 exit (0); }
 
 EOF
-if { (eval echo configure:3149: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:3795: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   :
 else
@@ -3170,12 +3816,12 @@ fi
 
 #
 echo $ac_n "checking for long pointers""... $ac_c" 1>&6
-echo "configure:3174: checking for long pointers" >&5
+echo "configure:3820: checking for long pointers" >&5
 if test "$cross_compiling" = yes; then
   sizeof_void_greater=$CROSS_SIZEOF_VOID_GREATER
 else
   cat > conftest.$ac_ext <<EOF
-#line 3179 "configure"
+#line 3825 "configure"
 #include "confdefs.h"
 int main()
 {
@@ -3184,7 +3830,7 @@ int main()
   return 0;
 }
 EOF
-if { (eval echo configure:3188: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:3834: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   sizeof_void_greater=no
 else
@@ -3208,12 +3854,12 @@ fi
 for ac_func in system
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:3212: checking for $ac_func" >&5
+echo "configure:3858: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3217 "configure"
+#line 3863 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -3236,7 +3882,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:3240: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3886: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -3263,12 +3909,12 @@ done
 for ac_func in sysinfo
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:3267: checking for $ac_func" >&5
+echo "configure:3913: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3272 "configure"
+#line 3918 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -3291,7 +3937,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:3295: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3941: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -3316,12 +3962,12 @@ fi
 done
 
 echo $ac_n "checking for uname""... $ac_c" 1>&6
-echo "configure:3320: checking for uname" >&5
+echo "configure:3966: checking for uname" >&5
 if eval "test \"`echo '$''{'ac_cv_func_uname'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3325 "configure"
+#line 3971 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char uname(); below.  */
@@ -3344,7 +3990,7 @@ uname();
 
 ; return 0; }
 EOF
-if { (eval echo configure:3348: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3994: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_uname=yes"
 else
@@ -3367,12 +4013,12 @@ else
 fi
 
 echo $ac_n "checking for gethostbyname""... $ac_c" 1>&6
-echo "configure:3371: checking for gethostbyname" >&5
+echo "configure:4017: checking for gethostbyname" >&5
 if eval "test \"`echo '$''{'ac_cv_func_gethostbyname'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3376 "configure"
+#line 4022 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char gethostbyname(); below.  */
@@ -3395,7 +4041,7 @@ gethostbyname();
 
 ; return 0; }
 EOF
-if { (eval echo configure:3399: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:4045: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_gethostbyname=yes"
 else
@@ -3422,17 +4068,17 @@ for ac_hdr in unistd.h stdlib.h string.h netdb.h sys/systeminfo.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:3426: checking for $ac_hdr" >&5
+echo "configure:4072: checking for $ac_hdr" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3431 "configure"
+#line 4077 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:3436: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4082: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -3460,17 +4106,17 @@ done
 
 ac_safe=`echo "stdarg.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for stdarg.h""... $ac_c" 1>&6
-echo "configure:3464: checking for stdarg.h" >&5
+echo "configure:4110: checking for stdarg.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 3469 "configure"
+#line 4115 "configure"
 #include "confdefs.h"
 #include <stdarg.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:3474: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4120: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -3506,7 +4152,7 @@ fi
 #
 if test -n "$havestdarg" ; then
     echo $ac_n "checking for stdarg is correct""... $ac_c" 1>&6
-echo "configure:3510: checking for stdarg is correct" >&5
+echo "configure:4156: checking for stdarg is correct" >&5
 if test ! -f confdefs.h ; then
     echo "$ac_t"""!! SHELL ERROR !!"" 1>&6
     echo "The file confdefs.h created by configure has been removed"
@@ -3532,7 +4178,7 @@ return 0;
 }
 int main() { func( 1, 2 ); return 0;}
 EOF
-if { (eval echo configure:3536: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4182: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   echo "$ac_t""yes" 1>&6
   rm -rf conftest*
   cat >> confdefs.h <<\EOF
@@ -3548,16 +4194,16 @@ rm -f conftest*
 fi
 #
 echo $ac_n "checking if compiler accepts prototypes""... $ac_c" 1>&6
-echo "configure:3552: checking if compiler accepts prototypes" >&5
+echo "configure:4198: checking if compiler accepts prototypes" >&5
 cat > conftest.$ac_ext <<EOF
-#line 3554 "configure"
+#line 4200 "configure"
 #include "confdefs.h"
 
 int main() {
 int f(double a);
 ; return 0; }
 EOF
-if { (eval echo configure:3561: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4207: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   have_proto=yes
 else
@@ -3579,16 +4225,16 @@ else
 fi
 
 echo $ac_n "checking for sighandler_t""... $ac_c" 1>&6
-echo "configure:3583: checking for sighandler_t" >&5
+echo "configure:4229: checking for sighandler_t" >&5
 cat > conftest.$ac_ext <<EOF
-#line 3585 "configure"
+#line 4231 "configure"
 #include "confdefs.h"
 #include <signal.h>
 int main() {
 sighandler_t *f;
 ; return 0; }
 EOF
-if { (eval echo configure:3592: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4238: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   has_sighandler_t=yes
 else
@@ -3612,7 +4258,7 @@ MPE_CFLAGS="$MPE_CFLAGS $COPTIONS"
 # Extract the first word of "ranlib", so it can be a program name with args.
 set dummy ranlib; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:3616: checking for $ac_word" >&5
+echo "configure:4262: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_RANLIB'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3642,7 +4288,7 @@ fi
 # Extract the first word of "ar", so it can be a program name with args.
 set dummy ar; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:3646: checking for $ac_word" >&5
+echo "configure:4292: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_AR'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3670,6 +4316,7 @@ else
 fi
 
 #
+
 
 
 
@@ -3837,6 +4484,7 @@ s%@binbuild_dir@%$binbuild_dir%g
 s%@sbinbuild_dir@%$sbinbuild_dir%g
 s%@CC@%$CC%g
 s%@F77@%$F77%g
+s%@FLIBS@%$FLIBS%g
 s%@MPE_HEADERS@%$MPE_HEADERS%g
 s%@CPP@%$CPP%g
 s%@DBX_NAME@%$DBX_NAME%g
@@ -3857,10 +4505,11 @@ s%@LOG_LIBNAME@%$LOG_LIBNAME%g
 s%@TRACE_LIBNAME@%$TRACE_LIBNAME%g
 s%@ANIM_LIBNAME@%$ANIM_LIBNAME%g
 s%@F2CMPI_LIBNAME@%$F2CMPI_LIBNAME%g
+s%@PROF_LIBS@%$PROF_LIBS%g
 s%@LOG_LIBS@%$LOG_LIBS%g
 s%@TRACE_LIBS@%$TRACE_LIBS%g
 s%@ANIM_LIBS@%$ANIM_LIBS%g
-s%@PROF_LIBS@%$PROF_LIBS%g
+s%@XGRAPH_LIBS@%$XGRAPH_LIBS%g
 s%@F2CMPI_LIBS@%$F2CMPI_LIBS%g
 s%@MPEDBG@%$MPEDBG%g
 s%@MPE_GRAPHICS@%$MPE_GRAPHICS%g

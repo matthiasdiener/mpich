@@ -5,6 +5,7 @@ CLINKER      = $(CC)
 F77          = @F77@
 FLINKER      = $(F77)
 FOPTIONS     = @FOPTIONS@
+AR           = @AR@
 @SET_MAKE@
 @VPATH@
 srcdir     = @srcdir@
@@ -17,6 +18,8 @@ DEFS      = -I. -I${srcdir} -I../include -I${top_srcdir}/include -I..
 INCLUDES  = @INCLUDES@
 FINCLUDES = @FINCLUDES@
 CPPFLAGS  = @CPPFLAGS@
+CFLAGS    = @CFLAGS@
+FFLAGS    = @FFLAGS@
 LDFLAGS   = @LDFLAGS@
 LIBS      = @LIBS@
 C_COMPILE = ${CC} ${DEFS} ${INCLUDES} ${CPPFLAGS} ${CFLAGS} ${COPTIONS}
@@ -152,13 +155,14 @@ ${libbuild_dir}/lib${FWRAPNAME}.a: ${OBJECTS}
 
 # Convert foo.po to _foo.o, then archive all at once
 ${libbuild_dir}/libp${FLIBNAME}.a: ${PMPI_OBJECTS}
-	if [ ! -d .tmp ] ; then mkdir .tmp ; else rm -f .tmp/*.o ; fi
-	for file in $? ; do \
+	@echo "Rename xxx.po to _xxx.o for profiling interface."
+	@if [ ! -d .tmp ] ; then mkdir .tmp ; else rm -f .tmp/*.o ; fi
+	@for file in $? ; do \
 	    bname=`basename $$file .po`; \
 	    cp $$file .tmp/_$${bname}.o ; \
 	done
-	cd .tmp && ${AR} cr $@ *.o && rm -f *.o
-	-rmdir .tmp
+	@cd .tmp && ${AR} cr $@ *.o && rm -f *.o
+	-@rmdir .tmp
 
 PROGRAM_SOURCES = 
 ALL_SOURCES = ${PROGRAM_SOURCES} ${SOURCES} 
@@ -174,7 +178,7 @@ clean:
 distclean: clean
 	@-rm -f Makefile lib*.a ${libbuild_dir}/lib${FLIBNAME}.a \
 	${libbuild_dir}/lib${FLIBNAME}fsup.a
-	@-rm -f farg.f mpif77 mpif77.conf mpif90 mpif90.conf
+	@-rm -f farg.f mpif77 mpif77.conf mpif90 mpif90.conf initfcmn.f
 
 maintainer-clean: distclean depends-clean
 

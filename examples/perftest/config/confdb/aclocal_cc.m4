@@ -143,11 +143,23 @@ dnlD*/
 AC_DEFUN(PAC_C_OPTIMIZATION,[
     for copt in "-O4 -Ofast" "-Ofast" "-fast" "-O3" "-xO3" "-O" ; do
         PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
-        if test $found_opt = "yes" ; then
+        if test "$found_opt" = "yes" ; then
 	    ifelse($1,,COPTIONS="$COPTIONS $copt",$1)
 	    break
         fi
     done
+    if test "$ac_cv_prog_gcc" = "yes" ; then
+	for copt in "-fomit-frame-pointer" "-finline-functions" \
+		 "-funroll-loops" ; do
+	    PAC_C_CHECK_COMPILER_OPTION($copt,found_opt=yes,found_opt=no)
+	    if test $found_opt = "yes" ; then
+	        ifelse($1,,COPTIONS="$COPTIONS $copt",$1)
+	        # no break because we're trying to add them all
+	    fi
+	done
+	# We could also look for architecture-specific gcc options
+    fi
+
 ])
 dnl
 dnl/*D
@@ -377,6 +389,26 @@ AC_TRY_COMPILE(,[volatile int a;],pac_cv_c_volatile="yes",
 pac_cv_c_volatile="no")])
 if test "$pac_cv_c_volatile" = "no" ; then
     AC_DEFINE(volatile,)
+fi
+])dnl
+dnl
+dnl/*D
+dnl PAC_C_INLINE - Check if C supports inline
+dnl
+dnl Synopsis:
+dnl PAC_C_INLINE
+dnl
+dnl Output Effect:
+dnl Defines 'inline' as empty if inline is not available.
+dnl
+dnlD*/
+AC_DEFUN(PAC_C_INLINE,[
+AC_CACHE_CHECK([for inline],
+pac_cv_c_inline,[
+AC_TRY_COMPILE([inline int a( int b ){return b+1;}],[int a;],
+pac_cv_c_inline="yes",pac_cv_c_inline="no")])
+if test "$pac_cv_c_inline" = "no" ; then
+    AC_DEFINE(inline,)
 fi
 ])dnl
 dnl
@@ -733,3 +765,175 @@ if test "$notbroken" = "no" ; then
 correctly set error code when a fatal error occurs])
 fi
 ])
+dnl
+dnl/*D
+dnl PAC_FUNC_CRYPT - Check that the function crypt is defined
+dnl
+dnl Synopsis:
+dnl PAC_FUNC_CRYPT
+dnl
+dnl Output Effects:
+dnl 
+dnl In Solaris, the crypt function is not defined in unistd unless 
+dnl _XOPEN_SOURCE is defines and _XOPEN_VERSION is 4 or greater.
+dnl We test by looking for a missing crypt by defining our own
+dnl incompatible one and trying to compile it.
+dnl Defines NEED_CRYPT_PROTOTYPE if no prototype is found.
+dnlD*/
+AC_DEFUN(PAC_FUNC_CRYPT,[
+AC_CACHE_CHECK([if crypt defined in unistd.h],
+pac_cv_func_crypt_defined,[
+AC_TRY_COMPILE([
+#include <unistd.h>
+double crypt(double a){return a;}],[return 0];,
+pac_cv_func_crypt_defined="no",pac_cv_func_crypt_defined="yes")])
+if test "$pac_cv_func_crypt_defined" = "no" ; then
+    # check to see if defining _XOPEN_SOURCE helps
+    AC_CACHE_CHECK([if crypt defined in unistd with _XOPEN_SOURCE],
+pac_cv_func_crypt_xopen,[
+    AC_TRY_COMPILE([
+#define _XOPEN_SOURCE    
+#include <unistd.h>
+double crypt(double a){return a;}],[return 0];,
+pac_cv_func_crypt_xopen="no",pac_cv_func_crypt_xopen="yes")])
+fi
+if test "$pac_cv_func_crypt_xopen" = "yes" ; then
+    AC_DEFINE(_XOPEN_SOURCE)
+elif test "$pac_cv_func_crypt_defined" = "no" ; then
+    AC_DEFINE(NEED_CRYPT_PROTOTYPE)
+fi
+])dnl
+dnl/*D
+dnl PAC_ARG_STRICT - Add --enable-strict to configure.  
+dnl
+dnl Synopsis:
+dnl PAC_ARG_STRICT
+dnl 
+dnl Output effects:
+dnl Adds '--enable-strict' to the command line.  If this is enabled, then
+dnl if no compiler has been set, set 'CC' to 'gcc'.
+dnl If the compiler is 'gcc', 'COPTIONS' is set to include
+dnl.vb
+dnl	-O -Wall -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL
+dnl.ve
+dnl
+dnl If the value 'all' is given to '--enable-strict', additional warning
+dnl options are included.  These are
+dnl.vb
+dnl -Wunused -Wshadow -Wmissing-declarations -Wno-long-long -Wpointer-arith
+dnl.ve
+dnl 
+dnl This only works where 'gcc' is available.
+dnl In addition, it exports the variable 'enable_strict_done'. This
+dnl ensures that subsidiary 'configure's do not add the above flags to
+dnl 'COPTIONS' once the top level 'configure' sees '--enable-strict'.  To ensure
+dnl this, 'COPTIONS' is also exported.
+dnl
+dnl Not yet available: options when using other compilers.  However, 
+dnl here are some possible choices
+dnl Solaris cc
+dnl  -fd -v -Xc
+dnl
+dnlD*/
+AC_DEFUN(PAC_ARG_STRICT,[
+AC_ARG_ENABLE(strict,
+[--enable-strict  - Turn on strict compilation testing when using gcc])
+export enable_strict_done
+export COPTIONS
+if test "$enable_strict_done" != "yes" ; then
+    if test "$enable_strict" = "yes" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+            if test "$CC" = "gcc" ; then 
+                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL"
+    	    fi
+        fi
+    elif test "$enable_strict" = "all" ; then
+        enable_strict_done="yes"
+        if test -z "CC" ; then
+            AC_CHECK_PROGS(CC,gcc)
+            if test "$CC" = "gcc" ; then 
+                COPTIONS="${COPTIONS} -Wall -O -Wstrict-prototypes -Wmissing-prototypes -DGCC_WALL -Wunused -Wshadow -Wmissing-declarations -Wno-long-long"
+    	    fi
+        fi
+    fi
+fi
+])
+dnl/*D
+dnl PAC_ARG_CC_G - Add debugging flags for the C compiler
+dnl
+dnl Synopsis:
+dnl PAC_ARG_CC_G
+dnl
+dnl Output Effect:
+dnl Adds '-g' to 'COPTIONS' and exports 'COPTIONS'.  Sets and exports the 
+dnl variable 'enable_g_simple' so that subsidiary 'configure's will not
+dnl add another '-g'.
+dnl
+dnl Notes:
+dnl '--enable-g' should be used for all internal debugging modes if possible.
+dnl Use the 'enable_val' that 'enable_g' is set to to pass particular values,
+dnl and ignore any values that are not recognized (some other 'configure' 
+dnl may have used them.  Of course, if you need extra values, you must
+dnl add code to extract values from 'enable_g'.
+dnl
+dnl For example, to look for a particular keyword, you could use
+dnl.vb
+dnl SaveIFS="$IFS"
+dnl IFS=","
+dnl for key in $enable_g ; do
+dnl     case $key in 
+dnl         mem) # add code for memory debugging 
+dnl         ;;
+dnl         *)   # ignore all other values
+dnl         ;;
+dnl     esac
+dnl done
+dnl IFS="$SaveIFS"
+dnl.ve
+dnl
+dnlD*/
+AC_DEFUN(PAC_ARG_CC_G,[
+AC_ARG_ENABLE(g,
+[--enable-g  - Turn on debugging of the package (typically adds -g to COPTIONS)])
+export COPTIONS
+export enable_g_simple
+if test -n "$enable_g" -a "$enable_g" != "no" -a \
+   "$enable_g_simple" != "done" ; then
+    enable_g_simple="done"
+    if test "$enable_g" = "g" -o "$enable_g" = "yes" ; then
+        COPTIONS="$COPTIONS -g"
+    fi
+fi
+])
+dnl
+dnl Simple version for both options
+dnl
+AC_DEFUN(PAC_ARG_CC_COMMON,[
+PAC_ARG_CC_G
+PAC_ARG_STRICT
+])
+dnl
+dnl Eventually, this can be used instead of the funky Fortran stuff to 
+dnl access the command line from a C routine.
+dnl #
+dnl # Under IRIX (some version) __Argc and __Argv gave the argc,argv values
+dnl #Under linux, __libc_argv and __libc_argc
+dnl AC_MSG_CHECKING([for alternative argc,argv names])
+dnl AC_TRY_LINK([
+dnl extern int __Argc; extern char **__Argv;],[return __Argc;],
+dnl alt_argv="__Argv")
+dnl if test -z "$alt_argv" ; then
+dnl    AC_TRY_LINK([
+dnl extern int __libc_argc; extern char **__libc_argv;],[return __lib_argc;],
+dnl alt_argv="__lib_argv")
+dnl fi
+dnl if test -z "$alt_argv" ; then
+dnl   AC_MSG_RESULT(none found)) 
+dnl else 
+dnl   AC_MSG_RESULT($alt_argv) 
+dnl fi
+dnl 
+dnl
+dnl

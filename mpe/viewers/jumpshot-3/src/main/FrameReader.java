@@ -92,7 +92,7 @@ public class FrameReader extends JDialog
 
     private void ReadFrameAndConvert()
     {
-        SLOG_DirEntry dir_entry = slog.dir.EntryAt( frame_idx );
+        SLOG_DirEntry dir_entry = slog.GetDir().EntryAt( frame_idx );
         try {
             SetStatusFieldText( "Reading Frame from Logfile" );
             slog_frame = slog.GetFrame( dir_entry.fptr2framehdr );

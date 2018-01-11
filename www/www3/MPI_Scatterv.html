@@ -11,15 +11,15 @@ Scatters a buffer in parts to all tasks in a group
 <PRE>
 #include "mpi.h"
 int MPI_Scatterv ( 
- void *sendbuf, 
- int *sendcnts, 
- int *displs, 
- MPI_Datatype sendtype, 
- void *recvbuf, 
- int recvcnt,  
- MPI_Datatype recvtype, 
- int root, 
- MPI_Comm comm )
+        void *sendbuf, 
+        int *sendcnts, 
+        int *displs, 
+        MPI_Datatype sendtype, 
+        void *recvbuf, 
+        int recvcnt,  
+        MPI_Datatype recvtype, 
+        int root, 
+        MPI_Comm comm )
 </PRE>
 <H2>Input Parameters</H2>
 <TABLE BORDER=0>

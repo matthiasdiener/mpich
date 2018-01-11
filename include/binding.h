@@ -182,7 +182,8 @@ int MPI_Type_create_indexed_block(int, int, int *, MPI_Datatype,
 int MPI_Type_get_envelope(MPI_Datatype, int *, int *, int *, int *); 
 int MPI_Type_get_contents(MPI_Datatype, int, int, int, int *, 
              MPI_Aint *, MPI_Datatype *);
-
+int MPI_Comm_name_get( MPI_Comm, char *, int * );
+int MPI_Comm_name_set( MPI_Comm, char * );
 int MPI_Type_create_subarray(int, int *, int *, int *, int, 
                       MPI_Datatype, MPI_Datatype *);
 

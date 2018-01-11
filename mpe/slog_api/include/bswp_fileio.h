@@ -2,9 +2,9 @@ typedef  unsigned int  bswp_uint32_t;
 
 
 #if ! defined( WORDS_BIGENDIAN )
-void byteswap( const bswp_uint32_t   Nelem,
-               const bswp_uint32_t   elem_sz,
-                     char           *bytes );
+void bswp_byteswap( const bswp_uint32_t   Nelem,
+		    const bswp_uint32_t   elem_sz,
+		    char           *bytes );
 #endif
 
 bswp_uint32_t bswp_fwrite( const void           *src,

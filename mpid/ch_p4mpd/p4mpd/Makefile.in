@@ -178,7 +178,7 @@ links:
 
 mpdstuff:
 	@echo "making mpdstuff ..."
-	( cd $(MPD_HOME); $(MAKE) )
+	@( cd $(MPD_HOME); $(MAKE) )
 
 clean:  
 	@for dir in $(DIRS) ;\
@@ -187,7 +187,7 @@ clean:
 	  (cd $$dir; $(MAKE) clean) ;\
 	  done
 	$(RM) -f *~ *.o *.bak
-	(cd $(MPD_HOME); if [ -f Makefile ] ; then  $(MAKE) clean ; fi)
+	@(cd $(MPD_HOME); if [ -f Makefile ] ; then  $(MAKE) clean ; fi)
 
 dist:	realclean   
 

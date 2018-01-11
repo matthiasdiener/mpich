@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class SLOG_FrameHdr
+public class SLOG_FrameHdr implements Serializable
 {
     public int Nbytes_cur;
     public int Nrec_cur;

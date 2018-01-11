@@ -40,11 +40,7 @@ typedef struct xpand_list_Int_ {
   free( listPtr ); \
 }
 
-#ifdef __STDC__
 static xpand_list_Int *Int_CreateList(int initialLen);
-#else
-static xpand_list_Int *Int_CreateList();
-#endif
 
 /* Forward refs */
 static void SortPoints ( MPE_Point *, int, XPoint **, MPE_Color **,
@@ -67,7 +63,7 @@ int MPE_logicArray[] = {
   GXandInverted,		/* !src && dst */
   GXnoop,			/* dst */
   GXxor,			/* src XOR dst */
-  GXor,				/* src || dst */
+  GXor,				/* src || !dst */
   GXnor,			/* !src && !dst */
   GXequiv,			/* !src XOR dst */
   GXinvert,			/* !dst */
@@ -79,7 +75,25 @@ int MPE_logicArray[] = {
 }; 
 
 static void SetBackingStoreBitGrav (MPE_XGraph);
-  
+
+#ifdef POINTER_64_BITS  
+static int fort_index = 0;
+MPE_XGraph MPE_fort_head = 0;
+#endif
+
+/*N XGRAPHICS_FORTRAN
+
+    Notes For Fortran Interface :
+    The Fortran interface to this routine is different from its C
+    counterpart and it has an additional argument, ierr, at the end
+    of the argument list, i.e. the returned function value (the error
+    code) in C interface is returned as the additional argument in
+    Fortran interface.  The Fortran interface is invoked with the 
+    CALL statement.
+
+    All MPI and MPE objects, MPI_Comm, MPE_XGraph and MPE_Color, are 
+    of type INTEGER in Fortran.
+N*/
 
 /*@
     MPE_Open_graphics - (collectively) opens an X Windows display
@@ -106,6 +120,14 @@ static void SetBackingStoreBitGrav (MPE_XGraph);
     This is a collective routine.  All processes in the given communicator
     must call it, and it has the same semantics as 'MPI_Barrier' (that is,
     other collective operations can not cross this routine).
+
+.N XGRAPHICS_FORTRAN
+
+    Additional Notes for Fortran Interface :
+    If Fortran 'display' argument is an empty string, "", display will be
+    taken from the DISPLAY variable on the process with rank 0 in 'comm'.
+    The trailing blanks in Fortran CHARACTER string argument will be
+    ignored.
 @*/
 int MPE_Open_graphics( handle, comm, display, x, y, w, h, is_collective )
 MPE_XGraph *handle;
@@ -144,6 +166,13 @@ int        is_collective;
   new->input_mask    = 0;
   new->event_routine = 0;
 
+#ifdef POINTER_64_BITS
+  /* In case we need to support fortran */
+  new->fort_index = fort_index++;
+  new->next       = MPE_fort_head;
+  MPE_fort_head   = new;
+#endif
+  
 #ifndef MPE_NOMPI
   if (is_collective) {
     /* Not supported; just use individual connections */
@@ -152,7 +181,7 @@ int        is_collective;
   
   new->comm	     = comm;
   new->is_collective = is_collective;
-  
+
   MPI_Comm_size(comm,&numprocs);
   MPI_Comm_rank(comm,&myid);
 #endif
@@ -164,6 +193,7 @@ int        is_collective;
 
 #if DEBUG
     fprintf( stderr, "[%d] Guessing at display name.\n", myid );
+    fflush( stderr );
 #endif
 
     if (myid == 0) {
@@ -171,6 +201,7 @@ int        is_collective;
 
 #if DEBUG
       fprintf( stderr, "$DISPLAY = %s\n", display );
+      fflush( stderr );
 #endif
 
       if (!display || display[0] == ':') {
@@ -188,11 +219,13 @@ int        is_collective;
 
 #if DEBUG
 	fprintf( stderr, "Process 0 is: %s\n", display );
+	fflush( stderr );
 #endif
 	strcat( display, ":0" );
 
 #if DEBUG
 	fprintf( stderr, "Process 0 is: %s\n", display );
+	fflush( stderr );
 #endif
 
       }
@@ -221,6 +254,7 @@ int        is_collective;
 
 #if DEBUG
   fprintf( stderr, "[%d] trying to open %s\n", myid, display );
+  fflush( stderr );
 #endif
 
   if (0 == myid) {
@@ -255,6 +289,7 @@ int        is_collective;
   fprintf( stderr, "%s to %s from process %d.\n",
 	   successful ? "Successfully connected" : "Failed to connect",
 	   display, myid );
+  fflush( stderr );
 #endif
 
 #ifdef FOO
@@ -299,6 +334,7 @@ static void SetBackingStoreBitGrav( MPE_XGraph graph )
 	  graph->backingStore==NotUseful ? "NotUseful" :
 	  graph->backingStore==WhenMapped ? "WhenMapped" : 
 	  graph->backingStore==Always ? "Always" : "dunno" );
+  fflush( stderr );
 #endif
   attrib.bit_gravity = NorthWestGravity;
   attrib.backing_store = graph->backingStore;
@@ -315,9 +351,20 @@ static void SetBackingStoreBitGrav( MPE_XGraph graph )
 . fname  - base file name (see below)
 - freq   - Frequency of updates
 
+  Return Values:
++ MPE_ERR_LOW_MEM - malloc for copy of the filename (fname) failed
+. MPE_ERR_BAD_ARGS - 'handle' parameter is bad
+- MPE_SUCCESS - success
+
   Notes:
   The output is written in xwd format to 'fname%d', where '%d' is the number
   of the file (starting from zero).
+
+.N XGRAPHICS_FORTRAN
+
+    Additional Notes for Fortran Interface :
+    The trailing blanks in Fortran 'CHARACTER' string argument will be
+    ignored.
 @*/
 int MPE_CaptureFile( handle, fname, freq )
 MPE_XGraph handle;
@@ -356,6 +403,8 @@ int        freq;
     'MPE_BLUE',  'MPE_MAGENTA', 'MPE_AQUAMARINE', 
             'MPE_FORESTGREEN', 'MPE_ORANGE', 'MPE_VIOLET', 'MPE_BROWN', 
             'MPE_PINK', 'MPE_CORAL' and 'MPE_GRAY' are defined.
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Draw_point( handle, x, y, color )
 MPE_XGraph handle;
@@ -389,6 +438,7 @@ MPE_Color  color;
 .   points - list of points to draw
 -   npoints - number of points to draw
 
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Draw_points( handle, points, npoints )
 MPE_XGraph handle;
@@ -566,6 +616,8 @@ int a, **boundaryPoints, *ncolors;
     'MPE_BLUE',  'MPE_MAGENTA', 'MPE_AQUAMARINE', 
             'MPE_FORESTGREEN', 'MPE_ORANGE', 'MPE_VIOLET', 'MPE_BROWN', 
             'MPE_PINK', 'MPE_CORAL' and 'MPE_GRAY' are defined.
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Draw_line( handle, x1, y1, x2, y2, color )
 MPE_XGraph handle;
@@ -608,6 +660,8 @@ MPE_Color  color;
     Notes:
     This uses the X11 definition of width and height, so you may want to 
     add 1 to both of them.
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Fill_rectangle( handle, x, y, w, h, color )
 MPE_XGraph handle;
@@ -644,6 +698,8 @@ MPE_Color  color;
     Only after an 'MPE_Update' can you count on seeing the results of MPE 
     drawing routines.  This is caused by the buffering of graphics requests
     for improved performance.
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Update( handle )
 MPE_XGraph handle;
@@ -695,10 +751,16 @@ MPE_XGraph handle;
 
 
 /*@
-    MPE_Close_graphics - Closes a X11 graphics device
+    MPE_Close_graphics - Closes an X11 graphics device
 
     Input Parameter:
 .   handle - MPE graphics handle.
+
+    Return Values:
++   MPE_ERR_BAD_ARGS - 'handle' parameter is bad
+-   MPE_SUCCESS - success
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Close_graphics( handle )
 MPE_XGraph *handle;
@@ -729,6 +791,8 @@ MPE_XGraph *handle;
     Notes:
     The new colors for a uniform distribution in hue space and replace the
     existing colors `except` for 'MPE_WHITE' and 'MPE_BLACK'.
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Make_color_array( handle, ncolors, array )
 MPE_XGraph handle;
@@ -780,6 +844,8 @@ MPE_Color  array[];
 
   Output Parameter:
 . nc - Number of colors available on the display.
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Num_colors( handle, nc )
 MPE_XGraph handle;
@@ -802,6 +868,8 @@ int        *nc;
 . centery - vertical center point of the circle
 . radius - radius of the circle
 - color - color of the circle
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Draw_circle( graph, centerx, centery, radius, color )
 MPE_XGraph graph;
@@ -815,6 +883,11 @@ MPE_Color color;
     return MPE_ERR_BAD_ARGS;
   }
 
+#if DEBUG
+  fprintf( stdout, "Drawing at (%d,%d) with radius %d and color %d\n",
+	   centerx, centery, radius, color );
+  fflush( stdout );
+#endif
   XBSetPixVal( graph->xwin, graph->xwin->cmapping[color] );
   XDrawArc( graph->xwin->disp, XBDrawable(graph->xwin),
 		        graph->xwin->gc.set, centerx-radius, centery-radius, 
@@ -834,6 +907,8 @@ MPE_Color color;
 . centery - vertical center point of the circle
 . radius - radius of the circle
 - color - color of the circle
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Fill_circle( graph, centerx, centery, radius, color )
 MPE_XGraph graph;
@@ -864,6 +939,12 @@ MPE_Color color;
 . y - y-coordinate of the origin of the string
 . color - color of the text
 - string - text string to be drawn
+
+.N XGRAPHICS_FORTRAN
+
+    Additional Notes for Fortran Interface :
+    The trailing blanks in Fortran CHARACTER string argument will be
+    ignored.
 @*/
 int MPE_Draw_string( graph, x, y, color, string )
 MPE_XGraph graph;
@@ -900,6 +981,8 @@ char *string;
 .n            'MPE_LOGIC_COPY' - no logic, just copy the pixel
 .n	    'MPE_LOGIC_XOR'  - xor the new pixel with the existing one
 	     and many more... see 'mpe_graphics.h'
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Draw_logic( graph, function )
 MPE_XGraph graph;
@@ -926,6 +1009,7 @@ int function;
 + graph - MPE graphics handle
 - thickness - integer specifying how many pixels wide lines should be
 
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Line_thickness( graph, thickness )
 MPE_XGraph graph;
@@ -985,9 +1069,21 @@ int offset;
 
   Input Parameters:
 + graph - MPE graphics handle
-. red, green, blue - color levels from 0 to 65535
+- red, green, blue - color levels from 0 to 65535
+
+  Output Parameter:
+. mapping - index of the new color
+
+  Return Values:
++ -1 - maxcolors too large (equal to numcolors)
+. MPE_SUCCESS - successful
 - mapping - index of the new color
 
+  Notes:
+  This call adds a color cell to X11''s color table, increments maxcolors
+  (the index), and writes it to the mapping parameter.
+
+.N XGRAPHICS_FORTRAN
 @*/
 int MPE_Add_RGB_color( graph, red, green, blue, mapping )
 MPE_XGraph graph;

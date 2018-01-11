@@ -1,6 +1,6 @@
 import java.io.*;
 
-    class SLOG_bebits
+    class SLOG_bebits implements Serializable
     {
         private byte[]        bits;
        

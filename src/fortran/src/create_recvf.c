@@ -153,6 +153,7 @@ EXPORT_MPI_API void mpi_recv_init_( void *buf, MPI_Fint *count, MPI_Fint *dataty
     *__ierr = MPI_Recv_init(MPIR_F_PTR(buf),(int)*count,
                             MPI_Type_f2c(*datatype),(int)*source,(int)*tag,
 			    MPI_Comm_f2c(*comm),&lrequest);
-    *request = MPI_Request_c2f(lrequest);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *request = MPI_Request_c2f(lrequest);
 }
 #endif

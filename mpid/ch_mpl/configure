@@ -491,6 +491,33 @@ for ac_site_file in $CONFIG_SITE; do
   fi
 done
 
+if test "X$cache_system" = "X" ; then
+    if test "$cache_file" != "/dev/null" ; then
+        # Get the directory for the cache file, if any
+	
+        cache_system=`echo $cache_file | sed -e 's%^\(.*/\)[^/]*%\1/config.system%'`
+	
+        test "x$cache_system" = "x$cache_file" && cache_system="config.system"
+    fi
+fi
+if test "X$enable_cache" = "Xnotgiven" -o "X$enable_cache" = "X" ; then
+    # check for valid cache file
+    if uname -srm >/dev/null 2>&1 ; then
+		cleanargs=`echo "$CC $F77 $CXX $F90" | tr '"' ' '`
+        testval="`uname -srm` $cleanargs"
+        if test -f "$cache_system" -a -n "$testval" ; then
+	    if test "$testval" = "`cat $cache_system`" ; then
+	        enable_cache="yes"
+	    fi
+        elif test ! -f "$cache_system" -a -n "$testval" ; then
+	    echo "$testval" > $cache_system
+	    # remove the cache file because it may not correspond to our
+	    # system
+	    rm -f $cache_file
+	    enable_cache="yes"
+        fi
+    fi
+fi
 if test "X$enable_cache" = "Xyes" ; then
   if test -r "$cache_file" ; then
     echo "loading cache $cache_file"
@@ -498,6 +525,10 @@ if test "X$enable_cache" = "Xyes" ; then
   else
     echo "creating cache $cache_file"
     > $cache_file
+    rm -f $cache_system
+    cleanargs=`echo "$CC $F77 $CXX" | tr '"' ' '`
+    testval="`uname -srm` $cleanargs"
+    echo "$testval" > $cache_system
   fi
 else
   cache_file="/dev/null"
@@ -526,10 +557,11 @@ fi
 
 
 
+# ignore --enable-strict and --enable-g
 # check for mpproto.h
 # (try compile instead?)
 echo $ac_n "checking how to run the C preprocessor""... $ac_c" 1>&6
-echo "configure:533: checking how to run the C preprocessor" >&5
+echo "configure:565: checking how to run the C preprocessor" >&5
 # On Suns, sometimes $CPP names a directory.
 if test -n "$CPP" && test -d "$CPP"; then
   CPP=
@@ -544,13 +576,13 @@ else
   # On the NeXT, cc -E runs the code through the compiler's parser,
   # not just through cpp.
   cat > conftest.$ac_ext <<EOF
-#line 548 "configure"
+#line 580 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:554: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:586: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -561,13 +593,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -E -traditional-cpp"
   cat > conftest.$ac_ext <<EOF
-#line 565 "configure"
+#line 597 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:571: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:603: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -578,13 +610,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -nologo -E"
   cat > conftest.$ac_ext <<EOF
-#line 582 "configure"
+#line 614 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:588: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:620: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   :
@@ -612,17 +644,17 @@ for ac_hdr in mpproto.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:616: checking for $ac_hdr" >&5
+echo "configure:648: checking for $ac_hdr" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 621 "configure"
+#line 653 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:626: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:658: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -665,12 +697,12 @@ fi
 for ac_func in gettimeofday
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:669: checking for $ac_func" >&5
+echo "configure:701: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 674 "configure"
+#line 706 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -693,7 +725,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:697: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:729: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else

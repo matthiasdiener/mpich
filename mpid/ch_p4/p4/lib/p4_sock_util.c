@@ -2,6 +2,10 @@
 #include "p4_sys.h"
 /* p4_net_utils.h generally would suffice here */
 
+#ifdef SCYLD_BEOWULF
+#include <sys/bproc.h>
+#endif
+
 /* Type for get/setsockopt calls */
 #ifdef USE_SOCKLEN_T
 typedef socklen_t p4_sockopt_len_t;
@@ -25,8 +29,13 @@ extern char *getenv();
 /* prototype for inet_ntoa() */
 #include <arpa/inet.h>
 #endif
+
+#if defined(HAVE_WRITEV) && defined(HAVE_SYS_UIO_H)
+#include <sys/uio.h>
+#endif
 /*
  *    Utility routines for socket hacking in p4:
+ *        P4VOID p4_socket_control( argstr ) 
  *        P4VOID net_set_sockbuf_size(size, skt)
  *        P4VOID net_setup_listener(backlog, port, skt)
  *        P4VOID net_setup_anon_listener(backlog, port, skt)
@@ -39,6 +48,141 @@ extern char *getenv();
  *        dump_sockaddr(who, sa)
  *        dump_sockinfo(msg, fd)
  */
+
+/*
+ * Socket control - allows various socket parameters to be set through
+ * the command line.  The format is
+ * -p4sctrl bufsize=n:winsize=n:netsendw=y/n:stat=y/n:netrecvw=y/n:writev=y/n
+ *
+ * For example
+ *   -p4sctrl bufsize=64:netsendw=y
+ * selects 64 k socket buffers and uses the alternate net_send routine
+ * 
+ * bufsize is in k
+ * netsendw is either y or n 
+ *
+ */
+
+#define COLLECT_PERF_STAT
+#ifdef COLLECT_PERF_STAT
+static int n_send_w_calls = 0;
+static int n_send_eagain = 0;
+static int n_send_max = -1;
+static int n_send_looped = 0;
+static int n_send_loopcnt = 0;
+static int n_writev_first = 0;
+
+static int n_recv_calls = 0;
+static int n_recv_eagain = 0;
+static int n_recv_select = 0;
+static int n_recv_max = 0;
+static int n_recv_maxloop = 0;
+#define COLLECT_STAT(a) a
+#else
+#define COLLECT_STAT(a)
+#endif
+
+/* Local variable controling socket behavior */
+/*
+ * After some testing, the following defaults seem appropriate:
+ *    net_send_w   Yes
+ *    net_recv_w   Yes
+ *    writev       Yes
+ *    readb        No
+ * We may want to encourage a socket buffer size of 32k or 64k
+ */
+/* SOCK_BUF_SIZE is defined in p4_sock_util.h */
+static int p4_default_sock_buf_size = SOCK_BUFF_SIZE;  
+/* use_net_send_w selects a form of netsend that uses a blocking (waiting)
+   select when writes fail (because the socket buffer is full) */
+static int p4_use_net_send_w = 1;
+
+/* net_recv_w is a special test in the net_recv code that allows the 
+   net_recv to use select to wait for an incoming message */
+static int p4_use_net_recv_w = 1;
+
+/* P4_WINSHIFT can also override this */
+static int p4_default_win_shft = 0;
+
+/* Whether to output statistics on the performance of net_send_w */
+static int p4_output_socket_stat = 0;
+
+static int p4_use_writev = 1;
+
+/* switch the fd to blocking mode for the duration of a net_recv .  
+   Requires netrecvw be false */
+static int p4_use_readb = 0;
+
+/* in_str is foo=value; find value and copy to out_str */
+static void p4_copy_parm( char *in_str, char *out_str, int out_size )
+{
+    while (*in_str && *in_str != '=') in_str++;
+    if (*in_str != '=') { out_str[0] = 0; return; }
+    in_str++;
+    while (*in_str && *in_str != ':' && out_size-- > 0) {
+	*out_str++ = *in_str++;
+    }
+    *out_str = 0;
+}
+
+void p4_socket_control( char *argstr )
+{
+    char *p;
+    char digits[10], value[10];
+    char *endptr;
+    int  val;
+
+    if (!*argstr) return;
+
+    p = argstr;
+    while (p) {
+	if (strncmp("bufsize=",p,8) == 0) {
+	    /* P4_SOCKBUFSIZE */
+	    p4_copy_parm( p, digits, 10 );
+	    val = strtol( digits, &endptr, 10 ) * 1024;
+	    if (endptr && *endptr == '\0') 
+		p4_default_sock_buf_size = val; 
+	    p4_dprintfl( 5, "default sockbuf size is %d\n", 
+			 p4_default_sock_buf_size );
+	}
+	else if (strncmp( "winsize=",p,8) == 0) {
+	    /* P4_WINSHIFT */
+	    p4_copy_parm( p, digits, 10 );
+	    val = strtol( digits, &endptr, 10 ) * 1024;
+	    if (endptr && *endptr == '\0') 
+		p4_default_win_shft = val;
+	    p4_dprintfl( 5, "default win shift size is %d\n",
+			 p4_default_win_shft );
+	}
+	else if (strncmp( "netsendw=",p,9) == 0) {
+	    p4_copy_parm( p, value, 2 );
+	    p4_use_net_send_w = (value[0] == 'y');
+	    p4_dprintfl( 5, "Using net_send_w = %d\n", p4_use_net_send_w );
+	}
+	else if (strncmp( "netrecvw=",p,9) == 0) {
+	    p4_copy_parm( p, value, 2 );
+	    p4_use_net_recv_w = (value[0] == 'y');
+	    p4_dprintfl( 5, "Using net_recv_w = %d\n", p4_use_net_recv_w );
+	}
+	else if (strncmp( "stat=",p,5) == 0) {
+	    p4_copy_parm( p, value, 2 );
+	    p4_output_socket_stat = (value[0] == 'y');
+	    p4_dprintfl( 5, "Socket stat = %d\n", p4_output_socket_stat );
+	}
+	else if (strncmp( "writev=",p,7) == 0) {
+	    p4_copy_parm( p, value, 2 );
+	    p4_use_writev = (value[0] == 'y');
+	    p4_dprintfl( 5, "Writev = %d\n", p4_use_writev );
+	}
+	else if (strncmp( "readb=",p,6) == 0) {
+	    p4_copy_parm( p, value, 2 );
+	    p4_use_readb = (value[0] == 'y');
+	    p4_dprintfl( 5, "Read with blocking = %d\n", p4_use_readb );
+	}
+	p = strchr( p, ':' );
+	if (p && *p) p++;
+    }
+}
 
 /*
  *    Setup a listener:
@@ -62,6 +206,10 @@ extern char *getenv();
    IRIX, SunOS: int
  */
 
+/* 
+ * If size is -1, get the size from either the environment (P4_SOCKBUFSIZE) or
+ * the default (which may have been set through the command line)
+ */
 P4VOID net_set_sockbuf_size(size, skt)	/* 7/12/95, bri@sgi.com */
 int size;
 int skt;
@@ -71,7 +219,7 @@ int skt;
     int rsz,ssz;
     p4_sockopt_len_t dummy;
 #ifdef TCP_WINSHIFT
-    int shft; /* Window shift; helpful on CRAY */
+    int shft = 0; /* Window shift; helpful on CRAY */
 #endif
     /*
      * Need big honking socket buffers for fast honking networks.  It
@@ -98,9 +246,9 @@ int skt;
 	    if (env_value) 
 		size = atoi(env_value);
 	    else 
-		size = SOCK_BUFF_SIZE;
+		size = p4_default_sock_buf_size;
 #ifdef TCP_WINSHIFT
-	    shft = 0;
+	    shft = p4_default_win_shft;
             env_value = getenv("P4_WINSHIFT");
             if (env_value) shft = atoi(env_value);
 #endif
@@ -152,18 +300,19 @@ int skt;
      */
     if ( shft > 0)
     {
-    int wsarray[3];
-    char hostname[MAXHOSTNAMELEN];
+	int wsarray[3];
 
-                /* Set socket WINSHIFT */
+	/* Set socket WINSHIFT */
         dummy = sizeof(wsarray);
         getsockopt(skt,IPPROTO_TCP,TCP_WINSHIFT,&wsarray,&dummy);
         if(wsarray[1] != shft){
-
-                dummy = sizeof(shft);
+	    
+	    dummy = sizeof(shft);
 
             SYSCALL_P4(rc, setsockopt(skt,IPPROTO_TCP,TCP_WINSHIFT,&shft,dummy));
-            if (rc < 0) {gethostname(hostname,255);
+            if (rc < 0) {
+		char hostname[MAXHOSTNAMELEN];
+		gethostname_p4(hostname,255);
 			 fprintf(stdout,
                         "ERROR_WINSHIFT in %s rc=%d, shft=%d, size_shft=%d \n",
                         hostname, rc,shft,(int)dummy);
@@ -211,9 +360,6 @@ int *skt;
 
 #ifdef CAN_DO_SETSOCKOPT
     net_set_sockbuf_size(-1,*skt);     /* 7/12/95, bri@sgi.com */
-#endif
-
-#ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc,setsockopt(*skt, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
 
     if (p4_debug_level > 79)
@@ -249,9 +395,6 @@ int *skt;
 
 #ifdef CAN_DO_SETSOCKOPT
     net_set_sockbuf_size(-1,*skt);	/* 7/12/95, bri@sgi.com */
-#endif
-
-#ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc, setsockopt(*skt, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
 
     if (p4_debug_level > 79)
@@ -279,8 +422,7 @@ int *skt;
 /*
   Accept a connection on socket skt and return fd of new connection.
   */
-int net_accept(skt)
-int skt;
+int net_accept(int skt)
 {
     struct sockaddr_in from;
     int rc, flags, skt2, gotit, sockbuffsize;
@@ -308,7 +450,7 @@ int skt;
 #ifdef CAN_DO_SETSOCKOPT
     SYSCALL_P4(rc, setsockopt(skt2, IPPROTO_TCP, TCP_NODELAY, (char *) &optval, sizeof(optval)));
 
-    sockbuffsize = SOCK_BUFF_SIZE;
+    sockbuffsize = p4_default_sock_buf_size;
 
 #ifdef SET_SOCK_BUF_SIZE
       if (setsockopt(skt2,SOL_SOCKET,SO_RCVBUF,(char *)&sockbuffsize,sizeof(sockbuffsize)))
@@ -342,6 +484,7 @@ void get_sock_info_by_hostname(hostname,sockinfo)
 char *hostname;
 struct sockaddr_in **sockinfo;
 {
+#ifndef P4_WITH_MPD
     int i;
 
     p4_dprintfl( 91, "Starting get_sock_info_by_hostname\n");
@@ -359,6 +502,7 @@ struct sockaddr_in **sockinfo;
 		}
 	    }
 	}
+#endif
 
 /* Error, no sockinfo.
    Try to get it from the hostname (this is NOT signal safe, so we 
@@ -417,9 +561,6 @@ int port, num_tries;
 	p4_dprintfl(80,"net_conn_to_listener socket fd=%d\n", s );
 #ifdef CAN_DO_SETSOCKOPT
         net_set_sockbuf_size(-1,s);    /* 7/12/95, bri@sgi.com */
-#endif
-
-#       ifdef CAN_DO_SETSOCKOPT
 	SYSCALL_P4(rc, setsockopt(s,IPPROTO_TCP,TCP_NODELAY,(char *) &optval,sizeof(optval)));
 	if (p4_debug_level > 79)
 	    p4_print_sock_params( s );
@@ -432,7 +573,13 @@ int port, num_tries;
 			       sizeof(struct sockaddr_in)));
 	if (rc < 0)
 	{
+	    /* Since the socket is not yet non-blocking, EINPROGRESS should not
+	       happen.  Other errors are fatal to the socket */
 	    p4_dprintfl( 70, "Connect failed; closed socket %d\n", s );
+	    if (70 > p4_debug_level) {
+		/* Give the reason that the connection failed. */
+		perror("Connection failed for reason: ");
+	    }
 	    close(s);
 	    s = -1;
 	    if (--num_tries)
@@ -480,6 +627,8 @@ int size;
     int block_counter = 0;
     int eof_counter = 0;
     char *buf = (char *)in_buf;
+    int set_fd_blocking = 0;
+    int orig_flags = 0;  /* Set to keep gcc quiet */
 #if defined(P4SYSV) && !defined(NONBLOCKING_READ_WORKS)
     int n1 = 0;
     struct timeval tv;
@@ -487,6 +636,9 @@ int size;
     int rc;
     char tempbuf[1];
 #endif
+    COLLECT_STAT(int n_loop = 0;);
+
+    COLLECT_STAT(n_recv_calls++);
 
     p4_dprintfl( 99, "Beginning net_recv of %d on fd %d\n", size, fd );
     while (recvd < size)
@@ -529,6 +681,8 @@ int size;
 #else
 	{
 	    /* Except on SYSV, n == 0 is EOF */
+	    /* Note that this is an error even during rundown because sockets
+	       should be closed with a "close socket" message first. */
 	    p4_error("net_recv read:  probable EOF on socket", read_counter);
         }
 #endif
@@ -540,36 +694,55 @@ int size;
 	    /* Solaris 2.5 occasionally sets n == -1 and errno == 0 (!!).
 	       since n == -1 and errno == 0 is invalid (i.e., a bug in read),
 	       it should be safe to treat it as EAGAIN and to try the
-	       read once more 
+	       read once more (probably a race in the kernel)
 	     */
 	    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == 0)
 	    {
+		COLLECT_STAT(n_recv_eagain++);
 		block_counter++;
-		/* Consider doing a select here to wait for more data
+		/* Use a select here to wait for more data
 		   to arrive.  This may give better performance, 
 		   particularly when the system is actively involved in
 		   trying to get the message to us
 		 */
-#ifdef FOO
-		tv.tv_sec = 5;
-		tv.tv_usec = 0;
-		FD_ZERO(&read_fds);
-		FD_SET(fd, &read_fds);
-		SYSCALL_P4(n1, select(fd+1, &read_fds, 0, 0, &tv));
-#endif
+		if (p4_use_net_recv_w) {
+		    fd_set         read_fds;
+		    struct timeval tv;
+		    int            n1;
+		    tv.tv_sec = 5;     /* This is arbitrary */
+		    tv.tv_usec = 0;
+		    FD_ZERO(&read_fds);
+		    FD_SET(fd, &read_fds);
+		    COLLECT_STAT(n_recv_select++);
+		    SYSCALL_P4(n1, select(fd+1, &read_fds, 0, 0, &tv));
+		}
+		else if (p4_use_readb && !set_fd_blocking) {
+		    int flags;
+		    set_fd_blocking = 1;
+		    /* If we cached these flags in the p4 structure 
+		       associated with the fd, we could avoid the F_GETFL */
+		    flags = fcntl( fd, F_GETFL, 0 );
+		    orig_flags = flags;
+		    flags &= ~O_NDELAY;
+		    fcntl( fd, F_SETFL, flags );
+		}
 		continue;
 	    }
 	    else {
 		/* A closed socket can cause this to happen. */
-		printf( "net_recv failed for fd = %d\n", fd );
+		p4_dprintf( "net_recv failed for fd = %d\n", fd );
 		p4_error("net_recv read, errno = ", errno);
 	    }
 	}
 	recvd += n;
+	COLLECT_STAT( if (n > n_recv_max) n_recv_max = n; );
+	COLLECT_STAT( if (recvd < size) n_loop++);
     }
     p4_dprintfl( 99, 
 		"Ending net_recv of %d on fd %d (eof_c = %d, block = %d)\n", 
 		 size, fd, eof_counter, block_counter );
+    COLLECT_STAT(if (n_loop > n_recv_maxloop) n_recv_maxloop = n_loop;);
+    if (set_fd_blocking) fcntl( fd, F_SETFL, orig_flags );
     return (recvd);
 }
 
@@ -587,21 +760,16 @@ int flag;
     int n, sent = 0;
     int write_counter = 0;
     int block_counter = 0;
-    int trial_size = size;
     char *buf = (char *)in_buf;
 
-    /* trial_size lets us back off from sending huge messages in a single
-       write without making many expensive calls to socket_msgs_available
-       (select).  But we have to set it large enough to let us do
-       long writes (since each write is itself expensive).
-       The backoff size should not be shorter than the socket_buffer_size.
-     */
+    /* net_send_w is a tuned version of net_send */
+    if (p4_use_net_send_w) return net_send_w( fd, in_buf, size, flag );
+
     p4_dprintfl( 99, "Starting net_send of %d on fd %d\n", size, fd );
     while (sent < size)
     {
 	write_counter++;		/* for debugging */
-	if (size - sent < trial_size) trial_size = size - sent;
-	SYSCALL_P4(n, write(fd, buf + sent, trial_size));
+	SYSCALL_P4(n, write(fd, buf + sent, size - sent));
 	if (n < 0)
 	{
 	    /* See net_read; these are often the same and EAGAIN is POSIX */
@@ -614,44 +782,174 @@ int flag;
 		block_counter++;
 		if (flag)
 		{
-		    /* First, try sending the message in shorter bursts */
-#ifdef FOO
-		    if (trial_size > 16 * SOCK_BUFF_SIZE) 
-			trial_size = trial_size / 2;
-		    else 
-#endif
-			{
-			/* Someone may be writing to us ... */
-			if (socket_msgs_available())
-			    {
-			    dmsg = socket_recv( P4_FALSE );
-			    /* close of a connection may return a null msg */
-			    if (dmsg) 
-				queue_p4_message(dmsg, 
-						 p4_local->queued_messages);
-			    /* Reset the trial_size to the amount remaining */
-			    trial_size = size - sent;
-			    }
-			}
+		    /* Someone may be writing to us ... */
+		    if (socket_msgs_available())
+		    {
+			dmsg = socket_recv( P4_FALSE );
+			/* close of a connection may return a null msg */
+			if (dmsg) 
+			    queue_p4_message(dmsg, 
+					     p4_local->queued_messages);
 		    }
+		}
 		continue;
 	    }
 	    else
 	    {
+		if (p4_local->in_wait_for_exit) {
+		    /* Exit the while if we can't send a close message */
+		    break;
+		}
 		p4_dprintf("net_send: could not write to fd=%d, errno = %d\n",
 			   fd, errno);
 		p4_error("net_send write", n);
 	    }
 	}
 	sent += n;
-	/* Go back to full size */
-	trial_size = size - sent;
     }
     p4_dprintfl( 99, "Ending net_send of %d on fd %d (blocked %d times)\n", 
 		 size, fd, block_counter );
     return (sent);
 }
 
+/* net_send_w is a special version of net_send that uses select to wait on
+ * *write* access to the socket as well as read access when a message cannot
+ * be sent.  This keeps p4 from endless looping when it can't send. 
+ */
+
+int net_send_w(int fd, void *in_buf, int size, int flag)
+
+/* flag --> fromid < toid; tie-breaker to avoid 2 procs rcving at same time */
+/* typically set false for small internal messages, esp. when ids may not */
+/*     yet be available */
+/* set true for user msgs which may be quite large */
+{
+    struct p4_msg *dmsg;
+    int n, sent = 0;
+    int block_counter = 0;
+    int size_left = size;
+    char *buf = (char *)in_buf;
+    COLLECT_STAT(int n_loop = 0);
+
+    COLLECT_STAT(n_send_w_calls++);
+    p4_dprintfl( 99, "Starting net_send_w of %d on fd %d\n", size, fd );
+    while (size_left)
+    {
+	SYSCALL_P4(n, write(fd, buf + sent, size_left));
+	if (n < 0)
+	{
+	    /* See net_read; these are often the same and EAGAIN is POSIX */
+	    if (errno == EAGAIN || errno == EWOULDBLOCK)
+	    {
+		block_counter++;
+		COLLECT_STAT(n_send_eagain++);
+		/* Someone may be writing to us.  This waits until
+		   either we can write or someone sends to use.
+		   returns -1 if the write_fd is ready. */
+		if (p4_sockets_ready( fd, 1 ) != -1)
+		{
+		    if (flag) {
+			/* Only try to receive if the flag is set */
+			dmsg = socket_recv( P4_FALSE );
+			/* close of a connection may return a null msg */
+			if (dmsg) 
+			    queue_p4_message(dmsg, 
+					     p4_local->queued_messages);
+		    }
+		}
+		continue;
+	    }
+	    else
+	    {
+		if (p4_local->in_wait_for_exit) {
+		    /* Exit the while if we can't send a close message */
+		    break;
+		}
+		p4_dprintf("net_send: could not write to fd=%d, errno = %d\n",
+			   fd, errno);
+		p4_error("net_send write", n);
+	    }
+	}
+	COLLECT_STAT(if (n >n_send_max) n_send_max = n);
+	sent      += n;
+	size_left -= n;
+	COLLECT_STAT(if (size_left > 0) { n_send_looped++ ; n_loop++; });
+    }
+    p4_dprintfl( 99, "Ending net_send of %d on fd %d (blocked %d times)\n", 
+		 size, fd, block_counter );
+    COLLECT_STAT(if (n_loop > n_send_loopcnt) n_send_loopcnt = n_loop);
+    return (sent);
+}
+
+/* Send the header and the message together if possible */
+int net_send2( int fd, void *header, int header_len, 
+	       void *data, int len, int flag )
+{
+    int n;
+
+#if defined(HAVE_WRITEV) && defined(HAVE_SYS_UIO_H)
+    if (p4_use_writev) {
+	struct iovec vbuf[2];
+	vbuf[0].iov_base = header;
+	vbuf[0].iov_len  = header_len;
+	vbuf[1].iov_base = data;
+	vbuf[1].iov_len  = len;
+	n = writev( fd, vbuf, 2 );
+	if (n == -1) {
+	    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+		/* Just pretend nothing was written */
+		n = 0;
+	    }
+	    else {
+		/* Error on writing */
+		/* We'll let the net_send code handle it */
+		n = 0;
+	    }
+	}
+	if (n < header_len + len) {
+	    char *hptr = (char *)header;
+	    if (n < header_len) {
+		net_send( fd, hptr + n, header_len - n, flag );
+		net_send( fd, data, len, flag );
+	    }
+	    else {
+		char *dptr = (char *)data;
+		int len_sent = n - header_len;
+		net_send( fd, dptr + len_sent, len - len_sent, flag );
+	    }
+	}
+	COLLECT_STAT(else {n_writev_first++;});
+	/* Return only the length of the data sent */
+	n = len;
+    }
+    else 
+#endif
+    {
+	(void)net_send(fd, header, header_len, flag);
+	p4_dprintfl(20, "sent hdr on fd %d via socket\n",fd);
+
+	n = net_send(fd, data, len, flag);
+    }
+    return n;
+}
+
+void p4_socket_stat( FILE *fp )
+{
+    if (p4_output_socket_stat) {
+
+	fprintf( fp, 
+	     "send calls = %d eagain = %d maxbytes = %d loop %d maxloop %d\n",
+	     n_send_w_calls, n_send_eagain, n_send_max, n_send_looped, 
+	     n_send_loopcnt );
+	fprintf( fp,
+		 "send w writev %d\n", n_writev_first );
+	fprintf( fp, 
+	     "recv calls = %d eagain %d maxbytes %d select %d maxloop %d\n",
+	     n_recv_calls, n_recv_eagain, n_recv_max, n_recv_select, 
+	     n_recv_maxloop  );
+	fflush( fp );
+    }
+}
 /* This can FAIL if the host name is invalid.  For that reason, there is
    a timeout in the test, with a failure return if the entry cannot be found 
 
@@ -673,6 +971,28 @@ struct hostent *gethostbyname_p4(hostname)
 char *hostname;
 {
     struct hostent *hp;
+#ifdef SCYLD_BEOWULF
+    struct sockaddr_in sin;    
+    long nodenum;
+    int size;
+    
+    p4_dprintfl(10,"Beowulf: using beowulf version of gethostbyname_p4\n");
+    
+    nodenum=strtol(hostname,NULL,10);
+    
+    size=sizeof(struct sockaddr_in);
+    bproc_nodeaddr(nodenum,(struct sockaddr *)&sin,&size);
+    
+    hp=(struct hostent *)calloc(1,sizeof(struct hostent));
+    hp->h_name=strdup(hostname);
+    hp->h_aliases=NULL;
+    hp->h_addrtype=AF_INET;
+    hp->h_length=4;
+    hp->h_addr_list=(char **)calloc(2,sizeof(char *));
+    hp->h_addr_list[0]=calloc(1,4);
+    memcpy(hp->h_addr_list[0],(char *)&(sin.sin_addr.s_addr),4);
+    hp->h_addr_list[1]=NULL;
+#else
     int i = 100;
     time_t start_time, cur_time;
 
@@ -698,7 +1018,20 @@ char *hostname;
 	    }
 	}
     }
+#endif /* SCYLD_BEOWULF */
     return(hp);
+}
+
+/* General replacement for gethostname for Solaris and Scyld */
+int gethostname_p4(char *name,size_t len)
+{
+#   if defined(SUN_SOLARIS) || defined(MEIKO_CS2)
+	return sysinfo(SI_HOSTNAME, name, len );
+#   elif defined (SCYLD_BEOWULF)
+	return -(snprintf(name, len , "%d", bproc_currnode()) == -1);
+#   else
+	return gethostname(name,len);
+#   endif
 }
 
 P4VOID get_inet_addr(addr)

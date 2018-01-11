@@ -1,5 +1,5 @@
 /* 
- *   $Id: ad_pfs_iwrite.c,v 1.4 2000/02/09 21:29:52 thakur Exp $    
+ *   $Id: ad_pfs_iwrite.c,v 1.5 2000/11/03 20:17:42 thakur Exp $    
  *
  *   Copyright (C) 1997 University of Chicago. 
  *   See COPYRIGHT notice in top-level directory.
@@ -7,7 +7,8 @@
 
 #include "ad_pfs.h"
 
-void ADIOI_PFS_IwriteContig(ADIO_File fd, void *buf, int len, int file_ptr_type,
+void ADIOI_PFS_IwriteContig(ADIO_File fd, void *buf, int count, 
+                MPI_Datatype datatype, int file_ptr_type,
                 ADIO_Offset offset, ADIO_Request *request, int *error_code)  
 {
     long *id_sys;

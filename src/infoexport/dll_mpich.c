@@ -1,24 +1,34 @@
 /**********************************************************************
  * Copyright (C) 1997-1998 Dolphin Interconnect Solutions Inc.
+ * Copyright (C) 1999-2001 Etnus LLC.
  *
  * Permission is hereby granted to use, reproduce, prepare derivative
  * works, and to redistribute to others.
  *
  *				  DISCLAIMER
  *
- * Neither Dolphin Interconnect Solutions, nor any of their employees,
- * makes any warranty express or implied, or assumes any legal
- * liability or responsibility for the accuracy, completeness, or
- * usefulness of any information, apparatus, product, or process
+ * Neither Dolphin Interconnect Solutions, Etnus LLC, nor any of their
+ * employees, makes any warranty express or implied, or assumes any
+ * legal liability or responsibility for the accuracy, completeness,
+ * or usefulness of any information, apparatus, product, or process
  * disclosed, or represents that its use would not infringe privately
  * owned rights.
  *
  * This code was written by
  * James Cownie: Dolphin Interconnect Solutions. <jcownie@dolphinics.com>
+ *               Etnus LLC <jcownie@etnus.com>
  **********************************************************************/
 
 /* Update log
  *
+ * Mar  6 2001 JHC: Add mqs_comm_get_group to allow a debugger to acquire
+ *                  processes less eagerly.
+ * Dec 13 2000 JHC: totalview/2514: Modify image_has_queues to return
+ *                  a silent FALSE if none of the expected data is
+ *                  present. This way you won't get complaints when
+ *                  you try this on non MPICH processes.
+ * Sep  8 2000 JVD: #include <string.h> to silence Linux Alpha compiler warnings.
+ * Mar 21 2000 JHC: Add the new entrypoint mqs_dll_taddr_width
  * Nov 26 1998 JHC: Fix the problem that we weren't handling
  *                  MPIR_Ignore_queues properly.
  * Oct 22 1998 JHC: Fix a zero allocation problem
@@ -50,13 +60,8 @@
 #ifdef HAVE_NO_C_CONST
 #define const
 #endif
-#ifdef STDC_HEADERS
-#include <string.h>
-#endif
 
-/* 
-   End of inclusion
- */
+#include <string.h>
 #include "mpi_interface.h"
 #include "mpich_dll_defs.h"	
 
@@ -78,6 +83,7 @@
 #define concat(a,b) a##b
 #define stringize(a) #a
 #endif
+
 /**********************************************************************/
 /* Set up the basic callbacks into the debugger, also work out 
  * one crucial piece of info about the machine we're running on.
@@ -129,14 +135,20 @@ int mqs_version_compatibility ( void )
 } /* mqs_version_compatibility */
 
 /* This one can say what you like */
-char *mqs_version_string( void )
-{
 #ifndef __DATE__
-  return "MPICH 1.2.0 from ANL release";
-#else
-  return "MPICH 1.2.0 from ANL release; compiled on " __DATE__;
+/* Some pre-ANSI C compilers don't grok __DATE__ */
+#define __DATE__ "unknown"
 #endif
+char *mqs_version_string ( void )
+{
+  return "ETNUS MPICH message queue support for MPICH 1.1, 1.2 compiled on " __DATE__;
 } /* mqs_version_string */
+
+/* So the debugger can tell what interface width the library was compiled with */
+int mqs_dll_taddr_width (void)
+{
+  return sizeof (mqs_taddr_t);
+} /* mqs_dll_taddr_width */
 
 /**********************************************************************/
 /* Additional error codes and error string conversion.
@@ -256,8 +268,8 @@ static group_t * find_or_create_group (mqs_process *proc,
 				       mqs_taddr_t table)
 {
   mpich_process_info *p_info = (mpich_process_info *)mqs_get_process_info (proc);
-/*  mqs_image * image          = mqs_get_image (proc); */
-/*  mpich_image_info *i_info   = (mpich_image_info *)mqs_get_image_info (image); */
+  mqs_image * image          = mqs_get_image (proc);
+  mpich_image_info *i_info   = (mpich_image_info *)mqs_get_image_info (image);
   int intsize = p_info->sizes.int_size;
   communicator_t *comm  = p_info->communicator_list;
   int *tr;
@@ -328,7 +340,7 @@ int mqs_setup_image (mqs_image *image, const mqs_image_callbacks *icb)
   if (!i_info)
     return err_no_store;
 
-  memset (i_info, 0, sizeof (mpich_image_info));
+  memset ((void *)i_info, 0, sizeof (mpich_image_info));
   i_info->image_callbacks = icb;		/* Before we do *ANYTHING* */
 
   mqs_put_image_info (image, (mqs_image_info *)i_info);
@@ -343,7 +355,10 @@ int mqs_setup_image (mqs_image *image, const mqs_image_callbacks *icb)
  */
 
 /* A macro to save a lot of typing. */
-#define GETOFFSET(type, field)							\
+/* If old-style CPP concatenation is used, no spaces can be present in 
+   the uses of GETOFFSET.  E.g., GETOFFSET(q_type,first) is ok but
+   GETOFFSET(q_type, first) is not. */
+#define GETOFFSET(type,field)							\
 do {										\
   i_info->concat(field,_offs) = mqs_field_offset(type, stringize(field));	\
   if (i_info->concat(field,_offs) < 0)						\
@@ -353,6 +368,14 @@ do {										\
 int mqs_image_has_queues (mqs_image *image, char **message)
 {
   mpich_image_info * i_info = (mpich_image_info *)mqs_get_image_info (image);
+  int have_qhdr = FALSE;
+  int have_queue= FALSE;
+  int have_qel  = FALSE;
+  int have_sq   = FALSE;
+  int have_sqel = FALSE;
+  int have_rh   = FALSE;
+  int have_co   = FALSE;
+  int have_cl   = FALSE;
 
   /* Default failure message ! */
   *message = "The symbols and types in the MPICH library used by TotalView\n"
@@ -378,55 +401,61 @@ int mqs_image_has_queues (mqs_image *image, char **message)
   {
     mqs_type *qh_type = mqs_find_type (image, "MPID_QHDR", mqs_lang_c);
 	
-    if (!qh_type)
-      return err_failed_qhdr;
-    
-    GETOFFSET(qh_type,unexpected);
-    GETOFFSET(qh_type,posted);
+    if (qh_type)
+      {
+	have_qhdr = TRUE;
+	GETOFFSET(qh_type,unexpected);
+	GETOFFSET(qh_type,posted);
+      }
   }
 
   {
     mqs_type *q_type = mqs_find_type (image,"MPID_QUEUE",mqs_lang_c);
-    if (!q_type)
-      return err_failed_queue;
-
-    GETOFFSET(q_type,first);
+    if (q_type)
+      {
+	have_queue = TRUE;
+	GETOFFSET(q_type,first);
+      }
   }
       
   { /* Now fill in fields from MPID_QEL */
     mqs_type * qel_type = mqs_find_type (image,"MPID_QEL",mqs_lang_c);
-    if (!qel_type)
-      return err_failed_qel;
-
-    GETOFFSET(qel_type,context_id);
-    GETOFFSET(qel_type,tag);
-    GETOFFSET(qel_type,tagmask);
-    GETOFFSET(qel_type,lsrc);
-    GETOFFSET(qel_type,srcmask);
-    GETOFFSET(qel_type,next);
-    GETOFFSET(qel_type,ptr);
+    if (qel_type)
+      {
+	have_qel = TRUE;
+	GETOFFSET(qel_type,context_id);
+	GETOFFSET(qel_type,tag);
+	GETOFFSET(qel_type,tagmask);
+	GETOFFSET(qel_type,lsrc);
+	GETOFFSET(qel_type,srcmask);
+	GETOFFSET(qel_type,next);
+	GETOFFSET(qel_type,ptr);
+      }
   }       
 
   { /* Fields from MPIR_SQUEUE */
     mqs_type * sq_type = mqs_find_type (image,"MPIR_SQUEUE",mqs_lang_c);
-    if (!sq_type)
-      return err_failed_squeue;
-
-    GETOFFSET(sq_type,sq_head);
+    if (sq_type)
+      {
+	have_sq = TRUE;
+	GETOFFSET(sq_type,sq_head);
+      }
   }
 
   { /* Fields from MPIR_SQEL */
     mqs_type * sq_type = mqs_find_type (image,"MPIR_SQEL",mqs_lang_c);
-    if (!sq_type)
-      return err_failed_sqel;
+    if (sq_type)
+      {
+	have_sqel = TRUE;
 
-    GETOFFSET(sq_type,db_shandle);
-    GETOFFSET(sq_type,db_comm);
-    GETOFFSET(sq_type,db_target);
-    GETOFFSET(sq_type,db_tag);
-    GETOFFSET(sq_type,db_data);
-    GETOFFSET(sq_type,db_byte_length);
-    GETOFFSET(sq_type,db_next);
+	GETOFFSET(sq_type,db_shandle);
+	GETOFFSET(sq_type,db_comm);
+	GETOFFSET(sq_type,db_target);
+	GETOFFSET(sq_type,db_tag);
+	GETOFFSET(sq_type,db_data);
+	GETOFFSET(sq_type,db_byte_length);
+	GETOFFSET(sq_type,db_next);
+      }
   }
 
   { /* Now fill in fields from MPIR_RHANDLE */
@@ -434,57 +463,93 @@ int mqs_image_has_queues (mqs_image *image, char **message)
     int status_offset;
     mqs_type *status_type;
 
-    if (!rh_type)
-      return err_failed_rhandle;
+    if (rh_type)
+      {
+	have_rh = TRUE;
 
-    GETOFFSET(rh_type,is_complete);
-    GETOFFSET(rh_type,buf);
-    GETOFFSET(rh_type,len);
+	GETOFFSET(rh_type,is_complete);
+	GETOFFSET(rh_type,buf);
+	GETOFFSET(rh_type,len);
 
-    /* Digital MPI doesn't provide this, so we handle not having it below,
-     * and don't complain about it
-     */
-    i_info->start_offs = mqs_field_offset (rh_type, "start");
+	/* Digital MPI doesn't provide this, so we handle not having it below,
+	 * and don't complain about it
+	 */
+	i_info->start_offs = mqs_field_offset (rh_type, "start");
 
-    /* And from the nested MPI_Status object. This is less pleasant */
-    status_offset = mqs_field_offset (rh_type, "s");
-    if (status_offset < 0)
-      return err_s;
+	/* And from the nested MPI_Status object. This is less pleasant */
+	status_offset = mqs_field_offset (rh_type, "s");
+	if (status_offset < 0)
+	  return err_s;
 
-    status_type = mqs_find_type (image, "MPI_Status",mqs_lang_c);
-    if (!status_type)
-      return err_failed_status;
+	status_type = mqs_find_type (image, "MPI_Status",mqs_lang_c);
+	if (!status_type)
+	  return err_failed_status;
     
-    /* Adjust the offsets of the embedded fields */
-    GETOFFSET(status_type,count);
-    i_info->count_offs += status_offset;
-    GETOFFSET(status_type,MPI_SOURCE);
-    i_info->MPI_SOURCE_offs += status_offset;      
-    GETOFFSET(status_type,MPI_TAG);
-    i_info->MPI_TAG_offs += status_offset;
+	/* Adjust the offsets of the embedded fields */
+	GETOFFSET(status_type,count);
+	i_info->count_offs += status_offset;
+	GETOFFSET(status_type,MPI_SOURCE);
+	i_info->MPI_SOURCE_offs += status_offset;      
+	GETOFFSET(status_type,MPI_TAG);
+	i_info->MPI_TAG_offs += status_offset;
+      }
   }
       
   { /* Fields from the MPIR_Comm_list */
     mqs_type * cl_type = mqs_find_type (image,"MPIR_Comm_list",mqs_lang_c);
-    if (!cl_type)
-      return err_failed_commlist;
-
-    GETOFFSET(cl_type,sequence_number);
-    GETOFFSET(cl_type,comm_first);
+    if (cl_type)
+      {
+	have_cl = TRUE;
+	GETOFFSET(cl_type,sequence_number);
+	GETOFFSET(cl_type,comm_first);
+      }
   }
 
   { /* Fields from the communicator */
     mqs_type * co_type = mqs_find_type (image, "MPIR_Communicator",mqs_lang_c);
-    if (!co_type)
-      return err_failed_communicator;
-	
-    GETOFFSET(co_type,np);
-    GETOFFSET(co_type,lrank_to_grank);
-    GETOFFSET(co_type,send_context);
-    GETOFFSET(co_type,recv_context);
-    GETOFFSET(co_type,comm_next);
-    GETOFFSET(co_type,comm_name);
+    if (co_type)
+      {
+	have_co = TRUE;
+	GETOFFSET(co_type,np);
+	GETOFFSET(co_type,lrank_to_grank);
+	GETOFFSET(co_type,send_context);
+	GETOFFSET(co_type,recv_context);
+	GETOFFSET(co_type,comm_next);
+	GETOFFSET(co_type,comm_name);
+      }
   }
+
+  /* If we have none of the symbols we expect we decide that this isn't even
+   * trying to be an MPICH code, and give up silently.
+   */
+  if (!have_qhdr && !have_queue && !have_qel  &&
+      !have_sq   && !have_sqel &&  !have_rh   &&
+      !have_co   && !have_cl)
+    {
+      *message = NULL;				/* Fail silently */
+      return err_silent_failure;
+    }
+
+  /* Now check each status individually, we know at least one test
+   * succeeded, so this is trying to be an MPICH code and it's worth
+   * complaining vocally 
+   */
+  if (!have_qhdr)
+    return  err_failed_qhdr;
+  if (!have_queue)
+    return err_failed_queue;
+  if (!have_qel)
+    return err_failed_qel;
+  if (!have_sq)
+    return err_failed_squeue;
+  if (!have_sqel)
+    return err_failed_sqel;
+  if (!have_rh)
+    return err_failed_rhandle;
+  if (!have_co)
+    return err_failed_communicator;
+  if (!have_cl)
+    return err_failed_commlist;
 
   *message = NULL;
 
@@ -787,6 +852,28 @@ int mqs_get_communicator (mqs_process *proc, mqs_communicator *comm)
 } /* mqs_get_communicator */
 
 /***********************************************************************
+ * Get the group information about the current communicator.
+ */
+int mqs_get_comm_group (mqs_process *proc, int *group_members)
+{
+  mpich_process_info *p_info = (mpich_process_info *)mqs_get_process_info (proc);
+  communicator_t     *comm   = p_info->current_communicator;
+
+  if (comm)
+    {
+      group_t * g = comm->group;
+      int i;
+
+      for (i=0; i<g->entries; i++)
+	group_members[i] = g->local_to_global[i];
+
+      return mqs_ok;
+    }
+  else
+    return err_no_current_communicator;
+} /* mqs_get_comm_group */
+
+/***********************************************************************
  * Step to the next communicator.
  */
 int mqs_next_communicator (mqs_process *proc)
@@ -950,7 +1037,7 @@ static int fetch_send (mqs_process *proc, mpich_process_info *p_info,
   /* Say what operation it is. We can only see non blocking send operations
    * in MPICH. Other MPI systems may be able to show more here. 
    */
-  strcpy (res->extra_text[0],"Non-blocking send");
+  strcpy ((char *)res->extra_text[0],"Non-blocking send");
   res->extra_text[1][0] = 0;
 
   while (base != 0)
@@ -1180,8 +1267,3 @@ char * mqs_dll_error_string (int errcode)
     }
 } /* mqs_dll_error_string */
 
-/* So the debugger can tell what interface width the library was compiled with */
-int mqs_dll_taddr_width ()
-{
-  return sizeof (mqs_taddr_t);
-} /* mqs_dll_taddr_width */

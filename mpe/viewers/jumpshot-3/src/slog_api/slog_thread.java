@@ -26,7 +26,7 @@ public class slog_thread
         try {
             while ( slog == null ) wait();
         } catch ( InterruptedException ie ) { return 0; }
-        return slog.dir.NumOfFrames();
+        return slog.GetDir().NumOfFrames();
     }
 
     public synchronized void SeekFrame( int frame_idx )
@@ -36,8 +36,8 @@ public class slog_thread
         } catch ( InterruptedException ie ) { 
             throw new NullPointerException( "slog == null" ); 
         }
-        if ( frame_idx >= 0 && frame_idx < slog.dir.NumOfFrames() )
-            fptr2frame = slog.dir.EntryAt( frame_idx ).fptr2framehdr;
+        if ( frame_idx >= 0 && frame_idx < slog.GetDir().NumOfFrames() )
+            fptr2frame = slog.GetDir().EntryAt( frame_idx ).fptr2framehdr;
         else
             fptr2frame = -1;
     }

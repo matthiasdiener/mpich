@@ -111,12 +111,14 @@ TAR = gnutar
 GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
+# OSF V3 make complains about no suffix list
+.SUFFIXES: .o
 #$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 #	cd $(top_srcdir) && $(AUTOMAKE) --foreign balky/Makefile
 
-Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
-	cd $(top_builddir) \
-	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+#Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+#	cd $(top_builddir) \
+#	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
 balky: $(top_builddir)/config.status balky.in
 	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
@@ -179,7 +181,7 @@ install-am: all-am
 install: install-am
 uninstall-am: uninstall-binSCRIPTS
 uninstall: uninstall-am
-all-am: Makefile $(SCRIPTS)
+all-am: $(SCRIPTS)
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install

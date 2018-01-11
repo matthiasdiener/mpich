@@ -14,7 +14,10 @@
 int main( int argc, char *argv[] )
 {
 
-    double       sbuf[20000], rbuf[20000];
+    double       sbuf[20000];
+#ifdef FOO
+    double rbuf[20000];
+#endif
     int          rank;
     int          n, flag, size;
     int          err = 0;
@@ -45,6 +48,10 @@ int main( int argc, char *argv[] )
 	MPI_Request_free( &req );
     }  /* end if rank == 1 */
 
+#ifdef FOO
+/* Note that MPI-2 specifies that status.MPI_ERROR is only set by
+   multiple completion (e.g., MPI_Waitsome) and not by test_cancelled.
+*/
     MPI_Barrier(MPI_COMM_WORLD); 
 
     if (rank == 0) {  /* begin if rank == 0 */
@@ -55,7 +62,7 @@ int main( int argc, char *argv[] )
 	MPI_Cancel(&req); 
 	MPI_Wait(&req, &status);
 	MPI_Test_cancelled(&status, &flag);
-	if (status.MPI_ERROR != MPI_SUCCESS) {
+	if (!flag && status.MPI_ERROR != MPI_SUCCESS) {
 	    err++;
 	    printf( "Cancel of a send returned an error in the status field.\n" );
 	}
@@ -63,6 +70,7 @@ int main( int argc, char *argv[] )
 	if (!flag)
 	    MPI_Request_free( &req ); 
     }  /* end if rank == 1 */
+#endif
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -81,6 +89,7 @@ int main( int argc, char *argv[] )
 	MPI_Request_free( &req ); 
     }  /* end if rank == 1 */
 
+#ifdef FOO
     MPI_Barrier(MPI_COMM_WORLD); 
 
     if (rank == 0) {  /* begin if rank == 0 */
@@ -92,7 +101,7 @@ int main( int argc, char *argv[] )
 	MPI_Cancel(&req);
 	MPI_Wait(&req, &status);
 	MPI_Test_cancelled(&status, &flag);
-	if (status.MPI_ERROR != MPI_SUCCESS) {
+	if (!flag && status.MPI_ERROR != MPI_SUCCESS) {
 	    err++;
 	    printf( "Cancel of a send returned an error in the status field.\n" );
 	}
@@ -100,6 +109,7 @@ int main( int argc, char *argv[] )
 	if (!flag)
 	    MPI_Request_free( &req );
     }  /* end if rank == 1 */
+#endif
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -118,6 +128,7 @@ int main( int argc, char *argv[] )
 	MPI_Request_free( &req ); 
     }  /* end if rank == 1 */
 
+#ifdef FOO
     MPI_Barrier(MPI_COMM_WORLD); 
 
     if (rank == 0) {  /* begin if rank == 0 */
@@ -129,7 +140,7 @@ int main( int argc, char *argv[] )
 	MPI_Cancel(&req);
 	MPI_Wait(&req, &status);
 	MPI_Test_cancelled(&status, &flag);
-	if (status.MPI_ERROR != MPI_SUCCESS) {
+	if (!flag && status.MPI_ERROR != MPI_SUCCESS) {
 	    err++;
 	    printf( "Cancel of a send returned an error in the status field.\n" );
 	}
@@ -137,6 +148,7 @@ int main( int argc, char *argv[] )
 	if (!flag)
 	    MPI_Request_free( &req );
     }  /* end if rank == 1 */
+#endif
 
     MPI_Barrier(MPI_COMM_WORLD); 
 

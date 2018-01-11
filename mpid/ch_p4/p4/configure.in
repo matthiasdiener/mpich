@@ -34,6 +34,7 @@ print_error() {
 progname="`echo $0 | sed 's:^\./\./:\./:'`"
 usage_msg="
 Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-dprintfl={on,off}]
+		   [-p4device=device]
                    [-p4comm=shared]  [-listener_pathname="\<pathname\>"]
                    [-rsh=command] [-rshnol] [-cflags=flags] 
                    [-threaded_listener] [-nothreaded_listener]
@@ -59,6 +60,11 @@ use_nonblock_read=1
 #
 for arg
 do
+    # Code from autoconf 2 to get any option after an =
+    case "$arg" in
+    -*=*) ac_optarg=`echo "$ac_option" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
+    *) ac_optarg= ;;
+    esac
 case $arg in
   -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=* | --s=*)
 	srcdir=`echo $arg | sed 's/[-a-z_]*=//'` ;;
@@ -148,6 +154,21 @@ case $arg in
    -*disable-nonblockread)
 	use_nonblock_read=0
      ;;
+   -enable-g | --enable-g | --enable-g=* | -enable-g=* )
+     OPTFLAGS="$OPTFLAGS -g"	
+     ;;
+
+   -disable-g | --disable-g )
+     ;;
+
+   -*enable-*)
+     # ignore unrecognized options
+     : 
+     ;;
+   -*disable-*)
+     # ignore unrecognized options
+     :
+     ;;
    *)
      # Allow null args
      if test -n "$arg" ; then
@@ -169,6 +190,7 @@ FLINKER=$FC
 AR="ar lruv"
 RM=/bin/rm
 P4_OBJ="\$(P4_COMM_OBJ) \$(P4_SOCK_OBJ) \$(P4_SHMEM_OBJ)"
+
 #
 # date might include various quotes.  Just to be safe, remove anything
 # other than letters, numbers, space, and colon.
@@ -230,6 +252,14 @@ fi
 #
 if test -z "$VPATH" ; then 
     PAC_MAKE_VPATH
+fi
+# Set the device (might be either ch_p4 or ch_p4mpd, for example)
+if test -n "$p4device"; then
+    P4DEVICE=$p4device
+fi
+if test "$P4DEVICE" = "ch_p4mpd" ; then
+    AC_DEFINE(P4_WITH_MPD,,[Define for building p4 with the MPD device])
+    P4_OBJ="\$(P4_COMM_OBJ) \$(P4_SOCK_OBJ) \$(P4_SHMEM_OBJ) \$(P4_MPD_OBJ)"
 fi
 
 if test -n "$p4arch_SUN"; then
@@ -341,6 +371,7 @@ if test -n "$p4arch_HP"; then
     fi
 fi
 #						DEC Alpha workstation
+#                                               Possibly also Compaq OSF1 alpha
 if test -n "$p4arch_ALPHA"; then
     P4ARCH=ALPHA
     if test -n "$p4comm_shared"; then
@@ -666,7 +697,7 @@ if test "$has_rpc_rpc" = 1 ; then
     AC_COMPILE_CHECK([correct headers with rpc/rpc.h],[
 #include <sys/types.h>
 #include <rpc/rpc.h>]
-,,,cc_broken=1)
+,return 0;,,cc_broken=1)
     if test "$cc_broken" = 1; then
         echo "Your C compiler $CC fails to compile the program"
         echo "#include <sys/types.h>"
@@ -684,7 +715,7 @@ if test "$has_netinet_in" = 1 ; then
     AC_COMPILE_CHECK([correct headers with netinet/in.h],[
 #include <sys/types.h>
 #include <netinet/in.h>]
-,,,cc_broken=1)
+,return 0;,,cc_broken=1)
     if test "$cc_broken" = 1; then
         echo "Your C compiler $CC fails to compile the program"
         echo "#include <sys/types.h>"
@@ -705,43 +736,59 @@ PAC_STDARG(AC_DEFINE(USE_STDARG),AC_DEFINE(USE_OLDSTYLE_STDARG))
 # We need to check that these functions are also available to 
 # the other compilers (C++ and Fortran).  For Solaris /usr/ucb/cc, these
 # are found but not for the stock C++ and Fortran compilers.
+#
+# Another grungy problem.  Even though some systems support sighold, 
+# the library might have various problems.  Sigaction should be used instead
+# if it is present.
+AC_HAVE_FUNCS(sigprocmask sigemptyset sigaddset)
 AC_HAVE_FUNCS(sighold)
 AC_HAVE_FUNCS(sigsetmask)
 AC_HAVE_FUNCS(sigblock)
 # Look for sigaction routine (instead of signal)
 AC_HAVE_FUNCS(sigaction)
 AC_COMPILE_CHECK(for struct sigaction,[#include <signal.h>],[
-struct sigaction act; sigaddset( &act.sa_mask, SIGINT );],sigaction_ok="yes",sigaction_ok="no")
+struct sigaction act; sigaddset( &act.sa_mask, SIGINT );return 0;],sigaction_ok="yes",sigaction_ok="no")
 # XOPEN mandates that union semun NOT be defined(!)
+# The return 0 works around a but in ac compile check (the test is in a
+# function with no return value)
 AC_COMPILE_CHECK(for union semun,[#include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>],[
-union semun arg;arg.val=0;],,AC_DEFINE(SEMUN_UNDEFINED))
+union semun arg;arg.val=0;return 0;],,AC_DEFINE(SEMUN_UNDEFINED))
 # strerror is prefered over extern char *sys_errlist[];
+#
+# See if we can use an int in semctl or if we need the union
+AC_COMPILE_CHECK([whether semctl needs union semun],[#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>],[
+int arg = 0; semctl( 1, 1, SETVAL, arg );return 0;],AC_DEFINE(SEMCTL_ARG_UNION))
+#
 AC_HAVE_FUNCS(strerror)
 AC_HAVE_LIBRARY(crypt,CRYPT_LIBS=-lcrypt)
 # Look for vprintf
 AC_HAVE_FUNCS(vprintf)
+PAC_CHECK_HEADERS(sys/uio.h)
+AC_HAVE_FUNCS(writev)
 
-#
-# Check that nonblocking read works:
-# Early SYSV (R2) had a design problem with nonblocking sockets:
-# there was no way to distinquish between EOF and no data on socket.
-# This code tests for this case; if an EOF on the socket gives the
-# correct value (-1), we note this.  If it fails, there is code in
-# p4 to work around this design bug, but it can introduce performance
-# penalties.  
-if test -s $top_srcdir/readblock.c -a $use_nonblock_read = 1 ; then
-    AC_MSG_CHECKING([that read O_NDELAY works])
-    readworks=0
-    AC_TEST_PROGRAM([`cat $top_srcdir/readblock.c`],readworks=1)
-    if test $readworks = 1 ; then
-        AC_MSG_RESULT(yes)
-        AC_DEFINE(NONBLOCKING_READ_WORKS)
-    else
-	AC_MSG_RESULT(no)
-    fi
-fi
+dnl #
+dnl # Check that nonblocking read works:
+dnl # Early SYSV (R2) had a design problem with nonblocking sockets:
+dnl # there was no way to distinquish between EOF and no data on socket.
+dnl # This code tests for this case; if an EOF on the socket gives the
+dnl # correct value (-1), we note this.  If it fails, there is code in
+dnl # p4 to work around this design bug, but it can introduce performance
+dnl # penalties.  
+dnl if test -s $top_srcdir/readblock.c -a $use_nonblock_read = 1 ; then
+dnl 	AC_MSG_CHECKING([that read O_NDELAY works])
+dnl 	readworks=0
+dnl 	AC_TEST_PROGRAM([`cat $top_srcdir/readblock.c`],readworks=1)
+dnl 	if test $readworks = 1 ; then
+dnl 	    AC_MSG_RESULT(yes)
+dnl 	    AC_DEFINE(NONBLOCKING_READ_WORKS)
+dnl 	else
+dnl 	    AC_MSG_RESULT(no)
+dnl 	fi
+dnl fi
 #
 # Test for sgttyb and the ability to set noecho on terminals
 PAC_COMPILE_CHECK_FUNC(echo off supported with sgttyb,[
@@ -774,8 +821,8 @@ fi
 # the arguments *should* be.
 found_sockopt_type=0
 AC_COMPILE_CHECK([if getsockopt wants socklen_t],[#include <sys/types.h>
-#include <sys/socket.h>],[socklen_t dummy; int rc, skt; void *ssz;
-rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);],found_sockopt_type=1)
+#include <sys/socket.h>],[socklen_t dummy; int rc, skt=0; void *ssz=0;
+rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);return 0;],found_sockopt_type=1)
 if test $found_sockopt_type = 1 ; then
     MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_SOCKLEN_T"
 fi
@@ -784,7 +831,7 @@ if test $found_sockopt_type = 0 ; then
     # one that getsockopt etc wants.
     AC_MSG_CHECKING([if getsockopt wants size_t])
     PAC_TRY_COMPILE_CLEAN([#include <sys/types.h>
-#include <sys/socket.h>],[int try(void){size_t dummy; int rc, skt; void *ssz;
+#include <sys/socket.h>],[int try(void){size_t dummy; int rc, skt=0; void *ssz=0;
 rc = getsockopt(skt,SOL_SOCKET,SO_SNDBUF,ssz,&dummy);
 return rc;}],found_sockopt_type)
     case $found_sockopt_type in 
@@ -802,9 +849,10 @@ fi
 # Check whether u_int should be used for xdr_array 
 use_u_int=0
 AC_MSG_CHECKING([if xdr_array wants u_int])
+# Initialize the variables to suppress warnings about usage.
 PAC_TRY_COMPILE_CLEAN([#include <rpc/xdr.h>
 ],[int try(void){
-u_int l, ms, el; xdrproc_t elproc; XDR *xdrs; int rc; char **arrp;
+u_int l=0, ms=0, el=0; xdrproc_t elproc=(xdrproc_t)xdr_int; XDR *xdrs=0; int rc; char **arrp=0;
 rc = xdr_array(xdrs,arrp,&l,ms,el,elproc);
 return rc;}],use_u_int)
 case $use_u_int in 
@@ -816,7 +864,27 @@ case $use_u_int in
     2) AC_MSG_RESULT(no)
        ;;
 esac
-
+if test "$use_u_int" != "0" ; then
+    # Check whether unsigned int should be used for xdr_array 
+    use_unsigned_int=0
+    AC_MSG_CHECKING([if xdr_array wants unsigned int])
+    PAC_TRY_COMPILE_CLEAN([#include <rpc/xdr.h>
+],[int try(void){
+unsigned int l=0, ms=0, el=0; xdrproc_t elproc=(xdrproc_t)xdr_int; XDR *xdrs=0; int rc; char **arrp=0;
+rc = xdr_array(xdrs,arrp,&l,ms,el,elproc);
+return rc;}],use_unsigned_int)
+    case $use_unsigned_int in 
+        0) AC_MSG_RESULT(yes)
+           MDEP_CFLAGS="$MDEP_CFLAGS -DUSE_UNSIGNED_INT_FOR_XDR"
+           ;;
+        1) AC_MSG_RESULT([no (compiler warnings)])
+           ;;
+        2) AC_MSG_RESULT(no)
+           ;;
+    esac
+fi
+#
+#
 if test $threaded_listener = 1 ; then
     # Try to find a thread package
     has_pthread=0
@@ -843,6 +911,15 @@ fi
 #
 # Some systems don't include support for xdr.  Check for it
 AC_HAVE_FUNCS(xdrmem_create)
+
+#
+# If Scyld/bproc selected, (-p4comm=bproc), see if we can define it
+if test -n "$p4comm_bproc" ; then
+    PAC_CHECK_HEADERS(sys/bproc.h)
+    AC_HAVE_LIBRARY(bproc)
+    AC_FUNC_CHECK(bproc_numnodes,AC_DEFINE(SCYLD_BEOWULF))
+    AC_DEFINE(P4_DO_NOT_USE_SERVER,,Define if server should never be used)
+fi
 #
 # We do NOT add the CFLAGS and DEFS to the MDEP_CFLAGS because they are 
 # used ONLY in building the p4 package itself.  However, we add USER_CFLAGS
@@ -865,6 +942,7 @@ dnl PAC_WORDS_BIGENDIAN
 # Variables used by Makefile.in's:
 MDEP_LIBS="$LIBS"
 AC_SUBST(P4ARCH)dnl
+AC_SUBST(P4DEVICE)dnl
 AC_SUBST(MAKE)dnl
 AC_SUBST(CC)dnl
 AC_SUBST(DEFS)dnl
@@ -889,7 +967,15 @@ AC_SUBST(DEFINE_VENDOR_IPC)dnl
 AC_SUBST(DEFINE_P4_DPRINTFL)dnl
 AC_SUBST(LISTENER_PATHNAME)dnl
 AC_SUBST(RSHCOMMAND)dnl
-AC_OUTPUT(Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile)
+AC_OUTPUT(Makefile lib/Makefile alog/Makefile usc/Makefile \
+   usc/usctest/Makefile messages/Makefile include/Makefile \
+   lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile \
+   doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile \
+   servers/Makefile)
+#
+# ch_p4mpd device uses only the files Makefile lib/Makefile alog/Makefile
+# usc/Makefile usc/usctest/Makefile include/Makefile lib_f/Makefile
+# bin/Makefile servers/Makefile) 
 dnl 
 dnl This code removes that stupid first line placed by ac_output
 dnl p4_config.h needs to be in the top-level directory so that VPATH will 

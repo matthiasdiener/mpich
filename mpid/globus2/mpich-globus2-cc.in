@@ -25,6 +25,8 @@ TEST_GLFLAGS="@TEST_GLFLAGS@"
 #
 DoLink=1
 DoCompile=0
+RemoveDefaultOpt=0
+opt_args=
 compile_args=
 link_args=
 HasDashC=0
@@ -66,6 +68,10 @@ while test $# -gt 0 ; do
 	compile_args="$compile_args $1"
 	HasDashC=1
 	DoLink=0
+	;;
+	-O* | -g)
+	RemoveDefaultOpt=1
+	opt_args="$opt_args $1"
 	;;
 	-v)
 	verbose=1
@@ -137,6 +143,21 @@ else
     gl=$TEST_GL
     gl_flags=$TEST_GLFLAGS
     libs=
+fi
+
+#
+# Remove -O and -g from the default options if the user has supplied his/her
+# own set of optimization options.
+#
+if test $RemoveDefaultOpt -ne 0 ; then
+    gc_flags=`echo "$gc_flags" | \
+	sed -e 's/[ 	][ 	]*-g[ 	][ 	]*/ /g' \
+            -e 's/^-g[ 	][ 	]*//' \
+            -e 's/[ 	][ 	]*-g$//' \
+	    -e 's/[ 	][ 	]*-O[^ 	]*[ 	]*/ /g' \
+            -e 's/^-O[^ 	]*[ 	][ 	]*//' \
+            -e 's/[ 	][ 	]*-O[^ 	]*$//'`
+    compile_args="$opt_args $compile_args"
 fi
 
 status=0

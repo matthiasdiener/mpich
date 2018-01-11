@@ -86,5 +86,6 @@ EXPORT_MPI_API void mpi_group_intersection_ ( MPI_Fint *group1, MPI_Fint *group2
     *__ierr = MPI_Group_intersection(MPI_Group_f2c(*group1), 
                                      MPI_Group_f2c(*group2), 
                                      &l_group_out );
-    *group_out = MPI_Group_c2f(l_group_out);
+    if (*__ierr == MPI_SUCCESS) 		     
+        *group_out = MPI_Group_c2f(l_group_out);
 }

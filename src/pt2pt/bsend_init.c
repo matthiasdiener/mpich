@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend_init.c,v 1.8 1999/08/30 15:48:37 swider Exp $
+ *  $Id: bsend_init.c,v 1.9 2001/03/06 20:50:58 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -56,8 +56,6 @@ EXPORT_MPI_API int MPI_Bsend_init( void *buf, int count, MPI_Datatype datatype, 
 		    int tag, MPI_Comm comm, MPI_Request *request )
 {
     int         mpi_errno = MPI_SUCCESS;
-    int         psize;
-    void        *bufp;
     struct MPIR_DATATYPE *dtype_ptr;
     struct MPIR_COMMUNICATOR *comm_ptr;
     MPIR_PSHANDLE *shandle;
@@ -97,20 +95,13 @@ EXPORT_MPI_API int MPI_Bsend_init( void *buf, int count, MPI_Datatype datatype, 
     shandle->active	   = 0;
     shandle->send          = MPIR_IbsendDatatype;
 
-    if (dest != MPI_PROC_NULL) {
-	MPIR_ERROR_PUSH(comm_ptr);
-	/* Allocate space if needed */
-	MPIR_CALL_POP(MPI_Pack_size( count, datatype, comm, &psize ),
-		      comm_ptr,myname);
-	MPIR_CALL_POP(MPIR_BsendAlloc( psize, *request, &bufp ),comm_ptr,myname);
-	/* Information stored in the bsend part by BsendAlloc */
-/* 	shandle->shandle.start = bufp;
-	shandle->shandle.bytes_as_contig = psize; */
-	MPIR_ERROR_POP(comm_ptr);
-    }
-    else 
+    if (dest == MPI_PROC_NULL)
+    {
+	/* [BRT] Q: is this really needed??? */
+	
 	/* Rest of dest of MPI_PROC_NULL handled in start */
 	shandle->shandle.start = 0;
+    }
 
     TR_POP;
     return MPI_SUCCESS;

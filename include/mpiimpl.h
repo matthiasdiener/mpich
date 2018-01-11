@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.21 2000/07/05 20:21:18 gropp Exp $
+ *  $Id: mpiimpl.h,v 1.23 2001/03/06 20:50:50 toonen Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -299,12 +299,6 @@ int MPIR_dump_dte ( MPI_Datatype, int );
 int MPIR_BsendInitBuffer  ( void *, int ) ;
 int MPIR_BsendRelease  ( void **, int * ) ;
 int MPIR_BsendBufferPrint  ( void ) ;
-int MPIR_BsendAlloc  ( int, MPI_Request, void ** ) ;
-void MPIR_BsendCopyData ( MPIR_SHANDLE *, struct MPIR_COMMUNICATOR *,
-			  void *, int, 
-			  struct MPIR_DATATYPE *, void **, int * );
-void MPIR_BsendPersistent  ( MPI_Request, int ) ;
-void MPIR_BsendFreeReq  ( MPIR_SHANDLE * ) ;
 void MPIR_IbsendDatatype ( struct MPIR_COMMUNICATOR *, void *, int, 
 			   struct MPIR_DATATYPE *,
 			   int, int, int, int, MPI_Request, int * );
@@ -331,6 +325,11 @@ void MPIR_RegPointerIdx ( int, void * );
 void MPIR_PointerPerm ( int );
 void MPIR_DumpPointers ( FILE * );
 void MPIR_PointerOpts ( int );
+
+#ifdef HAVE_PRINT_BACKTRACE
+void MPIR_Print_backtrace( char *, int, char *, ... );
+void MPIR_Save_executable_name( const char * );
+#endif
 
 /* Parts of MPID/MPICH interface not declared elsewhere (should they be?) */
 void MPIR_Ref_init ( int, char * );
