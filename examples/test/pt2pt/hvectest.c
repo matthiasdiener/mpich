@@ -294,5 +294,6 @@ char **argv;
     if (errcnt > 0) {
 	printf( "Found %d errors in the run \n", errcnt );
 	}
+    MPI_Type_free( &rowtype );
     MPI_Finalize();
 }

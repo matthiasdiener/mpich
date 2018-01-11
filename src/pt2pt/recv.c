@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.21 1994/10/24 22:02:46 gropp Exp $
+ *  $Id: recv.c,v 1.22 1994/12/11 16:47:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: recv.c,v 1.21 1994/10/24 22:02:46 gropp Exp $";
+static char vcid[] = "$Id: recv.c,v 1.22 1994/12/11 16:47:53 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -61,9 +61,11 @@ MPI_Status       *status;
 	rhandle.contextid   = comm->recv_context;
 	rhandle.comm        = comm;
 	rhandle.datatype    = datatype;
+	datatype->ref_count ++;
 	rhandle.bufadd	    = buf;
 	rhandle.count	    = count;
 	rhandle.completed   = MPIR_NO;
+	rhandle.persistent  = 0;
 #ifdef MPID_HAS_HETERO
 	rhandle.msgrep      = MPIR_MSGREP_UNKNOWN;
 #endif
@@ -83,6 +85,7 @@ MPI_Status       *status;
 	    errno = MPIR_UnPackMessage( buf, count, datatype, 
 				        source, request );
 #endif
+	rhandle.datatype->ref_count--;
     }
     else {
 	/* See MPI standard section 3.11 */

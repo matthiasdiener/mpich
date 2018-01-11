@@ -1,5 +1,5 @@
 /*
- *  $Id: keyval_free.c,v 1.9 1994/11/08 16:10:27 gropp Exp $
+ *  $Id: keyval_free.c,v 1.10 1994/12/11 16:54:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -39,7 +39,7 @@ int *keyval;
 	}
 	/* Key reference counts are NOT being incremented when a communicator
 	   is copied.  For now, we'll just waste keyvals ... */
-	if (0 && attr_key->ref_count <= 1) {
+	if (/* 0 && */ attr_key->ref_count <= 1) {
 	  FREE ( attr_key );
 #ifdef INT_LT_POINTER
 	  MPIR_RmPointer( *keyval );

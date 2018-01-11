@@ -4,7 +4,7 @@
      $     MPIR_char_dte, MPIR_byte_dte, MPIR_2int_dte, MPIR_2real_dte, 
      $     MPIR_2double_dte, MPIR_2complex_dte, MPIR_2dcomplex_dte,
      $     MPIR_int1_dte, MPIR_int2_dte, MPIR_int4_dte, MPIR_real4_dte,
-     $     MPIR_real8_dte, MPIR_ub, MPIR_lb )
+     $     MPIR_real8_dte, MPIR_packed, MPIR_ub, MPIR_lb )
       integer MPIR_int_dte, MPIR_float_dte,
      $     MPIR_double_dte, MPIR_complex_dte, MPIR_dcomplex_dte,
      $     MPIR_logical_dte, MPIR_char_dte, MPIR_byte_dte,
@@ -12,7 +12,7 @@
      $     MPIR_2real_dte, MPIR_2double_dte, MPIR_2complex_dte,
      $     MPIR_2dcomplex_dte,
      $     MPIR_int1_dte, MPIR_int2_dte, MPIR_int4_dte, MPIR_real4_dte,
-     $     MPIR_real8_dte, MPIR_ub, MPIR_lb
+     $     MPIR_real8_dte, MPIR_packed, MPIR_ub, MPIR_lb
       include '../../include/mpif.h'
       MPI_INTEGER          = MPIR_int_dte
       MPI_REAL             = MPIR_float_dte
@@ -27,6 +27,7 @@
       MPI_2INTEGER         = MPIR_2int_dte
       MPI_2COMPLEX         = MPIR_2complex_dte
       MPI_2DOUBLE_COMPLEX  = MPIR_2dcomplex_dte
+      MPI_PACKED           = MPIR_packed
       MPI_UB               = MPIR_ub
       MPI_LB               = MPIR_lb
 C

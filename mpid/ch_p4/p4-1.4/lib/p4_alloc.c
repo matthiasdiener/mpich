@@ -319,6 +319,26 @@ struct p4_msg *tmsg;
 #   endif
 }				/* free_p4_msg */
 
+P4VOID free_avail_buffs()
+{
+    int i;
+    struct p4_msg *p, *q;
+
+    p4_lock(&p4_global->avail_buffs_lock);
+    for (i = 0; i < NUMAVAILS; i++)
+    {
+	p = p4_global->avail_buffs[i].buff;
+	p4_global->avail_buffs[i].buff = NULL;
+	while (p)
+	{
+	    q = p->link;
+	    p4_shfree(p);
+	    p = q;
+	}
+    }
+    p4_unlock(&p4_global->avail_buffs_lock);
+}
+
 P4VOID alloc_global()
 {
     int i;

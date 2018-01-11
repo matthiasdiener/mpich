@@ -1,12 +1,12 @@
 /*
- *  $Id: alltoall.c,v 1.19 1994/11/03 21:11:52 doss Exp $
+ *  $Id: alltoall.c,v 1.20 1994/12/11 16:55:37 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: alltoall.c,v 1.19 1994/11/03 21:11:52 doss Exp $";
+static char vcid[] = "$Id: alltoall.c,v 1.20 1994/12/11 16:55:37 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -85,7 +85,7 @@ MPI_Comm          comm;
 
   /* do the communication -- post *all* sends and receives: */
   for ( i=0; i<size; i++ ) { 
-      if ( errno=MPI_Irecv((void *)((int )recvbuf + i*recvcnt*extent),
+      if ( errno=MPI_Irecv((void *)((char *)recvbuf + i*recvcnt*extent),
                            recvcnt,
                            recvtype,
                            i,
@@ -94,7 +94,7 @@ MPI_Comm          comm;
                            &reqarray[2*i+1])
           )
           break;
-      if ( errno=MPI_Isend((void *)((int )sendbuf + i*sendcount*extent),
+      if ( errno=MPI_Isend((void *)((char *)sendbuf + i*sendcount*extent),
                            sendcount,
                            sendtype,
                            i,

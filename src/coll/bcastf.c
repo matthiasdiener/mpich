@@ -1,5 +1,5 @@
 /* bcast.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -40,7 +40,7 @@ int*root;
 MPI_Comm          comm;
 int *__ierr;
 {
-*__ierr = MPI_Bcast(buffer,*count,
+*__ierr = MPI_Bcast(MPIR_F_PTR(buffer),*count,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*root,
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }

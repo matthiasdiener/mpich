@@ -1,12 +1,12 @@
 /*
- *  $Id: scan.c,v 1.24 1994/11/23 16:25:21 gropp Exp $
+ *  $Id: scan.c,v 1.24 1994/11/23 16:25:21 gropp Exp doss $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: scan.c,v 1.24 1994/11/23 16:25:21 gropp Exp $";
+static char vcid[] = "$Id: scan.c,v 1.24 1994/11/23 16:25:21 gropp Exp doss $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -67,17 +67,44 @@ MPI_Comm          comm;
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
 
-  /* Do the scan operation */
-  if (rank > 0) {
-	MPI_Recv(recvbuf,count,datatype,rank-1,MPIR_SCAN_TAG,comm,&status);
-	(*uop)(sendbuf, recvbuf, &count, &datatype); 
+  /* commutative case requires no extra buffering */
+  if (op->commute) {
+      /* Do the scan operation */
+      if (rank > 0) {
+          MPI_Recv(recvbuf,count,datatype,rank-1,MPIR_SCAN_TAG,comm,&status);
+          (*uop)(sendbuf, recvbuf, &count, &datatype); 
+      }
+      else {
+          MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
+                       recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
+                       comm, &status);
+      }
   }
+  /* non-commutative case requires extra buffering */
   else {
-	MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
-				 recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
-				 comm, &status);
+      /* Do the scan operation */
+      if (rank > 0) {
+          int size;
+          void *tmpbuf;
+          tmpbuf = (void *)MALLOC(extent * count);
+          if (!tmpbuf) {
+              return MPIR_ERROR(comm, MPI_ERR_EXHAUSTED, 
+                                "Out of space in MPI_SCAN" );
+          }
+          MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
+                       recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
+                       comm, &status);
+          MPI_Recv(tmpbuf,count,datatype,rank-1,MPIR_SCAN_TAG,comm,&status);
+          (*uop)(tmpbuf, recvbuf, &count, &datatype); 
+          FREE(tmpbuf);
+      }
+      else {
+          MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
+                       recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
+                       comm, &status);
+      }
   }
-  
+
   /* send the letter to destination */
   if (rank < (size-1)) 
     MPI_Send(recvbuf,count,datatype,rank+1,MPIR_SCAN_TAG,comm);

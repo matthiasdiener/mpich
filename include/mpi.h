@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.39 1994/11/23 16:05:09 gropp Exp $
+ *  $Id: mpi.h,v 1.40 1994/12/11 16:57:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -29,7 +29,7 @@ typedef struct MPIR_DATATYPE *MPI_Datatype;
 extern MPI_Datatype MPI_CHAR, MPI_SHORT, MPI_INT, MPI_LONG, MPI_UNSIGNED_CHAR,
        MPI_UNSIGNED_SHORT, MPI_UNSIGNED, MPI_UNSIGNED_LONG, MPI_FLOAT, 
        MPI_DOUBLE, MPI_LONG_DOUBLE, MPI_LONG_DOUBLE_INT, 
-       MPI_BYTE, MPI_PACKED, MPI_UB, MPI_LB, MPI_LONG_LONG_INT;
+       MPI_BYTE, MPI_PACKED, MPI_UB, MPI_LB, MPI_LONG_LONG_INT, MPI_2INTEGER;
 extern MPI_Datatype MPIR_complex_dte, MPIR_dcomplex_dte;
 extern MPI_Datatype MPI_FLOAT_INT, MPI_DOUBLE_INT, MPI_LONG_INT, MPI_SHORT_INT,
                     MPI_2INT, MPIR_2real_dte, MPIR_2double_dte, 
@@ -59,7 +59,10 @@ extern MPI_Op MPI_MAX, MPI_MIN, MPI_SUM, MPI_PROD, MPI_LAND, MPI_BAND,
               MPI_LOR, MPI_BOR, MPI_LXOR, MPI_BXOR, MPI_MINLOC, MPI_MAXLOC;
 
 /* Permanent key values */
+/* C Versions (return pointer to value) */
 extern int MPI_TAG_UB, MPI_HOST, MPI_IO;
+/* Fortran Versions (return value) */
+extern int MPIR_TAG_UB, MPIR_HOST, MPIR_IO;
 
 /* Define some null objects */
 #define MPI_COMM_NULL      ((MPI_Comm)0)

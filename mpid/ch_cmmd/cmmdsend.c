@@ -426,7 +426,7 @@ if (mpid_send_handle->sid) {
     /* We do this to keep us from blocking in a wait in the event that
        we must handle some incoming messages before we can execute the
        wait. */
-    while (!CMMD_mcb_done(mpid_send_handle->sid))
+    while (!CMMD_msg_done(mpid_send_handle->sid))
 	(void) MPID_CMMD_check_incoming( MPID_NOTBLOCKING );
 #endif
     {CMMD_msg_wait(mpid_send_handle->sid );CMMD_free_mcb(mpid_send_handle->sid );};

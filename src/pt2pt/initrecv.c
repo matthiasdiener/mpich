@@ -6,7 +6,7 @@
  */
 
 #ifndef lint
-static char vcid[] = "$Id: initrecv.c,v 1.6 1994/09/29 21:51:02 gropp Exp $";
+static char vcid[] = "$Id: initrecv.c,v 1.7 1994/12/11 16:46:16 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -34,6 +34,7 @@ int           nonblocking;
     request->rhandle.contextid    = comm->recv_context;
     request->rhandle.comm         = comm;
     request->rhandle.datatype     = datatype;
+    datatype->ref_count++;
     request->rhandle.bufadd       = buf;
     request->rhandle.count        = count;
     request->rhandle.completed    = MPIR_NO;

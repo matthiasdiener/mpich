@@ -485,7 +485,7 @@ typedef union {
 #define MPID_PKT_LALLOC 
 #define MPID_PKT_INIT() MPID_PKT_POST()
 #define MPID_PKT_CHECK()  \
-    CMMD_mcb_done(&pktid)
+    CMMD_msg_done(&pktid)
 #define MPID_PKT_WAIT() \
     {CMMD_msg_wait(&pktid);CMMD_free_mcb(&pktid);}
 #define MPID_PKT_POST() \

@@ -241,7 +241,9 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 
 double MPID_P4_Wtime()
 {
-return p4_clock()*0.001;
+double p4_usclock();
+
+return p4_usclock();
 }
 
 /* This returns a value that is correct but not the best value that

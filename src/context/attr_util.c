@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.16 1994/08/12 20:39:34 gropp Exp $
+ *  $Id: attr_util.c,v 1.17 1994/12/11 16:53:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -21,6 +21,7 @@ MPIR_HBT_node *node;
   MPIR_Attr_key *attr_key;
   MPIR_HBT_node *attr;
   int            flag;
+  int            attr_ival;
 
 #ifdef INT_LT_POINTER
   attr_key = (MPIR_Attr_key *)MPIR_ToPointer( node->keyval );
@@ -28,11 +29,15 @@ MPIR_HBT_node *node;
   attr_key = (MPIR_Attr_key *)(node->keyval);
 #endif
 
+  attr_key->ref_count ++;
   if (attr_key->copy_fn != (int (*)())0) {
       if (attr_key->FortranCalling) {
+	  int inval = (int)node->value;
 	  (void) (*(attr_key->copy_fn))(&comm, &node->keyval, 
 					attr_key->extra_state,
-					&node->value, &attr_val, &flag );
+					&inval, 
+					&attr_ival, &flag );
+	  attr_val = (void *)attr_ival;
 	  flag = MPIR_FROM_FLOG(flag);
 	  }
       else {
@@ -102,17 +107,22 @@ MPIR_HBT_node *node;
   attr_key = (MPIR_Attr_key *)(node->keyval);
 #endif
 
-  if ( (node != (MPIR_HBT_node *)0) && (attr_key != 0) )
+  if ( (node != (MPIR_HBT_node *)0) && (attr_key != 0) ) {
+      attr_key->ref_count --;
     if ( attr_key->delete_fn != (int (*)())0 ) {
-	if (attr_key->FortranCalling) 
+	if (attr_key->FortranCalling) {
+	    int inval = (int)node->value;
 	    (void ) (*(attr_key->delete_fn))(&comm, &node->keyval, 
-					     &node->value, 
+					     &inval, 
 					     attr_key->extra_state);
+	    node->value = (void *)inval;
+	    }
 	else
 	    (void ) (*(attr_key->delete_fn))(&comm, &node->keyval, 
 					     node->value, 
 					     attr_key->extra_state);
 	}
+    }
   return (MPI_SUCCESS);
 }
 
@@ -201,7 +211,7 @@ int                 is_fortran;
 #else  
   (*keyval)		  = (int)new_key;
 #endif
-  /* SEE ALSO THE CODE IN ENV/INIT.C; IT RELIES ON USEING KEY AS THE
+  /* SEE ALSO THE CODE IN ENV/INIT.C; IT RELIES ON USING KEY AS THE
      POINTER TO SET THE PERMANENT FIELD */
   new_key->copy_fn	  = copy_fn;
   new_key->delete_fn	  = delete_fn;

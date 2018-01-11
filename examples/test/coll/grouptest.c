@@ -1,7 +1,7 @@
-/* 	$Id: grouptest.c,v 1.6 1994/10/24 22:03:20 gropp Exp $	 */
+/* 	$Id: grouptest.c,v 1.7 1994/12/11 17:00:49 gropp Exp $	 */
 
 #ifndef lint
-static char vcid[] = "$Id: grouptest.c,v 1.6 1994/10/24 22:03:20 gropp Exp $";
+static char vcid[] = "$Id: grouptest.c,v 1.7 1994/12/11 17:00:49 gropp Exp $";
 #endif /* lint */
 #include "mpi.h"
 
@@ -47,6 +47,16 @@ char **argv;
 	MPI_Comm_group ( newcomm, &newgroup );
     }
 
+    /* Free the groups */
+    MPI_Group_free( &groupall );
+    MPI_Group_free( &group1 );
+    MPI_Group_free( &group2 );
+    MPI_Group_free( &group3 );
+    MPI_Group_free( &groupunion );
+
+    /* Free the communicator */
+    if (newcomm != MPI_COMM_NULL)
+	MPI_Comm_free( &newcomm );
     printf("Successful.\n");
     MPI_Finalize();
     return 0;

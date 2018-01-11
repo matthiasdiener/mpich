@@ -1,12 +1,12 @@
 /*
- *  $Id: pack.c,v 1.7 1994/09/01 22:08:34 gropp Exp $
+ *  $Id: pack.c,v 1.8 1994/12/02 20:13:17 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: pack.c,v 1.7 1994/09/01 22:08:34 gropp Exp $";
+static char vcid[] = "$Id: pack.c,v 1.8 1994/12/02 20:13:17 doss Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -157,11 +157,11 @@ void *dest;
 		tmp_buf  = lbuf + type->indices[j];
 		if (errno = MPIR_Pack (comm, tmp_buf, type->blocklens[j], 
 				       type->old_type, ldest)) break;
+		ldest += (type->blocklens[j]*type->old_type->size);
 		if ((j+1) != type->count)
-		  ldest += 
-		      ((type->blocklens[j]*type->old_type->size)+type->pad);
+		  ldest += type->pad;
 	  }
-	  ldest += ((type->blocklens[j]*type->old_type->size) + pad);
+	  ldest += pad;
 	  lbuf += type->extent;
 	}
 	break;

@@ -1,12 +1,12 @@
 /*
- *  $Id: errset.c,v 1.4 1994/09/13 21:48:08 gropp Exp $
+ *  $Id: errset.c,v 1.5 1994/12/11 16:51:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: errset.c,v 1.4 1994/09/13 21:48:08 gropp Exp $";
+static char vcid[] = "$Id: errset.c,v 1.5 1994/12/11 16:51:04 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -24,10 +24,12 @@ MPI_Comm       comm;
 MPI_Errhandler errhandler;
 {
 int errno;
-if (MPIR_TEST_COMM(comm,comm)) {
-    return MPIR_ERROR( comm, errno, "Error in MPI_ERRHANDLER_SET" );
+if (MPIR_TEST_COMM(comm,comm) || MPIR_TEST_ERRHANDLER(comm,errhandler)) {
+    return MPIR_ERROR( MPI_COMM_WORLD, errno, "Error in MPI_ERRHANDLER_SET" );
     }
 else {
+    if (comm->error_handler) 
+	MPI_Errhandler_free( &comm->error_handler );
     comm->error_handler = errhandler;
     errhandler->ref_count ++;
     }

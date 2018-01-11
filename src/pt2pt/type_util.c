@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.6 1994/11/01 15:57:37 gropp Exp $
+ *  $Id: type_util.c,v 1.7 1994/12/11 16:49:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,7 +17,7 @@
 /*+
     MPIR_Type_dup - Utility function used to "touch" a type
 
-algorithm:
+  Algorithm:
   Only non-permanent types can be touched.  Since we don't free
   permanent types until the finalize stage, the reference count
   is not used to determine whether or not the type is freed
@@ -26,8 +26,9 @@ algorithm:
 MPI_Datatype MPIR_Type_dup ( datatype )
 MPI_Datatype datatype;
 {
-  if (!datatype->permanent)
-    datatype->ref_count++;
+  /* We increment the reference count even for the permanent types, so that 
+     an eventual free (in MPI_Finalize) will correctly free these types */
+  datatype->ref_count++;
   return (datatype);
 }
 
@@ -61,8 +62,11 @@ MPI_Datatype *datatype;
 	return (MPI_SUCCESS);
 
   /* We can't free permanent objects unless finalize has been called */
-  if  ( ( (*datatype)->permanent ) && MPIR_Has_been_initialized == 1) 
-	return MPI_SUCCESS;
+  if  ( ( (*datatype)->permanent ) && MPIR_Has_been_initialized == 1) {
+      if ((*datatype)->ref_count > 1) 
+	  (*datatype)->ref_count--;
+      return MPI_SUCCESS;
+      }
 
   /* Free datatype */
   if ( (*datatype)->ref_count <= 1 ) {
@@ -97,6 +101,7 @@ MPI_Datatype *datatype;
 	}
 
 	/* Free the datatype structure */
+	MPIR_SET_COOKIE((*datatype),0);
 	MPIR_SBfree ( MPIR_dtes, (*datatype) );
   }
   else 

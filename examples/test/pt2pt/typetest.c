@@ -171,6 +171,7 @@ char **argv;
 	if ((MPI_Type_free(&struct3_t) != MPI_SUCCESS) ||
 	    (MPI_Type_free(&struct1_t) != MPI_SUCCESS) ||
 	    (MPI_Type_free(&struct2_t) != MPI_SUCCESS) ||
+	    (MPI_Type_free(&astruct1_t) != MPI_SUCCESS) ||
 	    (MPI_Type_free(&carray_t) != MPI_SUCCESS))
 	    Test_Failed("Type Free test");
 	else
@@ -196,6 +197,15 @@ return message.");
 	}
 	MPI_Send(&dummy3, 1, struct3_t, 0, 2000, MPI_COMM_WORLD);
 
+	if ((MPI_Type_free(&struct3_t) != MPI_SUCCESS) ||
+	    (MPI_Type_free(&struct1_t) != MPI_SUCCESS) ||
+	    (MPI_Type_free(&struct2_t) != MPI_SUCCESS) ||
+	    (MPI_Type_free(&astruct1_t) != MPI_SUCCESS) ||
+	    (MPI_Type_free(&carray_t) != MPI_SUCCESS))
+	    Test_Failed("Type Free test");
+	else
+	    Test_Passed("Type Free test");
+	
 	MPI_Finalize();
     }
     (void)Summarize_Test_Results();

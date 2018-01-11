@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpipk.c,v 1.12 1994/10/24 22:03:03 gropp Exp $
+ *  $Id: dmpipk.c,v 1.13 1994/12/11 16:52:34 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpipk.c,v 1.12 1994/10/24 22:03:03 gropp Exp $";
+static char vcid[] = "$Id: dmpipk.c,v 1.13 1994/12/11 16:52:34 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -148,6 +148,11 @@ MPI_Request request;
 	MPIR_Comm_needs_conversion(request->chandle.comm))
       request->chandle.msgrep = MPIR_MSGREP_XDR;
 #endif
+    /* When we replace the datatypes, we need to be careful
+       about the reference counts */
+    datatype->old_type->ref_count++;
+    if (!request->shandle.persistent) 
+	MPIR_Type_free( &request->shandle.datatype );
     request->shandle.datatype			 = datatype->old_type;
     request->shandle.dev_shandle.start		 = request->chandle.bufpos;
     request->shandle.dev_shandle.bytes_as_contig = count * datatype->size;
@@ -173,6 +178,9 @@ MPI_Request request;
 	MPIR_Comm_needs_conversion(request->chandle.comm))
       request->chandle.msgrep = MPIR_MSGREP_XDR;
 #endif
+    MPI_PACKED->ref_count ++;
+    if (!request->shandle.persistent) 
+	MPIR_Type_free( &request->shandle.datatype );
     request->shandle.datatype			 = MPI_PACKED;
     request->shandle.dev_shandle.start		 = request->chandle.bufpos;
     request->shandle.dev_shandle.bytes_as_contig = size;

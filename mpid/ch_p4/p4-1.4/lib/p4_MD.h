@@ -598,13 +598,13 @@ static unsigned int allocated = 0;
 typedef unsigned long p4_usc_time_t;
 
 
-extern P4VOID exit();
-
 #define P4_MAXPROCS 256
 
 #ifndef LINT
-#define p4_malloc malloc
-#define p4_free free
+#define  P4_INCLUDED
+#include "mpisys.h"
+#define p4_malloc(size) MALLOC(size)
+#define p4_free(p) FREE(p)
 #define p4_clock MD_clock
 #endif
 

@@ -1,5 +1,5 @@
 /* pack.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -42,7 +42,7 @@ int          *position;
 MPI_Comm      comm;
 int *__ierr;
 {
-*__ierr = MPI_Pack(inbuf,*incount,
+*__ierr = MPI_Pack(MPIR_F_PTR(inbuf),*incount,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(type) ),outbuf,*outcount,position,
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }

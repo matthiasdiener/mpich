@@ -11,7 +11,7 @@ ARCH        = sun4
 COMM        = ch_p4
 DEVICE      = ch_p4
 BOPT        = 
-MPIR_HOME   = /tmp_mnt/Net/antireo/antireo6/lusk/mpich
+MPIR_HOME   = /home/gropp/mpich
 INCLUDE_DIR =  -Impid/ch_p4 -Iinclude
 CC          = cc
 AR          = ar clr
@@ -23,7 +23,7 @@ OPTFLAGS    = -g
 ALL: default
 	
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =   -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+CFLAGS   =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPID_DEVICE_CODE  -DMPID_PKT_VAR_SIZE
 SOURCE   = meikoevent.c meikorecv.c meikosend.c meikoinit.c meikoprobe.c \
 	   meikosync.c csclock.c

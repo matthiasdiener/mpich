@@ -46,7 +46,7 @@ char **argv;
 
 	st_source = status.MPI_SOURCE;
 	st_tag    = status.MPI_TAG;
-	MPI_Get_count(  status, MPI_DOUBLE, &st_count );
+	MPI_Get_count(  &status, MPI_DOUBLE, &st_count );
 
 	printf( "Status info: source = %d, tag = %d, count = %d\n",
 	        st_source, st_tag, st_count );
@@ -85,7 +85,7 @@ char **argv;
 
 	st_source = status.MPI_SOURCE;
 	st_tag    = status.MPI_TAG;
-	MPI_Get_count(  status, MPI_DOUBLE, &st_count );
+	MPI_Get_count(  &status, MPI_DOUBLE, &st_count );
 
 	printf( "Status info: source = %d, tag = %d, count = %d\n",
 	        st_source, st_tag, st_count );

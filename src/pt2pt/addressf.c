@@ -1,5 +1,5 @@
 /* address.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -37,5 +37,5 @@ void     *location;
 MPI_Aint *address;
 int *__ierr;
 {
-*__ierr = MPI_Address(location,address);
+*__ierr = MPI_Address(MPIR_F_PTR(location),address);
 }

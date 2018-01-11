@@ -1,5 +1,5 @@
 /*
- *  $Id: reduce.c,v 1.26 1994/11/23 16:25:14 gropp Exp $
+ *  $Id: reduce.c,v 1.27 1994/12/09 17:40:15 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: reduce.c,v 1.26 1994/11/23 16:25:14 gropp Exp $";
+static char vcid[] = "$Id: reduce.c,v 1.27 1994/12/09 17:40:15 doss Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -124,6 +124,13 @@ MPI_Comm          comm;
     }
   }
 
+  /* I rename the processes in the following way so that data flows
+     from lower numbered to higher numbered processes.  This is needed 
+     when the operation is not commutative.
+  */
+  rank = size - rank - 1;
+  root = size - root - 1;
+
   memcpy( recvbuf, sendbuf, extent*count );
   mask    = 0x1;
   if (op->commute) lroot   = root;
@@ -138,7 +145,7 @@ MPI_Comm          comm;
 	source = (relrank | mask);
 	if (source < size) {
 	  source = (source + lroot) % size;
-	  errno = MPI_Recv (buffer, count, datatype, source, MPIR_REDUCE_TAG, 
+	  errno = MPI_Recv (buffer, count, datatype, size-source-1, MPIR_REDUCE_TAG, 
 						comm, &status);
 	  if (errno) return MPIR_ERROR( comm, errno, 
 					   "Error receiving in MPI_REDUCE" );
@@ -148,7 +155,7 @@ MPI_Comm          comm;
   }
   if (mask < size) {
 	source = ((relrank & (~ mask)) + lroot) % size;
-	errno  = MPI_Send( recvbuf, count, datatype, source, MPIR_REDUCE_TAG, 
+	errno  = MPI_Send( recvbuf, count, datatype, size-source-1, MPIR_REDUCE_TAG, 
 					  comm );
 	if (errno) return MPIR_ERROR( comm, errno, 
 					 "Error sending in MPI_REDUCE" );
@@ -156,11 +163,11 @@ MPI_Comm          comm;
   FREE( buffer );
   if (!op->commute && root != 0) {
 	if (rank == 0) {
-	  errno  = MPI_Send( recvbuf, count, datatype, root, 
+	  errno  = MPI_Send( recvbuf, count, datatype, size-root-1, 
 						MPIR_REDUCE_TAG, comm );
 	}
 	else if (rank == root) {
-	  errno = MPI_Recv ( recvbuf, count, datatype, 0, MPIR_REDUCE_TAG, 
+	  errno = MPI_Recv ( recvbuf, count, datatype, size-1, MPIR_REDUCE_TAG, 
 						comm, &status);
 	}
   }

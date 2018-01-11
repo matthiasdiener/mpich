@@ -1,12 +1,12 @@
 /*
- *  $Id: errget.c,v 1.3 1994/07/13 15:50:05 lusk Exp $
+ *  $Id: errget.c,v 1.4 1994/12/11 16:50:48 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: errget.c,v 1.3 1994/07/13 15:50:05 lusk Exp $";
+static char vcid[] = "$Id: errget.c,v 1.4 1994/12/11 16:50:48 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -19,7 +19,6 @@ Input Parameter:
 Output Parameter:
 . errhandler - MPI error handler currently associated with communicator
 (handle) 
-
 @*/
 int MPI_Errhandler_get( comm, errhandler )
 MPI_Comm comm;
@@ -29,7 +28,14 @@ int errno;
 if (MPIR_TEST_COMM(comm,comm)) {
     return MPIR_ERROR( comm, errno, "Error in MPI_ERRHANDLER_GET" );
     }
-else
+else {
+    if (MPIR_TEST_ERRHANDLER(comm,comm->error_handler)) {
+	return MPIR_ERROR( comm, errno, "Error in MPI_ERRHANDLER_GET" );
+	}
     *errhandler = comm->error_handler;
+    /* A get creates a reference to an error handler; the user must 
+       explicitly free this reference */
+    comm->error_handler->ref_count ++;
+    }
 return MPI_SUCCESS;
 }

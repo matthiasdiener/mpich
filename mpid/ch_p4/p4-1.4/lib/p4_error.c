@@ -143,6 +143,7 @@ char *addr;
   Trap signals so that we can propagate error conditions and tidy up 
   shared system resources in a manner not possible just by killing procs
 */
+typedef long P4_Aint;
 P4VOID trap_sig_errs()
 {
     P4_HANDLER_TYPE (*rc) ();
@@ -150,7 +151,7 @@ P4VOID trap_sig_errs()
     rc = (P4_HANDLER_TYPE (*) ()) SIGNAL_P4(SIGINT, sig_err_handler);
     if (rc == (P4_HANDLER_TYPE (*) ()) -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGINT);
-    if (((int) rc > 1)  &&  ((int) rc != (int) sig_err_handler))
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigint_handler = rc;
 
 /* we can not handle sigsegv on symmetry and balance because they use 
@@ -158,20 +159,20 @@ P4VOID trap_sig_errs()
 */
 #ifdef CAN_HANDLE_SIGSEGV
     rc = (P4_HANDLER_TYPE (*) ()) SIGNAL_P4(SIGSEGV, sig_err_handler);
-    if ((int) rc == -1)
+    if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGSEGV);
-    if (((int) rc > 1)  &&  ((int) rc != (int) sig_err_handler))
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigsegv_handler = rc;
 #endif
 
     rc = (P4_HANDLER_TYPE (*) ()) SIGNAL_P4(SIGBUS, sig_err_handler);
-    if ((int) rc == -1)
+    if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGBUS);
-    if (((int) rc > 1)  &&  ((int) rc != (int) sig_err_handler))
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigbus_handler = rc;
     rc = (P4_HANDLER_TYPE (*) ()) SIGNAL_P4(SIGFPE, sig_err_handler);
-    if ((int) rc == -1)
+    if ((P4_Aint) rc == -1)
 	p4_error("trap_sig_errs: SIGNAL_P4 failed", SIGFPE);
-    if (((int) rc > 1)  &&  ((int) rc != (int) sig_err_handler))
+    if (((P4_Aint) rc > 1)  &&  ((P4_Aint) rc != (P4_Aint) sig_err_handler))
 	prev_sigfpe_handler = rc;
 }

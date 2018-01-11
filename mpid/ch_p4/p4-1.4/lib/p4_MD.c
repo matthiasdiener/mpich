@@ -281,7 +281,7 @@ char *ptr;
     xx_shfree(ptr);
 #else
 
-#if defined(SUN_SOLARIS)  && defined(USE_XX_SHMALLOC)
+#if defined(SGI)  &&  defined(VENDOR_IPC)
     usfree(ptr,p4_sgi_usptr);
 
 #else
@@ -1218,6 +1218,7 @@ char **argv;
     setup_conntab();
 
     usc_init();
+    init_usclock();
     ALOG_SETUP(p4_local->my_id,ALOG_TRUNCATE);
     ALOG_LOG(p4_local->my_id,BEGIN_USER,0,"");
     return(0);

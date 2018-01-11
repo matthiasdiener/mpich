@@ -33,8 +33,8 @@ DEVICE_LIB =
 CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE)
 
 LIBS = ../../lib/$(ARCH)/$(COMM)/libmpi.a $(DEVICE_LIB)
-MPI_SOURCES =  util_hbt.c mpirutil.c sbcnst.c ptrcvt.c bsendutil.c
-MPI_OBJECTS =  util_hbt.o mpirutil.o sbcnst.o ptrcvt.o bsendutil.o
+MPI_SOURCES =  util_hbt.c mpirutil.c sbcnst.c ptrcvt.c bsendutil.c tr.c
+MPI_OBJECTS =  util_hbt.o mpirutil.o sbcnst.o ptrcvt.o bsendutil.o tr.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

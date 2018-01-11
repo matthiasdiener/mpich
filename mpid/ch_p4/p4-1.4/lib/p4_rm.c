@@ -119,6 +119,7 @@ char **argv;
 
     MD_initenv();
     usc_init();
+    init_usclock();
 
     if (*outfile)
     {
@@ -340,6 +341,7 @@ int bm_fd;
 	    sprintf(whoami_p4, "p%d_%d", p4_get_my_id(), getpid());
 	    setup_conntab();
 	    usc_init();
+	    init_usclock();
 
 #           ifdef TCMP
             tcmp_init(NULL,p4_get_my_cluster_id(),shmem_getclunid());

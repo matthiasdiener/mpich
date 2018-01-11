@@ -21,7 +21,7 @@ the following steps for installation and minimal testing:
 
   cd mpich
 
-  configure -arch=sun4 -device=ch\_p4 (for example)
+  configure -arch=sun4 -device=ch_p4 (for example)
 
   make
 
@@ -41,6 +41,23 @@ the following steps for installation and minimal testing:
 Much of the following information now appears in the User's Guide.
 
 Status of the model implementation:
+Dec 10
+1.  The -mpedbg and -memdebug options have been added to configure; 
+    these can aid in debugging MPI and MPI applications.  -mpedbg works
+    on systems that support xterm and dbx; this will pop up an xterm
+    running dbx when the program gets either a common fatal signal (e.g.,
+    SIGSEGV) or an MPI error.  -memdebug adds extensive memory debugging,
+    including tests for overwrites and freeing the same data twice.
+
+2.  MPI protects the user-visible data structures (such as MPI_COMM and
+    MPI_ERRHANDLER) more aggressively.  Passing a corrupted, incorrect, or
+    previously freed structure will now (where feasible) generate an error
+    message.
+
+3.  Additional changes to support 64-bit systems have been made.
+
+4.  MPI_BOTTOM may now be used in Fortran programs.
+
 
 Oct 26
 1.  The MPI ADI (low level interface that performs the actual message-passing)
@@ -49,7 +66,7 @@ Oct 26
     they are still undergoing testing.
 
 2.  The Meiko CS2 has been added as a "device".  This version uses the NX
-    compatibility library.  Untested.
+    compatibility library.  Only partially tested.
 
 See the end of the file for a history of changes.  These document a number of
 features that are currently not described elsewhere (we ARE working on a 
@@ -113,11 +130,15 @@ What is here
 This directory contains files releated to the Test Implemntation of the MPI
 (Message-Passing Interface) Draft Standard.  They are:
 
-mpich.Oct21.tar.Z    - the implementation itself, sufficient to run on the
+mpich-1.0.*.tar.Z    - the implementation itself, sufficient to run on the
                        following machines: Intel NX (i860, Delta, Paragon), 
 	               IBM SP1 (using EUI or EUIH), Meiko CS-2, Ncube, 
+	               IBM SP2 (using MPL), 
                        CM5 (using CMMD) and networks of workstations 
-                       (Sun, SGI, RS6000, ...)
+                       (Sun, SGI, RS6000, HP, DEC Alpha, ...).
+                       New releases are indicated by a change in the last 
+                       number; the value when this readme was written
+                       was 6 (as in 1.0.6).
 
 For other systems, or to run on top of PVM 2.4 or 3.x, you also need:
 
@@ -129,16 +150,26 @@ You do not need anything else if you are using either the various MPP versions
 (Intel Paragon, TMC CM5, IBM SP2) or the integrated version of p4
 (-device=ch_p4; see below).
 
+Also of interest for workstation clusters is
+
+sut-1.0.*.tar.Z       - Scalable Unix Commands.  This provides versions of
+                        common Unix commands, such as ls or ps, that run 
+                        in parallel on a selection of machines.  This is
+                        a prototype under development and is a Ptools
+                        consortium project; your feedback is welcome.
+                        Currently only tested on SunOS 4.1.3 and AIX 3.2.5.
+                        This is NOT part of MPI.
+
 Installing MPI
 ==============
 
 Create your mpi root directory (such as ~/mpitest ).  
 
 Ftp the files that you need to that directory.  In particular, on most 
-machines you only need the one file mpich.Oct21.tar.Z .
+machines you only need the one file mpich-1.0.6.tar.Z .
 
-Uncompress the files (uncompress mpich.Oct21.tar.Z etc) and untar them
-(tar xf mpich.Oct21.tar.Z etc) .  ("zcat mpich.Oct21.tar.Z | tar xf - "
+Uncompress the files (uncompress mpich-1.0.6.tar.Z etc) and untar them
+(tar xf mpich-1.0.6.tar.Z etc) .  ("zcat mpich-1.0.6.tar.Z | tar xf - "
 also works)
 
 To create the mpi implementation, uncompress and tar the distribution, which
@@ -146,6 +177,15 @@ will give you a directory called mpich.  In this directory, you will run
 configure and then make.  To see the options for configure, say
 
     configure -u
+
+On many systems, you can now just say:
+
+    configure
+    make
+
+This will try to pick an appropriate set of options.  On platforms that
+do cross-compilation (e.g., CM5, Paragon, or SP2 front ends), it is necessary
+to give the specific device and architecture.  These are described below.
 
 To build the network version for sun4's running SunOS 4.x, give the command
 
@@ -174,7 +214,7 @@ To build for nX on a paragon, use
 
 To build for the Meiko CS-2, use
 
-    configure -arch=meiko -device=ch_p4
+    configure -arch=meiko -device=ch_meiko
     make
 
 To build for the Ncube, use
@@ -213,6 +253,10 @@ Some useful additional flags you can give to configure include:
 -mpe	Build the MPE extensions to mpi. These extensions no longer 
 	require having chameleon installed, and have been tested 
 	on numerous different machines.
+
+-mpedbg Enable support for starting a debugger when an MPI error or
+        signal occurs.  Currently supported only for systems that can
+        start xterms running dbx.
 
 -nof77	Don't build the fortran interface. This option has only been
 	lightly tested, but should work.
@@ -299,10 +343,10 @@ and -mr_arch options to tell it what kind of machine you are running
 on. The current valid values for mr_machine are:
 
               chameleon (including chameleon/pvm, chameleon/p4, etc...)
-              meiko     (the ch_p4 device on the meiko)
+              meiko     (the ch_meiko device on the meiko)
               paragon   (the ch_nx device on a paragon not running NQS)
               p4        (the ch_p4 device on a workstation cluster)
-              sp1       (ch_eui on ANL's sp1)
+              sp1       (ch_eui on ANL's sp2)
 	      execer    (a custom script for starting ch_p4 programs
 			 without using a procgroup file. This script
                          currently does not work well with interactive
@@ -312,25 +356,25 @@ You should only have to specify mr_arch if mpirun does not recognize
 your machine, the default value is wrong, and you are using the p4 or
 execer devices. Other options include:
 
-    -mr_h   This help
-    -mr_machine <machine name>
-            use startup procedure for <machine name>
-    -mr_machinefile <machine-file name>
-	    Take the list of possible machines to run on from the"
-            file <machine-file name>"
-    -mr_np <np>
-            specify the number of processors to run on
-    -mr_nolocal
-            don't run on the local machine (only works for 
-    -mr_e   Use execer to start p4 programs on workstation
-            clusters
-    -mr_pg  Use a procgroup file to start p4 programs, not execer
-	    (default)
-    -mr_leave_pg
-            Don't delete the P4 procgroup file after running
-    -mr_t   Testing - do not actually run, just print what would be
-            executed
-    -mr_v   Verbose - thrown in some comments
+    -h   This help
+    -machine <machine name>
+         use startup procedure for <machine name>
+    -machinefile <machine-file name>
+	 Take the list of possible machines to run on from the"
+         file <machine-file name>"
+    -np <np>
+         specify the number of processors to run on
+    -nolocal
+         don't run on the local machine (only works for 
+    -e   Use execer to start p4 programs on workstation
+         clusters
+    -pg  Use a procgroup file to start p4 programs, not execer
+	 (default)
+    -leave_pg
+         Don't delete the P4 procgroup file after running
+    -t   Testing - do not actually run, just print what would be
+         executed
+    -v   Verbose - thrown in some comments
 
 If you don't want to use mpirun, use the instructions below depending
 on which device you have configured your program:
@@ -390,6 +434,9 @@ If you are using p4 with Chameleon, first make p4 with
     cd p4-1.4
     make P4ARCH=SUN		(for example)
     cd ..
+    
+(You should NOT use the the p4 in mpid/ch_p4/p4-1.4; instead, get p4 
+from the distribution directory (pub/mpi)).
 
 To make chameleon, 
 
@@ -602,6 +649,7 @@ New in the July 22, 1994 version:
 New in the July 13, 1994 version:
 
   Tested on the Meiko CS2 (configure -device=ch_p4 -arch=meiko)
+  (NOTE THAT -device=ch_meiko now 10/26/94)
 
   Tested on the SGI Onyx
 

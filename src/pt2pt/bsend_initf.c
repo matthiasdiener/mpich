@@ -43,7 +43,7 @@ MPI_Request   *request;
 int *__ierr;
 {
 MPI_Request lrequest;
-*__ierr = MPI_Bsend_init(buf,*count,
+*__ierr = MPI_Bsend_init(MPIR_F_PTR(buf),*count,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*dest,*tag,
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),&lrequest);
 *(int*)request = MPIR_FromPointer(lrequest);

@@ -6,7 +6,7 @@
  */
 
 #ifndef lint
-static char vcid[] = "$Id: initsend.c,v 1.9 1994/11/23 16:26:21 gropp Exp $";
+static char vcid[] = "$Id: initsend.c,v 1.10 1994/12/11 16:46:29 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -39,6 +39,7 @@ int           nonblocking;
     request->shandle.tag          = tag;
     request->shandle.completed    = MPIR_NO;
     request->shandle.datatype     = datatype;
+    datatype->ref_count++;
     request->shandle.comm         = comm;
 #ifdef MPID_HAS_HETERO
     request->shandle.msgrep	  = MPIR_MSGREP_SENDER;

@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst.c,v 1.9 1994/09/13 21:48:15 gropp Exp $
+ *  $Id: sbcnst.c,v 1.10 1994/12/11 16:53:05 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -32,7 +32,7 @@ static char SCCSid[] = "%W% %G%";
   MPIR_SBdestroy( sb );
  */
 
-#ifdef MPIR_DEBUG_MEM
+#if defined(MPIR_DEBUG_MEM) || defined(MPIR_MEMDEBUG)
 #undef MPIR_SBinit
 #undef MPIR_SBalloc
 #undef MPIR_SBfree

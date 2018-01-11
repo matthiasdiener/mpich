@@ -72,8 +72,8 @@ C     common.  This way, a Fortran program can directly use the various
 C     datatypes and can even give them to C programs.
 C
 C     MPI_BOTTOM needs to be a known address; here we put it at the
-C     beginning of the common block.  Still to be done: make the
-C     MPI routines that take buffers look for MPI_BOTTOM.
+C     beginning of the common block.  The point-to-point and collective
+C     routines know about MPI_BOTTOM, but MPI_TYPE_STRUCT as yet does not.
 C
 C     The types MPI_INTEGER1,2,4 and MPI_REAL4,8 are OPTIONAL.
 C     Their values are zero if they are not available.  Note that
@@ -87,7 +87,8 @@ C
      $        MPI_2INTEGER, MPI_2REAL, MPI_2DOUBLE_PRECISION, 
      $        MPI_2COMPLEX, MPI_2DOUBLE_COMPLEX,
      $        MPI_INTEGER1, MPI_INTEGER2, MPI_INTEGER4, 
-     $        MPI_REAL2, MPI_REAL4, MPI_REAL8, MPI_UB, MPI_LB
+     $        MPI_REAL2, MPI_REAL4, MPI_REAL8, MPI_UB, MPI_LB, 
+     $        MPI_PACKED
       integer MPI_COMM_WORLD, MPI_COMM_SELF, MPI_GROUP_EMPTY
       integer MPI_SUM, MPI_MAX, MPI_MIN, MPI_PROD, MPI_LAND, MPI_BAND,
      $     MPI_LOR, MPI_BOR, MPI_LXOR, MPI_BXOR, MPI_MINLOC, MPI_MAXLOC, 
@@ -107,7 +108,7 @@ C
      $     MPI_LOR, MPI_BOR, MPI_LXOR, MPI_BXOR, MPI_MINLOC, MPI_MAXLOC, 
      $     MPI_OP_NULL, 
      $     MPI_TAG_UB, MPI_HOST, MPI_IO, MPI_ERRORS_ARE_FATAL, 
-     $     MPI_ERRORS_RETURN
+     $     MPI_ERRORS_RETURN, MPI_PACKED
 C
       integer MPI_ANY_SOURCE
       parameter (MPI_ANY_SOURCE = (-2))

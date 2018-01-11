@@ -16,6 +16,7 @@ set MEIKO_RUN = prun
 set SP1_RUN = /usr/lpp/euih/eui/cotb0
 set jobid=$$
 set progname=''
+set fake_progname=''
 set np=1
 set arch=''
 set default_arch='#DEFAULT_ARCH#'
@@ -130,9 +131,9 @@ while ("$j" <= "$#argv")
 	set polling_mode = 0
 	breaksw
     case -mr_maxtime:
-    case -maxtime:
+    case -maxtime
 	@ j++
-        set maxtime = "$argv[$j]"
+        set max_time = "$argv[$j]"
         breaksw
     case -mr_mvhome:
     case -mvhome:
@@ -147,7 +148,10 @@ while ("$j" <= "$#argv")
     default:
       # The first unrecognized argument is assumed to be the name of
       # the program, but only if it is executable
-      if ("$progname" == "" && -e "${argv[$j]}" ) then 
+      if ( "$progname" == "" && "$fake_progname" == "" && \
+		! -e "${argv[$j]}" ) then
+	set fake_progname = $argv[$j]
+      else if ("$progname" == "" && -e "${argv[$j]}" ) then 
 	set progname = $argv[$j]
 	@ j++
         # any following unrecognized arguments are assumed to be arguments
@@ -170,7 +174,11 @@ end
 # We need at least the program name
 
 if ("$progname" == "") then
-  echo Missing: program name
+  echo "Missing: program name"
+  if ("$fake_progname" != "") then
+      echo "Program $fake_progname either does not exist, is not "
+      echo "executable, or it an erroneous argument to mpirun."
+  endif
   exit
 endif
 
@@ -353,7 +361,7 @@ if ( "$PWD_TRIAL" != "" ) then
     if ( ! -d $PWD_TRIAL )  then 
         echo "Warning: your default path uses the automounter; this may"
         echo "cause some problems if you use other NFS-connected systems."
-        PWD_TRIAL=`pwd`
+        set PWD_TRIAL = `pwd`
     endif
 endif
 
@@ -533,6 +541,9 @@ switch ($machine)
     # setenv MP_INFOLEVEL 1 
     # setenv MP_INFOLEVEL 20
     # setenv MP_CSS_INTERRUPT ?
+    # MP_PULSE must be 0 to get performance (some problem with defaults
+    # in GA code)
+    # setenv MP_PULSE 0
     # Note that if the executable is not on a file system mounted 
     # on a node, you may get a strange error message.
     if ($just_testing) then
@@ -541,6 +552,7 @@ switch ($machine)
         echo setenv MP_HOSTFILE $machineFile
         echo setenv MP_PROCS $np
 	echo setenv MP_INFOLEVEL 0
+        echo setenv MP_PULSE 0
 	if ($polling_mode == 0) echo setenv MP_CSS_INTERRUPT yes
         echo poe $progname $cmdLineArgs
     else
@@ -549,6 +561,7 @@ switch ($machine)
         setenv MP_HOSTFILE $machineFile
         setenv MP_PROCS $np
 	setenv MP_INFOLEVEL 0
+        setenv MP_PULSE 0
 	if ($polling_mode == 0) setenv MP_CSS_INTERRUPT yes
         poe $progname $cmdLineArgs
     endif
@@ -591,12 +604,14 @@ MP_HOSTFILE=/sphome/$LOGNAME/SPnodes.\$JID
 MP_PROCS=$np
 MP_INFOLEVEL=0
 MP_HOLD_STDIN=YES
+MP_PULSE=0
 export MP_EUILIB
 export MP_RMPOOL
 export MP_HOSTFILE
 export MP_PROCS
 export MP_INFOLEVEL
 export MP_HOLD_STDIN
+export MP_PULSE
 if [ $polling_mode = 0 ] ; then
    MP_CSS_INTERRUPT=YES
    export MP_CSS_INTERRUPT
@@ -625,7 +640,9 @@ exit 0
 	echo .
         echo spwait
     else
-	spsubmit <<.
+        # Send output to /dev/null in case we're trying to 
+        # use this to match up output
+	spsubmit <<. > /dev/null 2>&1
 $CAC
 $max_time
 $np
@@ -824,5 +841,8 @@ echo "            Available only on IBM SPx."
 echo "    -mvhome Move the executable to the home directory.  This "
 echo "            is needed when all file systems are not cross-mounted"
 echo "            Currently only used by anlspx"
+echo "    -maxtime min"
+echo "            Maximum job run time in minutes.  Currently used only"
+echo "            by anlspx.  Default value is $max_time"
 echo ""
 exit

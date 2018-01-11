@@ -584,6 +584,9 @@ int p4_wait_for_end()
     if (p4_get_my_cluster_id() != 0)
 	return (0);
 
+    /* Free avail buffers */
+    free_avail_buffs();
+
     /* Wait for all forked processes except listener to die */
     p4_dprintfl(90, "enter wait_for_end nfpid=%d\n",p4_global->n_forked_pids);
     if (p4_local->listener_fd == (-1))
@@ -829,4 +832,29 @@ char *master_hostname;
     }
 
     return(port);
+}
+
+/* high-resolution clock, made out of p4_clock and p4_ustimer */
+
+static int usclock_start;
+static usc_time_t ustimer_start;
+static usc_time_t usrollover;
+
+P4VOID init_usclock()
+{
+    usclock_start = p4_clock();
+    ustimer_start = p4_ustimer();
+    usrollover	  = usc_rollover_val();
+}
+
+double p4_usclock()
+{
+    int now, q, r;
+    double roll, elapsed;
+
+    now = p4_clock()-usclock_start;                    /* milleseconds */
+    q =  now / (usrollover/1000);                      /* num rollovers */
+    elapsed = (p4_ustimer()-ustimer_start) * .000001;  /* seconds */
+    roll = usrollover * 000001;	                       /* seconds */
+    return ( (q * roll) + elapsed );
 }

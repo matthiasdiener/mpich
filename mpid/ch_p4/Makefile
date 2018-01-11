@@ -12,7 +12,7 @@ P4_ARCH	      = SUN
 COMM	      = ch_p4
 DEVICE	      = ch_p4
 BOPT	      = 
-MPIR_HOME     = /tmp_mnt/Net/antireo/antireo6/lusk/mpich
+MPIR_HOME     = /home/gropp/mpich
 INCLUDE_DIR   = -Ip4-1.4/include  -Impid/ch_p4 -Iinclude
 CC	      = cc
 AR	      = ar clr
@@ -28,7 +28,7 @@ ALL: default
 
 P4_HOME  = ./p4-1.4
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =   -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+CFLAGS   =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
 	   -DMPID_DEVICE_CODE  -DHAVE_GETDOMAINNAME=1 -DHAVE_GETHOSTNAME=1 -DHAVE_UNAME=1  -DMPID_PKT_VAR_SIZE
 SOURCE   = p4event.c p4recv.c p4send.c p4init.c p4probe.c p4sync.c p4coll.c
 SOURCEC  = $(SOURCE)

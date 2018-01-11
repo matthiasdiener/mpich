@@ -7,7 +7,7 @@
 
 
 /*
- *  $Id: dmch.h,v 1.29 1994/11/08 16:01:02 gropp Exp gropp $
+ *  $Id: dmch.h,v 1.30 1994/11/23 16:04:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

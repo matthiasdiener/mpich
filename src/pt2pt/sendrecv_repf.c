@@ -1,5 +1,5 @@
 /* sendrecv_rep.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -41,7 +41,7 @@ MPI_Comm      comm;
 MPI_Status   *status;
 int *__ierr;
 {
-*__ierr = MPI_Sendrecv_replace(buf,*count,
+*__ierr = MPI_Sendrecv_replace(MPIR_F_PTR(buf),*count,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*dest,*sendtag,*source,*recvtag,
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),status);
 }

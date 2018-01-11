@@ -43,7 +43,7 @@ MPI_Comm     comm;
 int *__ierr;
 {
 MPI_Request lrequest;
-*__ierr = MPI_Recv_init(buf,*count,
+*__ierr = MPI_Recv_init(MPIR_F_PTR(buf),*count,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*source,*tag,
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),&lrequest);
 *(int*)request = MPIR_FromPointer( lrequest );

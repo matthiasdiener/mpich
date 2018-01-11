@@ -87,7 +87,7 @@ barrier: barrier.o test.o
 bcast: bcast.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bcast bcast.o test.o $(LIBS)
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) barrier-?.out bcast-?.out core
+	/bin/rm -f *.o *~ PI* $(EXECS) barrier-?.out bcast-?.out core *.out
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

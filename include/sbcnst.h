@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst.h,v 1.7 1994/09/29 21:51:42 gropp Exp $
+ *  $Id: sbcnst.h,v 1.8 1994/12/11 16:59:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -41,10 +41,30 @@ extern void *MPIR_SBinit(), MPIR_SBfree(), MPIR_SBiAllocate(),
 #define MPIR_SBalloc(a)    trmalloc((unsigned)(a),__LINE__,__FILE__)
 #define MPIR_SBfree(a,b)   trfree((char *)(b),__LINE__,__FILE__)
 #define MPIR_SBdestroy(a)
+
+#elif defined(MPIR_MEMDEBUG)
+extern void *MPIR_trmalloc(), MPIR_trfree(), *MPIR_trcalloc();
+#define MALLOC(a)    MPIR_trmalloc((unsigned)(a),__LINE__,__FILE__)
+#define CALLOC(a,b)  \
+    MPIR_trcalloc((unsigned)(a),(unsigned)(b),__LINE__,__FILE__)
+#define FREE(a)      MPIR_trfree((char *)(a),__LINE__,__FILE__)
+#define NEW(a)        (a *)MALLOC(sizeof(a))
+/* Also replace the SB allocators so that we can get the trmalloc line/file
+   tracing. */
+#define MPIR_SBinit(a,b,c) ((void *)(a))
+#define MPIR_SBalloc(a)    MPIR_trmalloc((unsigned)(a),__LINE__,__FILE__)
+#define MPIR_SBfree(a,b)   MPIR_trfree((char *)(b),__LINE__,__FILE__)
+#define MPIR_SBdestroy(a)
 #else
-/* We also need to DECLARE malloc etc here ... */
+
+/* We also need to DECLARE malloc etc here.  Note that P4 also declares
+   some of these, and thus if P4 in including this file, we skip these
+   declarations ... */
+#ifndef P4_INCLUDED
+
 #if HAVE_STDLIB_H || STDC_HEADERS
 #include <stdlib.h>
+
 #else
 #ifdef __STDC__
 extern void 	*calloc(/*size_t, size_t*/);
@@ -53,7 +73,8 @@ extern void	*malloc(/*size_t*/);
 #else
 extern char *malloc();
 extern char *calloc();
-extern int free();
+/* extern int free(); */
+#endif
 #endif
 #endif
 

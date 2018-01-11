@@ -46,6 +46,9 @@ else {
 	    } while (!flag);
 	if (status.MPI_TAG == 2001) {
 	    printf( "Received terminate message\n" );
+	    /* Actually need to receive it ... */
+	    MPI_Recv( &data, 1, MPI_INT, status.MPI_SOURCE, 
+		      status.MPI_TAG, MPI_COMM_WORLD, &status1 );
 	    break;
 	    }
 	if (status.MPI_TAG == 2000) {

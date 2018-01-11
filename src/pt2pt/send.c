@@ -1,5 +1,5 @@
 /*
- *  $Id: send.c,v 1.18 1994/10/24 22:02:48 gropp Exp $
+ *  $Id: send.c,v 1.19 1994/12/11 16:48:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: send.c,v 1.18 1994/10/24 22:02:48 gropp Exp $";
+static char vcid[] = "$Id: send.c,v 1.19 1994/12/11 16:48:23 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -51,6 +51,7 @@ MPI_Comm         comm;
         request = (MPI_Request)&shandle;
         MPIR_Send_init( buf, count, datatype, dest, tag, comm, request, 
 		        MPIR_MODE_STANDARD, 0 );
+	shandle.persistent   = 0;
 	/* It is only at this point that we can detect a null input buffer */
 	if (errno = MPIR_Send_setup(&request)) 
 	    return MPIR_ERROR(comm, errno, "Error in MPI_SEND" );
@@ -63,6 +64,7 @@ MPI_Comm         comm;
 		     "Could not free allocated send buffer in MPI_SEND" );
 	}
 #endif
+	shandle.datatype->ref_count--;
     }
     return errno;
 }

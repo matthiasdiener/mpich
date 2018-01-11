@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_util.c,v 1.26 1994/10/24 22:03:10 gropp Exp $
+ *  $Id: comm_util.c,v 1.28 1994/12/11 17:00:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -33,18 +33,21 @@ MPIR_COMM_TYPE comm_type;
   new_comm->comm_type       = comm_type;
   MPIR_Attr_dup_tree ( comm, new_comm );
   new_comm->comm_cache      = 0;
-  new_comm->send_context    = comm->send_context + 1;
-  new_comm->recv_context    = comm->recv_context + 1;
+  new_comm->error_handler   = 0;
   MPI_Errhandler_set( new_comm, comm->error_handler );
   new_comm->ref_count       = 1;
   new_comm->permanent       = 0;
   if (errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) return errno;
 
   if (comm_type == MPIR_INTRA) {
+    new_comm->recv_context    = comm->recv_context + 1;
+    new_comm->send_context    = new_comm->recv_context;
     MPIR_Group_dup ( comm->local_group, &(new_comm->group) );
     MPIR_Group_dup ( comm->local_group, &(new_comm->local_group) );
   }
   else {
+    new_comm->recv_context    = comm->recv_context + 1;
+    new_comm->send_context    = comm->send_context + 1;
     MPIR_Group_dup ( comm->group, &(new_comm->group) );
     MPIR_Group_dup ( comm->local_group, &(new_comm->local_group) );
   }
@@ -160,6 +163,7 @@ MPIR_COMM_TYPE comm_type;
   new_comm->comm_type   = comm_type;
   MPIR_Attr_dup_tree ( comm, new_comm );
   new_comm->comm_cache      = 0;
+  new_comm->error_handler   = 0;
   MPI_Errhandler_set( new_comm, comm->error_handler );
   new_comm->ref_count       = 1;
   new_comm->permanent       = 0;

@@ -1,6 +1,6 @@
 #ifndef __MPI_BINDINGS
 #define __MPI_BINDINGS
-#ifdef __STDC__
+#if defined(__STDC__) || defined(__cplusplus)
 int MPI_Send(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
 	     MPI_Comm comm);
 int MPI_Recv(void* buf, int count, MPI_Datatype datatype, int source, 

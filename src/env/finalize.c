@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.24 1994/09/21 15:27:22 gropp Exp $
+ *  $Id: finalize.c,v 1.25 1994/12/11 16:51:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -80,12 +80,18 @@ int MPI_Finalize()
     MPI_Type_free( &MPI_LONG );
     MPI_Type_free( &MPIR_complex_dte );
     MPI_Type_free( &MPIR_dcomplex_dte );
+    MPI_Type_free( &MPIR_logical_dte );
 #ifndef MPID_NO_FORTRAN
+#ifdef FOO
+    /* Note that currently (see init.c), these are all copies of the
+       existing C types, and so must not be freed (that will
+       cause them to be freed twice) */
     if (MPIR_int1_dte)  MPI_Type_free( &MPIR_int1_dte );
     if (MPIR_int2_dte)  MPI_Type_free( &MPIR_int2_dte );
     if (MPIR_int4_dte)  MPI_Type_free( &MPIR_int4_dte );
     if (MPIR_real4_dte) MPI_Type_free( &MPIR_real4_dte );
     if (MPIR_real8_dte) MPI_Type_free( &MPIR_real8_dte );
+#endif
 #endif
     MPI_Type_free( &MPI_SHORT );
     MPI_Type_free( &MPI_CHAR );
@@ -100,6 +106,8 @@ int MPI_Finalize()
     MPI_Type_free( &MPI_FLOAT_INT );
     MPI_Type_free( &MPI_DOUBLE_INT );
     MPI_Type_free( &MPI_LONG_INT );
+    if (MPI_2INT != MPI_2INTEGER)
+	MPI_Type_free( &MPI_2INTEGER );
     MPI_Type_free( &MPI_2INT );
     MPI_Type_free( &MPI_SHORT_INT );
     MPI_Type_free( &MPIR_2real_dte );
@@ -132,12 +140,19 @@ int MPI_Finalize()
     MPI_Keyval_free( &MPI_TAG_UB );
     MPI_Keyval_free( &MPI_HOST );
     MPI_Keyval_free( &MPI_IO );
+    MPI_Keyval_free( &MPIR_TAG_UB );
+    MPI_Keyval_free( &MPIR_HOST );
+    MPI_Keyval_free( &MPIR_IO );
 
     /* Tell device that we are done.  We place this here to allow
        the device to tell us about any memory leaks, since MPIR_SB... will
        free the storage even if it has not been deallocated by MPIR_SBfree. 
      */
     DBG(fprintf( stderr, "About to close device\n" ); fflush( stderr );)
+
+    MPI_Errhandler_free( &MPI_ERRORS_RETURN );
+    MPI_Errhandler_free( &MPI_ERRORS_ARE_FATAL );
+    MPI_Errhandler_free( &MPIR_ERRORS_WARN );
 
     MPID_END( ADIctx );
 
@@ -153,6 +168,9 @@ int MPI_Finalize()
     MPIR_SBdestroy( MPIR_hbt_els );
     MPIR_SBdestroy( MPIR_topo_els );
 
+#ifdef MPIR_MEMDEBUG
+    MPIR_trdump( stdout );
+#endif    
     /* barrier */
     return MPI_SUCCESS;
 }

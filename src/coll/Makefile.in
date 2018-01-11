@@ -36,9 +36,8 @@ MPI_CSOURCES = barrier.c bcast.c gather.c gatherv.c scatter.c scatterv.c \
                allreduce.c red_scat.c scan.c global_ops.c \
 	       opcreate.c opfree.c reduceutil.c
 
-MPI_TSOURCES = barrier.c bcast.c gather.c gatherv.c scatter.c scatterv.c \
-               allgather.c allgatherv.c alltoall.c alltoallv.c reduce.c \
-               allreduce.c red_scat.c scan.c global_ops.c \
+MPI_TSOURCES = barrier.c \
+               global_ops.c \
 	       opfree.c
 
 MPI_WSOURCES = barrierf.c bcastf.c gatherf.c gathervf.c scatterf.c scattervf.c\

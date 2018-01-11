@@ -227,7 +227,7 @@ int size;
 	{
 	    eof_counter++;
 
-	    tv.tv_sec = 10;
+	    tv.tv_sec = 5;
 	    tv.tv_usec = 0;
 	    FD_ZERO(&read_fds);
 	    FD_SET(fd, &read_fds);
@@ -235,7 +235,7 @@ int size;
 	    if (n1 == 1  &&  FD_ISSET(fd, &read_fds))
 		continue;
 	    sleep(1);
-	    if (eof_counter < 10)
+	    if (eof_counter < 5)
 		continue;
 	    else
 		p4_error("net_recv read:  EOF on socket", read_counter);

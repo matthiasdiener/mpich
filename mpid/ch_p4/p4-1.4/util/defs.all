@@ -584,7 +584,8 @@ CC = cc
 
 RM = /bin/rm
 
-CFLAGS = -g -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS)
+# Added -I for MPI includes
+CFLAGS = -g -I$(INCLUDEDIR) -I../../../../include $(MDEP_CFLAGS) $(USER_CFLAGS)
 #CFLAGS = -O -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS)
 
 FFLAGS = -g -I$(FORTLIBDIR) $(MDEP_FFLAGS)

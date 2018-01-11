@@ -52,16 +52,14 @@ MPI_CSOURCES = mperror.c isend.c irecv.c wait.c test.c \
 # Remove the routines with Fortran LOGICALs from MPI_CSOURCES
 # Remove the routines that create or free MPI_Request objects
 MPI_TSOURCES = mperror.c \
-               address.c cancel.c probe.c \
-               send.c recv.c \
-	       sendrecv.c \
-	       sendrecv_rep.c getcount.c \
-	       bsend.c ssend.c rsend.c bufattach.c \
+               cancel.c probe.c \
+	       getcount.c \
+	       bufattach.c \
 	       type_commit.c type_count.c \
 	       type_extent.c type_free.c \
 	       type_lb.c type_size.c \
 	       type_ub.c type_util.c \
-	       get_elements.c pack_size.c pack.c unpack.c
+	       get_elements.c pack_size.c
 
 MPI_WSOURCES = isendf.c irecvf.c waitf.c testf.c \
 	       addressf.c cancelf.c commreq_freef.c probef.c \

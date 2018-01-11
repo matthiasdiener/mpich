@@ -1,5 +1,5 @@
 /* allgather.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -43,8 +43,9 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 int *__ierr;
 {
-*__ierr = MPI_Allgather(sendbuf,*sendcount,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),recvbuf,*recvcount,
+*__ierr = MPI_Allgather(MPIR_F_PTR(sendbuf),*sendcount,
+	(MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),
+        MPIR_F_PTR(recvbuf),*recvcount,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(recvtype) ),
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }

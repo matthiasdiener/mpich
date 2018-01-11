@@ -1,5 +1,5 @@
 /* send.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -39,7 +39,7 @@ MPI_Datatype     datatype;
 MPI_Comm         comm;
 int *__ierr;
 {
-*__ierr = MPI_Send(buf,*count,
+*__ierr = MPI_Send(MPIR_F_PTR(buf),*count,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*dest,*tag,
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }

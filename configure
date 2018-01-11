@@ -22,7 +22,8 @@ Usage: ${progname} -arch=ARCH_TYPE -comm=COMM_TYPE -device=DEVICE
 		   [-devicedir=DEVICE_DIR] [-transportdir=TRANSPORT_DIR]
                    [-prefix=INSTALL_DIR]  [-c++=C++_COMPILER]
                    [-mpe] [-nof77] [-opt=OPTFLAGS] [-make=MAKEPGM]
-                   [-no_mpegraphics] [-no_short_longs]
+                   [-no_mpegraphics] [-no_short_longs] [-memdebug]
+                   [-mpedbg] 
                    [-nodevdebug] [-use_rndv] [-pre_post] [-pre_alloc]
 		   [-var_pkt] [-pkt_size=LENGTH] [-compressed_pkt]
                    [-limited_buffers] [-tiny_buffers] [-adi_collective]
@@ -95,6 +96,9 @@ Fortran names.  This is used primarily to generate names with and without
 trailing underscores for those systems that support both.  Not yet 
 implemented.
 
+The option '-memdebug' enables extensive internal memory debugging code.
+This should be used only if you are trying to find a memory problem (it
+can be used to help find memory problems in user code as well).
 
 Special Tuning Options:
 
@@ -212,7 +216,9 @@ CONFIGURE_ARGS="$*"
 # This next variable is a version without quotes.
 # We could also consider `echo $a | sed -e 's/"/\\"/g'`
 CONFIGURE_ARGS_CLEAN=`echo $* | tr '"' ' '`
-echo "Configuring with args $CONFIGURE_ARGS"
+if test -n "$CONFIGURE_ARGS" ; then 
+    echo "Configuring with args $CONFIGURE_ARGS"
+fi
 #
 # IS_HETERO is set if the device supports heterogeneous machines.
 # This requires additional coding, including checking for XDR
@@ -296,9 +302,7 @@ do
 	;;
 
      -mpedbg | --mpedbg)
-	if test -z "$MPE_MPI_EXT_C" ; then
-	    DEFS="$DEFS -DMPE_USE_EXTENSIONS"
-        fi
+	# Definitions of DEFS must follow the PREPARE
 	MPE_MPI_EXT_C="$MPE_MPI_EXT_C dbxerr.c"
 	MPE_MPI_EXT_O="$MPE_MPI_EXT_O dbxerr.o"
 	;;
@@ -310,6 +314,10 @@ do
 
      -no_short_longs | --no_short_longs)
 	NOSHORTLONGS=1
+	;;
+
+     -memdebug | --memdebug)
+	MEMDEBUG=1
 	;;
 
      -use_rndv | --use_rndv)
@@ -513,6 +521,41 @@ if test -z "$MPIR_TRIAL" ; then
 fi
 MPIR_HOME=$MPIR_TRIAL
 #
+#
+# Check that an ARCH was set
+# If it wasn't set, try to guess using "util/tarch"
+#
+if test ! -n "$ARCH" -a -x util/tarch ; then
+		echo "Trying to guess architecture ..."
+    ARCH=`util/tarch`
+    if test ! -n "$ARCH" ; then
+       echo "Error: Couldn't guess target architecture, you must"
+       echo "       set an architecture type with -arch=<value>"
+       exit
+    fi
+    eval "arch_$ARCH=1"
+    echo "  configuring for \"$ARCH\" target architecture"
+fi
+if test -n "$arch_sgi" ; then
+    arch_IRIX=1
+    ARCH=IRIX
+fi
+#
+# Check that a DEVICE was set
+# If it wasn't set, try to guess using "util/tdevice"
+#
+if test ! -n "$DEVICE" -a -x util/tdevice ; then
+		echo "Trying to guess device ..."
+    DEVICE=`util/tdevice $ARCH`
+    if test ! -n "$DEVICE" ; then
+       echo "Error: Couldn't guess device, you must"
+       echo "       set a device with -device=<value>"
+       exit
+    fi
+    eval "device_$DEVICE=1" 
+    echo "  configuring for \"$DEVICE\" device"
+fi
+
 CC=${CC:-cc}
 F77=${FC:-f77}
 FLINKER=$F77
@@ -627,9 +670,17 @@ if test ! -n "$ARCH" ; then
     echo "You must set an architecture type with -arch=<value>"
     exit
 fi
-if test -n "$arch_sgi" ; then
-    arch_IRIX=1
-    ARCH=IRIX
+
+# If some extensions are set, mark the defs
+if test -n "$MPE_MPI_EXT_C" ; then
+   
+{
+test -n "$verbose" && \
+echo "	defining MPE_USE_EXTENSIONS"
+echo "#define" MPE_USE_EXTENSIONS 1 >> confdefs.h
+DEFS="$DEFS -DMPE_USE_EXTENSIONS=1"
+}
+
 fi
 
 if test -n "$arch_IRIX"; then
@@ -749,7 +800,14 @@ if test -n "$device_chameleon"; then
   # example programs) needs to at least include whether the system 
   # supports heterogenity
   if test -n "$comm_p4" -o -n "$comm_pvm" -o -n "$comm_pvm3" ; then
-      DEFS="$DEFS -DMPID_HAS_HETERO"
+      
+{
+test -n "$verbose" && \
+echo "	defining MPID_HAS_HETERO"
+echo "#define" MPID_HAS_HETERO 1 >> confdefs.h
+DEFS="$DEFS -DMPID_HAS_HETERO=1"
+}
+
       IS_HETERO=1
   fi 
   if test -n "$comm_eui" -o -n "$comm_mpl" ; then
@@ -1589,14 +1647,21 @@ fi
 rm -f conftest*
 
     if test "$HAS_XDR" = 1 ; then
-        DEFS="$DEFS -DHAS_XDR"
+	
+{
+test -n "$verbose" && \
+echo "	defining HAS_XDR"
+echo "#define" HAS_XDR 1 >> confdefs.h
+DEFS="$DEFS -DHAS_XDR=1"
+}
+
     else 
         echo "*XDR not available on this system*"
     fi
 fi
 # Check for the functions that may be needed by the ADI to implement
 # Processor_name.  Save these defines in a special place.
-DEFS="$SAVEDEFS"
+SAVEDEFS="$DEFS"
 DEFS=""
 for func in getdomainname gethostname sysinfo uname
 do
@@ -1755,7 +1820,7 @@ DEFS="$DEFS -DINT_LT_POINTER=1"
 fi
 rm -fr conftest*
 
-if test "NOSHORTLONGS" = 0 ; then
+if test "$NOSHORTLONGS" = 0 ; then
         echo checking for long double
 if test -n "$GCC"; then
 
@@ -1950,6 +2015,7 @@ MPE_MPI_EXT_C='$MPE_MPI_EXT_C'
 MPE_MPI_EXT_O='$MPE_MPI_EXT_O'
 MPIR_HOME='$MPIR_HOME'
 MPI_FOBJECTS='$MPI_FOBJECTS'
+MEMDEBUG='$MEMDEBUG'
 OPTFLAGS='$OPTFLAGS'
 P4_ARCH='$P4_ARCH'
 P4_DIR='$P4_DIR'
@@ -2044,6 +2110,7 @@ s%@MPE_MPI_EXT_C@%$MPE_MPI_EXT_C%g
 s%@MPE_MPI_EXT_O@%$MPE_MPI_EXT_O%g
 s%@MPIR_HOME@%$MPIR_HOME%g
 s%@MPI_FOBJECTS@%$MPI_FOBJECTS%g
+s%@MEMDEBUG@%$MEMDEBUG%g
 s%@OPTFLAGS@%$OPTFLAGS%g
 s%@P4_ARCH@%$P4_ARCH%g
 s%@P4_DIR@%$P4_DIR%g
@@ -2074,6 +2141,16 @@ ${CONFIG_SHELL-/bin/sh} config.status
  /bin/rm -f runtests ; /bin/mv .run1 runtests ; chmod a+x runtests )
 (cd examples/test/context ; /bin/rm -f .run1 ; sed -e '1d' runtests > .run1 ; \
  /bin/rm -f runtests ; /bin/mv .run1 runtests ; chmod a+x runtests )
+#
+# Set the final choices of flags
+if test "$MEMDEBUG" = "1" ; then
+    /bin/rm -f include/mpisys.h
+    (cd include ; echo "#define MPIR_MEMDEBUG" | cat - mpisys.h.in > mpisys.h)
+else 
+    /bin/rm -f include/mpisys.h
+    cp include/mpisys.h.in include/mpisys.h
+fi
+
 #
 # If the test suite is part of the directory, generate its makefiles
 if test -d tsuite ; then

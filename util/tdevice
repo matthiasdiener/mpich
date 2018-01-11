@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+#  Returns the default device for architecture
+#  Usage: tdevice <architecture>
+#
+ARCH="$1"
+DEVICE=""
+
+# ch_p4 
+if test "$ARCH" = "sun4" ; then
+  DEVICE="ch_p4"
+elif test "$ARCH" = "solaris" ; then
+  DEVICE="ch_p4"
+elif test "$ARCH" = "IRIX" ; then
+  DEVICE="ch_p4"
+elif test "$ARCH" = "alpha" ; then
+  DEVICE="ch_p4"
+elif test "$ARCH" = "freebsd" ; then
+  DEVICE="ch_p4"
+elif test "$ARCH" = "hpux" ; then
+  DEVICE="ch_p4"
+elif test "$ARCH" = "rs6000" ; then
+  DEVICE="ch_p4"
+
+# ch_nx
+elif test "$ARCH" = "paragon" ; then
+  DEVICE="ch_nx"
+elif test "$ARCH" = "intelnx" ; then
+  DEVICE="ch_nx"
+
+# ch_meiko
+elif test "$ARCH" = "meiko" ; then
+  DEVICE="ch_meiko"
+# ch_nc
+elif test "$ARCH" = "ncube" ; then
+  DEVICE="ch_nc"
+fi
+echo $DEVICE
+exit 0

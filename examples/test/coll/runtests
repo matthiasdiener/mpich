@@ -1,74 +1,126 @@
 #!/bin/sh
-if [ -f coll.out ]; then
-    /bin/rm -f coll.out.orig
-    mv coll.out coll.out.orig
-fi
+# This version puts the output from each program into a separate file.
+#args=-pg
 
-#args=-mr_pg
+testfiles=""
 echo '**** Testing MPI Collective routines ****'
-echo '*** Collective Tests ***' > coll.out
-echo '*** Barrier Test ***' >> coll.out
+
+testfiles="$testfiles barrier.out"
+/bin/rm -f barrier.out
+echo '*** Barrier Test ***' >> barrier.out
 echo '**** Barrier Test ****'
-mpirun $args barrier -mr_np 4 $* >> coll.out
-cat barrier-0.out >> coll.out
-echo '*** Barrier Test ***' >> coll.out
+mpirun $args -np 4 barrier $* >> barrier.out
+cat barrier-0.out >> barrier.out
+echo '*** Barrier Test ***' >> barrier.out
+
+testfiles="$testfiles bcast.out"
+/bin/rm -f bcast.out
 echo '**** Broadcast Test ****'
-echo '*** Broadcast Test ***' >> coll.out
-mpirun $args bcast -mr_np 4 $* >> coll.out
-cat bcast-[0123].out >> coll.out
-echo '*** Broadcast Test ***' >> coll.out
+echo '*** Broadcast Test ***' >> bcast.out
+mpirun $args -np 4 bcast $* >> bcast.out
+cat bcast-[0123].out >> bcast.out
+echo '*** Broadcast Test ***' >> bcast.out
+
+testfiles="$testfiles coll1.out"
+/bin/rm -f coll1.out
 echo '**** coll1 ****'
-echo '*** coll1 ***' >> coll.out
-mpirun $args coll1 -mr_np 4 $* >> coll.out
-echo '*** coll1 ***' >> coll.out
+echo '*** coll1 ***' >> coll1.out
+mpirun $args -np 4 coll1 $* >> coll1.out
+echo '*** coll1 ***' >> coll1.out
+
+testfiles="$testfiles coll2.out"
+/bin/rm -f coll2.out
 echo '**** coll2 ****'
-echo '*** coll2 ***' >> coll.out
-mpirun $args coll2 -mr_np 5 $* >> coll.out
-echo '*** coll2 ***' >> coll.out
+echo '*** coll2 ***' >> coll2.out
+mpirun $args -np 5 coll2 $* >> coll2.out
+echo '*** coll2 ***' >> coll2.out
+
+testfiles="$testfiles coll3.out"
+/bin/rm -f coll3.out
 echo '**** coll3 ****'
-echo '*** coll3 ***' >> coll.out
-mpirun $args coll3 -mr_np 5 $* >> coll.out
-echo '*** coll3 ***' >> coll.out
+echo '*** coll3 ***' >> coll3.out
+mpirun $args -np 5 coll3 $* >> coll3.out
+echo '*** coll3 ***' >> coll3.out
+
+testfiles="$testfiles coll4.out"
+/bin/rm -f coll4.out
 echo '**** coll4 ****'
-echo '*** coll4 ***' >> coll.out
-mpirun $args coll4 -mr_np 4 $* >> coll.out
-echo '*** coll4 ***' >> coll.out
+echo '*** coll4 ***' >> coll4.out
+mpirun $args -np 4 coll4 $* >> coll4.out
+echo '*** coll4 ***' >> coll4.out
+
+testfiles="$testfiles coll5.out"
+/bin/rm -f coll5.out
 echo '**** coll5 ****'
-echo '*** coll5 ***' >> coll.out
-mpirun $args coll5 -mr_np 4 $* >> coll.out
-echo '*** coll5 ***' >> coll.out
+echo '*** coll5 ***' >> coll5.out
+mpirun $args -np 4 coll5 $* >> coll5.out
+echo '*** coll5 ***' >> coll5.out
+
+testfiles="$testfiles coll6.out"
+/bin/rm -f coll6.out
 echo '**** coll6 ****'
-echo '*** coll6 ***' >> coll.out
-mpirun $args coll6 -mr_np 5 $* >> coll.out
-echo '*** coll6 ***' >> coll.out
+echo '*** coll6 ***' >> coll6.out
+mpirun $args -np 5 coll6 $* >> coll6.out
+echo '*** coll6 ***' >> coll6.out
+
+testfiles="$testfiles coll7.out"
+/bin/rm -f coll7.out
 echo '**** coll7 ****'
-echo '*** coll7 ***' >> coll.out
-mpirun $args coll7 -mr_np 5 $* >> coll.out
-echo '*** coll7 ***' >> coll.out
+echo '*** coll7 ***' >> coll7.out
+mpirun $args -np 5 coll7 $* >> coll7.out
+echo '*** coll7 ***' >> coll7.out
+
+testfiles="$testfiles coll8.out"
+/bin/rm -f coll8.out
 echo '**** coll8 ****'
-echo '*** coll8 ***' >> coll.out
-mpirun $args coll8 -mr_np 4 $* >> coll.out
-echo '*** coll8 ***' >> coll.out
+echo '*** coll8 ***' >> coll8.out
+mpirun $args -np 4 coll8 $* >> coll8.out
+echo '*** coll8 ***' >> coll8.out
+
+testfiles="$testfiles coll9.out"
+/bin/rm -f coll9.out
 echo '**** coll9 ****'
-echo '*** coll9 ***' >> coll.out
-mpirun $args coll9 -mr_np 4 $* >>  coll.out
-echo '*** coll9 ***' >> coll.out
+echo '*** coll9 ***' >> coll9.out
+mpirun $args -np 4 coll9 $* >>  coll9.out
+echo '*** coll9 ***' >> coll9.out
+
+testfiles="$testfiles coll10.out"
+/bin/rm -f coll10.out
 echo '**** coll10 ****'
-echo '*** coll10 ***' >> coll.out
-mpirun coll10 $args -mr_np 4 $* >> coll.out
-echo '*** coll10 ***' >> coll.out
+echo '*** coll10 ***' >> coll10.out
+mpirun coll10 -np 4 $args $* >> coll10.out
+echo '*** coll10 ***' >> coll10.out
+
+testfiles="$testfiles coll11.out"
+/bin/rm -f coll11.out
 echo '**** coll11 ****'
-echo '*** coll11 ***' >> coll.out
-mpirun coll11 $args -mr_np 4 $* >> coll.out
-echo '*** coll11 ***' >> coll.out
+echo '*** coll11 ***' >> coll11.out
+mpirun coll11 -np 4 $args $* >> coll11.out
+echo '*** coll11 ***' >> coll11.out
+
+testfiles="$testfiles coll12.out"
+/bin/rm -f coll12.out
 echo '**** coll12 ****'
-echo '*** coll12 ***' >> coll.out
-mpirun $args coll12 $args -mr_np 4 $* >> coll.out
-echo '*** coll12 ***' >> coll.out
+echo '*** coll12 ***' >> coll12.out
+mpirun $args -np 4 coll12 $args $* >> coll12.out
+echo '*** coll12 ***' >> coll12.out
+
+testfiles="$testfiles grouptest.out"
+/bin/rm -f grouttest.out
 echo '*** Grouptest ***'
-echo '*** grouptest ***' >> coll.out
-mpirun $args grouptest -mr_np 4 $* >> coll.out
-echo '*** grouptest ***' >> coll.out
+echo '*** grouptest ***' >> grouptest.out
+mpirun $args -np 4 grouptest  $* >> grouptest.out
+echo '*** grouptest ***' >> grouptest.out
+
+
 echo '*** Differences from expected output ***'
-diff -b coll.out coll.std
+for file in $testfiles ; do
+    stdfile=`basename $file .out`.std
+    if [ -s $stdfile ] ; then
+        diff -b $file `basename $file .out`.std
+    else
+        echo "Can not find file $stdfile to compare against for test"
+        echo `basename $file .out`
+    fi
+done
 exit 0

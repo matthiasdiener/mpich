@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpiatom.h,v 1.35 1994/10/24 22:03:31 gropp Exp $
+ *  $Id: dmpiatom.h,v 1.36 1994/12/11 16:57:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -35,20 +35,25 @@
 typedef unsigned long MPIR_uint32;
 
 typedef struct _MPIR_HBT_node {
+  MPIR_COOKIE                    /* Cookie to help detect valid items */
   void *value;
   int   keyval;
   short balance;
   struct _MPIR_HBT_node *left;
   struct _MPIR_HBT_node *right;
 } MPIR_HBT_node;
+#define MPIR_HBT_NODE_COOKIE 0x03b740de
 
 typedef struct _MPIR_HBT {
+  MPIR_COOKIE                    /* Cookie to help detect valid items */
   unsigned int   height;
   int            ref_count;
   MPIR_HBT_node *root;
 } MPIR_HBT;
+#define MPIR_HBT_COOKIE 0x03b7c007
 
 typedef struct  {
+  MPIR_COOKIE                    /* Cookie to help detect valid items */
   int  (*copy_fn)();
   int  (*delete_fn)();
   void  *extra_state;
@@ -63,6 +68,7 @@ typedef struct  {
   int    permanent;             /* Used to mark the permanent attributes of
 				   MPI_COMM_WORLD */
 } MPIR_Attr_key;
+#define MPIR_ATTR_COOKIE 0xa774c003
 
 extern int MPIR_TOPOLOGY_KEYVAL;  /* Keyval for topology information */
 
@@ -112,9 +118,11 @@ struct MPIR_GROUP {
    error handler active 
  */
 struct MPIR_Errhandler {
+    MPIR_COOKIE                    /* Cookie to help detect valid items */
     MPI_Handler_function *routine;
     int                  ref_count;
     };
+#define MPIR_ERRHANDLER_COOKIE 0xe443a2dd
 
 
 typedef unsigned long MPIR_CONTEXT;

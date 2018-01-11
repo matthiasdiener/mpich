@@ -1,12 +1,12 @@
 /*
- *  $Id: errcreate.c,v 1.5 1994/11/01 19:42:04 gropp Exp $
+ *  $Id: errcreate.c,v 1.6 1994/12/11 16:50:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: errcreate.c,v 1.5 1994/11/01 19:42:04 gropp Exp $";
+static char vcid[] = "$Id: errcreate.c,v 1.6 1994/12/11 16:50:21 gropp Exp $";
 #endif
 
 #include "mpiimpl.h"
@@ -40,6 +40,7 @@ if (!new)
 	return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
 					  "Error in MPI_ERRHANDLER_CREATE" );
 
+MPIR_SET_COOKIE(new,MPIR_ERRHANDLER_COOKIE);
 new->routine   = function;
 new->ref_count = 1;
 

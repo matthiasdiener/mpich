@@ -33,15 +33,28 @@ extern void MPIR_RmPointer();
 #endif
 #endif
 
- void mpi_attr_get_ ( comm, keyval, attr_value, found, __ierr )
+void mpi_attr_get_ ( comm, keyval, attr_value, found, __ierr )
 MPI_Comm comm;
 int *keyval;
 int *attr_value;
 int *found;
 int *__ierr;
 {
+void *vval;
+
 *__ierr = MPI_Attr_get(
 	(MPI_Comm)MPIR_ToPointer( *((int*)comm)),
-	 *keyval,(void **)attr_value,found);
-	*found = MPIR_TO_FLOG(*found);
+	 *keyval,&vval,found);
+
+/* Convert attribute value to integer.  This code handles the case
+   where sizeof(int) < sizeof(void *), and the value was stored as a
+   void * 
+ */
+if (*__ierr || *found == 0)
+    *attr_value = 0;
+else
+    *attr_value = (int)vval;
+
+*found = MPIR_TO_FLOG(*found);
+return;
 }

@@ -88,6 +88,8 @@ if (err != MPI_SUCCESS) {
    MPI_Error_string(err, errstring, &resultlen);
    printf( "(first) %d : %s\n", class, errstring );
    }
+else
+    MPI_Comm_free( &dummy );
 
 MPI_Errhandler_create(error_handler, &errhandler);
 MPI_Errhandler_set(dup_comm_world, errhandler);
@@ -98,7 +100,8 @@ if (err != MPI_SUCCESS) {
    MPI_Error_string(err, errstring, &resultlen);
    printf( "(second) %d : %s\n", class, errstring );
    }
-
+else
+    MPI_Comm_free( &dummy );
 MPI_Errhandler_set(dup_comm_world, MPI_ERRORS_ARE_FATAL);
 
 #ifdef FOO
@@ -113,6 +116,8 @@ if (test_abort) then
          MPI_Abort(MPI_COMM_WORLD, 123456768)
          end if
 #endif
+
+MPI_Comm_free( &dup_comm_world );
 }
 
 

@@ -214,6 +214,10 @@ anlchp4: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg
 	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
+anlchp4mem: configure
+	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
+	configure -arch=sun4 -device=ch_p4 -mpe -var_pkt -mpedbg -memdebug
+	@-chmod g+ws lib lib/sun4 lib/sun4/ch_p4 >/dev/null 2>&1
 anlp4sgi: configure
 	@if [ `umask` != 0002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=IRIX -comm=p4 -bopt=g -device=chameleon \
@@ -227,7 +231,12 @@ anlchp4sgi: configure
 anlchp4alpha: configure
 	@if [ `umask` != 002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
 	configure -arch=alpha -comm=ch_p4 -device=ch_p4 -mpe \
-		-make=/usr/bin/make
+		-make=/usr/bin/make -no_short_longs -mpedbg
+	@-chmod g+ws lib lib/alpha lib/alpha/ch_p4 >/dev/null 2>&1
+anlchp4alphamem: configure
+	@if [ `umask` != 002 ] ; then echo "Set umask 2 first!" ; exit 1; fi
+	configure -arch=alpha -comm=ch_p4 -device=ch_p4 -mpe \
+		-make=/usr/bin/make -no_short_longs -memdebug -mpedbg
 	@-chmod g+ws lib lib/alpha lib/alpha/ch_p4 >/dev/null 2>&1
 # RS6000 sh umask returns 3 digits, not four!
 anlp4ibm: configure
@@ -352,9 +361,10 @@ install:
 	/bin/rm -f $(PREFIX)/bin/execer
 	cp util/execer $(PREFIX)/bin/execer
 	chmod 755 $(PREFIX)/bin/execer
-	@if [ ! -d $(PREFIX)/util/machines.anl ] ; then \
-	    mkdir $(PREFIX)/util/machines.anl ; fi
-	$(CPRP) -r util/machines $(PREFIX)/util/machines.anl
+#	@if [ ! -d $(PREFIX)/util/machines.anl ] ; then \
+#	    mkdir $(PREFIX)/util/machines.anl ; fi
+#	$(CPRP) -r util/machines $(PREFIX)/util/machines.anl
+	$(CPRP) -r util/machines $(PREFIX)/util/machines
 	$(CPRP) -r profiling/upshot/bitmaps $(PREFIX)/lib/bitmaps
 	cp include/mpi.h $(PREFIX)/include
 	cp include/mpif.h $(PREFIX)/include
@@ -374,7 +384,9 @@ install:
 		-e "s%\#COMM\#%@COMM@%g" \
 		-e "s%\#INSTALL_DIR\#%$(PREFIX)%g" \
 		-e "s%\#CC\#%@CC@%g" \
+		-e "s%\#CLINKER\#%@CLINKER@%g" \
 		-e "s%\#F77\#%@F77@%g" \
+		-e "s%\#FLINKER\#%@FLINKER@%g" \
 		-e "s%\#OPTFLAGS\#%@OPTFLAGS@%g" \
 		-e "s%\#LIB_LIST\#%@LIB_LIST@%g" \
 		-e "s%\#FLIB_PATH_LEADER\#%@FLIB_PATH_LEADER@%g" \

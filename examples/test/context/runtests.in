@@ -6,7 +6,7 @@ if [ -f context.out ] ; then
 	mv context.out context.out.orig
 fi
 
-args=-mr_pg
+args=-pg
 
 #
 # Run Fortran tests ONLY if Fortran available
@@ -15,7 +15,7 @@ if [ @HAS_FORTRAN@ = 1 ] ; then
     make fortran_tests
     echo '*** Testing attributes from Fortran ***'
     echo "*** attrtest ***" >> context.out
-    mpirun $args -mr_np 2 attrtest $* >> context.out 
+    mpirun $args -np 2 attrtest $* >> context.out 
     echo "END OF FORTRAN TESTS" >> context.out
 fi
 echo '*** Differences from expected output ***'

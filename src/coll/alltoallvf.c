@@ -1,5 +1,5 @@
 /* alltoallv.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -45,8 +45,9 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 int *__ierr;
 {
-*__ierr = MPI_Alltoallv(sendbuf,sendcnts,sdispls,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),recvbuf,recvcnts,rdispls,
+*__ierr = MPI_Alltoallv(MPIR_F_PTR(sendbuf),sendcnts,sdispls,
+	(MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),
+        MPIR_F_PTR(recvbuf),recvcnts,rdispls,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(recvtype) ),
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }

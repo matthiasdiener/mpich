@@ -6,7 +6,8 @@ if [ -f pt2pt.out ] ; then
 	mv pt2pt.out pt2pt.out.orig
 fi
 
-args=-pg
+# -mvhome is needed for the ANL SP, and is ignored by others
+args="-pg -mvhome"
 
 #
 echo '**** Testing MPI_Send and MPI_Recv ****'

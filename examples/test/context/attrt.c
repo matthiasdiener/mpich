@@ -25,7 +25,7 @@ int *keyval;
 void *extra_state, *attribute_val_in, **attribute_val_out;
 int *flag;
 {
-*(int *)attribute_val_out = (int)attribute_val_in;
+*(int *)attribute_val_out = (MPI_Aint)attribute_val_in;
 *flag = 1;
 return MPI_SUCCESS;
 }
@@ -37,7 +37,7 @@ void *attribute_val, *extra_state;
 {
 int world_rank;
 MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
-if ((int)attribute_val != world_rank) {
+if ((MPI_Aint)attribute_val != (MPI_Aint)world_rank) {
     printf( "incorrect attribute value %d\n", *(int*)attribute_val );
     MPI_Abort(MPI_COMM_WORLD, 1005 );
     }
@@ -125,6 +125,8 @@ if (lo_comm != MPI_COMM_NULL) {
     MPI_Keyval_create(MPI_NULL_COPY_FN, MPI_NULL_DELETE_FN,
                                &key_3, &value ); 
 
+    /* This may generate a compilation warning; it is, however, an
+       easy way to cache a value instead of a pointer */
     MPI_Attr_put(lo_comm, key_1, (void *)world_rank );
 /*         MPI_Attr_put(lo_comm, key_2, world_size ) */
     MPI_Attr_put(lo_comm, key_3, (void *)0 );

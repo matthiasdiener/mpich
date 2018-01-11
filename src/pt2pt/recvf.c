@@ -1,5 +1,5 @@
 /* recv.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -40,7 +40,7 @@ MPI_Comm         comm;
 MPI_Status       *status;
 int *__ierr;
 {
-*__ierr = MPI_Recv(buf,*count,
+*__ierr = MPI_Recv(MPIR_F_PTR(buf),*count,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(datatype) ),*source,*tag,
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ),status);
 }

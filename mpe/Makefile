@@ -8,17 +8,17 @@
 ARCH        = sun4
 COMM        = ch_p4
 BOPT        = 
-MPIR_HOME   = /tmp_mnt/Net/antireo/antireo6/lusk/mpich
+MPIR_HOME   = /home/gropp/mpich
 CC          = cc
 CLINKER     = cc
 F77         = f77
 AR          = ar clr
 RANLIB      = ranlib
-INCLUDE_DIR =  -I$(MPIR_HOME)/include 
+INCLUDE_DIR =  -I$(MPIR_HOME)/include -I/usr/local/X11R5/include
 DEVICE      = ch_p4
 OPTFLAGS    = -g
 MPE_GRAPH   = -DMPE_GRAPHICS
-LIB_PATH    = -L/tmp_mnt/Net/antireo/antireo6/lusk/mpich/lib/sun4/ch_p4  -L/usr/local/lib
+LIB_PATH    = -L/home/gropp/mpich/lib/sun4/ch_p4  -L/usr/local/X11R5/lib
 # On the meiko, you need to add -lsocket to LIB_LIST
 LIB_LIST    = -lmpi 
 
@@ -31,7 +31,7 @@ SHELL = /bin/sh
 
 EXECS = dbxtest
 
-CFLAGS =   -DHAVE_STDLIB_H=1 $(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) -DMPI_$(ARCH) \
+CFLAGS =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1 -DHAVE_STDLIB_H=1 $(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) -DMPI_$(ARCH) \
 	 $(MPE_GRAPH)
 
 MPE_CSOURCES = timers.c  $(MPEGRAPHICS_SOURCE) mpe_log.c decomp.c \

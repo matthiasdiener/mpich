@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.36 1994/11/08 16:00:06 gropp Exp $
+ *  $Id: mpir.h,v 1.37 1994/12/11 16:59:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -345,7 +345,15 @@ extern void *MPIR_F_MPI_BOTTOM;
     && (errno = MPI_ERR_TYPE )) || \
   (!(datatype)->committed && (errno = (MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED))))
 #define MPIR_TEST_ERRHANDLER(comm,errhandler) \
-    ( ( (!(errhandler)) && (errno = MPI_ERR_ARG )))
+    ( ( (!(errhandler) MPIR_TEST_COOKIE(errhandler,MPIR_ERRHANDLER_COOKIE)) \
+       && (errno = MPI_ERR_ARG )))
+#define MPIR_TEST_HBT_NODE(comm,node) \
+    ( ( !(node) MPIR_TEST_COOKIE(node,MPIR_HBT_NODE_COOKIE)) \
+      && (errno = MPI_ERR_INTERN))
+#define MPIR_TEST_HBT(comm,hbt) \
+    ( ( !(hbt) MPIR_TEST_COOKIE(hbt,MPIR_HBT_COOKIE)) \
+      && (errno = MPI_ERR_INTERN))
+
 #define MPIR_TEST_ALIAS(b1,b2)      \
     ( ((b1)==(b2)) && (errno = (MPI_ERR_BUFFER | MPIR_ERR_BUFFER_ALIAS) ))
 #define MPIR_TEST_ARG(arg)  (!(arg) && (errno = MPI_ERR_ARG) )

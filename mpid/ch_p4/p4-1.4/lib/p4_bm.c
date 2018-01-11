@@ -43,6 +43,7 @@ char **argv;
     MD_initenv();
     bm_switch_port = getswport(p4_global->my_host_name);
     usc_init();
+    init_usclock();
 
     /* big master installing himself */
     install_in_proctable(0, (-1), getpid(), p4_global->my_host_name, 
@@ -344,6 +345,7 @@ struct p4_procgroup *pg;
 	    setup_conntab();
 	    sprintf(whoami_p4, "p%d_%d", p4_local->my_id, getpid());
 	    usc_init();
+	    init_usclock();
 
 #           ifdef TCMP
             tcmp_init(NULL,p4_get_my_cluster_id(),shmem_getclunid());

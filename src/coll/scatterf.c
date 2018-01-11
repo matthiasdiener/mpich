@@ -1,5 +1,5 @@
 /* scatter.c */
-/* Fortran interface file */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -45,8 +45,9 @@ int*root;
 MPI_Comm          comm;
 int *__ierr;
 {
-*__ierr = MPI_Scatter(sendbuf,*sendcnt,
-	(MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),recvbuf,*recvcnt,
+*__ierr = MPI_Scatter(MPIR_F_PTR(sendbuf),*sendcnt,
+	(MPI_Datatype)MPIR_ToPointer( *(int*)(sendtype) ),
+        MPIR_F_PTR(recvbuf),*recvcnt,
 	(MPI_Datatype)MPIR_ToPointer( *(int*)(recvtype) ),*root,
 	(MPI_Comm)MPIR_ToPointer( *(int*)(comm) ));
 }

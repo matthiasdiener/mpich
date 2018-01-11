@@ -13,7 +13,7 @@ DEVICE      = ch_p4
 BOPT        = 
 P4_DIR      = 
 TOOLS_DIR   = 
-MPIR_HOME   = /tmp_mnt/Net/antireo/antireo6/lusk/mpich
+MPIR_HOME   = /home/gropp/mpich
 INCLUDE_DIR =  -Impid/ch_p4 -Iinclude
 
 ### End User configurable options ###

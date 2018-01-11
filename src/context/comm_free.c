@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_free.c,v 1.32 1994/10/24 22:03:09 gropp Exp $
+ *  $Id: comm_free.c,v 1.33 1994/12/11 16:54:24 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -71,6 +71,7 @@ MPI_Comm *comm;
 
         DBG(fprintf(stderr,"About to free comm structure\n");fflush(stderr);)
 	/* Free comm structure */
+	MPIR_SET_COOKIE((*comm),0);
 	FREE( *comm );
   }
   else 
