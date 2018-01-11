@@ -15,7 +15,7 @@ int type, from, to, len, data_type, ack_req;
     char *xdr_buff;
     int xdr_elsize, els_per_buf, xdr_numels;
     int xdr_len1, len_bytes;
-#if defined(SUN_SOLARIS)
+#if defined(SUN_SOLARIS) || defined(CRAY)
     u_int xdr_len;
 #else
     int xdr_len;
@@ -343,7 +343,7 @@ struct p4_msg *rmsg;
     int msg_len = 0, nbytes_read = 0;
     int xdr_elsize, els_per_buf, xdr_numels;
     int xdr_len1, len_bytes;
-#if defined(SUN_SOLARIS)
+#if defined(SUN_SOLARIS) || defined(CRAY)
     u_int xdr_len;
 #else
     int xdr_len;

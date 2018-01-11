@@ -1,12 +1,12 @@
 /*
- *  $Id: scan.c,v 1.27 1995/02/06 22:23:46 gropp Exp $
+ *  $Id: scan.c,v 1.28 1995/05/16 18:09:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: scan.c,v 1.27 1995/02/06 22:23:46 gropp Exp $";
+static char vcid[] = "$Id: scan.c,v 1.28 1995/05/16 18:09:30 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -45,11 +45,14 @@ MPI_Comm          comm;
 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) || MPIR_TEST_OP(comm,op) ||
-       ( ((count>0)&&(sendbuf==(void *)0))  && (mpi_errno = MPI_ERR_BUFFER) ) ||
-       ( ((count>0)&&(recvbuf==(void *)0))  && (mpi_errno = MPI_ERR_BUFFER) ) ||
        MPIR_TEST_ALIAS(sendbuf,recvbuf))
     return MPIR_ERROR( comm, mpi_errno, "Error in MPI_SCAN" );
   /* We also need to check that the datatype is a basic type? */
+
+/*
+       ( ((count>0)&&(sendbuf==(void *)0))  && (mpi_errno = MPI_ERR_BUFFER) ) ||
+       ( ((count>0)&&(recvbuf==(void *)0))  && (mpi_errno = MPI_ERR_BUFFER) ) ||
+ */
 
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -78,13 +81,16 @@ MPI_Comm          comm;
   if (op->commute) {
       /* Do the scan operation */
       if (rank > 0) {
-          MPI_Recv(recvbuf,count,datatype,rank-1,MPIR_SCAN_TAG,comm,&status);
+          mpi_errno = MPI_Recv(recvbuf,count,datatype,rank-1,
+			       MPIR_SCAN_TAG,comm,&status);
+	  if (mpi_errno) return mpi_errno;
           (*uop)(sendbuf, recvbuf, &count, &datatype); 
       }
       else {
-          MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
-                       recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
-                       comm, &status);
+          mpi_errno = MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
+				   recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
+				   comm, &status);
+	  if (mpi_errno) return mpi_errno;
       }
   }
   /* non-commutative case requires extra buffering */
@@ -98,23 +104,27 @@ MPI_Comm          comm;
               return MPIR_ERROR(comm, MPI_ERR_EXHAUSTED, 
                                 "Out of space in MPI_SCAN" );
           }
-          MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
-                       recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
-                       comm, &status);
-          MPI_Recv(tmpbuf,count,datatype,rank-1,MPIR_SCAN_TAG,comm,&status);
+          mpi_errno = MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
+				   recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
+				   comm, &status);
+	  if (mpi_errno) return mpi_errno;
+          mpi_errno = MPI_Recv(tmpbuf,count,datatype,rank-1,
+			       MPIR_SCAN_TAG,comm,&status);
+	  if (mpi_errno) return mpi_errno;
           (*uop)(tmpbuf, recvbuf, &count, &datatype); 
           FREE(tmpbuf);
       }
       else {
-          MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
-                       recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
-                       comm, &status);
-      }
+          mpi_errno = MPI_Sendrecv(sendbuf,count,datatype,rank, MPIR_SCAN_TAG,
+				   recvbuf,count,datatype,rank, MPIR_SCAN_TAG,
+				   comm, &status);
+	  if (mpi_errno) return mpi_errno;
+	  }
   }
 
   /* send the letter to destination */
   if (rank < (size-1)) 
-    MPI_Send(recvbuf,count,datatype,rank+1,MPIR_SCAN_TAG,comm);
+      mpi_errno = MPI_Send(recvbuf,count,datatype,rank+1,MPIR_SCAN_TAG,comm);
 
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);

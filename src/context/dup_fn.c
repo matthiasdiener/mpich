@@ -1,5 +1,5 @@
 /*
- *  $Id: dup_fn.c,v 1.5 1994/09/13 21:48:24 gropp Exp $
+ *  $Id: dup_fn.c,v 1.6 1995/05/11 17:45:54 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,13 +17,13 @@ MPI_Comm  *comm;
 int       *keyval;
 void      *extra_state;
 void      *attr_in;
-void     **attr_out;
+void      *attr_out;
 int       *flag;
 {
   /* No error checking at present */
 
   /* Set attr_out, the flag and return success */
-  (*attr_out) = attr_in;
+  (*(void **)attr_out) = attr_in;
   (*flag) = 1;
   return (MPI_SUCCESS);
 }

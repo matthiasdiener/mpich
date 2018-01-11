@@ -38,7 +38,7 @@ main (int argc, char **argv)
 	MPI_Wait( &handle, &status );
 	st_source = status.MPI_SOURCE;
 	st_tag    = status.MPI_TAG;
-	/* MPI_Get_count(  status, MPI_DOUBLE, &st_count ); */
+	/* MPI_Get_count(  &status, MPI_DOUBLE, &st_count ); */
 	
 	cout << "Status info: source = " << st_source << "tag = " << st_tag << endl;
 	cout << rank << " received " << data[0] << endl;

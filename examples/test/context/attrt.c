@@ -23,10 +23,13 @@ int copy_fn(oldcomm, keyval, extra_state,
                       attribute_val_in, attribute_val_out, flag)
 MPI_Comm *oldcomm;
 int *keyval;
-void *extra_state, *attribute_val_in, **attribute_val_out;
+void *extra_state, *attribute_val_in, *attribute_val_out;
 int *flag;
 {
-*(int *)attribute_val_out = (MPI_Aint)attribute_val_in;
+/* Note that if (sizeof(int) < sizeof(void *), just setting the int
+   part of attribute_val_out may leave some dirty bits
+ */
+*(MPI_Aint *)attribute_val_out = (MPI_Aint)attribute_val_in;
 *flag = 1;
 return MPI_SUCCESS;
 }
@@ -51,12 +54,13 @@ MPI_Comm dup_comm_world, lo_comm, rev_comm, dup_comm, split_comm, world_comm;
 MPI_Group world_group, lo_group, rev_group;
 void *vvalue;
 int ranges[1][3];
-int flag, world_rank, world_size, rank, size, n, key_1, key_3, value;
+int flag, world_rank, world_size, rank, size, n, key_1, key_3;
 int color, key, result;
 /*      integer n, ,
      .        key_2
 
   */
+MPI_Aint value;
 
 MPI_Comm_rank( MPI_COMM_WORLD, &world_rank );
 MPI_Comm_size( MPI_COMM_WORLD, &world_size );
@@ -140,7 +144,7 @@ if (lo_comm != MPI_COMM_NULL) {
        a (void *) and cast to int. Note that this may generate warning
        messages from the compiler.  */
     MPI_Attr_get(dup_comm, key_1, (void **)&vvalue, &flag );
-    value = (int)vvalue;
+    value = (MPI_Aint)vvalue;
 
     if (! flag) {
 	printf( "dup_comm key_1 not found on %d\n", world_rank );
@@ -226,11 +230,13 @@ c        MPI_Keyval_free(&key_2 )
          MPI_Abort(MPI_COMM_WORLD, 3012 );
 	 }
 
-      MPI_Comm_compare(world_comm, lo_comm, &result );
-      if (result != MPI_UNEQUAL) {
-         printf( "incorrect unequal result: %d\n", result );
-         MPI_Abort(MPI_COMM_WORLD, 3013 );
-	 }
+      if (lo_comm != MPI_COMM_NULL) {
+	  MPI_Comm_compare(world_comm, lo_comm, &result );
+	  if (result != MPI_UNEQUAL) {
+	      printf( "incorrect unequal result: %d\n", result );
+	      MPI_Abort(MPI_COMM_WORLD, 3013 );
+	      }
+	  }
 /*
      Free all communicators created
  */

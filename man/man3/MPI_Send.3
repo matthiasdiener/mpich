@@ -1,6 +1,6 @@
-.TH MPI_Send 3 "12/15/1994" " " "MPI"
+.TH MPI_Send 3 "5/9/1995" " " "MPI"
 .SH NAME
-MPI_Send \- Basic send
+MPI_Send \- Performs a basic send
 
 .SH INPUT PARAMETERS
 .PD 0
@@ -34,6 +34,12 @@ MPI_Send \- Basic send
 - communicator (handle) 
 .PD 1
 
+.SH NOTES
+This routine may block until the message is received.
+
+.SH SEE ALSO
+ MPI_Isend, MPI_Bsend
+.br
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

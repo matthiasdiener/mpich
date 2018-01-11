@@ -26,6 +26,11 @@ Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-sysv_ipc={on,off}]
                    [-vendor_ipc={on,off}] [-dprintfl={on,off}]
                    [-listener_pathname="\<pathname\>"]
 "
+OPTFLAGS="-g"
+USERCC=0
+CC=${CC:-cc}
+USERF77=0
+FC=${FC:-f77}
 for arg
 do
 case $arg in
@@ -66,6 +71,14 @@ case $arg in
      (echo "${usage_msg}") >& 2
      exit 1
      ;;
+  -opt=* | --opt=*)
+     package="`echo $arg|sed 's/-*opt=//'`"
+     OPTFLAGS=$package 
+     ;;
+  -cc=* | --cc=*)
+     CC=`echo $arg|sed 's/-*cc=//'`
+     USERCC=1
+     ;;
    *)
      echo "Invalid p4 configure option $arg"
      (echo "${usage_msg}") >& 2
@@ -74,8 +87,6 @@ esac
 done
 P4ARCH="unknown"
 MAKE=make
-CC=${CC:-cc}
-FC=${FC:-f77}
 CLINKER=$CC
 FLINKER=$FC
 AR="ar lruv"
@@ -333,10 +344,42 @@ fi
 if test -n "$p4arch_CRAY"; then
 P4ARCH=CRAY
 AR='ar ruv'
-CC=cc
-FC=cf77
-CLINKER=cc
-FLINKER=cf77
+if test $USERCC = 0 ;  then CC=cc ; fi
+if test $USERF77 = 0 ; then FC=cf77 ; fi
+CLINKER=$CC
+FLINKER=$FC
+RANLIB=true
+fi
+if test -n "$p4arch_PARAGONIP"; then
+P4ARCH=ALPHA                             
+LIBS_save="${LIBS}"
+LIBS="${LIBS} -lrpc"
+have_lib=""
+echo checking for -lrpc
+cat > conftest.c <<EOF
+#include "confdefs.h"
+
+int main() { exit(0); }
+int t() { main(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  have_lib="1"
+
+fi
+rm -f conftest*
+LIBS="${LIBS_save}"
+if test -n "${have_lib}"; then
+   :; MDEP_LIBS=-lrpc
+else
+   :; 
+fi
+
+AR='ar860 r'
+if test $USERCC = 0 ;  then CC=icc ; fi
+if test $USERF77 = 0 ; then FC=if77 ; fi
+CLINKER=$CC
+FLINKER=$FC
 RANLIB=true
 fi
 if test -n "$p4arch_NEXT"; then
@@ -409,10 +452,10 @@ fi
 fi
 if test -n "$p4arch_SP1_EUI"; then
 P4ARCH=SP1_EUI
-FC=mpxlf
-CC=mpcc
-FLINKER=xlf
-CLINKER=mpcc
+if test $USERCC = 0 ;  then CC=mpcc ; fi
+if test $USERF77 = 0 ; then FC=mpxlf ; fi
+FLINKER=$FC
+CLINKER=$CC
 RANLIB=true
 LIBS_save="${LIBS}"
 LIBS="${LIBS} -lbsd"
@@ -441,8 +484,8 @@ MDEP_CFLAGS = -I/usr/lpp/poe/include
 fi
 if test -n "$p4arch_SP1_EUI"; then
 P4ARCH=SP1_EUIH
-FC=xlf
-CC=cc
+if test $USERCC = 0 ;  then CC=cc ; fi
+if test $USERF77 = 0 ; then FC=xlf ; fi
 FLINKER="xlf -bimport:/usr/lpp/euih/eui/eui.exp"
 CLINKER="xlc -bimport:/usr/lpp/euih/eui/eui.exp -e main"
 RANLIB=true
@@ -679,6 +722,7 @@ MDEP_LIBS='$MDEP_LIBS'
 MDEP_CFLAGS='$MDEP_CFLAGS'
 MDEP_FFLAGS='$MDEP_FFLAGS'
 MDEP_LFLAGS='$MDEP_LFLAGS'
+OPTFLAGS='$OPTFLAGS'
 P4_CONFIGURED_TIME='$P4_CONFIGURED_TIME'
 DEFINE_ALOG='$DEFINE_ALOG'
 DEFINE_SYSV_IPC='$DEFINE_SYSV_IPC'
@@ -727,6 +771,7 @@ s%@MDEP_LIBS@%$MDEP_LIBS%g
 s%@MDEP_CFLAGS@%$MDEP_CFLAGS%g
 s%@MDEP_FFLAGS@%$MDEP_FFLAGS%g
 s%@MDEP_LFLAGS@%$MDEP_LFLAGS%g
+s%@OPTFLAGS@%$OPTFLAGS%g
 s%@P4_CONFIGURED_TIME@%$P4_CONFIGURED_TIME%g
 s%@DEFINE_ALOG@%$DEFINE_ALOG%g
 s%@DEFINE_SYSV_IPC@%$DEFINE_SYSV_IPC%g

@@ -1,24 +1,24 @@
 # Generated automatically from Makefile.in by configure.
 
-DEFS =  -DSTDC_HEADERS=1  -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 -DHAVE_LONG_DOUBLE=1
+DEFS =  -DSTDC_HEADERS=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 -DHAVE_LONG_DOUBLE=1 -DHAVE_LONG_LONG_INT=1
 
 ##### User configurable options #####
 
-ARCH        = hpux
+ARCH        = IRIX
 COMM        = ch_shmem
 BOPT        = 
 P4_DIR      = 
 TOOLS_DIR   = 
-MPIR_HOME   = /home/lusk/mpich
+MPIR_HOME   = /home/gropp/mpich
 CC          = cc
 F77         = f77
 AR          = ar crl
 RANLIB      = ranlib
 INCLUDE_DIR =  -I../../mpid/ch_shmem -I../../include
 DEVICE      = ch_shmem
-OPTFLAGS    = -g
-LIB_PATH    = -L/home/lusk/mpich/lib/hpux/ch_shmem 
-FLIB_PATH   = -Wl,-L,/home/lusk/mpich/lib/hpux/ch_shmem
+OPTFLAGS    = -O
+LIB_PATH    = -L/home/gropp/mpich/lib/IRIX/ch_shmem 
+FLIB_PATH   = -L/home/gropp/mpich/lib/IRIX/ch_shmem 
 LIB_LIST    = -lmpi
 
 ### End User configurable options ###

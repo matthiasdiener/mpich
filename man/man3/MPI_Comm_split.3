@@ -1,4 +1,4 @@
-.TH MPI_Comm_split 3 "12/15/1994" " " "MPI"
+.TH MPI_Comm_split 3 "5/9/1995" " " "MPI"
 .SH NAME
 MPI_Comm_split \- Creates new communicators based on colors and keys
 
@@ -11,7 +11,7 @@ MPI_Comm_split \- Creates new communicators based on colors and keys
 .PD 0
 .TP
 .B color 
-- control of subset assignment (integer) 
+- control of subset assignment (nonnegative integer) 
 .PD 1
 .PD 0
 .TP
@@ -26,27 +26,27 @@ MPI_Comm_split \- Creates new communicators based on colors and keys
 - new communicator (handle) 
 .PD 1
 
+.SH NOTES
+The 'color' must be non-negative or 'MPI_UNDEFINED'.
 .SH ALGORITHM
 
 The current algorithm used has quite a few (read: a lot of) inefficiencies
-.SH THAT CAN BE REMOVED.  HERE'S WHAT WE DO FOR NOW
-.br
-1) A table is built of colors, and keys (has a next field also).
-.br
-2) The tables of all processes are merged using MPI_Allreduce
-.br
-3) Two contexts are allocated for all the comms to be created.  These
-same two contexts can be used for all created communicators since
-the communicators will not overlap.
-.br
-4) If the local process has a color of MPI_UNDEFINED, it can return
-a NULL comm.
-.br
-5) The table entries that match the local process color are sorted 
-by key/rank.
-.br
-6) A group is created from the sorted list and a communicator is created
-with this group and the previously allocated contexts.
+that can be removed.  Here's what we do for now
+
+.nf
+ 1) A table is built of colors, and keys (has a next field also).
+ 2) The tables of all processes are merged using MPI_Allreduce
+ 3) Two contexts are allocated for all the comms to be created.  These
+     same two contexts can be used for all created communicators since
+     the communicators will not overlap.
+ 4) If the local process has a color of MPI_UNDEFINED, it can return
+     a NULL comm. 
+ 5) The table entries that match the local process color are sorted 
+     by key/rank. 
+ 6) A group is created from the sorted list and a communicator is created
+     with this group and the previously allocated contexts.
+.fi
+
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

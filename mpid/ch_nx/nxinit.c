@@ -7,14 +7,14 @@ int __NUMNODES, __MYPROCID  ;extern double dclock();
 
 
 /*
- *  $Id: chinit.c,v 1.28 1995/02/06 22:12:37 gropp Exp gropp $
+ *  $Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $";
 #endif
 
 /* 
@@ -36,9 +36,9 @@ static char vcid[] = "$Id$";
 
 MPID_INFO *MPID_procinfo = 0;
 MPID_H_TYPE MPID_byte_order;
+static char *(ByteOrderName[]) = { "None", "LSB", "MSB", "XDR" };
 int MPID_IS_HETERO = 0;
 void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
-
 /* For tracing channel operations by ADI underlayer */
 FILE *MPID_TRACE_FILE = 0;
 
@@ -235,23 +235,61 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 	 MPIDTRANSPORT );
 }
 
+#ifndef MPID_NX_Wtime
+#if defined(USE_GETTIMEOFDAY)
+#include <sys/types.h>
+#include <sys/time.h>
+#endif
+/* I don't know what the correct includes are for the other versions... */
 double MPID_NX_Wtime()
 {
-return dclock();
+#ifdef USE_GETTIMEOFDAY
+    struct timeval tp;
+    struct timezone tzp;
+
+    gettimeofday(&tp,&tzp);
+    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#elif USE_BSDGETTIMEOFDAY
+    struct timeval tp;
+    struct timezone tzp;
+
+    BSDgettimeofday(&tp,&tzp);
+    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#elif USE_WIERDGETTIMEOFDAY
+    /* This is for Solaris, where they decided to change the CALLING
+       SEQUENCE OF gettimeofday! */
+    struct timeval tp;
+
+    gettimeofday(&tp);
+    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#else
+    return dclock();
+#endif
 }
+#endif
 
 /* This returns a value that is correct but not the best value that
-   could be returned */
+   could be returned.
+   It makes several separate stabs at computing the tickvalue.
+*/
 double MPID_NX_Wtick()
 {
+static double tickval = -1.0;
 double t1, t2;
 int    cnt;
+int    icnt;
 
-cnt = 1000;
-t1  = MPID_NX_Wtime();
-while (cnt-- && (t2 = MPID_NX_Wtime()) <= t1) ;
-if (!cnt) return 1.0e6;
-return t2 - t1;
+if (tickval < 0.0) {
+    tickval = 1.0e6;
+    for (icnt=0; icnt<10; icnt++) {
+	cnt = 1000;
+	t1  = MPID_NX_Wtime();
+	while (cnt-- && (t2 = MPID_NX_Wtime()) <= t1) ;
+	if (cnt && t2 - t1 < tickval)
+	    tickval = t2 - t1;
+	}
+    }
+return tickval;
 }
 
 void MPID_NX_Error_handler( r )

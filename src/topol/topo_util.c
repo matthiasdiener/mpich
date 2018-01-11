@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_util.c,v 1.2 1994/09/30 22:12:00 gropp Exp $
+ *  $Id: topo_util.c,v 1.3 1995/05/10 15:31:59 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -20,7 +20,7 @@ int MPIR_Topology_copy_fn(old_comm, keyval, extra, attr_in, attr_out, flag)
 MPI_Comm *old_comm;
 int      *keyval;
 void     *extra;
-void     *attr_in, **attr_out;
+void     *attr_in, *attr_out;
 int      *flag;
 {
   MPIR_TOPOLOGY *old_topo = (MPIR_TOPOLOGY *) attr_in;
@@ -60,7 +60,7 @@ int      *flag;
   }
 
   /* Set attr_out and return a "1" to indicate information was copied */
-  (*attr_out) = (void *) new_topo;
+  (*(void **)attr_out) = (void *) new_topo;
   (*flag)     = 1;
   return (MPI_SUCCESS);
 }

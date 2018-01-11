@@ -15,7 +15,7 @@ MPIR_HOME   = /Net/alriga/alriga9/MPI/mpich
 INCLUDE_DIR =  -Impid/ch_nx -Iinclude
 CC          = icc
 AR          = ar860 crl
-RANLIB      = ranlib
+RANLIB      = true
 OPTFLAGS    = -O
 
 ### End User configurable options ###
@@ -23,7 +23,7 @@ OPTFLAGS    = -O
 ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =  -nx   -DHAVE_STDLIB_H=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+CFLAGS   =  -nx -DFORTRANUNDERSCORE   -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_NICE=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
 		-DMPID_DEVICE_CODE  -DMPID_DEBUG_NONE -DMPID_STAT_NONE -Dinteldelta
 SOURCE   = nxevent.c nxrecv.c nxsend.c nxinit.c nxprobe.c nxsync.c nxrndv.c
 SOURCEC  = $(SOURCE)

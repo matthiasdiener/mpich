@@ -209,7 +209,7 @@ comm
 int 
 MPI_Op_create
 3
-MPI_Uop *
+MPI_User_function *
 function
 
 int

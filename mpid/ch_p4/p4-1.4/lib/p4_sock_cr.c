@@ -276,12 +276,15 @@ char *username;
 		    p4_error("net_create_slave: execlp", rc);
 	    }
 	    p4_dprintfl(10, "created remote slave on %s via remote shell\n",host);
+	    p4_dprintfl(90, "remote slave is running program %s as user %s\n",
+			pgm, username );
 #endif
 	}
     }
     slave_fd = net_accept(serv_fd);
 
     hs.pid = (int) htonl(getpid());
+    hs.rm_num = 0;   /* To make Insight etc happy */
     net_send(slave_fd, &hs, sizeof(hs), FALSE);
     net_recv(slave_fd, &hs, sizeof(hs));
 

@@ -1,5 +1,5 @@
 #ifndef lint
-static char vcid[] = "$Id: sigchk.c,v 1.1 1994/11/07 16:58:57 gropp Exp gropp $";
+static char vcid[] = "$Id: sigchk.c,v 1.2 1995/04/05 16:16:31 gropp Exp gropp $";
 #endif
 
 /* This file provides routines to check for the use of signals by software */
@@ -13,9 +13,16 @@ int  sig;
 char *signame;
 {
 void (*oldsig)();
+static int firstmsg = 1;
 
 oldsig = signal(sig,SIG_IGN);
 if (oldsig != SIG_IGN && oldsig != SIG_DFL) {
+    if (firstmsg) {
+	firstmsg = 0;
+	fprintf( fp, "Some signals have been changed.  This is not an error\n\
+but rather is a warning that user programs should not redefine the signals\n\
+listed here\n" );
+	}
     fprintf( fp, "Signal %s has been changed\n", signame );
     return 1;
     }

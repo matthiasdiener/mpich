@@ -1,3 +1,20 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #!/bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
@@ -25,7 +42,7 @@ cat <<.
 Usage: ${progname} -arch=ARCH_TYPE -comm=COMM_TYPE -device=DEVICE
 		   [-devicedir=DEVICE_DIR] [-transportdir=TRANSPORT_DIR]
                    [-prefix=INSTALL_DIR]  [-c++=C++_COMPILER]
-                   [-mpe] [-nof77] [-opt=OPTFLAGS] [-make=MAKEPGM]
+                   [-mpe] [-nof77] [-f90nag] [-opt=OPTFLAGS] [-make=MAKEPGM]
                    [-no_mpegraphics] [-no_short_longs] [-memdebug]
                    [-x11_lib=X11LIB] [-x11_inc=X11INC]
                    [-mpedbg] 
@@ -85,6 +102,10 @@ primarily for workstation environments but should work on some MPPs
 The option '-nof77' prevents the compilation of routines that require a
 Fortran compiler.  If this option is selected, you may not use the
 Fortran interface to MPI.
+
+The option '-f90nag' allows you to use the NAG Fortran 90 instead of 
+Fortran 77.  This is a preliminary version and is based on the version for
+NeXTs.
 
 The option '-opt' allows you to specify options for the compilers (both
 C and Fortran).  For example, '-opt=-O' chooses optimized code
@@ -189,10 +210,11 @@ Known devices are chameleon,
         ch_nc     (native nCUBE calls, requires -arch=ncube),
         ch_cmmd   (native TMC CM-5 CMMD calls), and
         ch_p4     (p4)
-        ch_meiko  (For Meiko CS2, using NX compatibility library,
-                   the intent is to make this use Elan eventually)
+        ch_meiko  (for Meiko CS2, using NX compatibility library), and
+	ch_spp    (for the Convex Exemplar)
+        meiko     (for Meiko CS2, using elan tport library).
 
-Known architectures include
+Known architectures include (case is important)
         sun4      (SUN OS 4.x)
         solaris   (Solaris; probably 2.3 (untested))
         hpux      (HP UX)
@@ -233,6 +255,7 @@ HAS_FORTRAN=1
 # f90_unix_MP_iargc().
 F77GETARG="call getarg(i,s)"
 F77IARGC="iargc()"
+F90UNIX="C"
 MPI_FOBJECTS="\$(MPI_FOBJECTS)"
 CFLAGS=""
 MPE_GRAPHICS="-DMPE_GRAPHICS"
@@ -312,6 +335,11 @@ do
        fi
        COMM=`echo $package|sed s/-/_/g`	
        eval "comm_`echo $package|sed s/-/_/g`=1" 
+       # Handle possible synonyms
+       if test -n "$comm_ch_mpl" ; then
+           comm_ch_eui=1
+           COMM=ch_eui
+       fi
 	;;
 
      -device=* | --device=*)
@@ -321,7 +349,13 @@ do
          print_error "configure: $package: invalid device name" ; exit 1
        fi
        DEVICE=$package    #|sed s/-/_/g`	
-       eval "device_$package=1" ;;
+       eval "device_$package=1" 
+       # Handle possible synonyms
+       if test -n "$device_ch_mpl"; then
+           device_ch_eui=1
+           DEVICE=ch_eui
+       fi
+       ;;
 
      -devicedir=* | --devicedir=*)
        package=`echo $arg|sed 's/-*devicedir=//'`
@@ -417,6 +451,19 @@ do
 	ADI_COLL_WORLD=1
 	;;
 
+     -f77idx)
+	# Force POINTER_64_BITS definition
+	F77IDX=1
+	;;
+
+     -f90nag)
+        # Insert module 
+	F90UNIX="      use f90_unix"
+	FC=f90
+	# Still to do - make sure that the Fortran interface is correctly
+	# selected.
+        ;;
+
      -c++ | --c++)
        CPP_DIR="src/c++"
        CPP_COMPILER="g++"
@@ -451,10 +498,12 @@ do
        echo "Make will not build MPE graphics routines" ;;
 
      -x11_lib=* | --x11_lib=* )
+       USERXLIB=1
        X11LIB="`echo $arg|sed 's/-*x11_lib=//'`"
        ;;
 
      -x11_inc=* | --x11_inc=* )
+       USERXLIB=1
        X11INC="`echo $arg|sed 's/-*x11_inc=//'`"
        ;;
 
@@ -486,7 +535,7 @@ do
 	set -x 
 	;;
 
-     -u | -usage | --usage | --usag | --usa | --us | --u)
+     -u | -usage | --usage | --usag | --usa | --us | --u | -help | --help )
 	print_usage >& 2
        exit 1 ;;
 
@@ -549,7 +598,9 @@ esac
 # Save the original args to write them into config.status later.
 configure_args="$*"
 
-
+#
+# There are definitions in aclocal.m4 that must be in the same directory
+# as this configure file for autoconf to properly build configure.
 #
 # Set basic defintions based on flags set from commandline
 #
@@ -580,13 +631,14 @@ fi
 # paths of the form /tmp_mnt/... . On SOME systems, that path is
 # not recognized, and you need to strip off the /tmp_mnt. On others, 
 # it IS recognized, so you need to leave it in.  Grumble.
-# The real problem is that OTHER nodes on the same MFS system may not
+# The real problem is that OTHER nodes on the same NFS system may not
 # be able to find a directory based on a /tmp_mnt/... name.
 #
 # It is WRONG to use $PWD, since that is maintained only by the C shell,
 # and if we use it, we may find the 'wrong' directory.  To test this, we
 # try writing a file to the directory and then looking for it in the 
-# current directory
+# current directory.  Life would be so much easier if the NFS automounter
+# worked correctly.
 MPIR_TRIAL=$PWD
 if test "$MPIR_TRIAL" != "" -a -d "$MPIR_TRIAL" ; then 
     if test -r $MPIR_TRIAL/.foo ; then
@@ -637,11 +689,11 @@ MPIR_HOME=$MPIR_TRIAL
 # If it wasn't set, try to guess using "util/tarch"
 #
 if test ! -n "$ARCH" -a -x util/tarch ; then
-		echo "Trying to guess architecture ..."
+    echo "Trying to guess architecture ..."
     ARCH=`util/tarch`
-    if test ! -n "$ARCH" ; then
+    if test -z "$ARCH" ; then
        print_error "Error: Couldn't guess target architecture, you must"
-       print_error"       set an architecture type with -arch=<value>"
+       print_error "       set an architecture type with -arch=<value>"
        exit 1
     fi
     eval "arch_$ARCH=1"
@@ -654,6 +706,10 @@ fi
 if test -n "$arch_sgi5" ; then
     arch_IRIX5=1
     ARCH=IRIX
+fi
+if test -n "$arch_cray" ; then
+    arch_CRAY=1
+    ARCH=CRAY
 fi
 #
 # Check that a DEVICE was set
@@ -682,6 +738,9 @@ fi
 CC=${CC:-cc}
 CLINKER=$CC
 F77=${FC:-f77}
+if test -n "$FC" ; then
+    USERF77=1
+fi
 FLINKER=$F77
 #
 # First, check for the basic CC and Ranlib 
@@ -791,6 +850,49 @@ USER_INCLUDE_PATH=""
 USER_DEFS=""
 LIB_LIST="-lmpi"
 MPE_LIBS=""
+# Fixup for make
+
+echo $ac_n "checking gnumake""... $ac_c" 1>&1
+/bin/rm -f conftest
+cat > conftest <<.
+SHELL=/bin/sh
+ALL:
+	@(dir=`pwd` ; cd .. ; $MAKE -f \$\$dir/conftest SUB)
+SUB:
+	@echo "success"
+.
+str=`$MAKE -f conftest 2>&1`
+if test "$str" != "success" ; then
+    str=`$MAKE --no-print-directory -f conftest 2>&1`
+    if test "$str" = "success" ; then
+        MAKE="$MAKE --no-print-directory"
+	echo "$ac_t""yes using --no-print-directory" 1>&1
+    fi
+fi
+/bin/rm -f conftest
+str=""
+
+
+echo $ac_n "checking BSD 4.4 make""... $ac_c" 1>&1
+/bin/rm -f conftest
+cat > conftest <<.
+ALL:
+	@echo "success"
+.
+cat > conftest1 <<.
+include conftest
+.
+str=`$MAKE -f conftest1 2>&1`
+/bin/rm -f conftest conftest1
+if test "$str" != "success" ; then
+    echo "$ac_t""Found BSD 4.4 so-called make" 1>&1
+    echo "The BSD 4.4 make is INCOMPATIBLE with all other makes."
+    echo "Using this so-called make may cause problems when building programs."
+    echo "You should consider using gnumake instead."
+    
+fi
+str=""
+
 #
 # Check that a DEVICE was set
 if test -z "$DEVICE" ; then
@@ -878,7 +980,7 @@ if test -n "$arch_IRIX"; then
    OLD_ARCH=IRIX
    IRIXARCH="$ARCH_$osversion"
    # Now, handle the chip set
-      cputype=`echo $cputype | sed -e 's%.*/%%' -e 's/R//' | tr -d "[A-Z]" ""`
+      cputype=`echo $cputype | sed -e 's%.*/%%' -e 's/R//' | tr -d "[A-Z]"`
       case $cputype in 
 	3000) ;;
 	4000) ;;
@@ -890,9 +992,12 @@ if test -n "$arch_IRIX"; then
 	print_error " "
         uname -a 2>&1
         hinv 2>&1 
-	print_error " " 
+ 	print_error " " 
         print_error "to mpi-bugs@mcs.anl.gov" 
-	exit 1
+	print_error "MPICH will continue and assume that the cputype is"
+        print_error "compatible with a MIPS 4400 processor"
+ 	print_error " " 
+        cputype=4400
 	;;
    esac
    IRIXARCH="$IRIXARCH_$cputype"
@@ -975,7 +1080,8 @@ DEFS="$DEFS -DMPID_HAS_HETERO=1"
 
       IS_HETERO=1
   fi 
-  if test -n "$comm_eui" -o -n "$comm_mpl" ; then
+  if test -z "$USERCC" -a \( -n "$comm_eui" -o -n "$comm_mpl" \) ; then
+      CLINKERval=
       for p in mpCC mpcc
 do
 if test -z "$CLINKERval"; then
@@ -1104,10 +1210,12 @@ if test -n "$device_ch_nx"; then
   if test -z "$USERCC" ; then
       CC=icc
   fi
-  F77=if77
+  if test -z "$USERF77" ; then
+      F77=if77
+  fi
   GCC=""
-  CLINKER=icc
-  FLINKER=if77
+  CLINKER=$CC
+  FLINKER=$F77
   # If this version of the intel compiler accepts the -nx flag, use it.
   if icc -nx > /dev/null 2>&1 ; then
     LIB_LIST="$LIB_LIST -nx"
@@ -1122,16 +1230,24 @@ if test -n "$device_ch_shmem"; then
   if test -n "$arch_solaris" ; then
     LIB_LIST="$LIB_LIST -lthread"
   fi
+  if test -n "$arch_ksr" ; then
+    LIB_LIST="$LIB_LIST -lrpc"
+  fi
+  if test -n "$arch_alpha" ; then
+    LIB_LIST="$LIB_LIST -lrpc"
+  fi
 fi
 
 if test -n "$device_ch_nc"; then
   if test -z "$USERCC" ; then
      CC=ncc
   fi
-  F77=nf77
+  if test -z "$USERF77" ; then
+     F77=nf77
+  fi
   GCC=""
-  CLINKER=ncc
-  FLINKER=nf77
+  CLINKER=$CC
+  FLINKER=$F77
   AR="nar cr"
   #RANLIB=true
 fi
@@ -1140,23 +1256,95 @@ if test -n "$device_ch_cmmd"; then
   if test -z "$USERCC" ; then
      CC=cc
   fi
-  # TMC Told us this should be f77	
-  F77=f77      
+  # TMC Told us this should be f77
+  if test -z "$USERF77" ; then	
+     F77=f77      
+  fi
   GCC=""
-  CLINKER="cmmd-ld -comp cc"
-  FLINKER="cmmd-ld -comp f77"
+  CLINKER="cmmd-ld -comp $CC"
+  FLINKER="cmmd-ld -comp $F77"
   AR="ar cr"
   #RANLIB=ranlib
 fi
 
+#
+# Choice of compilers on CS-2 is hard.
+# There are many possible options
+# PGI compilers   : good if you are on vector nodes (for f77 at least)
+# Sunpro compilers: likely to be around somewhere.
+# Apogee compilers: produce fast code.
+#
+# Unless the user told us, we try apcc, cc, pgcc in that order
+#
 if test -n "$device_ch_meiko"; then
   if test -z "$USERCC" ; then
-      CC=pgcc
+      # /opt/SUNWspro/bin/cc,/opt/apogee/bin/apcc,/opt/PGI/bin/cc,
+      # /opt/gcc/bin/gcc
+      CCval=''
+      for p in cc apcc pgcc gcc
+do
+if test -z "$CCval"; then
+  # Extract the first word of `$p', so it can be a program name with args.
+  set dummy $p; word=$2
+  echo checking for $word
+  IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+  for dir in $PATH; do
+    test -z "$dir" && dir=.
+    if test -f $dir/$word; then
+      CCval="$p"
+      break
+    fi
+  done
+  IFS="$saveifs"
+fi
+
+test -n "$CCval" && test -n "$verbose" && echo "	setting CCval to $CCval"
+
+test -n "$CCval" && break
+done
+
+      if test -z "$CCval" ; then
+          print_error "Could not find a C compiler"
+	  exit 1
+      elif test "$CCVal" = "cc" ; then
+          CC="cc -g -xcg92"
+	  F77="f77 -g -cg92"
+      else
+	  CC=$CCval
+      fi
   fi
-  F77=pgf77
+  if test -z "$USERFC" ; then
+      for p in f77 apf77 pgf77
+do
+if test -z "$FCval"; then
+  # Extract the first word of `$p', so it can be a program name with args.
+  set dummy $p; word=$2
+  echo checking for $word
+  IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+  for dir in $PATH; do
+    test -z "$dir" && dir=.
+    if test -f $dir/$word; then
+      FCval="$p"
+      break
+    fi
+  done
+  IFS="$saveifs"
+fi
+
+test -n "$FCval" && test -n "$verbose" && echo "	setting FCval to $FCval"
+
+test -n "$FCval" && break
+done
+
+      if test -n "$FCval" -a "$FCval" = f77 ; then
+	F77="f77 -g -cg92"
+      else
+        F77="$FCval"
+      fi
+  fi
   GCC=""
-  CLINKER=pgcc
-  FLINKER=pgf77
+  CLINKER="$CC"
+  FLINKER="$F77"
   # Jim Cownie claims that -laio is no longer needed ...
   if test -s /opt/MEIKOcs2/lib/libmpsc.a ; then
       LIB_LIST="$LIB_LIST -L/opt/MEIKOcs2/lib -lmpsc -lew -lelan"
@@ -1170,7 +1358,8 @@ if test -n "$device_ch_meiko"; then
   DEVCFLAGS="$DEVCFLAGS -I/opt/MEIKOcs2/include"
   # These were recommended by Jim Cownie
   if test -z "$OPTFLAGS" ; then
-      OPTFLAGS="-xcg92 -xO2"
+#      OPTFLAGS="-xcg92 -xO2"
+       OPTFLAGS="-O"
   fi
   AR="ar cr"
   #RANLIB=true
@@ -1178,13 +1367,26 @@ fi
 
 if test -n "$device_meiko"; then
   if test -z "$USERCC" ; then
-      CC=pgcc
+      if test -x "/opt/SUNWspro/bin/cc" ; then
+          CC="cc -g -xcg92"
+	  F77="f77 -g -cg92"
+      elif test -x "/opt/apogee/bin/apcc" ; then
+          CC=apcc
+	  F77=apf77
+      elif test -x "/opt/PGI/bin/cc" ; then
+          CC=pgcc
+	  F77=pgf77
+      elif test -x "/opt/gcc/bin/gcc" ; then
+          CC=gcc
+          F77=
+      else
+          print_error "Could not find a C compiler"
+	  exit 1
+      fi
   fi
-  F77=pgf77
   GCC=""
-  CLINKER=pgcc
-  FLINKER=pgf77
-  # Jim Cownie claims that -laio is no longer needed ...
+  CLINKER="$CC"
+  FLINKER="$F77"
   if test -s /opt/MEIKOcs2/lib/libew.a ; then
       LIB_LIST="$LIB_LIST -L/opt/MEIKOcs2/lib -lew -lelan"
   else
@@ -1197,22 +1399,14 @@ if test -n "$device_meiko"; then
   DEVCFLAGS="$DEVCFLAGS -I/opt/MEIKOcs2/include"
   # These were recommended by Jim Cownie
   if test -z "$OPTFLAGS" ; then
-      OPTFLAGS="-xcg92 -xO2"
+#      OPTFLAGS="-xcg92 -xO2"
+      OPTFLAGS="-O"
   fi
   AR="ar cr"
   #RANLIB=true
 fi
 
-#
-# -device gives the directory in mpid; -comm gives the directory in libs.
 # We require ch_euih as the COMM for the euih version
-# First, handle possible synonyms
-if test -n "$device_ch_mpl"; then
-    device_ch_eui=1
-fi
-if test -n "$comm_ch_mpl" ; then
-    comm_ch_eui=1
-fi
 if test -n "$device_ch_eui"; then
   if test -n "$comm_ch_euih" ; then 
      # This is for the Yorktown EUI-H (sometimes known as MPLp).
@@ -1220,10 +1414,12 @@ if test -n "$device_ch_eui"; then
      if test -z "$USERCC" ; then
          CC="xlc -Deuih"
      fi
-     F77=xlf
+     if test -z "$USERF77" ; then
+         F77=xlf
+     fi
      GCC=""
-     CLINKER=xlc
-     FLINKER=xlf
+     CLINKER=$CC
+     FLINKER=$F77
      AR="ar cr$AR_LOCAL"
      #RANLIB="ranlib"
      if test -s /usr/lpp/euih/eui/eui.exp ; then
@@ -1239,7 +1435,8 @@ if test -n "$device_ch_eui"; then
      # This is intended for the Standard POE/MPL version
      # May want to select mpCC instead
      if test -z "$USERCC" ; then
-         for p in mpCC mpcc
+	 CCval=
+         for p in mpCC mpcc "$CC"
 do
 if test -z "$CCval"; then
   # Extract the first word of `$p', so it can be a program name with args.
@@ -1263,6 +1460,11 @@ done
 
          if test -n "$CCval" ; then
 	    CC=$CCval
+	    if test "$CC" = mpcc ; then 
+	        TESTCC=xlc
+	    elif test "$CC" = mpCC ; then
+        	TESTCC=xlC
+	    fi
          else
             echo "Could not find mpCC or mpcc!"
 	    exit 1
@@ -1271,8 +1473,10 @@ done
      CLINKER=$CC
      CONFIGURE_ARGS_CLEAN="`echo $CONFIGURE_ARGS_CLEAN | tr ' ' '_'`"
      GCC=""
-     F77=mpxlf
-     FLINKER=mpxlf
+     if test -z "$USERF77" ; then
+         F77=mpxlf
+     fi
+     FLINKER=$F77
      AR="ar cr$AR_LOCAL"
      #RANLIB="ranlib"
   fi
@@ -1281,6 +1485,81 @@ fi
 # Shared-memory (processes) device.  Only need to set mpirun default machine.
 if test -n "$device_ch_shmem" ; then
    DEFAULT_MACHINE="smp"
+   # Check for MMAP
+   SAVEDEFS="$DEFS"
+   DEFS=""
+   for func in mmap
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+echo checking for ${func}
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+fi
+rm -f conftest*
+done
+
+   if test -z "$arch_solaris" -a -z "$arch_IRIX" ; then
+       for func in gettimeofday
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+echo checking for ${func}
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
+}
+
+
+fi
+rm -f conftest*
+done
+
+   fi
+   DEV_DEFS="$DEFS"
+   DEFS="$SAVEDEFS"
 fi
 
 if test -n "$device_ch_p4"; then
@@ -1334,7 +1613,7 @@ if test -n "$device_ch_p4"; then
 	    -e 's/IRIX/SGI/g'            -e 's/hpux/HP/g'          \
 	    -e 's/solaris/SUN_SOLARIS/g' -e 's/c2mp/CONVEX/g'      \
 	    -e 's/alpha/ALPHA/g'         -e 's/dec5000/DEC5000/g'  \
-	    -e 's/NeXT/NEXT/g'           -e 's/paragon/PARAGON/g'  \
+	    -e 's/NeXT/NEXT/g'           -e 's/paragon/PARAGONIP/g'  \
 	    -e 's/inteldelta/DELTA/g'    -e 's/symmetry/SYMMETRY/g'\
 	    -e 's/cray/CRAY/g'           -e 's/tc2000/TC_2000/g'   \
 	    -e 's/ksr/KSR/g'             -e 's/freebsd/FREEBSD/g'  \
@@ -1345,9 +1624,18 @@ echo "Done setting p4arch..."
 #
 echo "Configuring p4 subsystem..."
 # Make sure that the lib Makefile gets remade
-  (cd mpid/ch_p4/p4-1.4 ; ./configure -p4arch=$P4_ARCH -p4make=$MAKE)
-  if test $? != 0 ; then
-      print_error "Configure of the p4 sub-system may have failed"
+  if test "$USERCC" = 1 ; then 
+      (cd mpid/ch_p4/p4-1.4 ; \
+	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" -cc="$CC" )
+      if test $? != 0 ; then
+          print_error "Configure of the p4 sub-system may have failed"
+      fi
+    else
+      (cd mpid/ch_p4/p4-1.4 ; \
+	./configure -p4arch=$P4_ARCH -p4make="$MAKE" -opt="$OPTFLAGS" )
+      if test $? != 0 ; then
+          print_error "Configure of the p4 sub-system may have failed"
+      fi
   fi
   P4_MDEPLIBS=`$MAKE -f mpid/ch_p4/p4-1.4/lib/Makefile p4mdeplibs | grep -v make`
   LIB_LIST="$LIB_LIST $P4_MDEPLIBS"
@@ -1428,12 +1716,15 @@ if test -n "$arch_intelnx"; then
   if test -z "$USERCC" ; then
       CC=icc
   fi
-  F77=if77
+  if test -z "$USERF77" ; then
+      F77=if77
+  fi
   GCC=""
-  CLINKER=icc
-  FLINKER=if77
+  CLINKER=$CC
+  FLINKER=$F77
   AR="ar860 crl"
-  #RANLIB=true
+  # Note that RANLIB may be set incorrectly if we are cross-compiling...
+  RANLIB=true
   # inteldelta is used to select the appropriate args to killproc...
   DEVCFLAGS="$DEVCFLAGS -Dinteldelta"
   #
@@ -1447,13 +1738,16 @@ if test -n "$arch_paragon"; then
   if test -z "$USERCC" ; then
       CC=icc
   fi
-  F77=if77
+  if test -z "$USERF77" ; then
+      F77=if77
+  fi
   GCC=""
-  CLINKER=icc
-  FLINKER=if77
+  CLINKER=$CC
+  FLINKER=$F77
   #OPTFLAGS="-O"
   AR="ar860 crl"
-  #RANLIB=true
+  # Note that RANLIB may be set incorrectly if we are cross-compiling...
+  RANLIB=true
   #echo "If you get errors about killproc, uncomment this line"
   #DEVCFLAGS="$DEVCFLAGS -DPARAGON_HAS_NO_KILLPROC"
 fi
@@ -1461,7 +1755,11 @@ fi
 
 if test -n "$arch_CRAY"; then
    # The Fortran compiler might be cf77 or f77
-   for p in cf77 f77
+   if test -z "$USERF77" ; then
+       # This wierd function uses the VALUE of the first argument before
+       # the second!
+       F77=	
+       for p in cf77 f77
 do
 if test -z "$F77"; then
   # Extract the first word of `$p', so it can be a program name with args.
@@ -1483,6 +1781,7 @@ test -n "$F77" && test -n "$verbose" && echo "	setting F77 to $F77"
 test -n "$F77" && break
 done
 
+   fi
    FLINKER="$F77"
    # The CRAY cp doesn't even support -r (!!) but at least there 
    # is a version that does work.
@@ -1493,20 +1792,49 @@ done
        print_error "switches are not supported."
    fi
    # It might be better to use AR="bld qvz" than the regular ar clr
+   DEVCFLAGS="$DEVCFLAGS -DMPID_FLOAT_CRAY"
 fi
 
 #
-# The T3D version is untested; this simply gives us a place to put the
-# information that we've uncovered about using the T3D.
+# The compilers are in /mpp/bin (at least on some systems)
+# You may also need 
+# setenv TARGET cray-t3d
+# Also need -lsma library
 if test -n "$arch_cray_t3d"; then
+   DEFAULT_MACHINE="cray_t3d"
    # The Fortran compiler might be cf77
-   F77="cf77"
-   FLINKER="mppldr"
-   CLINKER="mppldr"
+   if test -z "$USERCC" ; then
+	CC="/mpp/bin/cc"
+   fi
+   if test -z "$USERF77" ; then
+       	F77="/mpp/bin/cf77"
+   fi
+   #  
+   LIB_LIST="$LIB_LIST -lsma"
+   CFLAGS="$CFLAGS -Tcray-t3d"
+# The dp switch on the following lines allows compilation of "double precision"
+# at the cost of violating the Fortran standard
+   print_error Setting double precision to be the same as real, in violation 
+   print_error of the Fortran standard.  This is needed because Cray Fortran 
+   print_error for the T3D does not support double precision and hence is 
+   print_error not actually Fortran.
+   FFLAGS="$FFLAGS -Ccray-t3d -dp"
+   F77GETARG="call pxfgetarg(i,s,1,ierr)"
+#   FLINKER="mppldr"
+#   CLINKER="mppldr"
+   FLINKER="$F77 -Ccray-t3d"
+   CLINKER="$CC -Tcray-t3d"
    RANLIB=true
    # The CRAY cp doesn't even support -r (!!) but at least there 
    # is a version that does work.
-   CPRP="/usr/ucb/cp"
+   if test -x /usr/ucb/cp ; then
+       CPRP="/usr/ucb/cp"
+   else
+       print_error "Using default cp for copy; install may fail if -r and -p"
+       print_error "switches are not supported."
+   fi
+   ASMFILES_O=shmem_stack.o
+   ASM="/mpp/bin/cam"
 fi
 
 # In default (pre-ANSI) mode, nested #if's cause most of the file to
@@ -1571,7 +1899,7 @@ rm -f conftest*
 #    print_error "interpret it as +U, followed by an unrecognized 7."
 fi
 
-if test -n "$arch_UPXM" ; then
+if test -n "$arch_UXPM" ; then
     # This asserts that Fortran passes functions by passing the address of the
     # pointer to the function.
     
@@ -1583,6 +1911,11 @@ DEFS="$DEFS -DFORTRAN_SPECIAL_FUNCTION_PTR=1"
 }
 
 fi
+
+if test -n "$arch_alpha" ; then
+   CFLAGS="$CFLAGS -DDBX_IS_OSF"
+fi
+
 #
 # check whether --comm=p4 was given
 if test -n "$comm_p4"; then
@@ -1602,7 +1935,7 @@ if test -n "$comm_p4"; then
 	  -e 's/IRIX/SGI/g'            -e 's/hpux/HP/g'          \
 	  -e 's/solaris/SUN_SOLARIS/g' -e 's/c2mp/CONVEX/g'      \
 	  -e 's/alpha/ALPHA/g'         -e 's/dec5000/DEC5000/g'  \
-	  -e 's/NeXT/NEXT/g'           -e 's/paragon/PARAGON/g'  \
+	  -e 's/NeXT/NEXT/g'           -e 's/paragon/PARAGONIP/g'  \
 	  -e 's/inteldelta/DELTA/g'    -e 's/symmetry/SYMMETRY/g'\
 	  -e 's/cray/CRAY/g'           -e 's/tc2000/TC_2000/g'   \
           -e 's/ksr/KSR/g'             -e 's/freebsd/FREEBSD/g'  \
@@ -1715,6 +2048,7 @@ fi
 if test -n "$arch_rs6000" -a ! -n "$device_ch_eui" -a ! -n "$comm_eui" ; then
   # We may want to look for xlC...
   if test -z "$USERCC" ; then
+      CCval=
       for p in xlC xlc cc
 do
 if test -z "$CCval"; then
@@ -1742,8 +2076,10 @@ done
       fi
   fi
   CLINKER=$CC
-  F77=xlf
-  FLINKER=xlf
+  if test -z "$USERF77" ; then
+      F77=xlf
+  fi
+  FLINKER=$F77
   GCC=""
 fi
 cross_compiling=0
@@ -1761,6 +2097,11 @@ else
 fi
 rm -fr conftest*
 
+if test $cross_compiling = 1 ; then
+    if test $DEVICE = ch_shmem -o $DEVICE = ch_p4 -o $DEVICE = ch_tcp ; then
+        print_error "Configure was unable to compile and run a simple program."
+    fi
+fi
 # 
 # Tests for X etc should go here ...
 #
@@ -1774,8 +2115,9 @@ X_LIB=""
 if test -n "$MPE_DIR"; then
   MPE_DIR="$MPIR_HOME/$MPE_DIR"
   if test -n "$MPE_GRAPHICS"; then
-    # FIND_X doesn't always work correctly when cross compiling, so we
-    # try to be more careful and conservative
+   # FIND_X doesn't always work correctly when cross compiling, so we
+   # try to be more careful and conservative
+   if test -z "$USERXLIB" ; then 
     if test $cross_compiling = 0 ; then 
        # If we find X, set shell vars x_includes and x_libraries to the paths.
 no_x=true
@@ -1903,9 +2245,9 @@ fi
        echo checking for X11 headers
 cat > conftest.c <<EOF
 #include "confdefs.h"
-#include <X11.h>
+#include <X11/Xlib.h>
 int main() { exit(0); }
-int t() { main(); }
+int t() {  }
 EOF
 if eval $compile; then
   rm -rf conftest*
@@ -1941,12 +2283,13 @@ fi
 
        fi
        if test -n "$no_x" ; then
-         print_error  " " 
+         print_error " " 
          print_error "X11 is not used when cross compiling (because of the"
          print_error "difficulties in finding the correct libraries)"
          print_error " "
        fi
      fi
+   fi
   fi
   if test -n "$MPE_GRAPHICS" -a -z "$no_x" ; then
     MPE_LIBS="-lmpe -lX11 -lm"
@@ -1980,6 +2323,7 @@ fi
 #
 # Check for remote shell program
 #
+RSH_COMMAND=
 for p in remsh rsh
 do
 if test -z "$RSH_COMMAND"; then
@@ -2005,22 +2349,37 @@ done
 #
 # Check that the Fortran compiler is actually available:
 if test $NOF77 = 0 ; then
-    if test -z "$HAS_F77"; then
-  # Extract the first word of `$F77', so it can be a program name with args.
-  set dummy $F77; word=$2
-  echo checking for $word
-  IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
-  for dir in $PATH; do
-    test -z "$dir" && dir=.
-    if test -f $dir/$word; then
-      HAS_F77="1"
-      break
-    fi
-  done
-  IFS="$saveifs"
+    HAS_F77=
+    # Extract the first word of "$F77", so it can be a program name with args.
+set dummy $F77; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&1
+ac_prog_where=""
+if test -n "$HAS_F77"; then
+  ac_cv_prog_HAS_F77="$HAS_F77" # Let the user override the test.
+else
+  ac_first_char=`expr "$F77" : "\(.\)"`
+  if test "$ac_first_char" = "/" -a -x $F77 ; then
+       ac_cv_prog_HAS_F77="1"
+       ac_prog_where=$F77
+  else
+      IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS="${IFS}:"
+      for ac_dir in $PATH; do
+        test -z "$ac_dir" && ac_dir=.
+        if test -f $ac_dir/$ac_word; then
+          ac_cv_prog_HAS_F77="1"
+          ac_prog_where=$ac_dir/$ac_word
+          break
+        fi
+      done
+      IFS="$ac_save_ifs"
+  fi
+  test -z "$ac_cv_prog_HAS_F77" && ac_cv_prog_HAS_F77="0"
+fi;HAS_F77="$ac_cv_prog_HAS_F77"
+if test -n "$ac_prog_where" ; then
+  echo "$ac_t""found $ac_prog_where ($HAS_F77)" 1>&1
+else
+  echo "$ac_t""no" 1>&1
 fi
-test -z "$HAS_F77" && HAS_F77="0"
-test -n "$HAS_F77" && test -n "$verbose" && echo "	setting HAS_F77 to $HAS_F77"
 
 else
     HAS_F77=0
@@ -2040,50 +2399,100 @@ elif test $HAS_F77 = 1 ; then
    # force a particular form.  This is particularly useful in systems
    # where a Fortran compiler option is used to force a particular
    # external name format (rs6000 xlf, for example).
-   (cd src/env ; $F77 $FFLAGS -c initfcmn.f > /dev/null 2>&1 )
-   if test $arch_CRAY ; then
-   # Cray doesn't accept -a ...
-   nameform=`strings src/env/initfcmn.o | grep -i mpir_init_fop | head -1`
-   else
-   nameform=`strings -a src/env/initfcmn.o | grep -i mpir_init_fop | head -1`
-   fi
-   /bin/rm -f src/env/initfcmn.o
-   case $nameform in 
-       MPIR_INIT_FOP | _MPIR_INIT_FOP)
-	echo "Fortran externals are uppercase"     
-	WDEF=-DFORTRANCAPS 
-	CFLAGS="$CFLAGS $WDEF"
-	;;
-       mpir_init_fop_ | _mpir_init_fop_)   
-	 # We don't set this in CFLAGS; it is a default case
-        echo "Fortran externals have a trailing underscore and are lowercase"
-	WDEF=-DFORTRANUNDERSCORE ;;
-
-       mpir_init_fop | _mpir_init_fop)     
-	echo "Fortran externals are lower case"
-	WDEF=-DFORTRANNOUNDERSCORE 
-	CFLAGS="$CFLAGS $WDEF"
-	;;
-
-           # Fortran no underscore is the "default" case for the wrappers; 
-	   # having this defined allows us to have an explicit test, 
-	   # particularly since the most common UNIX case is FORTRANUNDERSCORE
-       mpir_init_fop__ | _mpir_init_fop__)  
-	echo "Fortran externals are lower case and have 1 or 2 trailing underscores"
-	WDEF=-DFORTRANDOUBLEUNDERSCORE
-        CFLAGS="$CFLAGS $WDEF"
-        ;;
-
-       *)
-	print_error "Unable to determine the form of Fortran external names"
-	print_error "If you have problems linking, try using the -nof77 option"
-        print_error "to configure and rebuild MPICH."
+   (cd src/env ; /bin/rm -f initfcmn.o ; \
+	$F77 $FFLAGS -c initfcmn.f > /dev/null 2>&1 )
+   if test ! -s src/env/initfcmn.o ; then
+        print_error "Unable to test Fortran compiler"
+        print_error "(compiling a test program failed to produce an "
+        print_error "object file).  You can make the same test as "
+        print_error "configure just used with "
+        print_error "(cd src/env ; $F77 $FFLAGS -c initfcmn.f )"
 	NOF77=1
         HAS_FORTRAN=0
         CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
         MPI_FOBJECTS="" 
-	;;
-   esac
+   else
+    # We have to be careful here, since the name may occur in several
+    # forms.  We try to handle this by testing for several forms
+    # directly.
+    if test $arch_CRAY ; then
+     # Cray doesn't accept -a ...
+     nameform1=`strings src/env/initfcmn.o | grep mpir_init_fop_  | head -1`
+     nameform2=`strings src/env/initfcmn.o | grep MPIR_INIT_FOP   | head -1`
+     nameform3=`strings src/env/initfcmn.o | grep mpir_init_fop   | head -1`
+     nameform4=`strings src/env/initfcmn.o | grep mpir_init_fop__ | head -1`
+    else
+     nameform1=`strings -a src/env/initfcmn.o | grep mpir_init_fop_  | head -1`
+     nameform2=`strings -a src/env/initfcmn.o | grep MPIR_INIT_FOP   | head -1`
+     nameform3=`strings -a src/env/initfcmn.o | grep mpir_init_fop   | head -1`
+     nameform4=`strings -a src/env/initfcmn.o | grep mpir_init_fop__ | head -1`
+    fi
+    /bin/rm -f src/env/initfcmn.o
+    if test -n "$nameform4" ; then
+	echo "Fortran externals are lower case and have 1 or 2 trailing underscores"
+	WDEF=-DFORTRANDOUBLEUNDERSCORE
+        CFLAGS="$CFLAGS $WDEF"
+    elif test -n "$nameform1" ; then
+        # We don't set this in CFLAGS; it is a default case
+        echo "Fortran externals have a trailing underscore and are lowercase"
+	WDEF=-DFORTRANUNDERSCORE
+	CFLAGS="$CFLAGS $WDEF"
+    elif test -n "$nameform2" ; then
+	echo "Fortran externals are uppercase"     
+	WDEF=-DFORTRANCAPS 
+	CFLAGS="$CFLAGS $WDEF"
+    elif test -n "$nameform3" ; then
+	echo "Fortran externals are lower case"
+	WDEF=-DFORTRANNOUNDERSCORE 
+	CFLAGS="$CFLAGS $WDEF"
+    else
+	print_error "Unable to determine the form of Fortran external names"
+	print_error "Make sure that the compiler $F77 can be run on this system"
+#	print_error "If you have problems linking, try using the -nof77 option"
+#        print_error "to configure and rebuild MPICH."
+	print_error "Turning off Fortran (-nof77 being assumed)."
+	NOF77=1
+        HAS_FORTRAN=0
+        CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
+        MPI_FOBJECTS="" 
+    fi
+#   case $nameform in 
+#       MPIR_INIT_FOP | _MPIR_INIT_FOP)
+#	echo "Fortran externals are uppercase"     
+#	WDEF=-DFORTRANCAPS 
+#	CFLAGS="$CFLAGS $WDEF"
+#	;;
+#       mpir_init_fop_ | _mpir_init_fop_)   
+#	 # We don't set this in CFLAGS; it is a default case
+#        echo "Fortran externals have a trailing underscore and are lowercase"
+#	WDEF=-DFORTRANUNDERSCORE ;;
+#
+#       mpir_init_fop | _mpir_init_fop)     
+#	echo "Fortran externals are lower case"
+#	WDEF=-DFORTRANNOUNDERSCORE 
+#	CFLAGS="$CFLAGS $WDEF"
+#	;;
+#
+#           # Fortran no underscore is the "default" case for the wrappers; 
+#	   # having this defined allows us to have an explicit test, 
+#	   # particularly since the most common UNIX case is FORTRANUNDERSCORE
+#       mpir_init_fop__ | _mpir_init_fop__)  
+#	echo "Fortran externals are lower case and have 1 or 2 trailing underscores"
+#	WDEF=-DFORTRANDOUBLEUNDERSCORE
+#        CFLAGS="$CFLAGS $WDEF"
+#        ;;
+#
+#       *)
+#	print_error "Unable to determine the form of Fortran external names"
+#	print_error "If you have problems linking, try using the -nof77 option"
+#        print_error "to configure and rebuild MPICH."
+#	NOF77=1
+#        HAS_FORTRAN=0
+#        CFLAGS="$CFLAGS -DMPID_NO_FORTRAN"
+#        MPI_FOBJECTS="" 
+#	;;
+#   esac
+    fi
 fi
 #
 # Check for xdr available and properly installed (our FreeBSD machines
@@ -2220,23 +2629,101 @@ rm -f conftest*
 
 SAVEDEFS="$DEFS"
 DEFS=""
-for hdr in stdlib.h
+for ac_hdr in stdlib.h
 do
-trhdr=HAVE_`echo $hdr | tr '[a-z]./' '[A-Z]__'`
-echo checking for ${hdr}
+ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&1
 cat > conftest.c <<EOF
 #include "confdefs.h"
-#include <${hdr}>
+#include <$ac_hdr>
+int main() { exit(0); }
+int t() { main(); }
 EOF
-err=`eval "($CPP conftest.c >/dev/null) 2>&1"`
-if test -z "$err"; then
+if eval $compile; then
   rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=yes"
+
+else
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=no"
+fi
+rm -f conftest*
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&1
+    ac_tr_hdr=HAVE_`echo $ac_hdr | tr '[a-z]./' '[A-Z]__'`
   
 {
 test -n "$verbose" && \
-echo "	defining ${trhdr}"
-echo "#define" ${trhdr} 1 >> confdefs.h
-DEFS="$DEFS -D${trhdr}=1"
+echo "	defining $ac_tr_hdr"
+echo "#define" $ac_tr_hdr 1 >> confdefs.h
+DEFS="$DEFS -D$ac_tr_hdr=1"
+}
+ 
+else
+  echo "$ac_t""no" 1>&1
+fi
+done
+
+echo $ac_n "checking for malloc return type""... $ac_c" 1>&1
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <stdlib.h>
+int main() { exit(0); }
+int t() { extern void *malloc(); }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  eval "ac_cv_malloc=void"
+
+else
+  rm -rf conftest*
+  eval "ac_cv_malloc=char"
+fi
+rm -f conftest*
+
+echo "$ac_t""$ac_cv_malloc" 1>&1
+if test "$ac_cv_malloc" = void ; then
+    
+{
+test -n "$verbose" && \
+echo "	defining MALLOC_RET_VOID"
+echo "#define" MALLOC_RET_VOID 1 >> confdefs.h
+DEFS="$DEFS -DMALLOC_RET_VOID=1"
+}
+
+fi
+
+USER_DEFS="$USER_DEFS $DEFS"
+DEFS="$SAVEDEFS $DEFS"
+#
+# System is used only in MPE; i860's do not support it.
+for func in system
+do
+trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
+echo checking for ${func}
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <ctype.h>
+int main() { exit(0); }
+int t() { 
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_${func}) || defined (__stub___${func})
+choke me
+#else
+/* Override any gcc2 internal prototype to avoid an error.  */
+extern char ${func}(); ${func}();
+#endif
+ }
+EOF
+if eval $compile; then
+  rm -rf conftest*
+  {
+test -n "$verbose" && \
+echo "	defining ${trfunc}"
+echo "#define" ${trfunc} 1 >> confdefs.h
+DEFS="$DEFS -D${trfunc}=1"
 }
 
 
@@ -2244,11 +2731,9 @@ fi
 rm -f conftest*
 done
 
-USER_DEFS="$USER_DEFS $DEFS"
-DEFS="$SAVEDEFS $DEFS"
 #
-# System is used only in MPE; i860's do not support it.
-for func in system
+# Nice is used only in env/init.c
+for func in nice
 do
 trfunc=HAVE_`echo $func | tr '[a-z]' '[A-Z]'`
 echo checking for ${func}
@@ -2291,214 +2776,101 @@ if test $NOF77 = 1 ; then
   F77=true
   FLINKER=true
 fi
+#
+#
+# Check for erroneous C compilers
 broken=0
-if test $cross_compiling = 0 ; then
-    echo "Testing for correct handling of conditionals..."
-    cat > conftest.c <<EOF
-#include "confdefs.h"
-main(){exit(recur(0,1));}recur(a,b)int a,b;{int c;
-    c = 0; if ((b!=1)&&(c=1)) return c; return c;}
-EOF
-eval $compile
-if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  broken=0
-
-else
-  broken=1
+do_test=1
+TESTCC="$CC"
+if test $cross_compiling = 1 ; then
+   if test "$CC" = mpcc ; then 
+	TESTCC=xlc
+   elif test "$CC" = mpCC ; then
+        TESTCC=xlC
+   else
+        do_test=0
+   fi
 fi
-rm -fr conftest*
-else
-    # we can test for rs6000 (which is the case that failed...)
-    if test "$CC" = mpcc ; then
-        echo "Testing for correct handling of conditionals..."
-	CC=xlc
-        cat > conftest.c <<EOF
-#include "confdefs.h"
-main(){exit(recur(0,1));}recur(a,b)int a,b;{int c=0;
-	    if ((b!=1)&&(c=1)) return c; return c;}
-EOF
-eval $compile
-if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  broken=0
-
-else
-  broken=1
-fi
-rm -fr conftest*
-	CC=mpcc
-    elif test "$CC" = mpCC ; then
-        echo "Testing for correct handling of conditionals..."
-	CC=xlC
-        cat > conftest.c <<EOF
-#include "confdefs.h"
-main(){exit(recur(0,1));}recur(a,b)int a,b;{int c=0;
-	    if ((b!=1)&&(c=1)) return c; return c;}
-EOF
-eval $compile
-if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  broken=0
-
-else
-  broken=1
-fi
-rm -fr conftest*
-	CC=mpCC
-    fi
-fi
-if test $broken = 1 ; then
-    print_error "******************************************************************"
-    print_error "*             YOUR C COMPILER IS FATALLY BROKEN!!!!!!            *"
-    print_error "*                                                                *"
-    print_error "* The C language requires that in the condition                  *"
-    print_error "* (a) && (b)                                                     *"
-    print_error "* if the condition (a) is false, the condition (b) is NOT        *"
-    print_error "* evaluated.  Your compiler is evaluating (b) when (a) is false  *"
-    print_error "* The test program is                                            *"
-    print_error "* main()                                                         *"
-    print_error "* {exit(recur(0,1));}                                            *"
-    print_error "* recur(a,b)                                                     *"
-    print_error "* int a,b;                                                       *"
-    print_error "* {int c=0;                                                      *"
-    print_error "* if ((b!=1)&&(c=1)) return c; return c;                         *"
-    print_error "* }                                                              *"
-    print_error "*                                                                *"
-    print_error "* Notes:  The second test is an assignment (=) not an equality   *"
-    print_error "* (==) test.  This construction is used in MPICH's error testing *"
-    print_error "* code to simplify and standardize MPICHs own error testing.     *"
-    print_error "*                                                                *"
-    print_error "* Please file a bug report with your vendor.  You may use the    *"
-    print_error "* program above (or this entire note) in your report             *"
-    print_error "*                                                                *"
-    print_error "* Because MPICH's internal error testing depends on this         *"
-    print_error "* construction being handled correctly, it is not possible to    *"
-    print_error "* complete the configuration of MPICH for this machine.          *"
-    print_error "*                                                                *"
-    if test "$ARCH" = "rs6000" ; then
-    print_error "* If you are using xlc 01.03.00.00, you should update to at      *"
-    print_error "* least 01.03.00.02, which is rumored to correct this problem    *"
-    print_error "* (we have not confirmed this and are still awaiting our update).*"
-    print_error "* To determine your version, try the command                     *"
-    print_error "* lslpp -p 'xlccmp.*'                                            *"
-    print_error "* (The exact format of this command depends on what version of   *"
-    print_error "* AIX you are running; this worked for us.)                      *"
-    print_error "*                                                                *"
-    fi 
-    print_error "******************************************************************"
-    exit 1
-fi
+# 
+# Should eventually use a file like $file.run to see if the program should
+# be run or just compiled.
 #
-# Later versions of xlc fix the above problem but introduce another.  Test for
-# IT 
-#
-echo "Testing for correct handling of conditionals part 2 ..."
+
+echo $ac_n "checking that the compiler $CC runs""... $ac_c" 1>&1
 cat > conftest.c <<EOF
-typedef struct M { 
-    int c;
-    };
+#include "confdefs.h"
 
-int Msize ( d, size )
-struct M  *d;
-long  *size;
-{
-int m;
-if (( ( d->c != 1 ) && (m = 2 )) || (!(size) && (m = 6))) 
-    return m; 
-return 0; 
-}
+int main() { exit(0); }
+int t() {  }
 EOF
-compileonly='${CC-cc} -c $CFLAGS conftest.c >/dev/null 2>&1'
-if eval $compileonly ; then
-    broken=0
+if eval $compile; then
+  rm -rf conftest*
+  eval "ac_cv_ccworks=yes"
+
 else
-    broken=1;
-fi
-if test $broken = 1 ; then
-    print_error "******************************************************************"
-    print_error "*             YOUR C COMPILER IS FATALLY BROKEN!!!!!!            *"
-    print_error "*                                                                *"
-    print_error "* We have detected that your compiler can not properly process   *"
-    print_error "* certain conditional statements.  The test program is           *"
-    print_error "* typedef struct M {                                             *"
-    print_error "* int c;                                                         *"
-    print_error "* };                                                             *"
-    print_error "* int Msize ( d, size )                                          *"
-    print_error "* struct M  *d;                                                  *"
-    print_error "* long  *size;                                                   *"
-    print_error "* {                                                              *"
-    print_error "* int m;                                                         *"
-    print_error "* if (( ( d->c != 1 ) && (m = 2 )) || (!(size) && (m = 6)))      *"
-    print_error "*  return m;                                                     *"
-    print_error "* return 0;                                                      *"
-    print_error "* }                                                              *"
-    print_error "* Notes:  The second test is an assignment (=) not an equality   *"
-    print_error "* (==) test.  This construction is used in MPICH's error testing *"
-    print_error "* code to simplify and standardize MPICHs own error testing.     *"
-    print_error "*                                                                *"
-    print_error "* Please file a bug report with your vendor.  You may use the    *"
-    print_error "* program above (or this entire note) in your report             *"
-    print_error "*                                                                *"
-    print_error "* Because MPICH's internal error testing depends on this         *"
-    print_error "* construction being handled correctly, it is not possible to    *"
-    print_error "* complete the configuration of MPICH for this machine.          *"
-    if test "$ARCH" = "rs6000" ; then
-    print_error "* If you are using xlc 01.03.00.02, you should update to at      *"
-    print_error "* least 01.03.00.06, which is rumored to correct this problem    *"
-    print_error "* (we have not confirmed this and are still awaiting our update).*"
-    print_error "* To determine your version, try the command                     *"
-    print_error "* lslpp -p 'xlccmp.*'                                            *"
-    print_error "* (The exact format of this command depends on what version of   *"
-    print_error "* AIX you are running; this worked for us.)                      *"
-    print_error "*                                                                *"
-    fi
-    print_error "******************************************************************"
-    exit 1
+  rm -rf conftest*
+  eval "ac_cv_ccworks=no"
 fi
 rm -f conftest*
-broken=0
-#
-# This is for HPs and anything else that can not do #elif correctly
-if test $cross_compiling = 0 ; then
-    echo "Testing for correct handling of #elif"
-    cat > conftest.c <<EOF
-#include "confdefs.h"
-#ifdef PROFILE
-#ifdef A1
-#define B 1
-#elif defined(A2)
-#define B 2
-#else
-#define B 3
-#endif
-#else
-#ifdef A1
-#define B 11
-#elif defined(A2)
-#define B 12
-#else
-#define B 13
-#endif
-#endif
-#include <stdio.h>
-main(argc,argv)
-int argc;
-char **argv;
-{return 0;}
-EOF
-eval $compile
-if test -s conftest && (./conftest; exit) 2>/dev/null; then
-  broken=0
 
+echo "$ac_t""$ac_cv_ccworks" 1>&1
+if test $ac_cv_ccworks = "yes" ; then
+    cc_works=1
 else
-  broken=1
+    cc_works=0
 fi
-rm -fr conftest*
+
+if test $cc_works = 0 ; then
+    print_error "Could not compile a simple file with $CC!"
+    print_error "Check for license and path restrictions on $CC."
+    exit 1
 fi
-if test $broken = 1 ; then
-    print_error "******************************************************************"
-    print_error "* Your C compiler can not properly handle the #elif preprocessor *"
-    print_error "* directive.  Report the problem to your vendor; you may want to *"
-    print_error "* using the GNU C compiler instead.                              *"
-    print_error "******************************************************************"
+if test $do_test = 1 ; then
+    
+if test -d ccbugs ; then 
+    if test -z "$TESTCC" ; then TESTCC="$CC" ; fi
+    for file in ccbugs/ccfail*.c ; do
+        CFILE=`basename $file .c`
+        echo `cat ccbugs/$CFILE.title`
+        cp $file conftest.c
+        broken=1
+        if eval $TESTCC $CFLAGS -o conftest conftest.c $LIBS >/dev/null 2>&1 ; then
+	    if test -s conftest && (./conftest ; exit) 2>/dev/null ; then
+  	        broken=0
+	    fi
+        fi
+        if test $broken = 1 ; then 
+	    cat ccbugs/$CFILE.txt | sed 's/^/\*\#/g' 
+        fi
+	/bin/rm -f conftest conftest.co
+    done
+    # 
+    # Now, try the warnings.  Note that this just does compiles, not runs
+    for file in ccbugs/ccwarn*.c ; do
+        CFILE=`basename $file .c`
+        echo `cat ccbugs/$CFILE.title`
+        cp $file conftest.c
+        if eval $CC $CFLAGS \
+	    -DCONFIGURE_ARGS_CLEAN="'"'"'-A -B'"'"'" -c \
+	    conftest.c $LIBS > /dev/null 2>&1 ; then
+	    true 
+	else
+	    cat ccbugs/$CFILE.txt | sed 's/^/\*\#/g' 
+	    if test "$CFILE" = "ccwarn1" ; then
+	       CONFIGURE_ARGS_CLEAN="`echo $CONFIGURE_ARGS_CLEAN | tr ' ' '_'`"
+            fi
+        fi
+	# set +x
+	/bin/rm -f conftest conftest.co
+    done
+    # 
+    # After everything, see if there are any problems
+    if test $broken = 1 ; then 
+	echo "Compiler $CC appears broken; aborting configure..."
+        exit 1
+    fi
+fi
+
 fi
 #
 # See if ranlib really works.  We do this by creating a small object file
@@ -2534,6 +2906,10 @@ else
 fi
 rm -f conftest.o conftest.c
 #
+#
+# Check for long pointers.  All such options are placed into DEFS (see
+# autoconf manual, AC _ DEFINE)
+#
 echo checking for pointers greater than 32 bits
 cat > conftest.c <<EOF
 #include "confdefs.h"
@@ -2548,7 +2924,7 @@ echo "	defining POINTER_64_BITS"
 echo "#define" POINTER_64_BITS 1 >> confdefs.h
 DEFS="$DEFS -DPOINTER_64_BITS=1"
 }
-
+echo "$ac_t""yes" 1>&1
 
 fi
 rm -fr conftest*
@@ -2567,15 +2943,27 @@ echo "	defining INT_LT_POINTER"
 echo "#define" INT_LT_POINTER 1 >> confdefs.h
 DEFS="$DEFS -DINT_LT_POINTER=1"
 }
-
+echo "$ac_t""no" 1>&1
 
 fi
 rm -fr conftest*
 
+if test -n "$F77IDX" ; then
+    
+{
+test -n "$verbose" && \
+echo "	defining POINTER_64_BITS"
+echo "#define" POINTER_64_BITS 1 >> confdefs.h
+DEFS="$DEFS -DPOINTER_64_BITS=1"
+}
+
+fi
+
 # 
 # Do not test 
 if test "$NOSHORTLONGS" = 0 ; then
-        echo checking for long double
+    # If not cross-compiling, we could dynamically check
+    echo checking for long double
 if test -n "$GCC"; then
 
 {
@@ -2606,6 +2994,7 @@ DEFS="$DEFS -DHAVE_LONG_DOUBLE=1"
 fi
 rm -fr conftest*
 fi
+
     echo checking for long long int
 cat > conftest.c <<EOF
 #include "confdefs.h"
@@ -2623,10 +3012,81 @@ echo "	defining HAVE_LONG_LONG_INT"
 echo "#define" HAVE_LONG_LONG_INT 1 >> confdefs.h
 DEFS="$DEFS -DHAVE_LONG_LONG_INT=1"
 }
-
+echo "$ac_t""yes" 1>&1
 
 fi
 rm -fr conftest*
+
+    if test $cross_compiling = 1 ; then
+    echo "Can not check for size of double when cross-compiling"
+    ac_cv_sizeof_double=0
+else
+echo $ac_n "checking size of double""... $ac_c" 1>&1
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <stdio.h>
+main()
+{
+  FILE *f=fopen("conftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", sizeof(double));
+  exit(0);
+}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  ac_cv_sizeof_double=`cat conftestval`
+
+else
+  ac_cv_sizeof_double=0
+fi
+rm -fr conftest*
+if test "$ac_cv_sizeof_double" = 0 ; then
+echo "$ac_t""double unsupported" 1>&1
+else
+echo "$ac_t""$ac_cv_sizeof_double" 1>&1
+fi
+doublesize=$ac_cv_sizeof_double
+fi
+
+    if test $cross_compiling = 1 ; then
+    echo "Can not check for size of long double when cross-compiling"
+    ac_cv_sizeof_long_double=0
+else
+echo $ac_n "checking size of long double""... $ac_c" 1>&1
+cat > conftest.c <<EOF
+#include "confdefs.h"
+#include <stdio.h>
+main()
+{
+  FILE *f=fopen("conftestval", "w");
+  if (!f) exit(1);
+  fprintf(f, "%d\n", sizeof(long double));
+  exit(0);
+}
+EOF
+eval $compile
+if test -s conftest && (./conftest; exit) 2>/dev/null; then
+  ac_cv_sizeof_long_double=`cat conftestval`
+
+else
+  ac_cv_sizeof_long_double=0
+fi
+rm -fr conftest*
+if test "$ac_cv_sizeof_long_double" = 0 ; then
+echo "$ac_t""long double unsupported" 1>&1
+else
+echo "$ac_t""$ac_cv_sizeof_long_double" 1>&1
+fi
+longdoublesize=$ac_cv_sizeof_long_double
+fi
+
+    if test $doublesize -eq $longdoublesize ; then
+	# Suppress long double if == double?
+	# NOSHORTLONGS=1
+	print_error "If you get errors about long doubles not supported"
+	print_error "on $ARCH, use the -no_short_longs argument to configure."
+    fi
 fi
 #
 # Look for wish (the tcl/tk windowing shell; this is used by the new
@@ -2659,6 +3119,9 @@ for dir in \
     fi
 done
 fi
+if test -n "$wishloc" ; then 
+  echo "$ac_t""found $wishloc" 1>&1
+fi
 fi
 #
 # Test that wish exists
@@ -2676,6 +3139,7 @@ if test -z "$TCL_DIR" ; then
 if test -z "$TCL_DIR" ; then
 echo checking for Tcl
 for dir in \
+    /usr \
     /usr/local \
     /usr/local/tcl7.3 \
     /usr/local/tcl7.3-tk3.6 \
@@ -2684,17 +3148,22 @@ for dir in \
     ~/tcl \
     ~/tcl7.3 \
     /opt/local \
-    /opt/local/tcl7.0 ; do
+    /opt/local/tcl7.0 \
+    /local/encap/tcl-7.1 ; do
     if test -r $dir/include/tcl.h -a -r $dir/lib/libtcl.a ; then
 	TCL_DIR=$dir
 	break
     fi
 done
 fi
+if test -n "$TCL_DIR" ; then 
+  echo "$ac_t""found $TCL_DIR" 1>&1
+fi
 # Look for Tk
 if test -z "$TK_DIR" ; then
 echo checking for Tk
 for dir in \
+    /usr \
     /usr/local \
     /usr/local/tk3.6 \
     /usr/local/tcl7.3-tk3.6 \
@@ -2703,12 +3172,16 @@ for dir in \
     ~/tcl \
     ~/tcl7.3 \
     /opt/local \
-    /opt/local/tk3.6 ; do
+    /opt/local/tk3.6 \
+    /local/encap/tk-3.4 ; do
     if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
 	TK_DIR=$dir
 	break
     fi
 done
+fi
+if test -n "$TK_DIR" ; then 
+  echo "$ac_t""found $TK_DIR" 1>&1
 fi
 
 fi
@@ -2733,7 +3206,52 @@ if test -n "$arch_hpux" -a "$F77" = "f77" ; then
 else
    FLIB_PATH="$LIB_PATH"
 fi
+#
+# if the device uses the machines file and there is no machines.$ARCH, 
+# create one using hostname (or uname)
+#
+if test $DEVICE = ch_tcp -o $DEVICE = ch_p4 ; then
+    if test \! -s util/machines/machines.$ARCH ; then
+        HOST=""
+        if test "$ARCH" = "ipsc860" ;  then
+	    HOST=`hostname`
+        else
+	    HOSTNAMEPGM="`which hostname | head -1`"
+            if test -x "$HOSTNAMEPGM" ; then
+                 HOST="`hostname`"
+	    fi
+        fi
+        # Note that uname -n may not produce a usable hostname.  
+	# Any suggestions?
+        if test "$HOST" = "" ; then
+	    HOST="`uname -n`"
+        fi
+   	cat > util/machines/machines.$ARCH <<.
+$HOST
+$HOST
+$HOST
+$HOST
+$HOST
+.
+	echo "Created util/machines/machines.$ARCH with five copies of $HOST"
+	echo "You may want to edit this file to add and delete hosts"
+	echo "(These hosts are used by mpirun.)"
+    fi
+fi
+#
+# Make sure that configure is group writable
+#
 chmod g+w configure > /dev/null 2>&1
+#
+# Substitute variables
+# Variables used in scripts only
+# Variables defined ONLY for the doc/port file:
+# Variables used by Makefile.in's:
+# P4_MDEPCFLAGS now used only in doc/port.in
+#
+# src/env/farg.f
+# 
+# End configuration file
 # Set default prefixes.
 if test -n "$prefix"; then
   test -z "$exec_prefix" && exec_prefix='${prefix}'
@@ -2774,7 +3292,7 @@ do
   esac
 done
 
-trap 'rm -f Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile src/env/farg.f; exit 1' 1 3 15
+trap 'rm -f Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/coll/runtests examples/test/topol/Makefile examples/test/topol/runtests examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile src/env/farg.f; exit 1' 1 3 15
 CC='$CC'
 INSTALL='$INSTALL'
 INSTALL_PROGRAM='$INSTALL_PROGRAM'
@@ -2783,6 +3301,7 @@ RANLIB='$RANLIB'
 CLINKERval='$CLINKERval'
 CPP='$CPP'
 CCval='$CCval'
+FCval='$FCval'
 F77='$F77'
 RSH_COMMAND='$RSH_COMMAND'
 HAS_F77='$HAS_F77'
@@ -2802,6 +3321,7 @@ VARPKT='$VARPKT'
 LIMITEDBUFFERS='$LIMITEDBUFFERS'
 ADI_COLLECTIVE='$ADI_COLLECTIVE'
 cross_compiling='$cross_compiling'
+ASM='$ASM'
 ASMFILES_O='$ASMFILES_O'
 AR='$AR'
 ARCH='$ARCH'
@@ -2814,6 +3334,7 @@ CPP_DIR='$CPP_DIR'
 CPRP='$CPRP'
 DEFAULT_MACHINE='$DEFAULT_MACHINE'
 DEVCFLAGS='$DEVCFLAGS'
+DEV_DEFS='$DEV_DEFS'
 DEVICE='$DEVICE'
 DEVICE_MAKE_INCLUDE='$DEVICE_MAKE_INCLUDE'
 FAST_COPY='$FAST_COPY'
@@ -2852,6 +3373,7 @@ X_INC='$X_INC'
 X_LIB='$X_LIB'
 F77IARGC='$F77IARGC'
 F77GETARG='$F77GETARG'
+F90UNIX='$F90UNIX'
 LIBS='$LIBS'
 srcdir='$srcdir'
 DEFS='$DEFS'
@@ -2864,7 +3386,7 @@ cat >> config.status <<\EOF
 
 top_srcdir=$srcdir
 
-CONFIG_FILES=${CONFIG_FILES-"Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/topol/Makefile examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile src/env/farg.f"}
+CONFIG_FILES=${CONFIG_FILES-"Makefile examples/Makefile examples/test/Makefile examples/test/pt2pt/Makefile examples/test/pt2pt/runtests examples/test/coll/Makefile examples/test/coll/runtests examples/test/topol/Makefile examples/test/topol/runtests examples/test/context/Makefile examples/test/context/runtests examples/test/env/Makefile examples/test/lederman/Makefile examples/contrib/usingmpi/Makefile examples/contrib/life/Makefile examples/contrib/nuclei/Makefile examples/contrib/C++/Makefile examples/contrib/mandel-pvm/Makefile examples/perftest/Makefile src/pt2pt/Makefile src/coll/Makefile src/context/Makefile src/dmpi/Makefile src/env/Makefile src/topol/Makefile src/profile/Makefile src/util/Makefile src/c++/Makefile mpe/Makefile mpe/Makefile_nompi examples/contrib/Makefile examples/basic/Makefile profiling/wrappergen/Makefile profiling/examples/Makefile profiling/nupshot/Makefile profiling/lib/Makefile mpe/contrib/mandel/Makefile mpe/contrib/mastermind/Makefile mpe/contrib/life/Makefile mpe/test/Makefile src/env/farg.f"}
 for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   srcdir=$top_srcdir
   # Remove last slash and all that follows it.  Not all systems have dirname.
@@ -2887,6 +3409,7 @@ s%@RANLIB@%$RANLIB%g
 s%@CLINKERval@%$CLINKERval%g
 s%@CPP@%$CPP%g
 s%@CCval@%$CCval%g
+s%@FCval@%$FCval%g
 s%@F77@%$F77%g
 s%@RSH_COMMAND@%$RSH_COMMAND%g
 s%@HAS_F77@%$HAS_F77%g
@@ -2906,6 +3429,7 @@ s%@VARPKT@%$VARPKT%g
 s%@LIMITEDBUFFERS@%$LIMITEDBUFFERS%g
 s%@ADI_COLLECTIVE@%$ADI_COLLECTIVE%g
 s%@cross_compiling@%$cross_compiling%g
+s%@ASM@%$ASM%g
 s%@ASMFILES_O@%$ASMFILES_O%g
 s%@AR@%$AR%g
 s%@ARCH@%$ARCH%g
@@ -2918,6 +3442,7 @@ s%@CPP_DIR@%$CPP_DIR%g
 s%@CPRP@%$CPRP%g
 s%@DEFAULT_MACHINE@%$DEFAULT_MACHINE%g
 s%@DEVCFLAGS@%$DEVCFLAGS%g
+s%@DEV_DEFS@%$DEV_DEFS%g
 s%@DEVICE@%$DEVICE%g
 s%@DEVICE_MAKE_INCLUDE@%$DEVICE_MAKE_INCLUDE%g
 s%@FAST_COPY@%$FAST_COPY%g
@@ -2956,6 +3481,7 @@ s%@X_INC@%$X_INC%g
 s%@X_LIB@%$X_LIB%g
 s%@F77IARGC@%$F77IARGC%g
 s%@F77GETARG@%$F77GETARG%g
+s%@F90UNIX@%$F90UNIX%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%
@@ -2974,6 +3500,9 @@ CONFIG_FILES=mpid/$DEVICE/Makefile
 if test -n "$device_ch_shmem" ; then
     CONFIG_FILES="$CONFIG_FILES mpid/ch_shmem/p2ptest/Makefile"
 fi
+if test -n "$device_ch_tcp" ; then
+    (cd mpid/ch_tcp/p3; configure )
+fi
 export CONFIG_FILES
 ./config.status
 CONFIG_FILES=
@@ -2981,10 +3510,10 @@ CONFIG_FILES=
 # Configure insists on adding a line to the TOP of the file, making it 
 # unsuited to modifying shell scripts.  Here we strip the first line from
 # runtests
-(cd examples/test/pt2pt ; /bin/rm -f .run1 ; sed -e '1d' runtests > .run1 ; \
+for dir in pt2pt coll context topol ; do 
+ (cd examples/test/$dir ; /bin/rm -f .run1 ; sed -e '1d' runtests > .run1 ; \
  /bin/rm -f runtests ; /bin/mv .run1 runtests ; chmod a+x runtests )
-(cd examples/test/context ; /bin/rm -f .run1 ; sed -e '1d' runtests > .run1 ; \
- /bin/rm -f runtests ; /bin/mv .run1 runtests ; chmod a+x runtests )
+done
 #
 # Ditto for the src/env/farg.f file
 (cd src/env ; /bin/rm -f .run1 ; sed -e '1d' farg.f > .run1 ; \

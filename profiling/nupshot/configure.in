@@ -8,13 +8,14 @@ print_error() {
     }
 print_usage() {
 cat <<.
-Usage: ${progname} [-tcldir=TCLDIR] [-tkdir=TKDIR]
+Usage: ${progname} [-tcldir=TCLDIR] [-tkdir=TKDIR] [-opt=OPTFLAGS]
 
 where
    TCLDIR       = Directory containing tcl.  Must have lib/libtcl.a and
                   include/tcl.h .
    TKDIR        = Directory containing tk 3.3 or later.  Must have lib/libtk.a
                   and include/tk.h .  May be the same as TCLDIR.
+   OPTFLAGS     = Flags for compiling (e.g., -g or -O)
 .
 }
 
@@ -33,8 +34,78 @@ do
    -tcldir=* | --tcldir=*)
       TCL_DIR="`echo $arg|sed 's/-*tcldir=//'`"
      ;;
+
+   -opt=* | --opt=*)
+      OPTFLAGS="`echo $arg|sed 's/-*opt=//'`"
+     ;;
+
+    -echo | --echo)
+      set -x
+      ;;
+ 
+   *)
+      echo "Unrecognized argument $arg"
+      exit 1
+     ;;
  esac
 done
+
+# A problem.  Some systems use an NFS automounter.  This can generate
+# paths of the form /tmp_mnt/... . On SOME systems, that path is
+# not recognized, and you need to strip off the /tmp_mnt. On others, 
+# it IS recognized, so you need to leave it in.  Grumble.
+# The real problem is that OTHER nodes on the same MFS system may not
+# be able to find a directory based on a /tmp_mnt/... name.
+#
+# It is WRONG to use $PWD, since that is maintained only by the C shell,
+# and if we use it, we may find the 'wrong' directory.  To test this, we
+# try writing a file to the directory and then looking for it in the 
+# current directory
+NUPSHOT_TRIAL=$PWD
+if test "$NUPSHOT_TRIAL" != "" -a -d "$NUPSHOT_TRIAL" ; then 
+    if test -r $NUPSHOT_TRIAL/.foo ; then
+        /bin/rm -f $NUPSHOT_TRIAL/.foo
+	/bin/rm -f .foo
+    fi
+    if test -r $NUPSHOT_TRIAL/.foo -o -r .foo ; then
+	NUPSHOT_TRIAL=
+    else
+	echo "test" > $NUPSHOT_TRIAL/.foo
+	if test ! -r .foo ; then
+	    NUPSHOT_TRIAL=
+	fi
+	/bin/rm -f $NUPSHOT_TRIAL/.foo
+    fi
+fi
+if test "$NUPSHOT_TRIAL" = "" ; then
+    NUPSHOT_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+fi
+#
+# First, test the PWD is sensible
+if test ! -r $NUPSHOT_TRIAL/Makefile.in ; then
+    # PWD must be messed up
+    NUPSHOT_TRIAL=`pwd`
+    if test ! -r $NUPSHOT_TRIAL/Makefile.in ; then
+	print_error "Cannot determine the root directory!" 
+        exit 1
+    fi
+    NUPSHOT_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+    if test ! -d $NUPSHOT_TRIAL ; then 
+        print_error "Warning: your default path uses the automounter; this may"
+        print_error "cause some problems if you use other NFS-connected systems."
+        NUPSHOT_TRIAL=`pwd`
+    fi
+fi
+if test -z "$NUPSHOT_TRIAL" ; then
+    NUPSHOT_TRIAL=`pwd | sed -e 's%/tmp_mnt/%/%g'`
+    if test ! -d $NUPSHOT_TRIAL ; then 
+        print_error "Warning: your default path uses the automounter; this may"
+        print_error "cause some problems if you use other NFS-connected systems."
+        NUPSHOT_TRIAL=`pwd`
+    fi
+fi
+NUPSHOT_HOME=$NUPSHOT_TRIAL
+AC_SUBST(NUPSHOT_HOME)
 
 AC_INIT(nupshot.c)
 CC=${CC-cc}
@@ -156,13 +227,17 @@ AC_HAVE_LIBRARY(nsl, [LIBS="$LIBS -lnsl"])
 if test -z "$TCL_DIR" ; then
 echo Looking for Tcl
 for dir in \
+    /usr \
     /usr/local \
     /usr/local/tcl7.3 \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tcl7.0 \
     /usr/local/tcl7.0-tk3.3 \
     $HOME/tcl \
-    $HOME/tcl7.3 ; do
+    $HOME/tcl7.3 \
+    /opt/local \
+    /opt/local/tcl7.0 \
+    /local/encap/tcl-7.1 ; do
     if test -r $dir/include/tcl.h -a -r $dir/lib/libtcl.a ; then
 	TCL_DIR=$dir
 	break
@@ -171,6 +246,7 @@ done
 fi
 if test -z "$TCL_DIR" ; then
 echo Could not find Tcl in
+echo   /usr 
 echo   /usr/local
 echo   /usr/local/tcl7.3
 echo   /usr/local/tcl7.3-tk3.6
@@ -188,13 +264,17 @@ AC_SUBST(TCL_DIR)
 if test -z "$TK_DIR" ; then
 echo Looking for Tk
 for dir in \
+    /usr \
     /usr/local \
     /usr/local/tk3.6 \
     /usr/local/tcl7.3-tk3.6 \
     /usr/local/tk3.3 \
     /usr/local/tcl7.0-tk3.3 \
     $HOME/tcl \
-    $HOME/tcl7.3 ; do
+    $HOME/tcl7.3 \
+    /opt/local \
+    /opt/local/tk3.6 \
+    /local/encap/tk-3.4 ; do
     if test -r $dir/include/tk.h -a -r $dir/lib/libtk.a ; then
 	TK_DIR=$dir
 	break
@@ -203,6 +283,7 @@ done
 fi
 if test -z "$TK_DIR" ; then
 echo Could not find Tk in
+echo    /usr
 echo    /usr/local
 echo    /usr/local/tk3.6
 echo    /usr/local/tcl7.3-tk3.6
@@ -216,5 +297,6 @@ exit
 fi
 AC_SUBST(TK_DIR)
 
+AC_SUBST(OPTFLAGS)
 
 AC_OUTPUT(Makefile)

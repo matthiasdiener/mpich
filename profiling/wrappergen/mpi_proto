@@ -209,7 +209,7 @@ comm
 int 
 MPI_Op_create
 3
-MPI_Uop *
+MPI_User_function *
 function
 
 int
@@ -365,7 +365,7 @@ comm
 int
 keyval
 
-void **
+void *
 attr_value
 
 int *
@@ -857,7 +857,7 @@ size
 int 
 MPI_Buffer_detach
 2
-void **
+void *
 buffer
 
 int *
@@ -1868,7 +1868,7 @@ comm
 int
 rank
 
-int *
+int 
 maxneighbors
 
 int *

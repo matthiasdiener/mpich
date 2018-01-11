@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.29 1995/03/05 20:20:39 gropp Exp $
+ *  $Id: global_ops.c,v 1.30 1995/05/12 22:31:59 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: global_ops.c,v 1.29 1995/03/05 20:20:39 gropp Exp $";
+static char vcid[] = "$Id: global_ops.c,v 1.30 1995/05/12 22:31:59 gropp Exp $";
 #endif /* lint */
 
 
@@ -920,14 +920,14 @@ MPI_Datatype *type;
       break;
     }
     case MPIR_SHORT: {
-      MPIR_shortint_loctype *a = (MPIR_shortint_loctype *)inoutvec;
-      MPIR_shortint_loctype *b = (MPIR_shortint_loctype *)invec;
+      MPIR_shortint_loctype *as = (MPIR_shortint_loctype *)inoutvec;
+      MPIR_shortint_loctype *bs = (MPIR_shortint_loctype *)invec;
       for (i=0; i<len; i++) {
-        if (a[i].value == b[i].value)
-          a[i].loc = MPIR_MIN(a[i].loc,b[i].loc);
-        else if (a[i].value < b[i].value) {
-          a[i].value = b[i].value;
-          a[i].loc   = b[i].loc;
+        if (as[i].value == bs[i].value)
+          as[i].loc = MPIR_MIN(as[i].loc,bs[i].loc);
+        else if (as[i].value < bs[i].value) {
+          as[i].value = bs[i].value;
+          as[i].loc   = bs[i].loc;
         }
       }
       break;

@@ -628,7 +628,8 @@ int p4_wait_for_end()
     p4_dprintfl(90, "exit wait_for_end \n");
 
     /* free assorted data structures */
-    p4_free(listener_info);
+    if ( !p4_global->local_communication_only )
+	p4_free(listener_info);	/* only allocated in this case */
     if (p4_local->procgroup) 
 	p4_free(p4_local->procgroup);
     p4_free(p4_local->conntab);

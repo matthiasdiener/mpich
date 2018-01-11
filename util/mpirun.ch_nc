@@ -1,0 +1,14 @@
+#! /bin/sh
+if [ "$MPIR_HOME" = "" ] ; then 
+    MPIR_HOME=#MPIR_HOME#
+fi
+if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
+    MPIR_HOME=`pwd`/..
+fi
+MPIRUN_HOME=$MPIR_HOME/util
+if [ "$argsset" = "" ] ; then
+   . $MPIRUN_HOME/mpirun.args
+   argsset=1
+fi
+echo "Ncube not supported from mpirun"
+exit 1

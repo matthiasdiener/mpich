@@ -1,12 +1,12 @@
 /*
- *  $Id: type_struct.c,v 1.19 1995/02/23 16:49:36 doss Exp $
+ *  $Id: type_struct.c,v 1.23 1995/06/01 20:49:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_struct.c,v 1.19 1995/02/23 16:49:36 doss Exp $";
+static char vcid[] = "$Id: type_struct.c,v 1.23 1995/06/01 20:49:15 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -26,6 +26,33 @@ of handles to datatype objects)
 
 Output Parameter:
 . newtype - new datatype (handle) 
+
+Notes:
+If an upperbound is set explicitly by using the MPI datatype 'MPI_UB', the
+corresponding index must be positive.
+
+The MPI standard originally made vague statements about padding and alignment;
+this was intended to allow the simple definition of structures that could
+be sent with a count greater than one.  For example,
+.vb
+    struct { int a; char b; } foo;
+.ve
+may have 'sizeof(foo) > sizeof(int) + sizeof(char)'; for example, 
+'sizeof(foo) == 2*sizeof(int)'.  The initial version of the MPI standard
+defined the extent of a datatype as including an `epsilon` that would have 
+allowed an implementation to make the extent an MPI datatype
+for this structure equal to '2*sizeof(int)'.  However, since different systems 
+might define different paddings, a clarification to the standard made epsilon 
+zero.  Thus, if you define a structure datatype and wish to send or receive
+multiple items, you should explicitly include an 'MPI_UB' entry as the
+last member of the structure.  For example, the following code can be used
+for the structure foo
+.vb
+    blen[0] = 1; indices[0] = 0; oldtypes[0] = MPI_INT;
+    blen[1] = 1; indices[1] = &foo.b - &foo; oldtypes[1] = MPI_CHAR;
+    blen[2] = 1; indices[2] = sizeof(foo); oldtypes[2] = MPI_UB;
+    MPI_Type_struct( 3, blen, indices, oldtypes, &newtype );
+.ve
 @*/
 int MPI_Type_struct( count, blocklens, indices, old_types, newtype )
 int           count;
@@ -40,7 +67,7 @@ MPI_Datatype *newtype;
   int             i, mpi_errno = MPI_SUCCESS;
   int             ub_marker, lb_marker;
   MPIR_BOOL       ub_found = MPIR_NO, lb_found = MPIR_NO;
-  int pad, size, total_count;
+  int             size, total_count;
 
   /* Check for bad arguments */
   if ( count < 0 )
@@ -83,18 +110,15 @@ MPI_Datatype *newtype;
   dteptr->elements    = 0;
   dteptr->size        = 0;
   dteptr->align       = 1;
+  dteptr->has_ub      = 0;
+  dteptr->has_lb      = 0;
 
   /* Create indices and blocklens arrays and fill them */
-  dteptr->indices     = ( int * ) MALLOC( count     * sizeof( int ) );
-  dteptr->blocklens   = ( int * ) MALLOC( count     * sizeof( int ) );
-  if (count > 1) 
-      dteptr->pads        = ( int * ) MALLOC( (count-1) * sizeof( int ) );
-  else
-      dteptr->pads        = 0;
+  dteptr->indices     = ( MPI_Aint * ) MALLOC( count * sizeof( MPI_Aint ) );
+  dteptr->blocklens   = ( int * )      MALLOC( count * sizeof( int ) );
   dteptr->old_types   =
 	( MPI_Datatype * ) MALLOC(count*sizeof(MPI_Datatype));
-  if (!dteptr->indices || !dteptr->blocklens || 
-      (count > 1 && ! dteptr->pads) || !dteptr->old_types) 
+  if (!dteptr->indices || !dteptr->blocklens || !dteptr->old_types) 
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
 			 "Out of space in MPI_TYPE_STRUCT" );
   high = low = ub = lb = 0;
@@ -125,6 +149,18 @@ MPI_Datatype *newtype;
       }
     }
     else {
+	/* First, check to see if datatype has an MPI_LB or MPI_UB
+	   within it... */
+	if (old_types[i]->has_ub) {
+	    ub_found = 1;
+	    ub_marker = old_types[i]->ub;
+	    }
+	if (old_types[i]->has_lb) {
+	    lb_found = 1;
+	    lb_marker = old_types[i]->lb;
+	    }
+	/* Get the ub/lb from the datatype (if a MPI_UB or MPI_LB was
+	   found, then these values will be ignored). */
       ub = indices[i] + (blocklens[i] * old_types[i]->extent) ;
       lb = indices[i];
       if (!high_init) { high = ub; high_init = MPIR_YES; }
@@ -143,30 +179,26 @@ MPI_Datatype *newtype;
   
   for (i=0; i<(count-1); i++) {
     size = old_types[i]->size * blocklens[i];
-    if ( blocklens[i] > 1 ) {
-      pad = (old_types[i]->align - (old_types[i]->size %
-             old_types[i]->align)) % old_types[i]->align;
-      size += ((blocklens[i]-1) * pad );
-    }
-	dteptr->pads[i] = ((old_types[i+1]->align - 
-        (size % old_types[i+1]->align)) % old_types[i+1]->align);
-	dteptr->size   += (size + dteptr->pads[i]); 
+    dteptr->size   += size; 
   }
   dteptr->size     += (blocklens[i] * old_types[i]->size);
-  if ( blocklens[i] > 1 ) {
-    pad = (old_types[i]->align - (old_types[i]->size %
-                                  old_types[i]->align)) % old_types[i]->align;
-    dteptr->size += ((blocklens[i]-1) * pad );
-  }
   
   /* Set the upper/lower bounds and the extent and size */
-  dteptr->lb          = lb_found ? lb_marker : (low_init  ? low : 0);
-  dteptr->ub          = ub_found ? ub_marker : (high_init ? high: 0);
+  if (lb_found) {
+      dteptr->lb = lb_marker;
+      dteptr->has_lb = 1;
+      }
+  else 
+      dteptr->lb = (low_init  ? low : 0);
+  if (ub_found) {
+      dteptr->ub = ub_marker;
+      dteptr->has_ub = 1;
+      }
+  else 
+      dteptr->ub = (high_init ? high: 0);
   dteptr->extent      = dteptr->ub - dteptr->lb ;
   
-  /* Adjust extent with padding */
-  dteptr->extent += ((dteptr->align - (dteptr->extent % dteptr->align))
-    % dteptr->align);
+  /* Extent has NO padding */
 
   return (mpi_errno);
 }

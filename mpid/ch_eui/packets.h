@@ -272,6 +272,13 @@ extern int MPID_PKT_DATA_SIZE;
    at sender and receiver versus reduced data-load on the connection between
    sender and receiver.
  */
+
+/* This is the minimal packet */
+typedef struct {
+    MPID_PKT_MODE
+    } MPID_PKT_MODE_T;
+
+/* This is the minimal message packet */
 typedef struct {
     MPID_PKT_BASIC
     } MPID_PKT_HEAD_T;
@@ -480,7 +487,7 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d (type %d) at %s:%d\n", \
  */
 #define MPID_PKT_GALLOC \
     static MPID_PKT_T     pkt; \
-    static int  pktid;
+    static struct { int rid, tag, from; }  pktid;
 #define MPID_PKT_RECV_DECL(type,pkt)
 #define MPID_PKT_RECV_GET(pkt,field) (pkt).field
 #define MPID_PKT_RECV_SET(pkt,field,val) (pkt).field = val
@@ -492,9 +499,9 @@ fprintf( MPID_TRACE_FILE,"[%d] %20s on %4d (type %d) at %s:%d\n", \
 #define MPID_PKT_CHECK()  \
     MPID_RecvStatus( pktid )
 #define MPID_PKT_WAIT() \
-    {mp_wait(&(&pktid),&__EUILEN);; from = __EUIFROM;}
+    {mp_wait(&((&pktid).rid),&__EUILEN);__EUIFROM=(&pktid).from;__EUITYPE=(&pktid).tag;; from = __EUIFROM;}
 #define MPID_PKT_POST() \
-    {__EUIFROM=-1;__EUITYPE=MPID_PT2PT_TAG;mpc_recv(&pkt,sizeof(MPID_PKT_T),&__EUIFROM,&__EUITYPE,&(&pktid));}
+    {(&pktid).from=-1;(&pktid).tag=MPID_PT2PT_TAG;mpc_recv(&pkt,sizeof(MPID_PKT_T),&((&pktid).from),&((&pktid).tag),&((&pktid).rid));}
 #define MPID_PKT_POST_AND_WAIT() \
     MPID_RecvAnyControl( &pkt, sizeof(MPID_PKT_T), &from )
  

@@ -31,6 +31,10 @@
 #endif
 #endif
 
+#ifdef USE_PMPI
+#define MPI_BUILD_PROFILING
+#include "mpiprof.h"
+#endif
 
 #include "mpe_log.h"
 #include "mpe_log_genproc.h"

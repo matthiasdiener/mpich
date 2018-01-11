@@ -15,20 +15,26 @@ extern void MPID_N3_Abort ANSI_ARGS(( ));
 extern void MPID_N3_Myrank ANSI_ARGS(( int * )), 
             MPID_N3_Mysize ANSI_ARGS(( int * )), 
             MPID_N3_End ANSI_ARGS((void));
+extern void MPID_N3_Node_name ANSI_ARGS((char *, int ));
+extern void MPID_N3_Version_name ANSI_ARGS((char *));
+
 extern void *MPID_N3_Init ANSI_ARGS(( int *, char *** ));
 
 extern int MPID_N3_post_send ANSI_ARGS(( MPIR_SHANDLE * )), 
            MPID_N3_post_send_sync ANSI_ARGS(( MPIR_SHANDLE *)),
            MPID_N3_complete_send ANSI_ARGS(( MPIR_SHANDLE *)),
            MPID_N3_Blocking_send ANSI_ARGS(( MPIR_SHANDLE *)),
-           MPID_N3_post_recv ANSI_ARGS(( MPIR_RHANDLE *, int *)),
+           MPID_N3_post_recv ANSI_ARGS(( MPIR_RHANDLE * )),
            MPID_N3_blocking_recv ANSI_ARGS(( MPIR_RHANDLE *)), 
            MPID_N3_complete_recv ANSI_ARGS(( MPIR_RHANDLE *));
-
-extern int MPID_N3_check_device ANSI_ARGS(( int )), 
-   MPID_N3_Iprobe ANSI_ARGS(( int, int, int, int *, MPI_Status * )),
+extern void MPID_N3_check_device ANSI_ARGS(( int )), 
    MPID_N3_Probe ANSI_ARGS(( int, int, int, MPI_Status * ));
+extern int MPID_N3_Iprobe ANSI_ARGS(( int, int, int, int *, MPI_Status * ));
+extern int MPID_N3_Cancel ANSI_ARGS((MPIR_COMMON *)); 
+extern int MPID_N3_check_incoming ANSI_ARGS((MPID_BLOCKING_TYPE));
+#ifndef MPID_N3_Wtime
 extern double MPID_N3_Wtime ANSI_ARGS((void));
+#endif
 extern double MPID_N3_Wtick ANSI_ARGS((void));
 
 #ifdef MPID_DEVICE_CODE
@@ -41,6 +47,8 @@ extern int MPID_N3_Lookup_SyncAck
 extern int MPID_SyncAck ANSI_ARGS(( MPID_Aint, int ));
 extern void MPID_SyncReturnAck ANSI_ARGS(( MPID_Aint, int ));
 extern void MPID_Sync_discard ANSI_ARGS(( MPIR_SHANDLE * ));
+/*
+These are now static ...
 extern int MPID_N3_Copy_body_short 
     ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *, void * ));
 extern int MPID_N3_Copy_body_sync_short 
@@ -49,6 +57,7 @@ extern int MPID_N3_Copy_body_long
     ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *, int ));
 extern int MPID_N3_Copy_body_sync_long
     ANSI_ARGS(( MPIR_RHANDLE *, MPID_PKT_T *pkt, int ));
+ */
 extern int MPID_N3_Process_unexpected 
     ANSI_ARGS(( MPIR_RHANDLE *, MPIR_RHANDLE *));
 extern int MPID_N3_Copy_body 

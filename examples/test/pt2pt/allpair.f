@@ -34,11 +34,13 @@ c------------------------------------------------------------------------------
       integer ierr, prev, next, count, tag, index, i, outcount,
      .        requests(2), indices(2), rank, size, 
      .        status(MPI_STATUS_SIZE), statuses(MPI_STATUS_SIZE,2)
+      integer dupcom
       logical flag
       real send_buf( TEST_SIZE ), recv_buf ( TEST_SIZE )
 
       call MPI_Comm_rank( MPI_COMM_WORLD, rank, ierr )
       call MPI_Comm_size( MPI_COMM_WORLD, size, ierr )
+      call MPI_Comm_dup( MPI_COMM_WORLD, dupcom, ierr )
       next = rank + 1
       if (next .ge. size) next = 0
 
@@ -83,7 +85,8 @@ c
      .                 MPI_COMM_WORLD, ierr) 
          end if
 c
-c     Ready sends
+c     Ready sends.  Note that we must insure that the receive is posted
+c     before the rsend; this requires using Irecv.
 c
       if (rank .eq. 0) then
          print *, '    Rsend'
@@ -97,6 +100,9 @@ c
       if (rank .eq. 0) then
 
          call init_test_data(send_buf,TEST_SIZE)
+
+         call MPI_Recv( MPI_BOTTOM, 0, MPI_INTEGER, next, tag, 
+     .                  MPI_COMM_WORLD, status, ierr )
 
          call MPI_Rsend(send_buf, count, MPI_REAL, next, tag,
      .                  MPI_COMM_WORLD, ierr) 
@@ -130,14 +136,16 @@ c
 
       else
 
-         call MPI_Recv(recv_buf, TEST_SIZE, MPI_REAL,
+         call MPI_Irecv(recv_buf, TEST_SIZE, MPI_REAL,
      .                 MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD,
-     .                 status, ierr)
-
+     .                 requests(1), ierr)
+         call MPI_Send( MPI_BOTTOM, 0, MPI_INTEGER, next, tag, 
+     .                  MPI_COMM_WORLD, ierr )
+         call MPI_Wait( requests(1), status, ierr )
          call msg_check( recv_buf, prev, tag, count, status, TEST_SIZE,
      .                   'rsend and recv' )
 
-         call MPI_Rsend(recv_buf, count, MPI_REAL, next, tag,
+         call MPI_Send(recv_buf, count, MPI_REAL, next, tag,
      .                  MPI_COMM_WORLD, ierr) 
          end if
 c
@@ -233,6 +241,8 @@ c
 
          call MPI_Waitall(2, requests, statuses, ierr)
 
+         call rq_check( requests, 2, 'isend and irecv' )
+
          call msg_check( recv_buf, prev, tag, count, statuses(1,1),
      $        TEST_SIZE, 'isend and irecv' )
 
@@ -249,6 +259,8 @@ c
      .                  MPI_COMM_WORLD, requests(1), ierr) 
 
          call MPI_Wait(requests(1), status, ierr)
+
+         call rq_check( requests(1), 1, 'isend and irecv' )
 
          end if
 c
@@ -271,6 +283,10 @@ c
 
          call init_test_data(send_buf,TEST_SIZE)
 
+         call MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INTEGER, next, 0, 
+     .                      MPI_BOTTOM, 0, MPI_INTEGER, next, 0, 
+     .                      dupcom, status, ierr )
+
          call MPI_Irsend(send_buf, count, MPI_REAL, next, tag,
      .                   MPI_COMM_WORLD, requests(2), ierr) 
 
@@ -278,6 +294,8 @@ c
          do while (index .ne. 1)
             call MPI_Waitany(2, requests, index, statuses, ierr)
             end do
+
+         call rq_check( requests(1), 1, 'irsend and irecv' )
 
          call msg_check( recv_buf, prev, tag, count, statuses,
      $           TEST_SIZE, 'irsend and irecv' )
@@ -288,10 +306,16 @@ c
      .                  MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD,
      .                  requests(1), ierr)
 
+         call MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INTEGER, next, 0, 
+     .                      MPI_BOTTOM, 0, MPI_INTEGER, next, 0, 
+     .                      dupcom, status, ierr )
+
          flag = .FALSE.
          do while (.not. flag)
             call MPI_Test(requests(1), flag, status, ierr)
             end do
+
+         call rq_check( requests, 1, 'irsend and irecv (test)' )
 
          call msg_check( recv_buf, prev, tag, count, status, TEST_SIZE,
      .                   'irsend and irecv' )
@@ -300,6 +324,8 @@ c
      .                   MPI_COMM_WORLD, requests(1), ierr) 
 
          call MPI_Waitall(1, requests, statuses, ierr)
+
+         call rq_check( requests, 1, 'irsend and irecv' )
 
          end if
 c
@@ -328,7 +354,10 @@ c
          flag = .FALSE.
          do while (.not. flag)
             call MPI_Testall(2, requests, flag, statuses, ierr)
+C            print *, 'flag = ', flag
             end do
+
+         call rq_check( requests, 2, 'issend and irecv (testall)' )
 
          call msg_check( recv_buf, prev, tag, count, statuses(1,1),
      $           TEST_SIZE, 'issend and recv' )
@@ -349,7 +378,10 @@ c
          do while (.not. flag)
             call MPI_Testany(1, requests(1), index, flag,
      .                       statuses(1,1), ierr)
+c            print *, 'flag = ', flag
             end do
+
+         call rq_check( requests, 1, 'issend and recv (testany)' )
 
          end if
 c
@@ -598,6 +630,8 @@ c
      .                 MPI_COMM_WORLD, ierr) 
          end if
 
+      call MPI_Comm_free( dupcom, ierr )
+      return
       end
 
 c------------------------------------------------------------------------------
@@ -639,7 +673,24 @@ c------------------------------------------------------------------------------
       call verify_test_data(recv_buf, count, n, name )
 
       end
-
+c------------------------------------------------------------------------------
+c
+c  Check that requests have been set to null
+c
+c------------------------------------------------------------------------------
+      subroutine rq_check( requests, n, msg )
+      integer n, requests(n)
+      character*(*) msg
+      integer i
+      include 'mpif.h'
+c
+      do 10 i=1, n
+         if (requests(i) .ne. MPI_REQUEST_NULL) then
+            print *, 'Nonnull request in ', msg
+         endif
+ 10   continue
+c      
+      end
 c------------------------------------------------------------------------------
 c
 c  Initialize test data buffer with integral sequence.

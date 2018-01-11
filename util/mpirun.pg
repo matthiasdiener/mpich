@@ -1,0 +1,123 @@
+#! /bin/sh
+#
+# This file is used to generate a p4-style procgroup file
+#
+# This should be used only for pg and execer runs.  It gnerates a list from
+# the machines.$arch file
+#
+# The original csh code made extensive use of csh arrays, which are quite
+# nice for reading parts of a file into a variable.
+#
+if [ "$argsset" = "" ] ; then
+   . mpirun.args
+fi
+#
+# Get the defaults (this is in preparation for multi-architecture versions)
+# 
+if [ $narch = 0 ] ; then
+    narch=1
+    arch1=$arch
+    archlist1="$archlist"
+    np1=$np
+fi
+if [ $nolocal = 1 ] ; then
+    #echo don\'t run local instance
+    # if the job is not to be run locally, then don't include this machine
+    # in the list
+    procFound=0
+else
+    # echo run local instance
+    procFound=1
+fi
+#
+machinelist=""
+archuselist=""
+curarch=1
+clearMachineFile=0
+nolocalsave=$nolocal
+if [ -z "$machineFile" ] ; then clearMachineFile=1 ; fi
+
+while [ $curarch -le $narch ] ; do
+    eval arch=$"arch$curarch"
+    eval archlist=$"archlist$curarch"
+    if [ -z "$archlist" ] ; then archlist=$arch ; fi
+    eval np=$"np$curarch"
+    if [ $clearMachineFile = 1 ] ; then machineFile="" ; fi
+    #
+    # Get default machine file
+    if [ "$machineFile" = "" ] ; then
+        # If on the ANL SPx, use getjid to get the machine list...
+        if [ "$machine" = "ibmspx" -a -x /usr/local/bin/getjid ] ; then
+	    machineFile="/sphome/$LOGNAME/SPnodes.`/usr/local/bin/getjid`"
+        else
+            for march in $archlist ; do
+                machineFile="${MPIR_HOME}/util/machines/machines.${march}"
+	        if [ -r $machineFile ] ; then break ; fi
+    	    done
+        fi
+    fi
+    #
+    if [ "$machineFile" = "" -o ! -s "$machineFile" -o \
+	! -r "$machineFile" ] ; then
+        if [ $nolocal != 0 -o $np != 1 ] ; then
+            echo Cannot read $machineFile.  Exiting.
+	    echo Looked for files with extension $archlist.
+            exit 1
+        fi
+    fi
+    #
+    # Find the machines to use (build in file)
+    if [ $nolocal = 0 ] ; then
+        machineavail=`cat $machineFile | sed '/^#/d' | head -${np} | \
+		tr '\012' ' '`
+    else
+        if [ $np -gt 1 ] ; then
+            # Remove host from the list of available machines....
+	    machineavail=`cat $machineFile | sed '/^#/d' | \
+		    grep -v $HOST | head -${np} | tr '\012' ' '`
+        fi
+    fi
+
+#nfound=`wc -l PI$$ | awk '{print $1}'`
+#nfound=`expr $nfound + $procFound`
+#if [ $nfound -lt $np ] ; then
+#    echo "Only $nfound ${arch}'s available.  Exiting."
+#    exit 1
+#endif
+#
+# Get the machine list
+# KeepHost suggested by Marc A. Viredaz; allows the same machine
+# to be listed multiple times in the machines file.
+    KeepHost=0
+    while [ $procFound -lt $np ] ; do
+        nfound=0
+        for machineName in $machineavail ; do
+	    if [ $nolocal = 1 -o $KeepHost = 1 -o \
+		 $machineName != $HOST ] ; then
+	        machinelist="$machinelist $machineName"
+		archuselist="$archuselist $arch"
+	        procFound=`expr $procFound + 1`
+	        nfound=`expr $nfound + 1`
+            fi
+            if [ $procFound = $np ] ; then break ; fi
+	    if [ $machineName = $HOST ] ; then KeepHost=1 ; fi
+        done
+        if [ $nfound = 0 ] ; then
+	    echo "Could not find enough machines"
+	    break
+        fi
+    done
+    curarch=`expr $curarch + 1`
+    procFound=0
+    nolocal=1
+done
+nolocal=$nolocalsave
+#
+if [ "$argsset" != "1" ] ; then 
+    echo $machinelist
+    echo $archuselist
+else
+    for machinehead in $machinelist ; do 
+	break
+    done
+fi

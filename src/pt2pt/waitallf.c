@@ -41,21 +41,30 @@ int *__ierr;
 {
 #ifdef POINTER_64_BITS
 int i;
-MPI_Request *r = (MPI_Request*)malloc(sizeof(MPI_Request)**count);
+MPI_Request *r = (MPI_Request*)MALLOC(sizeof(MPI_Request) * *count);
+if (!r) {
+    *__ierr = MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+					  "Out of space in MPI_WAITALL" );
+    return;
+    }
 for (i=0; i<*count; i++) {
     r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
     }
 *__ierr = MPI_Waitall(*count,r,array_of_statuses);
-/* Must not do this if request is persistant */
-/*
+/* By checking for r[i] = 0, we handle persistant requests */
 for (i=0; i<*count; i++) {
-    MPIR_RmPointer( *((int *)(array_of_requests) + i) );
-    *((int *)(array_of_requests)+i) = 0;
+    if (r[i] == MPI_REQUEST_NULL) {
+	MPIR_RmPointer( *((int *)(array_of_requests) + i) );
+	*((int *)(array_of_requests)+i) = 0;
+	}
     }
- */
-free( r );
+FREE( r );
 
 #else
 *__ierr = MPI_Waitall(*count,array_of_requests,array_of_statuses);
 #endif
 }
+
+
+
+

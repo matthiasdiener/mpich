@@ -1,12 +1,12 @@
 /*
- *  $Id: sendrecv.c,v 1.8 1994/12/15 16:59:20 gropp Exp $
+ *  $Id: sendrecv.c,v 1.9 1995/05/09 18:59:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: sendrecv.c,v 1.8 1994/12/15 16:59:20 gropp Exp $";
+static char vcid[] = "$Id: sendrecv.c,v 1.9 1995/05/09 18:59:04 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -67,7 +67,9 @@ MPI_Status   *status;
 			    source, recvtag, comm, &req[1] )) return mpi_errno;
     if (mpi_errno = MPI_Isend ( sendbuf, sendcount, sendtype, dest,   
 			    sendtag, comm, &req[0] )) return mpi_errno;
+    /* fprintf( stderr, "[%d] Starting waitall\n", MPIR_tid );*/
     mpi_errno = MPI_Waitall ( 2, req, status_array );
+    /*fprintf( stderr, "[%d] Ending waitall\n", MPIR_tid );*/
 
     (*status) = status_array[1];
     return (mpi_errno);

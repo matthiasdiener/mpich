@@ -1,12 +1,14 @@
 #include <mpi.h>
+#define MPE_GRAPHICS
 #include "mpe.h"
 #include <stdio.h>
 
+static MPE_XGraph graph;
+
+static char *displayname = 0;
 extern void   srand48();
 extern double drand48();
 extern char * malloc();
-static char *displayname = 0;
-static MPE_XGraph *graph;
 static int width = 400, height = 400;
 
 #define BORN 1
@@ -23,7 +25,7 @@ MPI_Comm comm;
   int      i, j, k;
   int      mysize, sum ;
   int    **matrix, **temp, **addr ;
-  double   totaltime, starttime ;
+  double   slavetime, totaltime, starttime ;
   int      my_offset;
 
   /* Determine size and my rank in communicator */
@@ -72,8 +74,9 @@ MPI_Comm comm;
 
 
   /* Open the graphics display */
- MPE_OpenGraphics( &graph, MPI_COMM_WORLD, displayname, 
+  MPE_Open_graphics( &graph, MPI_COMM_WORLD, displayname, 
 		   -1, -1, width, height, 0 );
+
   /* Play the game of life for given number of iterations */
   starttime = MPI_Wtime() ;
   for (k = 0; k < ntimes; k++) {
@@ -108,12 +111,11 @@ MPI_Comm comm;
 	  yloc = ((j - 1) * height) / matrix_size;
 	  xwid = ((my_offset + i) * width) / matrix_size - xloc;
 	  ywid = (j * height) / matrix_size - yloc;
-	MPE_FillRectangle( graph, xloc, yloc, xwid, ywid, temp[i][j] );
+	  MPE_Fill_rectangle( graph, xloc, yloc, xwid, ywid, temp[i][j] );
 	  }
       }
     }
     MPE_Update( graph );
-    
     /* Swap the matrices */
     addr = matrix ;
     matrix = temp ;
@@ -121,8 +123,8 @@ MPI_Comm comm;
   }
 
   /* Return the average time taken/processor */
-  totaltime = MPI_Wtime() - starttime;
-  MPI_Reduce (&totaltime, &totaltime, 1, MPI_DOUBLE, MPI_SUM, 0, comm);
+  slavetime = MPI_Wtime() - starttime;
+  MPI_Reduce (&totaltime, &slavetime, 1, MPI_DOUBLE, MPI_SUM, 0, comm);
   return (totaltime/(double)size);
 }
 
@@ -159,5 +161,6 @@ char *argv[] ;
   if (rank == 0)
     printf("[%d] Life finished in %lf seconds\n",rank,time/100);
 
+  MPE_Close_graphics(&graph);
   MPI_Finalize();
 }

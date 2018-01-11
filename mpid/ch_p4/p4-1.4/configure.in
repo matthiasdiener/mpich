@@ -34,6 +34,11 @@ Usage: ${progname} -p4arch=ARCH_TYPE [-alog={on,off}] [-sysv_ipc={on,off}]
                    [-vendor_ipc={on,off}] [-dprintfl={on,off}]
                    [-listener_pathname="\<pathname\>"]
 "
+OPTFLAGS="-g"
+USERCC=0
+CC=${CC:-cc}
+USERF77=0
+FC=${FC:-f77}
 for arg
 do
 case $arg in
@@ -74,6 +79,14 @@ case $arg in
      (echo "${usage_msg}") >& 2
      exit 1
      ;;
+  -opt=* | --opt=*)
+     package="`echo $arg|sed 's/-*opt=//'`"
+     OPTFLAGS=$package 
+     ;;
+  -cc=* | --cc=*)
+     CC=`echo $arg|sed 's/-*cc=//'`
+     USERCC=1
+     ;;
    *)
      echo "Invalid p4 configure option $arg"
      (echo "${usage_msg}") >& 2
@@ -82,8 +95,6 @@ esac
 done
 P4ARCH="unknown"
 MAKE=make
-CC=${CC:-cc}
-FC=${FC:-f77}
 CLINKER=$CC
 FLINKER=$FC
 AR="ar lruv"
@@ -158,10 +169,22 @@ dnl                                             CRAY
 if test -n "$p4arch_CRAY"; then
 P4ARCH=CRAY
 AR='ar ruv'
-CC=cc
-FC=cf77
-CLINKER=cc
-FLINKER=cf77
+if test $USERCC = 0 ;  then CC=cc ; fi
+if test $USERF77 = 0 ; then FC=cf77 ; fi
+CLINKER=$CC
+FLINKER=$FC
+RANLIB=true
+fi
+dnl                                             PARAGONIP  (Paragon w. Sockets)
+dnl     We use ALPHA for P4ARCH because the alpha and paragon both use OSF/1
+if test -n "$p4arch_PARAGONIP"; then
+P4ARCH=ALPHA                             
+AC_HAVE_LIBRARY(rpc,MDEP_LIBS=-lrpc)
+AR='ar860 r'
+if test $USERCC = 0 ;  then CC=icc ; fi
+if test $USERF77 = 0 ; then FC=if77 ; fi
+CLINKER=$CC
+FLINKER=$FC
 RANLIB=true
 fi
 dnl                                             NeXT workstation
@@ -195,10 +218,10 @@ fi
 dnl						SP with MPL
 if test -n "$p4arch_SP1_EUI"; then
 P4ARCH=SP1_EUI
-FC=mpxlf
-CC=mpcc
-FLINKER=xlf
-CLINKER=mpcc
+if test $USERCC = 0 ;  then CC=mpcc ; fi
+if test $USERF77 = 0 ; then FC=mpxlf ; fi
+FLINKER=$FC
+CLINKER=$CC
 RANLIB=true
 AC_HAVE_LIBRARY(bsd,MDEP_LIBS=-lbsd)
 MDEP_CFLAGS = -I/usr/lpp/poe/include
@@ -206,8 +229,8 @@ fi
 dnl						SP with EUIH (obsolete)
 if test -n "$p4arch_SP1_EUI"; then
 P4ARCH=SP1_EUIH
-FC=xlf
-CC=cc
+if test $USERCC = 0 ;  then CC=cc ; fi
+if test $USERF77 = 0 ; then FC=xlf ; fi
 FLINKER="xlf -bimport:/usr/lpp/euih/eui/eui.exp"
 CLINKER="xlc -bimport:/usr/lpp/euih/eui/eui.exp -e main"
 RANLIB=true
@@ -302,6 +325,7 @@ AC_SUBST(MDEP_LIBS)dnl
 AC_SUBST(MDEP_CFLAGS)dnl
 AC_SUBST(MDEP_FFLAGS)dnl
 AC_SUBST(MDEP_LFLAGS)dnl
+AC_SUBST(OPTFLAGS)dnl
 AC_SUBST(P4_CONFIGURED_TIME)dnl
 AC_SUBST(DEFINE_ALOG)dnl
 AC_SUBST(DEFINE_SYSV_IPC)dnl

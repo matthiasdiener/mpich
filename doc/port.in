@@ -67,6 +67,12 @@ done
 # sh is not reliable about processing redirects of stdin within if...else..fi
 # For such cases, we place the output text within a routine, defined
 # outside of the if..else..fi, and called conditionally.
+#
+# Also, different shells handle digraphs like \t differently.  On some
+# systems (e.g., SGI,AIX), echo "\\\t" in the sh shell will generate the 
+# characters \t.  On others (e.g., Sun4), echo "\\\t" generates \\t and
+# echo "\t" and "\\t" both generate \t.  Putting the "\" into a variable
+# doesn't help either...
 ############################################################################
 ############################################################################
 /bin/rm -f $filename
@@ -396,7 +402,7 @@ profiling, sequential sections, and optionally graphics.  This collection of
 routines is called the MPE library.  Programs that use MPE routines must be
 linked with {\tt @MPE_LIBS@} in addition to the MPI libraries.
 .
-#
+    #
     if test -n "@MPE_GRAPHICS@" ; then
         if test -n "@X_INC@" -o -n "@X_LIB@" ; then
 	    echo " " >> $filename

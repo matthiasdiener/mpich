@@ -79,7 +79,7 @@ VOID usc_init()
 
 
 #if defined(SUN) || defined(HP) || defined(DEC5000) || \
-    defined(SUN_SOLARIS) || \
+    defined(SUN_SOLARIS) || defined(FREEBSD) || defined(LINUX) || \
     defined(BALANCE) || \
     defined(RS6000)  ||  defined(IBM3090) || \
     defined(NEXT) || defined(TITAN) || defined(GP_1000) || \
@@ -91,8 +91,11 @@ VOID usc_init()
 	struct timezone tzp;
 	unsigned long roll;
 
+#if defined(SUN_SOLARIS)
+	gettimeofday(&tp);
+#else
 	gettimeofday(&tp,&tzp);
-
+#endif
 	roll = (usc_time_t) ((usc_time_t) 1 << ((sizeof(usc_time_t)*8)-1));
 	roll = roll + roll - 1;
 	usc_MD_rollover_val = (usc_time_t) (roll / 1000000);
@@ -174,7 +177,7 @@ usc_time_t usc_MD_clock()
 
 
 #if defined(SUN) || defined(HP) || \
-    defined(SUN_SOLARIS) || \
+    defined(SUN_SOLARIS) || defined(FREEBSD) || defined(LINUX) || \
     defined(BALANCE) || \
     defined(RS6000) || defined(IBM3090) || \
     defined(NEXT) || defined(TITAN) || defined(TC1000) || \
@@ -186,7 +189,11 @@ usc_time_t usc_MD_clock()
 	struct timeval tp;
 	struct timezone tzp;
 
+#if defined(SUN_SOLARIS)
+	gettimeofday(&tp);
+#else
 	gettimeofday(&tp,&tzp);
+#endif
 	ustime = (unsigned long) tp.tv_sec;
 	ustime = ustime % usc_MD_rollover_val;
 	ustime = (ustime * 1000000) + (unsigned long) tp.tv_usec;

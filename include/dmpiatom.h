@@ -1,5 +1,5 @@
 /*
- *  $Id: dmpiatom.h,v 1.36 1994/12/11 16:57:44 gropp Exp $
+ *  $Id: dmpiatom.h,v 1.37 1995/05/09 17:44:48 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -136,24 +136,39 @@ typedef unsigned long MPIR_CONTEXT;
 
 typedef enum { MPIR_INTRA=1, MPIR_INTER } MPIR_COMM_TYPE;
 
+/*
+   The local_rank field is used to reduce unnecessary memory references
+   when doing send/receives.  It must equal local_group->local_rank.
+
+   lrank_to_grank is group->lrank_to_grank; this is also used to 
+   reduce memory refs.  (it is IDENTICAL, not just a copy; the "group"
+   owns the array.)
+
+   These have been ordered so that the most common elements are 
+   near the top, in hopes of improving cache utilization.
+ */
 #define MPIR_COMM_COOKIE 0xea02beaf
 struct MPIR_COMMUNICATOR {
     MPIR_COOKIE                   /* Cookie to help detect valid item */
-    MPIR_COMM_TYPE comm_type;	  /* inter or intra */
-    MPI_Group     group;	  /* group associated with communicator */
-    MPI_Group     local_group;   /* local group */
-    MPI_Comm      comm_coll; /* communicator for collective ops */
-
-    int            ref_count;     /* number of references to communicator */
+    int           np;             /* size of (remote) group */
+    int           local_rank;     /* rank in local_group of this process */
+    int           *lrank_to_grank;/* mapping for group */
     MPIR_CONTEXT   send_context;  /* context to send messages */
     MPIR_CONTEXT   recv_context;  /* context to recv messages */
+    void          *ADIctx;        /* Context (if any) for abstract device */
+
+    MPIR_COMM_TYPE comm_type;	  /* inter or intra */
+    MPI_Group     group;	  /* group associated with communicator */
+    MPI_Group     local_group;    /* local group */
+    MPI_Comm      comm_coll;      /* communicator for collective ops */
+
+    int            ref_count;     /* number of references to communicator */
     void          *comm_cache;	  /* Hook for communicator cache */
     MPIR_HBT      *attr_cache;    /* Hook for attribute cache */
     struct MPIR_Errhandler *error_handler;  /* Error handler structure */
     int            permanent;      /* Is this a permanent object? */
     void          *mutex;          /* Local for threaded versions */
 
-    void          *ADIctx;        /* Context (if any) for abstract device */
     int           is_homogeneous; /* True if communicator's members
 				     are homogeneous in data representation
 				     (not used yet) */

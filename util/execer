@@ -1,118 +1,153 @@
-#!/bin/csh
-#set verbose
-set jobid = 5555  # default
-set arch = ('' '' '' '' '' '' '' '' '' '' '' '')
-set host = ('' '' '' '' '' '' '' '' '' '' '' '')
-set pgm  = ('' '' '' '' '' '' '' '' '' '' '' '')
-set numprocs = ('' '' '' '' '' '' '' '' '' '' '' '')
-set repeat = ('' '' '' '' '' '' '' '' '' '' '' '')
-set logname = ('' '' '' '' '' '' '' '' '' '' '' '')
-set comm = ('' '' '' '' '' '' '' '' '' '' '' '')
-set args = ('' '' '' '' '' '' '' '' '' '' '' '')
-set remoteinfo = ('' '' '' '' '' '' '' '' '' '' '' '' '' '' '' '' \
-		     '' '' '' '' '' '' '' '' '' '' '' '' '' '' )
-
-@ j = 1
-@ line = 0
-while ($j <= $#argv)
-    set arg = "$argv[$j]"
-    switch ("$arg")
-      case -jobid=*:
-        set jobid = `echo $arg | sed 's/-jobid=//'`
-        breaksw
-      case -arch=*:
-        @ line += 1
-        @ repeat[$line]	  = 1              # default
-        @ numprocs[$line] = 1              # default
-        set arch[$line] = `echo $arg | sed 's/-arch=//'`
+#!/bin/sh
+# We use sh because it is quiter while spawning jobs.  It is awkward 
+# because the original code used arrays in csh
+#
+jobid=5555  # default
+dbx=0
+j=1
+line=0
+for arg in "$@" ; do
+    case $arg in 
+      -echo)
+	set -x
+	;;
+      -jobid=*)
+        jobid=`echo $arg | sed 's/-jobid=//'`
+	;;
+      -arch=*)
+        line=`expr $line + 1`
+        eval repeat$line=1
+        eval numprocs$line=1
+        eval arch$line=`echo $arg | sed 's/-arch=//'`
         echo -arch not yet implemented
-        breaksw
-      case -host=*:
-        @ line += 1
-        @ repeat[$line]	  = 1              # default
-        @ numprocs[$line] = 1              # default
-        set host[$line] = `echo $arg | sed 's/-host=//'`
-        breaksw
-      case -pgm=*:
-        set pgm[$line] = `echo $arg | sed 's/-pgm=//'`
-        breaksw
-      case -numprocs=*:
-        set numprocs[$line] = `echo $arg | sed 's/-numprocs=//'`
-        breaksw
-      case -repeat=*:
-        set repeat[$line] = `echo $arg | sed 's/-repeat=//'`
-        breaksw
-      case -logname=*:
-        set logname[$line] = `echo $arg | sed 's/-logname=//'`
-        breaksw
-      case -comm=*:
-        set comm[$line] = `echo $arg | sed 's/-comm=//'`
-        breaksw
-      case -args=*:
-        set args[$line] = "`echo $arg | sed 's/-args=//'`"
-        breaksw
-      case -arg=*:
-        set args[$line] = "$args[$line] `echo $arg | sed 's/-arg=//'`"
-        breaksw
-      case *:
-        echo invalid argument $arg  argument should be one of
+        ;;
+      -host=*)
+        line=`expr $line + 1`
+        eval repeat$line=1  
+        eval numprocs$line=1
+        eval host$line=`echo $arg | sed 's/-host=//'`
+        ;;
+      -pgm=*)
+        eval pgm$line=`echo $arg | sed 's/-pgm=//'`
+        ;;
+      -numprocs=*)
+	echo $arg
+	# This wierd code is because a -n at the begining of echo 
+	# causes echo to silently IGNORE THE LINE!!!!!!
+	value=`echo a"$arg" | sed 's/a-numprocs=//'`
+        eval numprocs$line=$value
+        ;;
+      -repeat=*)
+        eval repeat$line=`echo $arg | sed 's/-repeat=//'`
+        ;;
+      -logname=*)
+        eval logname$line=`echo $arg | sed 's/-logname=//'`
+        ;;
+      -comm=*)
+        eval comm$line=`echo $arg | sed 's/-comm=//'`
+        ;;
+      -args=*)
+        eval args$line="`echo $arg | sed 's/-args=//'`"
+        ;;
+      -arg=*)
+        eval args=$"args$line"
+        eval args$line="'""$args `echo $arg | sed 's/-arg=//'`""'"
+        ;;
+      -dbx)
+        dbx=1
+	;;
+      *)
+        echo invalid argument $arg argument should be one of
         echo '-host=<host> -arch=<arch> numprocs repeat logname comm args'
-    endsw
-    @ j++
-end
+    esac
+done
 
 # Count number of processes (nodes) to be started.  This includes
 # multiple nodes on a single host, if requested.
-@ numnodes = 0
-@ i = 1
-while ( $i <= $line )
-    @ numnodes = $numnodes + $repeat[$i]
-    @ i++
-end
+numnodes=0
+i=1
+while [ $i -le $line ] ; do
+    eval repeat=$"repeat$line"
+    numnodes=`expr $numnodes + $repeat`
+    i=`expr $i + 1`
+done
 
 # Compute remoteinfo
-# @ i = 2
+# @ i=2
 # while ( $i <= $line )
-    # set remoteinfo = " $host[$i] $i $numprocs[$i] $pgm[$i] "
+    # remoteinfo=" $host[$i] $i $numprocs[$i] $pgm[$i] "
 # end
-
+MYDISPLAY=`hostname`:0
 # Start the processes.
-@ nodenum = 1
-@ i = 1
-while ( $i <= $line )
-    @ j = 1   
-    while ( $j <= $repeat[$i] )
-        @ nodenum  = $i - 1
-	set remotecmd = " $pgm[$i] "
-	set remotecmd = " $remotecmd -execer_id PDQS "
-        set remotecmd = " $remotecmd -master_host $host[1] "
-        set remotecmd = " $remotecmd -my_hostname $host[$i] "
-        set remotecmd = " $remotecmd -my_nodenum $nodenum "
-        set remotecmd = " $remotecmd -my_numprocs $numprocs[$i] "
-	set remotecmd = " $remotecmd -total_numnodes $numnodes "
-	set remotecmd = " $remotecmd -job_id $jobid "
-	set remotecmd = " $remotecmd -remote_info "
-	@ k = 1
-	while ( $k <= $line )
-	    set remotecmd = " $remotecmd $host[$k] "
-	    @ n = $k - 1
-	    set remotecmd = " $remotecmd $n $numprocs[$k] $pgm[$k] "
-	    @ k++
-	end
-
-	set remotecmd = " $remotecmd $args[$i] "
-
-	if ( ( $j == $repeat[$i] ) && ( $i == $line ) ) then
-	  echo backgrounding on $host[$i]
-	  echo remotecmd: $remotecmd
-	  rsh $host[$i] $remotecmd
+nodenum=1
+i=$line
+while [ $i -ge 1 ] ; do
+    j=1   
+    eval repeati=$"repeat$i"
+    while [ $j -le $repeati ] ; do
+        nodenum=`expr $i - 1`
+	if [ $dbx != 1 ] ; then
+            eval pgm=$"pgm$i"
+	    remotecmd=" $pgm "
         else
-          rsh $host[$i] $remotecmd &
-	endif
-	echo ""
-
-	@ nodenum++
-        @ j++
-    end   
-    @ i++
-end
+	    remotecmd=" "
+        fi
+	remotecmd=" $remotecmd -execer_id PDQS "
+        remotecmd=" $remotecmd -master_host $host1 "
+	eval host=$"host$i"
+        remotecmd=" $remotecmd -my_hostname $host "
+        remotecmd=" $remotecmd -my_nodenum $nodenum "
+	eval numprocs=$"numprocs$i"
+	if [ -z "$numprocs" ] ; then
+	   echo "Invalid number of processes for host $host ($i)"
+	   exit 1
+	fi
+        remotecmd=" $remotecmd -my_numprocs $numprocs "
+	remotecmd=" $remotecmd -total_numnodes $numnodes "
+	remotecmd=" $remotecmd -job_id $jobid "
+	remotecmd=" $remotecmd -remote_info "
+	k=1
+	while [ $k -le $line ] ; do
+	    eval host=$"host$k"
+	    remotecmd=" $remotecmd $host "
+	    n=`expr $k - 1`
+	    eval numprocs=$"numprocs$k"
+	    eval pgm=$"pgm$k"
+	    remotecmd=" $remotecmd $n $numprocs $pgm "
+	    k=`expr $k + 1`
+	done
+	eval args=$"args$i"
+	remotecmd=" $remotecmd $args "
+	if [ $dbx = 1 ] ; then
+	    cat > ~/.exs$i <<.
+cd `pwd`
+run $remotecmd	
+.
+	fi
+	eval repeat=$"repeat$i"
+	eval host=$"host$i"
+	eval pgm=$"pgm$i"
+	if [ $j -eq $repeat -a $i -eq 1 ] ; then
+#	  echo backgrounding on $host
+#	  echo remotecmd: $remotecmd
+	  if [ $dbx = 1 ] ; then
+	      rsh $host xterm -display $MYDISPLAY -e /usr/ucb/dbx $pgm -sr ~/.exs$i
+          else
+	      rsh $host $remotecmd
+	  fi
+        else
+#	  echo backgrounding on $host
+#	  echo remotecmd: $remotecmd
+	  if [ $dbx = 1 ] ; then
+	      rsh $host xterm -display $MYDISPLAY -e /usr/ucb/dbx $pgm -sr ~/.exs$i &
+	  else
+              rsh $host $remotecmd &
+          fi
+	fi
+#	echo ""
+	nodenum=`expr $nodenum + 1`
+        j=`expr $j + 1`
+    done
+    i=`expr $i - 1`
+done
+wait

@@ -46,7 +46,7 @@ mv .tmp dmshmem.h
 #
 # Change the names MPID_CH to MPID_SHMEM
 /bin/rm -f .tmp
-for file in *.c ; do
+for file in shmem*.c ; do
     if [ "$file" = shmempriv.c ] ; then
         continue 
     fi

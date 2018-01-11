@@ -64,11 +64,13 @@
       _csend(MPID_PT2PT_TAG,pkt,size,channel,0);\
       MPID_TRACE_CODE("ESendControl",channel);}
 #endif
+
 /* If we did not  SendControlBlock, make it the same as SendControl */
 #if !defined(MPID_SendControlBlock)
 #define MPID_SendControlBlock(pkt,size,channel) \
       MPID_SendControl(pkt,size,channel)
 #endif
+
 /* Because a common operation is to send a control block, and decide whether
    to use SendControl or SendControlBlock based on whether the send is 
    non-blocking, we include a definition for it here: 
@@ -81,7 +83,7 @@ else \
     MPID_SendControlBlock( pkt, len, dest );
 #else
 #define MPID_SENDCONTROL(mpid_send_handle,pkt,len,dest) \
-MPID_SendControl( pkt, len, dest );
+MPID_SendControl( pkt, len, dest )
 #endif
 
 #define MPID_SendChannel( buf, size, channel ) \
@@ -114,6 +116,9 @@ MPID_SendControl( pkt, len, dest );
     {MPID_TRACE_CODE("BWSend",channel);\
     msgwait(id );\
     MPID_TRACE_CODE("EWSend",channel);}
+/* Test the channel operation */
+#define MPID_TSendChannel( id ) \
+    msgdone((id) )
 
 /*
    We also need an abstraction for out-of-band operations.  These could
@@ -156,8 +161,8 @@ MPID_SendControl( pkt, len, dest );
      if (--TagsInUse == 0) CurTag = 1024; else if (id == CurTag-1) CurTag--;}
 #define MPID_TestRecvTransfer( rid ) \
     iprobe(rid )
-
 #endif
+
 #ifdef PI_NO_NSEND
 #define MPID_StartSendTransfer( buf, size, partner, id, sid ) \
     {MPID_TRACE_CODE("BIRRSend",id);\
@@ -181,4 +186,4 @@ MPID_SendControl( pkt, len, dest );
 #define MPID_TestSendTransfer( sid ) \
     msgdone(sid )
 #endif
-/* Probably also need a test for completion */
+

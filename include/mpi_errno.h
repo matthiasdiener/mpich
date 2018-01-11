@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi_errno.h,v 1.12 1994/06/07 21:30:24 gropp Exp $
+ *  $Id: mpi_errno.h,v 1.13 1995/05/09 17:44:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -45,8 +45,9 @@
 #define MPI_ERR_BUFFER_EXISTS 27
 #define MPI_ERR_COMM        28      /* Invalid communicator */
 #define MPI_ERR_PERM_TYPE   29      /* Can't free a perm type */
-#define MPI_ERR_OTHER       30      /* Other error; use Error_string */
-#define MPI_ERR_LASTCODE    31      /* Last error code -- always at end */
+#define MPI_ERR_IN_STATUS   30      /* Look in status for error value */
+#define MPI_ERR_OTHER       31      /* Other error; use Error_string */
+#define MPI_ERR_LASTCODE    32      /* Last error class -- always at end */
 
 #endif /* _MPI_ERRNO */
 

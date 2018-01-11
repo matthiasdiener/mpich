@@ -1,5 +1,5 @@
 /*
- *  $Id: buffree.c,v 1.7 1994/10/27 20:42:03 gropp Exp $
+ *  $Id: buffree.c,v 1.8 1995/05/09 18:58:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: buffree.c,v 1.7 1994/10/27 20:42:03 gropp Exp $";
+static char vcid[] = "$Id: buffree.c,v 1.8 1995/05/09 18:58:21 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -43,12 +43,16 @@ Notes for Fortran:
     output of this routine to exchange buffers.  In this case, only the
     size field is set.
 
+Notes for C:
+    Even though the 'bufferptr' arguement is declared as 'void *', it is
+    really the address of a void pointer.  See the rationale in the 
+    standard for more details. 
 @*/
-int MPI_Buffer_detach( buffer, size )
-void **buffer;
+int MPI_Buffer_detach( bufferptr, size )
+void *bufferptr;
 int  *size;
 {
-MPIR_FreeBuffer( buffer, size );
+MPIR_FreeBuffer( (void **)bufferptr, size );
 
 return MPI_SUCCESS;
 }

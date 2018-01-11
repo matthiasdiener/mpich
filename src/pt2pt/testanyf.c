@@ -9,7 +9,7 @@ extern int MPIR_FromPointer();
 extern void MPIR_RmPointer();
 #else
 #define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) a
+#define MPIR_FromPointer(a) (int)(a)
 #define MPIR_RmPointer(a)
 #endif
 
@@ -42,21 +42,37 @@ int *__ierr;
 {
 #ifdef POINTER_64_BITS
 int i;
-MPI_Request *r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
-for (i=0; i<*count; i++) {
-    r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
+MPI_Request *r;
+
+if (*count > 0) {
+    r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
+    if (!r) {
+	*__ierr = MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+			     "Out of space in MPI_TESTANY" );
+	return;
+	}
+    for (i=0; i<*count; i++) {
+	r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
+	}
     }
+else 
+    r = 0;
 *__ierr = MPI_Testany(*count,r,index,flag,status);
-/* Must not do this if request is persistant FIX ME */
-/*
-   MPIR_RmPointer( *((int *)(array_of_requests) + *index) );
-   *((int *)(array_of_requests)+*index) = 0;
- */
-FREE( r );
+if (*flag && !*__ierr) {
+    /* By checking for r[i] = 0, we handle persistant requests */
+    if (r[*index] == MPI_REQUEST_NULL) {
+	MPIR_RmPointer( *((int *)(array_of_requests) + *index) );
+	*((int *)(array_of_requests)+*index) = 0;
+	}
+    }
+if (r) {
+    FREE( r );
+    }
 
 #else
 *__ierr = MPI_Testany(*count,array_of_requests,index,flag,status);
 #endif
+
 *flag = MPIR_TO_FLOG(*flag);
 /* See the description of waitany in the standard; the Fortran index ranges
    are from 1, not zero */

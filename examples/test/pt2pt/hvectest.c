@@ -297,4 +297,5 @@ char **argv;
     MPI_Type_free( &rowtype );
     Test_Waitforall( );
     MPI_Finalize();
+    return 0;
 }

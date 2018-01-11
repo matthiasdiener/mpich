@@ -30,7 +30,7 @@ elif test "$ARCH" = "intelnx" ; then
 
 # ch_meiko
 elif test "$ARCH" = "meiko" ; then
-  DEVICE="ch_meiko"
+  DEVICE="meiko"
 # ch_nc
 elif test "$ARCH" = "ncube" ; then
   DEVICE="ch_nc"

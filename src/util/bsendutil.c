@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil.c,v 1.2 1994/10/28 19:19:50 gropp Exp $
+ *  $Id: bsendutil.c,v 1.3 1995/05/09 18:56:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: bsendutil.c,v 1.2 1994/10/28 19:19:50 gropp Exp $";
+static char vcid[] = "$Id: bsendutil.c,v 1.3 1995/05/09 18:56:52 gropp Exp $";
 #endif /* lint */
 
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
@@ -276,7 +276,17 @@ if (MPIR_TestBufferPtr(b)) {
     }
 outcount = b->len;
 MPI_Pack( b->buf, b->count, b->datatype, rq->bufadd, outcount, &position, 
-	 rq->comm );
+	  rq->comm );
+rq->dev_shandle.start = rq->bufadd;
+/* Make sure that the msgrep is correct */
+#ifdef MPID_HAS_HETERO
+    if ((MPID_IS_HETERO == 1) && 
+	MPIR_Comm_needs_conversion(rq->comm))
+	rq->msgrep = MPIR_MSGREP_XDR;
+    else 
+	rq->msgrep = MPIR_MSGREP_SENDER;
+#endif
+
 /* The number of bytes actually taken is returned in position */
 rq->count			= position;
 rq->dev_shandle.bytes_as_contig	= position;

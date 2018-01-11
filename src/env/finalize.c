@@ -1,5 +1,5 @@
 /*
- *  $Id: finalize.c,v 1.26 1995/03/05 20:18:40 gropp Exp $
+ *  $Id: finalize.c,v 1.27 1995/05/09 18:57:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -73,16 +73,16 @@ int MPI_Finalize()
     MPI_Op_free( &MPI_MINLOC );
 
     /* Free allocated space */
+    /* Note that permanent datatypes are now stored in static storage
+       so that we can not free them. */
     DBG(fprintf( stderr, "About to free dtes\n" ); fflush( stderr );)
-    MPI_Type_free( &MPI_INT );
-    MPI_Type_free( &MPI_FLOAT );
+    MPI_REAL->permanent = MPIR_NO;
     MPI_Type_free( &MPI_REAL );
+    MPI_DOUBLE_PRECISION->permanent = MPIR_NO;
     MPI_Type_free( &MPI_DOUBLE_PRECISION );
-    MPI_Type_free( &MPI_DOUBLE );
-    MPI_Type_free( &MPI_LONG );
-    MPI_Type_free( &MPIR_complex_dte );
-    MPI_Type_free( &MPIR_dcomplex_dte );
-    MPI_Type_free( &MPIR_logical_dte );
+/*     MPI_Type_free( &MPIR_complex_dte );
+    MPI_Type_free( &MPIR_dcomplex_dte ); 
+    MPI_Type_free( &MPIR_logical_dte ); */
 #ifndef MPID_NO_FORTRAN
 #ifdef FOO
     /* Note that currently (see init.c), these are all copies of the
@@ -95,26 +95,22 @@ int MPI_Finalize()
     if (MPIR_real8_dte) MPI_Type_free( &MPIR_real8_dte );
 #endif
 #endif
-    MPI_Type_free( &MPI_SHORT );
-    MPI_Type_free( &MPI_CHAR );
-    MPI_Type_free( &MPI_BYTE );
-    MPI_Type_free( &MPI_UNSIGNED_CHAR );
-    MPI_Type_free( &MPI_UNSIGNED_SHORT );
-    MPI_Type_free( &MPI_UNSIGNED_LONG );
-    MPI_Type_free( &MPI_UNSIGNED );
-    MPI_Type_free( &MPI_PACKED );
-    MPI_Type_free( &MPI_UB );
-    MPI_Type_free( &MPI_LB );
-    MPI_Type_free( &MPI_FLOAT_INT );
-    MPI_Type_free( &MPI_DOUBLE_INT );
-    MPI_Type_free( &MPI_LONG_INT );
+    /* Free the parts of the structure types */
+    MPIR_Type_free_struct( MPI_FLOAT_INT );
+    MPIR_Type_free_struct( MPI_DOUBLE_INT );
+    MPIR_Type_free_struct( MPI_LONG_INT );
+    MPIR_Type_free_struct( MPI_SHORT_INT );
+    MPIR_Type_free_struct( MPI_2INT );
+    
     if (MPI_2INT != MPI_2INTEGER)
 	MPI_Type_free( &MPI_2INTEGER );
-    MPI_Type_free( &MPI_2INT );
-    MPI_Type_free( &MPI_SHORT_INT );
+    MPIR_2real_dte->permanent = MPIR_NO;
     MPI_Type_free( &MPIR_2real_dte );
+    MPIR_2double_dte->permanent = MPIR_NO;
     MPI_Type_free( &MPIR_2double_dte );
+    MPIR_2complex_dte->permanent = MPIR_NO;
     MPI_Type_free( &MPIR_2complex_dte );
+    MPIR_2dcomplex_dte->permanent = MPIR_NO;
     MPI_Type_free( &MPIR_2dcomplex_dte );
 
 #if defined(HAVE_LONG_DOUBLE)
@@ -172,6 +168,7 @@ int MPI_Finalize()
 
 #ifdef MPIR_MEMDEBUG
     MPIR_trdump( stdout );
+    MPIR_UsePointer( stdout );
 #endif    
     /* barrier */
     return MPI_SUCCESS;

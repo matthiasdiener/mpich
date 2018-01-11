@@ -1,5 +1,5 @@
 /*
- *  $Id: mperror.c,v 1.20 1995/01/15 06:54:43 gropp Exp $
+ *  $Id: mperror.c,v 1.21 1995/03/24 14:49:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -132,6 +132,12 @@ char     *string, *file;
   /* This can happen if MPI_COMM_WORLD is not initialized */
   if (!comm || (handler = comm->error_handler) == MPI_ERRHANDLER_NULL) 
     handler = MPI_ERRORS_ARE_FATAL;
+  if (!handler) {
+      /* Fatal error, probably a call before MPI_Init */
+      fprintf( stderr, "Fatal error; unknown error handler\n\
+May be MPI call before MPI_INIT.  Error message is %s\n", string );
+      return code;
+      }
 
   /* Call handler routine */
   (*handler->routine)( &comm, &code, string, file, &line );

@@ -261,7 +261,7 @@ char *buf;
     *bptr = 0;
 }
 
-#ifdef P4BSD
+#if defined(P4BSD) && !defined(NO_ECHO)
 
 #ifdef FREEBSD
 #include <sys/ioctl_compat.h>

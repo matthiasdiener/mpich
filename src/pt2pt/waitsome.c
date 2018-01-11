@@ -1,5 +1,5 @@
 /*
- *  $Id: waitsome.c,v 1.16 1995/03/05 22:56:51 gropp Exp $
+ *  $Id: waitsome.c,v 1.19 1995/05/16 18:11:34 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitsome.c,v 1.16 1995/03/05 22:56:51 gropp Exp $";
+static char vcid[] = "$Id: waitsome.c,v 1.19 1995/05/16 18:11:34 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -46,7 +46,7 @@ MPI_Status  array_of_statuses[];
 	    break;
 	}
     if (i == incount) {
-	*outcount = 0;
+	*outcount = MPI_UNDEFINED;
 	return MPI_SUCCESS;
 	}
 
@@ -87,7 +87,8 @@ MPI_Status  array_of_statuses[];
 						   request->rhandle.count, 
 						   request->rhandle.datatype, 
 						   request->rhandle.source,
-						   request );
+						   request, 
+					    &array_of_statuses[nfound].count );
 #endif
 		    }
 		else {
@@ -108,19 +109,10 @@ MPI_Status  array_of_statuses[];
 			MPIR_Type_free( &request->chandle.datatype );
 			}
 		    MPI_Request_free( &array_of_requests[i] ); 
-		    array_of_requests[i]    = NULL;
+		    /* array_of_requests[i]    = NULL; */
 		    }
 		else {
-		    request->chandle.active    = 0;
-		    MPID_Clr_completed( MPID_Ctx( request ), request );
-		    if (request->type == MPIR_RECV) {
-			MPID_Reuse_recv_handle( request->rhandle.comm->ADIctx,
-					      &request->rhandle.dev_rhandle );
-			}
-		    else {
-			MPID_Reuse_send_handle( request->shandle.comm->ADIctx,
-					      &request->shandle.dev_shandle );
-			}
+		    MPIR_RESET_PERSISTENT(request)
 		    }
 		}
 	    }

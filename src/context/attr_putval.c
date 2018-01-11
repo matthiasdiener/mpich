@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_putval.c,v 1.17 1994/12/21 14:42:31 gropp Exp $
+ *  $Id: attr_putval.c,v 1.19 1995/06/02 21:59:58 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -25,6 +25,11 @@ In C, an attribute value is a pointer (void *); in Fortran, it is a single
 integer (NOT a pointer, since Fortran has no pointers and their are systems 
 for which a pointer does not fit in an integer (e.g., any > 32 bit address 
 system that uses 64 bits for Fortran DOUBLE PRECISION).
+
+If an attribute is already present, the delete function (specified when the
+corresponding keyval was created) will be called.
+
+.seealso MPI_Attr_get, MPI_Keyval_create, MPI_Attr_delete
 @*/
 int MPI_Attr_put ( comm, keyval, attr_value )
 MPI_Comm comm;
@@ -56,6 +61,12 @@ void     *attr_value;
 	(void) MPIR_HBT_insert ( comm->attr_cache, attr );
   }
   else {
+      /* 
+	 This is an unclear part of the standard.  Under MPI_KEYVAL_CREATE,
+	 it is claimed that ONLY MPI_COMM_FREE and MPI_ATTR_DELETE
+	 can cause the delete routine to be called.  Under 
+	 MPI_ATTR_PUT, however, the delete routine IS called.
+       */
 	if ( attr_key->delete_fn != (int(*)())0 ) {
 	    if (attr_key->FortranCalling) 
 		(void) attr_key->delete_fn(comm, keyval, &attr->value,

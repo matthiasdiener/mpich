@@ -28,19 +28,19 @@ DEVICE      = @DEVICE@
 
 SHELL = /bin/sh
 
+PROFLIB =
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 CCFLAGS = $(CFLAGS)
-#FFLAGS = '-qdpc=e' 
 FFLAGS = @FFLAGS@ $(OPTFLAGS)
 MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS = $(LIB_PATH) $(LIB_LIST)
+LIBS = $(LIB_PATH) $(PROFLIB) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 probe probe1 testtest1 testtypes ssendtest typetest\
-	secondf dtypelife issendtest relrank inull
-
+	secondf dtypelife issendtest relrank inull typeub irecvtest htmsg \
+	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent
 default: $(EXECS)
 
 testing: default $(MPIR_HOME)/util/mpirun
@@ -50,69 +50,104 @@ linktest: overtake secondf clean
 
 all: testing
 
-fortran_tests: secondf allpair
+fortran_tests: secondf allpair allpair2
 
-overtake: overtake.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+overtake: overtake.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o overtake overtake.o test.o $(LIBS)
 
-relrank: relrank.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+bsendtest: bsendtest.o test.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o bsendtest bsendtest.o test.o $(LIBS)
+
+relrank: relrank.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o relrank relrank.o test.o $(LIBS)
 
-sendrecv: sendrecv.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+sendrecv: sendrecv.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o sendrecv sendrecv.o test.o $(LIBS)
 
-isndrcv: isndrcv.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+persistent: persistent.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o persistent persistent.o $(LIBS)
+
+sendrecv2: sendrecv2.o dtypes.o gcomm.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o sendrecv2 sendrecv2.o dtypes.o gcomm.o \
+		 $(LIBS)
+
+sendrecv3: sendrecv3.o dtypes.o gcomm.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o sendrecv3 sendrecv3.o dtypes.o gcomm.o \
+		 $(LIBS)
+
+sendrecv4: sendrecv4.o dtypes.o gcomm.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o sendrecv4 sendrecv4.o dtypes.o gcomm.o \
+		 $(LIBS)
+
+self: self.o test.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o self self.o test.o $(LIBS)
+
+typeub: typeub.o test.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o typeub typeub.o $(LIBS)
+
+isndrcv: isndrcv.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o isndrcv isndrcv.o test.o $(LIBS)
 
-inull: inull.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+inull: inull.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o inull inull.o test.o $(LIBS)
 
-typetest: typetest.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+typetest: typetest.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o typetest typetest.o test.o $(LIBS)
 
-ssendtest: ssendtest.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+ssendtest: ssendtest.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o ssendtest ssendtest.o test.o $(LIBS)
 
-issendtest: issendtest.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+issendtest: issendtest.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o issendtest issendtest.o test.o $(LIBS)
 
-testtypes: testtypes.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+testtypes: testtypes.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o testtypes testtypes.o test.o $(LIBS)
 
-dtypelife: dtypelife.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+dtypelife: dtypelife.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o dtypelife dtypelife.o test.o $(LIBS)
 
-third: third.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+htmsg: htmsg.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o htmsg htmsg.o $(LIBS)
+
+isendtest: isendtest.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o isendtest isendtest.o $(LIBS)
+
+third: third.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o third third.o test.o $(LIBS)
 
-fourth: fourth.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+fourth: fourth.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o fourth fourth.o test.o $(LIBS)
 
-fifth: fifth.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+fifth: fifth.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o fifth fifth.o test.o $(LIBS)
 
-sixth: sixth.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+sixth: sixth.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o sixth sixth.o test.o $(LIBS)
 
-probe: probe.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+probe: probe.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o probe probe.o test.o $(LIBS)
 
-probe1: probe1.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+probe1: probe1.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o probe1 probe1.o test.o $(LIBS)
 
-testtest1: testtest1.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+testtest1: testtest1.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o testtest1 testtest1.o test.o $(LIBS)
 
-hvectest: hvectest.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+hvectest: hvectest.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o hvectest hvectest.o test.o $(LIBS)
 
-hvectest2: hvectest2.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+hvectest2: hvectest2.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o hvectest2 hvectest2.o test.o $(LIBS)
 
-secondf: secondf.o mpif.h
+irecvtest: irecvtest.o test.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o irecvtest irecvtest.o test.o $(LIBS)
+
+secondf: mpif.h secondf.o
 	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS)
-allpair: allpair.o mpif.h
+allpair: mpif.h allpair.o
 	$(FLINKER) $(OPTFLAGS) -o allpair allpair.o $(FLIBS)
+allpair2: mpif.h allpair2.o
+	$(FLINKER) $(OPTFLAGS) -o allpair2 allpair2.o $(FLIBS)
 
 mpif.h: $(MPIR_HOME)/include/mpif.h
 	if test \! -f mpif.h ; then \
@@ -122,7 +157,8 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 #
 # Make sure that we remove executables for specific architectures
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) *.out secondf allpair core
+	/bin/rm -f *.o *~ PI* $(EXECS) *.out secondf allpair core systest \
+		systest1 allpair2 bsendtest pt2pt.diff
 	for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done

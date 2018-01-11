@@ -1,7 +1,8 @@
 /*
- *  $Id: cart_createf.c,v 1.8 1994/09/01 22:08:55 gropp Exp $
+ *  $Id: cart_createf.c,v 1.9 1995/05/09 18:56:11 gropp Exp $
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
+ * Custom Fortran wrapper
  */
 
 #include "mpiimpl.h"
@@ -19,6 +20,8 @@ extern void MPIR_RmPointer();
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_cart_create_ PMPI_CART_CREATE 
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_cart_create_ pmpi_cart_create__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_cart_create_ pmpi_cart_create
 #else
@@ -27,6 +30,8 @@ extern void MPIR_RmPointer();
 #else
 #ifdef FORTRANCAPS
 #define mpi_cart_create_ MPI_CART_CREATE
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_cart_create_ mpi_cart_create__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_cart_create_ mpi_cart_create
 #endif

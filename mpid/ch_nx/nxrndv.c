@@ -208,6 +208,15 @@ if (mpid_recv_handle_unex->send_id) {
     dmpi_recv_handle->completer = MPID_CMPL_RECV_RNDV;
     MPID_NX_complete_recv( dmpi_recv_handle );
     }
+else {
+    if (mpid_recv_handle_unex->bytes_as_contig > 0) {
+    /* Short message, all data is here */
+	MEMCPY( mpid_recv_handle->start, mpid_recv_handle_unex->temp,
+	        mpid_recv_handle_unex->bytes_as_contig );
+	}
+    DMPI_mark_recv_completed( dmpi_recv_handle );
+    }
+
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 if (MPID_DebugFlag) {
     fprintf( MPID_DEBUG_FILE,
@@ -322,14 +331,9 @@ MPID_PKT_SEND_ALLOC(MPID_PKT_OK_TO_SEND,pkt);
 MPID_CreateRecvTransfer( mpid_recv_handle->start, msglen, from, &recv_handle );
 mpid_recv_handle->recv_handle = recv_handle;
 mpid_recv_handle->from	      = from;
-#ifndef PI_NO_NRECV
 /* Post the non-blocking receive */
 MPID_StartRecvTransfer( mpid_recv_handle->start, msglen, from, recv_handle,
  		        mpid_recv_handle->rid );
-#else
-/* Mark the transfer as started */
-mpid_recv_handle->rid = 1;
-#endif
 
 MPID_PKT_SEND_SET(pkt,mode,MPID_PKT_OK_TO_SEND);
 MPID_PKT_SEND_SET(pkt,send_id,send_id);
@@ -355,7 +359,8 @@ MPID_EndRecvTransfer( mpid_recv_handle->start,
 mpid_recv_handle->rid = 0;
 }
 
-/* This is a test for received.  It must look to see if the transaction */
+/* This is a test for received.  It must look to see if the transaction 
+   has completed. */
 int MPID_NX_Test_recv_rndv( dmpi_recv_handle )
 MPIR_RHANDLE *dmpi_recv_handle;
 {
@@ -395,11 +400,15 @@ MPIR_SHANDLE *dmpi_send_handle;
 if (!(dmpi_send_handle->completer == 0) && dmpi_send_handle->dev_shandle.sid) {
     if (MPID_TestSendTransfer( dmpi_send_handle->dev_shandle.sid )) {
 	/* If it is done, go ahead and mark the operation completed */
+	/* Note that this is really not correct; in most systems, the
+	   test also does the completion (just like MPI) */
+	/*
 	MPID_EndSendTransfer( dmpi_send_handle->dev_shandle.start, 
 			dmpi_send_handle->dev_shandle.bytes_as_contig, 
 			     dmpi_send_handle->dest,
 			     dmpi_send_handle->dev_shandle.recv_handle, 
 	   dmpi_send_handle->dev_shandle.sid );
+	 */
 	dmpi_send_handle->dev_shandle.sid = 0;
 	DMPI_mark_send_completed(dmpi_send_handle);
 	}

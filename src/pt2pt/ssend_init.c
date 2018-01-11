@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend_init.c,v 1.15 1995/03/05 20:17:14 gropp Exp $
+ *  $Id: ssend_init.c,v 1.16 1995/05/09 18:59:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,8 +50,9 @@ MPI_Request   *request;
     MPIR_SET_COOKIE(&handleptr->shandle,MPIR_REQUEST_COOKIE)
     handleptr->type                 = MPIR_SEND;
     if (dest == MPI_PROC_NULL) {
-	handleptr->shandle.dest     = dest;
+	handleptr->shandle.dest	  = dest;
 	MPID_Set_completed( comm->ADIctx, handleptr );
+	handleptr->shandle.bufpos = 0;
 	}
     else {
 	handleptr->shandle.dest     = comm->group->lrank_to_grank[dest];

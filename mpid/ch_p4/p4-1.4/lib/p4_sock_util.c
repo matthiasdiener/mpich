@@ -147,25 +147,74 @@ int skt;
     return (skt2);
 }
 
+void get_sock_info_by_hostname(hostname,sockinfo)
+char *hostname;
+struct sockaddr_in **sockinfo;
+{
+    int i;
+
+    p4_dprintfl( 91, "Starting get_sock_info_by_hostname\n");
+    if (p4_global) {
+	p4_dprintfl( 90, "looking at %d hosts\n", 
+		    p4_global->num_in_proctable );
+	for (i = 0; i < p4_global->num_in_proctable; i++) {
+	    p4_dprintfl(90,"looking up (%s), looking at (%s)\n",
+			hostname,p4_global->proctable[i].host_name);
+	    if (strcmp(p4_global->proctable[i].host_name,hostname) == 0) {
+		if (p4_global->proctable[i].sockaddr.sin_port == 0)
+		    p4_error( "Uninitialized sockaddr port",i);
+		*sockinfo = &(p4_global->proctable[i].sockaddr);
+		return;
+		}
+	    }
+	}
+
+/* Error, no sockinfo.
+   Try to get it from the hostname (this is NOT signal safe, so we 
+   had better not be in a signal handler.  This MAY be ok for the listener) */
+    {
+    struct hostent *hp = gethostbyname_p4( hostname );
+    static struct sockaddr_in listener;
+    if (hp) {
+	bzero((P4VOID *) &listener, sizeof(listener));
+	bcopy((P4VOID *) hp->h_addr, (P4VOID *) &listener.sin_addr, 
+	      hp->h_length);
+	listener.sin_family = hp->h_addrtype;
+	*sockinfo = &listener;
+	return;
+	}
+    }
+
+*sockinfo = 0;
+p4_error("Unknown host in getting sockinfo from proctable",-1);
+}
+
 int net_conn_to_listener(hostname, port, num_tries)
 char *hostname;
 int port, num_tries;
 {
     int flags, rc, s;
+/* RL
     struct sockaddr_in listener;
+*/
+    struct sockaddr_in *sockinfo;
     struct hostent *hp;
     P4BOOL optval = TRUE;
     P4BOOL connected = FALSE;
 
-    hp = gethostbyname_p4(hostname);
-
-    /* p4_dprintfl(70, "net_conn_to_listener: host=%s port=%d\n", hostname, port); */
     p4_dprintfl(80, "net_conn_to_listener: host=%s port=%d\n", hostname, port);
+    /* gethostchange -RL */
+/*
     bzero((P4VOID *) &listener, sizeof(listener));
     bcopy((P4VOID *) hp->h_addr, (P4VOID *) &listener.sin_addr, hp->h_length);
     listener.sin_family = hp->h_addrtype;
     listener.sin_port = htons(port);
-
+*/
+    get_sock_info_by_hostname(hostname,&sockinfo);
+    sockinfo->sin_port = htons(port);
+#if !defined(CRAY)
+    dump_sockaddr("sockinfo",sockinfo);
+#endif
     connected = FALSE;
     while (!connected && num_tries)
     {
@@ -177,7 +226,11 @@ int port, num_tries;
 	SYSCALL_P4(rc, setsockopt(s,IPPROTO_TCP,TCP_NODELAY,(char *) &optval,sizeof(optval)));
 #       endif
 
+/*  RL
 	SYSCALL_P4(rc, connect(s, (struct sockaddr *) &listener, sizeof(listener)));
+*/
+	SYSCALL_P4(rc, connect(s, (struct sockaddr *) sockinfo,
+			       sizeof(struct sockaddr_in)));
 	if (rc < 0)
 	{
 	    close(s);
@@ -372,7 +425,7 @@ struct sockaddr_in *sa;
 
     addr = (unsigned char *) &(sa->sin_addr.s_addr);
 
-    p4_dprintfl(00,"%s: family=%d port=%d addr=%d.%d.%d.%d\n",
+    p4_dprintfl(90,"%s: family=%d port=%d addr=%d.%d.%d.%d\n",
 		who,
                 ntohs(sa->sin_family),
                 ntohs(sa->sin_port),

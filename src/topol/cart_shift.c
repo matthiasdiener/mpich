@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.13 1994/12/15 17:33:55 gropp Exp $
+ *  $Id: cart_shift.c,v 1.14 1995/05/09 18:56:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -20,6 +20,10 @@ Input Parameters:
 Output Parameters:
 . rank_source - rank of source process (integer) 
 . rank_dest - rank of destination process (integer) 
+
+Notes:
+The 'direction' argument is in the range [0,n-1] for an n-dimensional 
+Cartesian mesh.
 
 @*/
 int MPI_Cart_shift ( comm, direction, displ, source, dest )

@@ -1,5 +1,5 @@
 #ifndef lint
-static char vcid[] = "$Id: xinit.c,v 1.5 1994/12/26 17:16:30 gropp Exp $";
+static char vcid[] = "$Id: xinit.c,v 1.6 1995/05/09 19:02:12 gropp Exp $";
 #endif
 
 #include <stdio.h>
@@ -148,6 +148,8 @@ XBWindow *w;
 FREE( w );
 }
 
+/* Thanks to Hubertus Franke */
+#define MAX_TRY (5)
 /*
   XBOpenDisplay - Open a display
   
@@ -159,10 +161,18 @@ int XBOpenDisplay( XBWin, display_name )
 XBWindow *XBWin;
 char     *display_name;
 {
+int i;
 if (display_name && display_name[0] == 0)
     display_name = 0;
-XBWin->disp = XOpenDisplay( display_name );
 
+for (i=0; i<MAX_TRY; i++) {
+    XBWin->disp = XOpenDisplay( display_name );
+    if (!XBWin->disp) {
+	if (i < MAX_TRY) { sleep(1); continue; }
+	}
+    else 
+	break;
+    }
 if (!XBWin->disp) 
     return ERR_CAN_NOT_OPEN_DISPLAY;
 

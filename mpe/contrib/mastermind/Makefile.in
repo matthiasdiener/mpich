@@ -6,7 +6,7 @@ COMM        = @COMM@
 CC          = @CC@
 CLINKER     = @CC@
 MPIR_HOME   = @MPIR_HOME@
-OPTFLAGS    = -g
+OPTFLAGS    = @OPTFLAGS@
 #
 LIB_PATH    = @LIB_PATH@ @X_LIB@
 MPE_DIR     = @MPE_DIR@
@@ -31,7 +31,7 @@ gmm:	gmm.o $(MPIR_HOME)/include/mpi.h $(MPE_DIR)/mpe.h
 
 mm:	mm.o $(MPIR_HOME)/include/mpi.h $(MPE_DIR)/mpe.h
 	$(CLINKER) $(OPTFLAGS) -o mm mm.o \
-	$(LIB_PATH) $(LIB_LIST) -lm
+	$(LIB_PATH)  $(MPE_LIBS) $(LIB_LIST) -lm
 
 gmm.o:	gmm.c
 	$(CC) $(CFLAGS) -DUSE_GRAPHICS -c gmm.c

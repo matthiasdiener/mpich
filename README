@@ -2,7 +2,7 @@
 
 		      Portable MPI Model Implementation
 
-			Version 1.0.8 (March 17, 1995)
+			Version 1.0.9 (June ?, 1995)
 
 This is a joint-effort project between Argonne (Bill Gropp and Rusty Lusk) and
 Mississippi State (Tony Skjellum and Nathan Doss).  Hubertus Franke of IBM has
@@ -10,7 +10,6 @@ also made major contributions, as have Ed Karrels and Patrick Bridges
 (student interns at ANL).  Of course the hardest work was getting the
 spec right, which was done by the MPI Forum as a whole.
 
-New in the 1.0.8 release are separate Users and Installation guides.  
 The "Quick Start" section of that guide (found in mpich/doc/install.ps.Z) gives
 the following steps for installation and minimal testing:
 
@@ -37,62 +36,48 @@ the following steps for installation and minimal testing:
 
   mpirun -np 4 cpi
 
+                         Changes since Version 1.0.8
 
-			 Changes since Version 1.0.7
+1.  Improved support for heterogeneous systems with different data lengths
+    (more remains to be done).  Unified much of the code to pack and 
+    unpack datatypes.  Note that MPICH has used a "sender converts" 
+    approach since 1994 in preference to XDR (which is still used in
+    some cases).  Extensions to this mechanism will further reduce the
+    usage of XDR in heterogeneous systems.
 
-1.  The ch_p4 device for HPs now handles large messages more reliably 
-    (HPUX, alone of Unix varients, uses EAGAIN instead of EWOULDBLOCK
-    for the write-would-block condition).
+2.  Fixes to mpireconfig and upshot when installing a distribution.
 
-2.  The script util/mpireconfig makes it easier to build Makefiles to fit
-    a configuration
+3.  Added new profiling libraries for tracing, log file generation, and
+    realtime animation.  See the Users Guide.
 
-3.  The script util/tstmachines helps identify problems in using workstation
-    clusters.
+4.  Shortened some filenames to 12 characters (plus extension); this helps
+    Cray YMPs that corrupt their object libraries when presented with an
+    otherwise valid filename with more than 12 characters.
 
-4.  The code for MPI_Reduce (and MPI_Allreduce) now handles non-commutative
-    operators correctly.  Previous versions swapped the first two arguments
-    to the reduction function.  See examples/test/coll/coll10.c for an
-    example non-commutative operation.
+5.  Added a native Meiko CS-2 device (thanks to Jim Cownie).
 
-5.  A bug in the handling of large numbers of sends without any receives has
-    been fixed.
+6.  Updated (in part) to conform to clarifications of the MPI Forum.  This
+    includes:
 
-6.  A new device, ch_shmem, provides a shared-memory implementation for SGI
-    Challenge, Power Challenge, and Onyx, Convex Exemplar, and Sun
-    multiprocessors running Solaris.  Special features include the ability to
-    handle very large messages (by transfering them in pieces).  See below
-    for how to configure for these machines.
+    Changed behavior when empty lists of requests are given to TESTxxx/WAITxxx
 
-7.  Nonblocking operations involving MPI_PROC_NULL now work correctly
+    Many MPI pre-defined datatypes are now compile-time constants (all will
+    be soon).
 
-8.  A new Users Guide and a separate Installation guide are now distributed
-    in the 'doc' directory
+    Some man pages have been updated to clarify the definition.  See 
+    in particular MPI_Cart_shift and MPI_Bsend.
 
-9.  The 'secure server' for faster startup on workstation clusters is now
-    available and its use documented in the Users and Installation guides.
+    A new constant, MPI_BUFFER_OVERHEAD, can be used with MPI_BUFFER_ATTACH.
 
-10. Fixed failure in MPI_Cart_coords on the second call.
+7.  Some bugs in the code for the CM5 MAY have been fixed; we no longer 
+    have access to any CM5 so we can't test it (NPAC CM5 is no longer 
+    accessible, and accounts on the Los Alamos CM5 are limited to 
+    Los Alamos grand challenge projects and industrial partners).  
 
-11. Many changes to configure, including code to find wish, tcl, and tk for
-    upshot and choose xlC over xlc on rs6000's.
-
-12. Now dynamically determines the size of Fortran datatypes for systems
-    where sizeof(float) != sizeof(Fortran real)
-
-13. Tests in examples/test are now deterministic (no longer assumes a 
-    particular output order).
-
-14. New MPE_Fill_circle routine (and mpe/contrib/mastermind example that
-    uses it)
-
-15. Global operations (reduce, scan) now handle long double type.
-
-16. Misc. bugs in the code and the test programs have been fixed.
-
-17. The ch_p4 device can now be used with -arch=symmetry and -arch=symm_ptx
-    for Sequent Symmetry shared-memory multiprocessors.
-
+8.  Bugs in the Intel Paragaon version have been fixed, particularly those
+    in the handling of nonblocking operations.
+    
+9.  Many additions to the test suite.
 
 What is here
 ============
@@ -203,7 +188,7 @@ To build for nX on a paragon, use
 
 To build for the Meiko CS-2, use
 
-    configure -arch=meiko -device=ch_meiko
+    configure -arch=meiko -device=meiko
     make
 
 To build for the Ncube, use

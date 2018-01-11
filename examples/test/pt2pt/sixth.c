@@ -17,13 +17,13 @@ MPI_Comm *oldcomm;
 int      *keyval;
 void     *extra_state;
 void     *attr_in;
-void     **attr_out;
+void     *attr_out;
 int      *flag;
 {
   Table *table = (Table *)attr_in;;
 
   table->references++;
-  (*attr_out) = attr_in;
+  (*(void **)attr_out) = attr_in;
   (*flag) = 1;
   (*(int *)extra_state)++;
   return (MPI_SUCCESS);
@@ -56,6 +56,7 @@ void     *extra_state;
   else
 	table->references--;
   (*(int *)extra_state)--;
+  return MPI_SUCCESS;
 }
 
 int main ( argc, argv )

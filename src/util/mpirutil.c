@@ -1,5 +1,5 @@
 /*
- *  $Id: mpirutil.c,v 1.16 1995/03/05 23:01:14 gropp Exp $
+ *  $Id: mpirutil.c,v 1.17 1995/04/11 19:09:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: mpirutil.c,v 1.16 1995/03/05 23:01:14 gropp Exp $";
+static char vcid[] = "$Id: mpirutil.c,v 1.17 1995/04/11 19:09:16 gropp Exp $";
 #endif /* lint */
 
 /* mpir helper routines
@@ -479,4 +479,27 @@ int n;
     for (i = 0; i < n; i++)
 	putchar(' ');
     return MPI_SUCCESS;
+}
+
+/*
+   MPIR_ArgSqueeze - Remove all null arguments from an arg vector; 
+   update the number of arguments.
+ */
+void MPIR_ArgSqueeze( Argc, argv )
+int  *Argc;
+char **argv;
+{
+int argc, i, j;
+    
+/* Compress out the eliminated args */
+argc = *Argc;
+j    = 0;
+i    = 0;
+while (j < argc) {
+    while (argv[j] == 0 && j < argc) j++;
+    if (j < argc) argv[i++] = argv[j++];
+    }
+/* Back off the last value if it is null */
+if (!argv[i-1]) i--;
+*Argc = i;
 }

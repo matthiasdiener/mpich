@@ -1246,13 +1246,21 @@ MD_set_reference_time()
  || defined(GP_1000)  || defined(TC_2000) || defined(CRAY)    \
  || defined(TITAN)    || defined(ALLIANT) || defined(SGI)     \
  || defined(NCUBE)    || defined(SP1_EUI) || defined(SP1_EUIH)\
- || defined(MULTIMAX) || defined(IBM3090) || defined(HP)      \
- || defined(FREEBSD)
+ || defined(MULTIMAX) || defined(IBM3090) || defined(FREEBSD) \
+ || (defined(HP)  &&  !defined(SUN_SOLARIS))
+
 /* reference time will be in seconds */
     struct timeval tp;
     struct timezone tzp;
 
     gettimeofday(&tp, &tzp);
+    p4_global->reference_time = tp.tv_sec;
+#endif
+
+#if defined(SUN_SOLARIS)
+    struct timeval tp;
+
+    gettimeofday(&tp);
     p4_global->reference_time = tp.tv_sec;
 #endif
 
@@ -1266,7 +1274,7 @@ MD_set_reference_time()
 int MD_clock()
 {
     /* returns value in milleseconds */
-    int i;
+    int i = 0;
 
 #if defined(SYMMETRY_PTX)
     struct timespec tp;
@@ -1282,8 +1290,9 @@ int MD_clock()
  || defined(GP_1000)  || defined(TC_2000) || defined(CRAY)    \
  || defined(TITAN)    || defined(ALLIANT) || defined(SGI)     \
  || defined(NCUBE)    || defined(SP1_EUI) || defined(SP1_EUIH)\
- || defined(MULTIMAX) || defined(IBM3090) || defined(HP)      \
- || defined(FREEBSD)
+ || defined(MULTIMAX) || defined(IBM3090) || defined(FREEBSD) \
+ || (defined(HP)  &&  !defined(SUN_SOLARIS))
+
     struct timeval tp;
     struct timezone tzp;
 
@@ -1291,6 +1300,16 @@ int MD_clock()
     i = (int) (tp.tv_sec - p4_global->reference_time);
     i *= 1000;
     i += (int) (tp.tv_usec / 1000);
+#endif
+
+#if defined(SUN_SOLARIS)
+    struct timeval tp;
+
+    gettimeofday(&tp);
+    i = (int) (tp.tv_sec - p4_global->reference_time);
+    i *= 1000;
+    i += (int) (tp.tv_usec / 1000);
+
 #endif
 
 #if defined(IPSC860)  &&  !defined(MEIKO_CS2)

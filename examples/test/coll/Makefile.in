@@ -28,17 +28,18 @@ DEVICE      = @DEVICE@
 
 SHELL = /bin/sh
 
+PROFLIB =
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 CCFLAGS = $(CFLAGS)
 FFLAGS = @FFLAGS@ $(OPTFLAGS)
 MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
-LIBS = $(LIB_PATH) $(LIB_LIST)
+LIBS = $(LIB_PATH) $(PROFLIB) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
 EXECS = coll1 coll2 coll3 coll4 coll5 coll6 coll7 coll8 coll9 \
-	coll10 coll11 coll12 bcastbug bcastbug2 grouptest redtst \
-	barrier bcast
+	coll10 coll11 coll12 coll13 bcastbug bcastbug2 grouptest redtst \
+	barrier bcast allred scatterv allredf
 
 default: $(EXECS)
 
@@ -49,44 +50,65 @@ linktest: default clean
 
 all: testing
 
-coll1: coll1.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+fortran_tests: allredf
+
+coll1: coll1.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll1 coll1.o test.o $(LIBS)
-coll2: coll2.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll2: coll2.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll2 coll2.o test.o $(LIBS)
-coll3: coll3.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll3: coll3.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll3 coll3.o test.o $(LIBS)
-coll4: coll4.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll4: coll4.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll4 coll4.o test.o $(LIBS)
-coll5: coll5.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll5: coll5.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll5 coll5.o test.o $(LIBS)
-coll6: coll6.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll6: coll6.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll6 coll6.o test.o $(LIBS)
-coll7: coll7.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll7: coll7.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll7 coll7.o test.o $(LIBS)
-coll8: coll8.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll8: coll8.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll8 coll8.o test.o $(LIBS)
-coll9: coll9.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll9: coll9.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll9 coll9.o test.o $(LIBS)
-coll10: coll10.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll10: coll10.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll10 coll10.o test.o $(LIBS)
-coll11: coll11.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll11: coll11.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll11 coll11.o test.o $(LIBS)
-coll12: coll12.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll12: coll12.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o coll12 coll12.o test.o $(LIBS)
-bcastbug2: bcastbug2.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+coll13: coll13.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o coll13 coll13.o $(LIBS)
+bcastbug2: bcastbug2.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o bcastbug2 bcastbug2.o test.o $(LIBS)
-bcastbug: bcastbug.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+bcastbug: bcastbug.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o bcastbug bcastbug.o test.o $(LIBS)
-grouptest: grouptest.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+grouptest: grouptest.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o grouptest grouptest.o test.o $(LIBS)
-redtst: redtst.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+redtst: redtst.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o redtst redtst.o test.o $(LIBS)
 barrier: barrier.o test.o
 	$(CLINKER) $(OPTFLAGS) -o barrier barrier.o test.o $(LIBS)
 bcast: bcast.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bcast bcast.o test.o $(LIBS)
+allred: allred.o $(MPILIB) ../pt2pt/gcomm.o
+	$(CLINKER) $(OPTFLAGS) -o allred allred.o ../pt2pt/gcomm.o -lm $(LIBS)
+scatterv: scatterv.o $(MPILIB) 
+	$(CLINKER) $(OPTFLAGS) -o scatterv scatterv.o -lm $(LIBS)
+
+allredf: mpif.h allredf.o $(MPILIB)
+	$(FLINKER) $(OPTFLAGS) -o allredf allredf.o $(FLIBS)
+
+../pt2pt/gcomm.o:
+	(cd ../pt2pt ; make gcomm.o )
+../pt2pt/dtypes.o:
+	(cd ../pt2pt ; make dtypes.o )
+
+mpif.h: $(MPIR_HOME)/include/mpif.h
+	if test \! -f mpif.h ; then \
+	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
+	fi
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) barrier-?.out bcast-?.out core *.out
+	/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

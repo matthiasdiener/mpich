@@ -61,19 +61,27 @@ int child, i;
   child = fork(); 
   if (child) { /* I am the parent will run the debugger */
     char  **args, pid[10];
-    args = (char **)malloc( (4 + nbaseargs) * sizeof(char *) );
+    args = (char **)malloc( (5 + nbaseargs) * sizeof(char *) );
     kill(child,SIGSTOP);
     sprintf(pid,"%d",child); 
     if (nbaseargs > 0) {
 	for (i=0; i<nbaseargs; i++) {
 	    args[i] = baseargs[i];
 	    }
+#ifdef DBX_IS_OSF
+	args[i++] = "-pid";
+#endif
 	args[i++] = pid;
 	args[i++] = 0;
         debugger  = args[0];
 	}
     else {
-	args[0] = debugger; args[1] = program; args[2] = pid; args[3] = 0;
+	i = 0;
+	args[i++] = debugger; args[i++] = program; 
+#ifdef DBX_IS_OSF
+	args[i++] = "-pid";
+#endif
+	args[i++] = pid; args[i++] = 0;
     }
     fprintf(stderr,"Attaching %s to %s %s\n", debugger, program, pid);
     if (execvp(debugger, args)  < 0) {
@@ -83,6 +91,12 @@ int child, i;
   }
   else { /* I am the child, continue with user code */
     sleep(10);
+#ifdef DBX_IS_OSF
+    /* Need to stop the child so that the debugger will respond.  Wierd that
+       you need this */
+    /* kill(child,SIGTSTP); */
+    /* It didn't work.   What to do now? */
+#endif
   }
 }
 
@@ -265,10 +279,19 @@ static char *SIGNAME[] = { "Unknown", "HUP", "INT", "QUIT", "ILL",
 . sig   - signal value
 . code,scp,addr - see the signal man page
 */
+#ifdef MPI_sun4
 void MPE_DefaultHandler( sig, code, scp, addr )
 int               sig, code;
 struct sigcontext *scp;
 char              *addr;
+#elif defined(MPI_IRIX)
+void MPE_DefaultHandler( sig, code, scp )
+int               sig, code;
+struct sigcontext *scp;
+#else
+void MPE_DefaultHandler( sig, code )
+int               sig, code;
+#endif
 {
 static char buf[128];
 
@@ -305,7 +328,10 @@ signal( SIGILL,  (void (*)())MPE_DefaultHandler );
 signal( SIGFPE,  (void (*)())MPE_DefaultHandler );
 signal( SIGBUS,  (void (*)())MPE_DefaultHandler );
 signal( SIGSEGV, (void (*)())MPE_DefaultHandler );
+#ifdef SIGSYS
+/* LINUX doesn't have SIGSYS! */
 signal( SIGSYS,  (void (*)())MPE_DefaultHandler );
+#endif
 }
 
 #else

@@ -1,6 +1,6 @@
       PROGRAM MAIN
 
-      include '../../../include/mpif.h'
+      include 'mpif.h'
 
 C. Data layout
 C. Number of tests
@@ -70,7 +70,7 @@ C. Clean up MPI
 
       INTEGER FUNCTION FazDelete (comm, keyval, attr, extra)
       INTEGER comm, keyval, attr, extra
-      include '../../../include/mpif.h'
+      include 'mpif.h'
       if (keyval .ne. MPI_KEYVAL_INVALID)then
          attr = attr -  1
       end if 

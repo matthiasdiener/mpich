@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_create.c,v 1.16 1994/12/15 16:39:51 gropp Exp $
+ *  $Id: ic_create.c,v 1.18 1995/05/09 18:51:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,7 +15,7 @@ MPI_Intercomm_create - Creates an intercommuncator from two intracommunicators
 Input Paramters:
 . local_comm - Local (intra)communicator
 . local_leader - Rank in local_comm of leader (often 0)
-. peer_comm - Remote (intra)communicator
+. peer_comm - Remote communicator
 . remote_leader - Rank in peer_comm of leader (often 0)
 . tag - Message tag to use in constructing intercommunicator; if multiple
   MPI_Intercomm_creates are being made, they should use different tags (more
@@ -153,8 +153,13 @@ MPI_Comm *comm_out;
   (void) MPIR_Comm_init( new_comm, local_comm, MPIR_INTER );
   new_comm->group = remote_group;
   (void) MPIR_Group_dup( local_comm->group, &(new_comm->local_group) );
-  new_comm->send_context = send_context;
-  new_comm->recv_context = context;
+  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, local_comm, new_comm )) 
+      return mpi_errno;
+  new_comm->local_rank	   = new_comm->local_group->local_rank;
+  new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
+  new_comm->np             = new_comm->group->np;
+  new_comm->send_context   = send_context;
+  new_comm->recv_context   = context;
   (void) MPIR_Attr_create_tree ( new_comm );
 
   /* Build the collective inter-communicator */

@@ -1,12 +1,12 @@
 /*
- *  $Id: alltoallv.c,v 1.20 1994/12/15 17:28:11 gropp Exp $
+ *  $Id: alltoallv.c,v 1.21 1995/03/27 15:19:36 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: alltoallv.c,v 1.20 1994/12/15 17:28:11 gropp Exp $";
+static char vcid[] = "$Id: alltoallv.c,v 1.21 1995/03/27 15:19:36 doss Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -50,7 +50,7 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
   int        size, rank, i;
-  MPI_Aint   extent;
+  MPI_Aint   send_extent, recv_extent;
   int        mpi_errno = MPI_SUCCESS;
   MPI_Status status;
   int        flag;
@@ -73,8 +73,9 @@ MPI_Comm          comm;
   MPI_Comm_rank ( comm, &rank );
   comm = comm->comm_coll;
 
-  /* Get extent of recvtype */
-  MPI_Type_extent(recvtype, &extent);
+  /* Get extent of send and recv types */
+  MPI_Type_extent(sendtype, &send_extent);
+  MPI_Type_extent(recvtype, &recv_extent);
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
@@ -94,7 +95,7 @@ MPI_Comm          comm;
 
   /* do the communication -- post *all* sends and receives: */
   for ( i=0; i<size; i++ ) { 
-      if ( mpi_errno=MPI_Irecv((void *)((char *)recvbuf+rdispls[i]*extent), 
+      if ( mpi_errno=MPI_Irecv((void *)((char *)recvbuf+rdispls[i]*recv_extent), 
                            recvcnts[i], 
                            recvtype,
                            i,
@@ -103,7 +104,7 @@ MPI_Comm          comm;
                            &reqarray[2*i+1])
           )
           break;
-      if ( mpi_errno=MPI_Isend((void *)((char *)sendbuf+sdispls[i]*extent), 
+      if ( mpi_errno=MPI_Isend((void *)((char *)sendbuf+sdispls[i]*send_extent), 
                            sendcnts[i], 
                            sendtype,
                            i,

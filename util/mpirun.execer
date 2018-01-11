@@ -1,0 +1,40 @@
+#! /bin/sh
+if [ "$MPIR_HOME" = "" ] ; then 
+    MPIR_HOME=/home/MPI/mpich
+fi
+if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
+    MPIR_HOME=`pwd`/..
+fi
+MPIRUN_HOME=$MPIR_HOME/util
+if [ "$argsset" = "" ] ; then
+   . $MPIRUN_HOME/mpirun.args
+   argsset=1
+fi
+#
+. $MPIRUN_HOME/mpirun.pg
+#
+if [ $nolocal = 0 ] ; then
+    cmdline="$cmdline -host=${HOST} -pgm=${progname} -numprocs=1 $cmdLineArgsExecer"
+fi
+for machineName in $machinelist ; do
+    cmdline="$cmdline -host=${machineName} -pgm=${progname} -numprocs=1 $cmdLineArgsExecer"
+done
+#
+PWD_LOCAL=$HOME
+if [ $just_testing = 1 ] ; then
+  echo $EXECER "-jobid=$jobid" $cmdline
+  if [ "$mvback" != "" ] ; then
+	(cd $PWD_LOCAL ; for file in $mvback ; do \
+	if [ -s $file ] ; then echo cp $file $PWD_TRIAL ; \
+	echo /bin/rm $file ; \
+	fi ; done )
+  fi
+else
+  $EXECER "-jobid=$jobid" $cmdline
+  if [ "$mvback" != "" ] ; then
+	(cd $PWD_LOCAL ; for file in $mvback ; do \
+	if [ -s $file ] ; then cp $file $PWD_TRIAL ; /bin/rm $file ; \
+	fi ; done )
+  fi
+fi
+

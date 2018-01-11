@@ -58,3 +58,5 @@ endif
 # (mpich/configure.in).  Also modify mpich/Makefile.in so that an example
 # configure line for this device is present.  Modify the mpich/README to
 # include the device in the list.
+echo "You can add your new device to mpirun by creating an mpirun.$1.in file"
+echo "in mpich/util ."

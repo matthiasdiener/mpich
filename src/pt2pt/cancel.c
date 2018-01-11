@@ -1,12 +1,12 @@
 /*
- *  $Id: cancel.c,v 1.10 1995/03/02 18:54:58 gropp Exp $
+ *  $Id: cancel.c,v 1.11 1995/05/09 18:58:29 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: cancel.c,v 1.10 1995/03/02 18:54:58 gropp Exp $";
+static char vcid[] = "$Id: cancel.c,v 1.11 1995/05/09 18:58:29 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -27,7 +27,7 @@ MPI_Request *request;
     /* Note that cancel doesn't have to actually DO anything... */
     /* Needs an ADI hook to insure that there are no race conditions in
        the access of the device or queue structures */
-    MPID_CANCEL( (*request)->chandle.comm->ADIctx, request );
+    MPID_CANCEL( (*request)->chandle.comm->ADIctx, &(*request)->chandle );
     MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_INTERN, 
 	       "MPI_Cancel not yet implemented");
    

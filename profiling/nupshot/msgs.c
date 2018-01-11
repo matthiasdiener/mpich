@@ -250,6 +250,10 @@ double time;
   newPosting.tag = tag;
   newPosting.time = time;
 
+  if (proc < 0 || proc > msg_data->np) {
+      fprintf( stderr, "Message to invalid partner (%d)\n", proc );
+      return 0;
+      }
   /* if there is an empty slot in the queue */
   for (i=0; i<q[proc]->nused; i++) {
     if (ListItem( q[proc], msgPost, i ).isUsed == 0) {
@@ -289,6 +293,11 @@ double *time;
   malloc_verify();
   fprintf( stderr, "entered MatchingMsgPosted\n" );
 #endif
+
+  if (proc < 0 || proc > msg_data->np) {
+      fprintf( stderr, "Matching message to invalid partner (%d)\n", proc );
+      return 0;
+      }
 
   /* tagIdx = GetTagIdx( msg_data, tag ); */
 

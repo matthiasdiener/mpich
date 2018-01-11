@@ -7,14 +7,14 @@ int __NUMNODES, __MYPROCID ,__P4LEN,__P4TYPE,__P4FROM,__P4GLOBALTYPE ;extern voi
 
 
 /*
- *  $Id: chinit.c,v 1.28 1995/02/06 22:12:37 gropp Exp gropp $
+ *  $Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: chinit.c,v 1.32 1995/05/09 21:09:17 gropp Exp $";
 #endif
 
 /* 
@@ -36,9 +36,9 @@ static char vcid[] = "$Id$";
 
 MPID_INFO *MPID_procinfo = 0;
 MPID_H_TYPE MPID_byte_order;
+static char *(ByteOrderName[]) = { "None", "LSB", "MSB", "XDR" };
 int MPID_IS_HETERO = 0;
 void (*MPID_ErrorHandler)() = MPID_DefaultErrorHandler;
-
 /* For tracing channel operations by ADI underlayer */
 FILE *MPID_TRACE_FILE = 0;
 
@@ -151,7 +151,7 @@ int  *argc;
 char ***argv;
 {
 #ifdef MPID_HAS_HETERO     /* #HETERO_START# */
-int  i;
+int  i, use_xdr;
 char *work;
 #endif                     /* #HETERO_END# */
 
@@ -214,7 +214,22 @@ DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Finished init\n", MPID_MyWorldRank );)
 
 #ifdef MPID_HAS_HETERO           /* #HETERO_START# */
 /* Eventually, this will also need to check for word sizes, so that systems
-   with 32 bit ints can interoperate with 64 bit ints, etc. */
+   with 32 bit ints can interoperate with 64 bit ints, etc. 
+   We can check just the basic signed types: short, int, long, float, double 
+   Eventually, we should probably also check the long long and long double
+   types.
+   We do this by collecting an array of word sizes, with each processor
+   contributing the 5 lengths.  This is combined with the "byte order"
+   field.
+
+   We still need to identify IEEE and non-IEEE systems.  Perhaps we'll
+   just use a field from configure (only CRAY vector systems are non IEEE
+   of the systems we interact with).
+ */
+/*
+   We look for the argument -mpixdr to force use of XDR for debugging and
+   timing comparision.
+ */
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 DEBUG(fprintf(MPID_DEBUG_FILE,
               "[%d] Checking for heterogeneous systems...\n", 
@@ -223,37 +238,119 @@ DEBUG(fprintf(MPID_DEBUG_FILE,
 MPID_procinfo = (MPID_INFO *)malloc(MPID_WorldSize * sizeof(MPID_INFO) );
 if (!(MPID_procinfo))exit(1);;
 for (i=0; i<MPID_WorldSize; i++) {
-    MPID_procinfo[i].byte_order = MPID_H_NONE;
+    MPID_procinfo[i].byte_order	 = MPID_H_NONE;
+    MPID_procinfo[i].short_size	 = 0;
+    MPID_procinfo[i].int_size	 = 0;
+    MPID_procinfo[i].long_size	 = 0;
+    MPID_procinfo[i].float_size	 = 0;
+    MPID_procinfo[i].double_size = 0;
+    MPID_procinfo[i].float_type  = 0;
     }
-/* Set my byte ordering and convert if necessary.  Eventually, this
-   should use xdr */
-i = SY_GetByteOrder();
+/* Set my byte ordering and convert if necessary.  */
+
+/* Set the floating point type.  IEEE is 0, Cray is 2, others as we add them
+   (MPID_FLOAT_TYPE?) Not yet set: VAX floating point,
+   IBM 360/370 floating point, and other. */
+#ifdef MPID_FLOAT_CRAY
+MPID_procinfo[MPID_MyWorldRank].float_type = 2;
+#endif
+use_xdr = 0;
+/* printf ("Checking args for -mpixdr\n" ); */
+for (i=1; i<*argc; i++) {
+    /* printf( "Arg[%d] is %s\n", i, (*argv)[i] ? (*argv)[i] : "<NULL>" ); */
+    if ((*argv)[i] && strcmp( (*argv)[i], "-mpixdr" ) == 0) {
+	/* printf( "Found -mpixdr\n" ); */
+	use_xdr = 1;
+	break;
+	}
+    }
+if (use_xdr) 
+    MPID_byte_order = MPID_H_XDR;
+else {
+    i = SY_GetByteOrder();
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 DEBUG(fprintf(MPID_DEBUG_FILE,"[%d] Byte order is %d\n",MPID_MyWorldRank, i );)
 #endif                  /* #DEBUG_END# */
-if (i == 1)      MPID_byte_order = MPID_H_LSB;
-else if (i == 2) MPID_byte_order = MPID_H_MSB;
-else             MPID_byte_order = MPID_H_XDR;
-MPID_procinfo[MPID_MyWorldRank].byte_order = MPID_byte_order;
-/* Everyone uses the same format (MSB) */
-if (i == 1) 
-    SY_ByteSwapInt((int*)&MPID_procinfo[MPID_MyWorldRank].byte_order,1 );
+    if (i == 1)      MPID_byte_order = MPID_H_LSB;
+    else if (i == 2) MPID_byte_order = MPID_H_MSB;
+    else             MPID_byte_order = MPID_H_XDR;
+    }
+MPID_procinfo[MPID_MyWorldRank].byte_order  = MPID_byte_order;
+MPID_procinfo[MPID_MyWorldRank].short_size  = sizeof(short);
+MPID_procinfo[MPID_MyWorldRank].int_size    = sizeof(int);
+MPID_procinfo[MPID_MyWorldRank].long_size   = sizeof(long);
+MPID_procinfo[MPID_MyWorldRank].float_size  = sizeof(float);
+MPID_procinfo[MPID_MyWorldRank].double_size = sizeof(double);
 
+/* Everyone uses the same format (MSB) */
+/* This should use network byte order OR the native collective operation 
+   with heterogeneous support */
+/* if (i == 1) 
+    SY_ByteSwapInt((int*)&MPID_procinfo[MPID_MyWorldRank].byte_order,1 );
+ */
 /* Get everyone else's */
 work = (char *)malloc(MPID_WorldSize * sizeof(MPID_INFO) );
 if (!(work ))exit(1);;
 /* ASSUMES MPID_INFO is ints */
-p4_global_op(__P4GLOBALTYPE,MPID_procinfo,MPID_WorldSize,sizeof(int),p4_int_max_op,P4NOX);
+p4_global_op(__P4GLOBALTYPE,MPID_procinfo,7 * MPID_WorldSize,sizeof(int),p4_int_max_op,P4INT);
 free(work );
 
-/* See if they are all the same */
-MPID_IS_HETERO = 0;
+/* See if they are all the same and different from XDR*/
+MPID_IS_HETERO = MPID_procinfo[0].byte_order == MPID_H_XDR;
 for (i=1; i<MPID_WorldSize; i++) {
-    if (MPID_procinfo[0].byte_order != MPID_procinfo[i].byte_order) {
+    if (MPID_procinfo[0].byte_order  != MPID_procinfo[i].byte_order ||
+	MPID_procinfo[i].byte_order  == MPID_H_XDR ||
+	MPID_procinfo[0].short_size  != MPID_procinfo[i].short_size ||
+	MPID_procinfo[0].int_size    != MPID_procinfo[i].int_size ||
+	MPID_procinfo[0].long_size   != MPID_procinfo[i].long_size ||
+	MPID_procinfo[0].float_size  != MPID_procinfo[i].float_size ||
+	MPID_procinfo[0].double_size != MPID_procinfo[i].double_size ||
+	MPID_procinfo[0].float_type  != MPID_procinfo[i].float_type) {
     	MPID_IS_HETERO = 1;
-    	break;
+	break;
         }
     }
+/* 
+   When deciding to use XDR, we need to check for size as well (if 
+   [myid].xxx_size != [j].xxx_size, set [j].byte_order = XDR).  Note that 
+   this is reflexive; if j decides that i needs XDR, i will also decide that
+   j needs XDR;
+ */
+if (MPID_IS_HETERO) {
+    for (i=0; i<MPID_WorldSize; i++) {
+	if (i == MPID_MyWorldRank) continue;
+	if (MPID_procinfo[MPID_MyWorldRank].short_size  != 
+	    MPID_procinfo[i].short_size ||
+	    MPID_procinfo[MPID_MyWorldRank].int_size    != 
+	    MPID_procinfo[i].int_size ||
+	    MPID_procinfo[MPID_MyWorldRank].long_size   != 
+	    MPID_procinfo[i].long_size ||
+	    MPID_procinfo[MPID_MyWorldRank].float_size  != 
+	    MPID_procinfo[i].float_size ||
+	    MPID_procinfo[MPID_MyWorldRank].double_size != 
+	    MPID_procinfo[i].double_size ||
+	    MPID_procinfo[MPID_MyWorldRank].float_type !=
+	    MPID_procinfo[i].float_type) {
+	    MPID_procinfo[i].byte_order = MPID_H_XDR;
+	    }
+	}
+    }
+#ifdef FOO
+if (MPID_IS_HETERO && MPID_MyWorldRank == 0) {
+    printf( "Warning: heterogenity only partially supported\n" );
+    printf( "Ordering short int long float double sizes float-type\n" );
+    for (i=0; i<MPID_WorldSize; i++) {
+	printf( "<%d> %s %d %d %d %d %d %d\n", i,
+	        ByteOrderName[MPID_procinfo[i].byte_order],
+	        MPID_procinfo[i].short_size, 
+	        MPID_procinfo[i].int_size, 
+	        MPID_procinfo[i].long_size, 
+	        MPID_procinfo[i].float_size, 
+	        MPID_procinfo[i].double_size,
+	        MPID_procinfo[i].float_type );
+	}
+    }
+#endif
 #endif                  /* #HETERO_END# */
 
 /* Initialize any data structures in the send and receive handlers */
@@ -315,23 +412,61 @@ sprintf( name, "ADI version %4.2f - transport %s", MPIDPATCHLEVEL,
 	 MPIDTRANSPORT );
 }
 
+#ifndef MPID_P4_Wtime
+#if defined(USE_GETTIMEOFDAY)
+#include <sys/types.h>
+#include <sys/time.h>
+#endif
+/* I don't know what the correct includes are for the other versions... */
 double MPID_P4_Wtime()
 {
-return (double)p4_usclock();
+#ifdef USE_GETTIMEOFDAY
+    struct timeval tp;
+    struct timezone tzp;
+
+    gettimeofday(&tp,&tzp);
+    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#elif USE_BSDGETTIMEOFDAY
+    struct timeval tp;
+    struct timezone tzp;
+
+    BSDgettimeofday(&tp,&tzp);
+    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#elif USE_WIERDGETTIMEOFDAY
+    /* This is for Solaris, where they decided to change the CALLING
+       SEQUENCE OF gettimeofday! */
+    struct timeval tp;
+
+    gettimeofday(&tp);
+    return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
+#else
+    return (double)p4_usclock();
+#endif
 }
+#endif
 
 /* This returns a value that is correct but not the best value that
-   could be returned */
+   could be returned.
+   It makes several separate stabs at computing the tickvalue.
+*/
 double MPID_P4_Wtick()
 {
+static double tickval = -1.0;
 double t1, t2;
 int    cnt;
+int    icnt;
 
-cnt = 1000;
-t1  = MPID_P4_Wtime();
-while (cnt-- && (t2 = MPID_P4_Wtime()) <= t1) ;
-if (!cnt) return 1.0e6;
-return t2 - t1;
+if (tickval < 0.0) {
+    tickval = 1.0e6;
+    for (icnt=0; icnt<10; icnt++) {
+	cnt = 1000;
+	t1  = MPID_P4_Wtime();
+	while (cnt-- && (t2 = MPID_P4_Wtime()) <= t1) ;
+	if (cnt && t2 - t1 < tickval)
+	    tickval = t2 - t1;
+	}
+    }
+return tickval;
 }
 
 void MPID_P4_Error_handler( r )
@@ -484,6 +619,8 @@ char *name;
   strncpy(name,utname.nodename,nlen);
 #elif defined(HAVE_GETHOSTNAME)
   gethostname(name, nlen);
+#elif defined(HAVE_SYSINFO)
+  sysinfo(SI_HOSTNAME, name, nlen);
 #else 
   sprintf( name, "%d", __MYPROCID );
 #endif

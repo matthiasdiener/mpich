@@ -4,14 +4,14 @@
 
 
 /*
- *  $Id: chsync.c,v 1.14 1995/02/06 22:12:49 gropp Exp gropp $
+ *  $Id: chsync.c,v 1.15 1995/03/28 19:26:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vc[] = "$Id: chsync.c,v 1.14 1995/02/06 22:12:49 gropp Exp gropp $";
+static char vc[] = "$Id: chsync.c,v 1.15 1995/03/28 19:26:41 gropp Exp $";
 #endif
 
 #include "mpid.h"

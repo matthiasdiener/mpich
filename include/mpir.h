@@ -1,5 +1,5 @@
 /*
- *  $Id: mpir.h,v 1.39 1995/03/05 20:23:40 gropp Exp $
+ *  $Id: mpir.h,v 1.43 1995/06/01 20:53:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -28,18 +28,18 @@ struct MPIR_DATATYPE {
     int              basic; /* Is this a basic type */
     int          permanent; /* Is this a permanent type */
     int             ub, lb; /* upper/lower bound of type */
+    int             has_ub; /* Indicates that the datatype has a TYPE_UB */
+    int             has_lb; /* Indicates that the datatype has a TYPE_LB */
     int             extent; /* extent of this datatype */
     int               size; /* size of type */
     int           elements; /* number of basic elements */
     int          ref_count; /* nodes depending on this node */
     int              align; /* alignment needed for start of datatype */
-    int                pad; /* padding for each element of type */
-    int              *pads; /* padding for STRUCT types */
     int              count; /* replication count */
     MPI_Aint        stride; /* stride, for VECTOR and HVECTOR types */
+    MPI_Aint      *indices; /* array of indices, for (H)INDEXED, STRUCT */
     int           blocklen; /* blocklen, for VECTOR and HVECTOR types */
-    int           *indices; /* array of indices, for (H)INDEXED */
-    int         *blocklens; /* array of blocklens for (H)INDEXED */
+    int         *blocklens; /* array of blocklens for (H)INDEXED, STRUCT */
     MPI_Datatype old_type;  /* type this type is built of, if 1 */
     MPI_Datatype *old_types;/* array of types, for STRUCT */
 };
@@ -141,6 +141,11 @@ typedef struct {
     int  actcount;      /* number of items actually read */
 
     MPID_RHANDLE dev_rhandle;   /* device's version of recv handle */
+
+    /* For persistant receives, we may need to restore some of the fields
+       after the operation completes */
+    int perm_source, perm_tag, perm_len;
+
 } MPIR_RHANDLE;
 
 /* This is an "extension" handle and is NOT part of the MPI standard.
@@ -161,6 +166,7 @@ typedef struct {
     int         (*wait_ureq)();
     int         (*test_ureq)();
     int         (*start_ureq)();
+    int         (*cancel_ureq)();
     void        *private_data;
 } MPIR_UHANDLE;
 
@@ -277,6 +283,13 @@ extern void *MPIR_F_MPI_BOTTOM;
    MPI_BOTTOM if found */
 #define MPIR_F_PTR(a) (((a)==(MPIR_F_MPI_BOTTOM))?MPI_BOTTOM:a)
 
+/* 
+   Message tag ranges.  This may be overridden in mpid.h .
+ */
+#ifndef MPID_TAG_UB
+#define MPID_TAG_UB (1<<((sizeof(int)*8) -2))
+#endif
+
 /* Message encodings - How messages are enecoded once they
    reach the device. MPI tries to put messages into the receiver's 
    format if the conversion is easy, i.e. switching bytes.
@@ -291,8 +304,72 @@ extern void *MPIR_F_MPI_BOTTOM;
 /* Encoded in the sender's native format */
 #define MPIR_MSGREP_SENDER	2
 
-             
 
+/*
+   These macros allow inlining of some common cases
+ */     
+#ifdef MPID_HAS_HETERO
+#define  MPIR_SEND_SETUP_BUFFER( request, shandle ) \
+   {mpi_errno = MPIR_Send_setup( request );} 
+#else        
+#define  MPIR_SEND_SETUP_BUFFER( request, shandle ) \
+   if (shandle.datatype->is_contig) {\
+   shandle.active       = 1;\
+   shandle.dev_shandle.bytes_as_contig =\
+   shandle.count * shandle.datatype->size;\
+   if (shandle.dev_shandle.bytes_as_contig > 0 && shandle.bufadd == 0)\
+       mpi_errno = MPI_ERR_BUFFER;\
+   shandle.dev_shandle.start = shandle.bufadd;\
+   shandle.bufpos		 = 0;}\
+   else{mpi_errno = MPIR_Send_setup( request );} 
+#endif
+#ifdef MPID_HAS_HETERO
+#define MPIR_RECV_SETUP_BUFFER( request, rhandle ) \
+    {mpi_errno = MPIR_Receive_setup( request );}
+#else
+#define MPIR_RECV_SETUP_BUFFER( request, rhandle ) \
+    if (rhandle.datatype->is_contig) {\
+    rhandle.active       = 1;\
+    rhandle.dev_rhandle.start = rhandle.bufadd;\
+    rhandle.dev_rhandle.bytes_as_contig =\
+      rhandle.count * rhandle.datatype->extent;\
+    if (rhandle.dev_rhandle.bytes_as_contig > 0 && \
+	rhandle.bufadd == 0) \
+	mpi_errno = MPI_ERR_BUFFER;\
+    rhandle.bufpos                      = 0;}\
+    else {mpi_errno = MPIR_Receive_setup( request );}
+#endif
+
+/* 
+   These restore any possible wild-cards in persistant receives.  These
+   are used in the various Test/Wait calls
+ */
+#define MPIR_RESET_RECVINIT(rhandle) {\
+     (rhandle)->source = (rhandle)->perm_source;\
+     (rhandle)->tag    = (rhandle)->perm_tag;}
+#define MPIR_RESET_PERSISTENT(request) {\
+    (request)->chandle.active    = 0;\
+    MPID_Clr_completed( MPID_Ctx( (request) ), (request) );\
+    if ((request)->type == MPIR_RECV) {\
+	MPID_Reuse_recv_handle( (request)->rhandle.comm->ADIctx,\
+			      &(request)->rhandle.dev_rhandle );\
+	MPIR_RESET_RECVINIT(&(request)->rhandle);\
+	}\
+    else {\
+	MPID_Reuse_send_handle( (request)->shandle.comm->ADIctx,\
+			      &(request)->shandle.dev_shandle );\
+	}}
+#define MPIR_RESET_PERSISTENT_RECV(request) {\
+		(request)->chandle.active = 0;\
+		MPID_Clr_completed( MPID_Ctx( request ), request );\
+		MPID_Reuse_recv_handle( (request)->rhandle.comm->ADIctx, \
+				        &(request)->rhandle.dev_rhandle );\
+		MPIR_RESET_RECVINIT(&(request)->rhandle);}
+#define MPIR_RESET_PERSISTENT_SEND(request) {\
+	      (request)->chandle.active = 0;\
+	      MPID_Clr_completed( MPID_Ctx(request), request );\
+	      MPID_Reuse_send_handle( (request)->shandle.comm->ADIctx, \
+				      &(request)->shandle.dev_shandle );}
 /* 
    Standardized error testing
 
@@ -345,11 +422,11 @@ extern void *MPIR_F_MPI_BOTTOM;
     ( ((tag) < MPI_ANY_TAG) &&  (mpi_errno = MPI_ERR_TAG ))
     /* This exploits MPI_ANY_SOURCE==-2, MPI_PROC_NULL==-1 */
 #define MPIR_TEST_SEND_RANK(comm,rank) \
-    ( ((rank) < MPI_PROC_NULL || (rank) >= (comm)->group->np)\
+    ( ((rank) < MPI_PROC_NULL || (rank) >= (comm)->np)\
            && (mpi_errno = MPI_ERR_RANK))
     /* This requires min(MPI_PROC_NULL,MPI_ANY_SOURCE)=-2 */
 #define MPIR_TEST_RECV_RANK(comm,rank) \
-    (((rank) < -2 || (rank) >= (comm)->group->np) && \
+    (((rank) < -2 || (rank) >= (comm)->np) && \
      (mpi_errno = MPI_ERR_RANK))
 #define MPIR_TEST_COUNT(comm,count) ( ((count) < 0) && \
 				     (mpi_errno = MPI_ERR_COUNT))

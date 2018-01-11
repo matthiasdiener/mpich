@@ -1,0 +1,5 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+ld: -lXbsd: No such file or directory
+ld: -lsocket: No such file or directory

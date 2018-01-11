@@ -1,5 +1,5 @@
 /*
- *  $Id: chprobe.c,v 1.8 1994/10/24 22:03:24 gropp Exp $
+ *  $Id: chprobe.c,v 1.9 1995/05/09 19:08:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -45,7 +45,7 @@ return MPI_SUCCESS;
 }
 
 
-int MPID_CMMD_Probe( tag, source, context_id, status )
+void MPID_CMMD_Probe( tag, source, context_id, status )
 int tag, source, context_id;
 MPI_Status *status;
 {
@@ -56,5 +56,4 @@ while (1) {
     /* Wait for a message */
     MPID_CMMD_check_incoming( MPID_BLOCKING );
     }
-return MPI_SUCCESS; /* or make routine void ... */    
 }

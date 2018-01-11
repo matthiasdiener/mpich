@@ -1,5 +1,5 @@
 /*
- *  $Id: chrecv.c,v 1.36 1995/02/08 16:09:15 gropp Exp gropp $
+ *  $Id: chrecv.c,v 1.39 1995/05/11 17:48:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrecv.c,v 1.36 1995/02/08 16:09:15 gropp Exp gropp $";
+static char vcid[] = "$Id: chrecv.c,v 1.39 1995/05/11 17:48:47 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"
@@ -127,9 +127,10 @@ MPID_PKT_INIT();
 
 /***************************************************************************/
 /* These routines copy data from an incoming message into the provided     */
-/* buffer.                                                                 */
+/* buffer.  We use static (local) routines to allow the compiler to inline */
+/* them.                                                                   */
 /***************************************************************************/
-int MPID_SHMEM_Copy_body_short( dmpi_recv_handle, pkt, pktbuf )
+static int MPID_SHMEM_Copy_body_short( dmpi_recv_handle, pkt, pktbuf )
 MPIR_RHANDLE *dmpi_recv_handle;
 MPID_PKT_T   *pkt;
 void         *pktbuf;
@@ -154,7 +155,7 @@ DMPI_mark_recv_completed(dmpi_recv_handle);
 return err;
 }
 
-int MPID_SHMEM_Copy_body_sync_short( dmpi_recv_handle, pkt, from )
+static int MPID_SHMEM_Copy_body_sync_short( dmpi_recv_handle, pkt, from )
 MPIR_RHANDLE *dmpi_recv_handle;
 MPID_PKT_T   *pkt;
 int          from;
@@ -186,7 +187,7 @@ return err;
     In the Rendevous version of this, it sends a request back to the
     sender for the data...
  */
-int MPID_SHMEM_Copy_body_long( dmpi_recv_handle, pkt, from )
+static int MPID_SHMEM_Copy_body_long( dmpi_recv_handle, pkt, from )
 MPIR_RHANDLE *dmpi_recv_handle;
 MPID_PKT_T   *pkt;
 int          from;
@@ -202,6 +203,9 @@ if (dmpi_recv_handle->dev_rhandle.bytes_as_contig < msglen) {
     err = MPI_ERR_TRUNCATE;
     (*MPID_ErrorHandler)( 1, "Truncated message"  );
     msglen = dmpi_recv_handle->dev_rhandle.bytes_as_contig;
+    /* We really must receive the message in two parts; the
+       part that we can store, and the part that we discard.
+       This case is not yet handled. */
     }
 dmpi_recv_handle->totallen = msglen;
 MPID_KEEP_STAT(MPID_n_long++;)
@@ -226,7 +230,7 @@ while (!MPID_Test_handle(dmpi_recv_handle)) {
     }
 }
 
-int MPID_SHMEM_Copy_body_sync_long( dmpi_recv_handle, pkt, from )
+static int MPID_SHMEM_Copy_body_sync_long( dmpi_recv_handle, pkt, from )
 MPIR_RHANDLE *dmpi_recv_handle;
 MPID_PKT_T   *pkt;
 int          from;
@@ -301,6 +305,9 @@ mpid_recv_handle_unex	   = &dmpi_unexpected->dev_rhandle;
 dmpi_recv_handle->source   = dmpi_unexpected->source;
 dmpi_recv_handle->tag	   = dmpi_unexpected->tag;
 dmpi_recv_handle->totallen = mpid_recv_handle_unex->bytes_as_contig;
+#ifdef MPID_HAS_HETERO
+dmpi_recv_handle->msgrep   = dmpi_unexpected->msgrep;
+#endif
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 if (MPID_DebugFlag) {
     fprintf( MPID_DEBUG_FILE,
@@ -378,12 +385,9 @@ return err;
    Otherwise, we simply try to handle any receives that are ready for
    processing.
 
-   is_available is set if the message is already available (arrived before
-   the message was posted).
  */
-int MPID_SHMEM_post_recv( dmpi_recv_handle, is_available ) 
+int MPID_SHMEM_post_recv( dmpi_recv_handle ) 
 MPIR_RHANDLE *dmpi_recv_handle;
-int          *is_available;
 {
 MPIR_RHANDLE *dmpi_unexpected;
 int          found, err;
@@ -391,7 +395,6 @@ int          found, err;
 /* If this is really a blocking receive, make the blocking receive code 
    do it... */
 if (!dmpi_recv_handle->dev_rhandle.is_non_blocking) {
-    *is_available = 1;
     return MPID_SHMEM_blocking_recv( dmpi_recv_handle );
     }
 
@@ -413,7 +416,6 @@ DMPI_search_unexpected_queue( dmpi_recv_handle->source,
 if (found) {
     MPID_THREAD_UNLOCK(0,0)
     DEBUG_PRINT_MSG("R found in unexpected queue")
-    *is_available = 1;
 #ifdef MPID_USE_RNDV
     return MPID_SHMEM_Process_unexpected_rndv( dmpi_recv_handle, 
 					    dmpi_unexpected );
@@ -424,7 +426,6 @@ if (found) {
     return MPID_SHMEM_Process_unexpected( dmpi_recv_handle, dmpi_unexpected );
 #endif
     }
-*is_available    = 0;
 
 /* Add to the posted receive queue */
 MPIR_enqueue( &MPIR_posted_recvs, dmpi_recv_handle, MPIR_QRHANDLE );
@@ -435,12 +436,8 @@ DEBUG_PRINT_MSG("R About to do a non-blocking check of incoming messages")
 
 MPID_DRAIN_INCOMING
 
-/* Note that at this point, the message MAY be here but is_available is still 
-   zero.  This is ok, since is_available is intended as an optimization */
-
 DEBUG_PRINT_MSG("R Exiting post receive")
 
-/* Return is_available instead??? */
 return MPI_SUCCESS;
 }
 
@@ -920,6 +917,16 @@ DEBUG_PRINT_MSG("Completed recv")
 return MPI_SUCCESS;
 }
 
+int MPID_SHMEM_Test_recv_push( dmpi_recv_handle )
+MPIR_RHANDLE *dmpi_recv_handle;
+{
+#ifdef MPID_USE_RNDV
+if (dmpi_recv_handle->completer == MPID_CMPL_RECV_RNDV) {
+    return MPID_SHMEM_Test_recv_rndv( dmpi_recv_handle );
+    }
+#endif
+return 0;
+}
 
 /*
    Special case code for blocking receive.  The "common" case is handled with
@@ -944,9 +951,11 @@ int          err = MPI_SUCCESS;
 #ifdef MPID_DEBUG_ALL   /* #DEBUG_START# */
 if (MPID_DebugFlag) {
     fprintf( MPID_DEBUG_FILE,
- "[%d]R starting blocking recv for tag = %d, source = %d, ctx = %d (%s:%d)\n", 
+ "[%d]R starting blocking recv for tag = %d, source = %d, ctx = %d, len = %d (%s:%d)\n", 
 	    MPID_MyWorldRank, dmpi_recv_handle->tag, dmpi_recv_handle->source,
-	    dmpi_recv_handle->contextid, __FILE__, __LINE__ );
+	    dmpi_recv_handle->contextid, 
+	    dmpi_recv_handle->dev_rhandle.bytes_as_contig, 
+	    __FILE__, __LINE__ );
     fflush( MPID_DEBUG_FILE );
     }
 #endif                  /* #DEBUG_END# */

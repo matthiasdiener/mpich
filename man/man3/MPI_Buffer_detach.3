@@ -1,4 +1,4 @@
-.TH MPI_Buffer_detach 3 "11/3/1994" " " "MPI"
+.TH MPI_Buffer_detach 3 "5/9/1995" " " "MPI"
 .SH NAME
 MPI_Buffer_detach \- Removes an existing buffer (for use in MPI_Bsend etc)
 
@@ -47,11 +47,15 @@ does not have pointers, it is impossible to provide a way to use the
 output of this routine to exchange buffers.  In this case, only the
 size field is set.
 
+.SH NOTES FOR C
+Even though the 'bufferptr' arguement is declared as 'void *', it is
+really the address of a void pointer.  See the rationale in the
+standard for more details.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
-int MPI_Buffer_detach( buffer, size )
-void **buffer;
+int MPI_Buffer_detach( bufferptr, size )
+void *bufferptr;
 int  *size;
 
 .fi

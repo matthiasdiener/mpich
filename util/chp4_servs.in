@@ -50,8 +50,10 @@ for arg in "$@" ; do
     esac
 done
 if [ -z "$filename" ] ; then
-    arch=`$MPIR_HOME/bin/tarch`
-    filename=$MPIR_HOME/util/machines/machines.$arch
+    if [ -z "$LARCH" ] ; then 
+        LARCH=`$MPIR_HOME/bin/tarch`
+    fi
+    filename=$MPIR_HOME/util/machines/machines.$LARCH
 fi
 if [ ! -s $filename ] ; then 
     echo "Can not find file $filename containing machines"

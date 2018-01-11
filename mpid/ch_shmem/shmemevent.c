@@ -1,12 +1,12 @@
 /*
- *  $Id: chevent.c,v 1.10 1994/10/24 22:03:22 gropp Exp gropp $
+ *  $Id: chevent.c,v 1.12 1995/05/09 19:08:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: chevent.c,v 1.12 1995/05/09 19:08:15 gropp Exp $";
 #endif
 
 #include "mpid.h"
@@ -15,15 +15,13 @@ static char vcid[] = "$Id$";
    This file contains routines to see if the "device" wants to do anything
    (like receive some un-expected messages) 
  */
-int MPID_SHMEM_check_device( blocking )
+void MPID_SHMEM_check_device( blocking )
 int blocking;
 {
 if (blocking)
     (void) MPID_SHMEM_check_incoming( MPID_BLOCKING );
 else 
     while (MPID_SHMEM_check_incoming( MPID_NOTBLOCKING ) != -1);
-
-return MPI_SUCCESS;
 }
 
 /* 

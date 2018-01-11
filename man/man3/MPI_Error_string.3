@@ -1,4 +1,4 @@
-.TH MPI_Error_string 3 "11/8/1994" " " "MPI"
+.TH MPI_Error_string 3 "5/9/1995" " " "MPI"
 .SH NAME
 MPI_Error_string \- Return a string for a given error code
 
@@ -6,7 +6,7 @@ MPI_Error_string \- Return a string for a given error code
 .PD 0
 .TP
 .B errorcode 
-- Error code returned by an MPI routine 
+- Error code returned by an MPI routine or an MPI error class
 .PD 1
 
 .SH OUTPUT PARAMETER
@@ -20,6 +20,10 @@ MPI_Error_string \- Return a string for a given error code
 .B resultlen 
 - Length of string 
 .PD 1
+
+Notes:  Error codes are the values return by MPI routines (in C) or in the
+'ierr' argument (in Fortran).  These can be converted into error classes
+with the routine 'MPI_Error_class'.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
@@ -30,4 +34,4 @@ char *string;
 .fi
 
 .SH LOCATION
- error_string.c
+ errorstring.c

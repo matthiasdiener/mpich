@@ -1,5 +1,5 @@
 /*
- *  $Id: attr_util.c,v 1.17 1994/12/11 16:53:55 gropp Exp $
+ *  $Id: attr_util.c,v 1.19 1995/05/09 18:50:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,6 +22,7 @@ MPIR_HBT_node *node;
   MPIR_HBT_node *attr;
   int            flag;
   int            attr_ival;
+  int            mpi_errno = MPI_SUCCESS;
 
 #ifdef INT_LT_POINTER
   attr_key = (MPIR_Attr_key *)MPIR_ToPointer( node->keyval );
@@ -32,26 +33,29 @@ MPIR_HBT_node *node;
   attr_key->ref_count ++;
   if (attr_key->copy_fn != (int (*)())0) {
       if (attr_key->FortranCalling) {
-	  int inval = (int)node->value;
-	  (void) (*(attr_key->copy_fn))(&comm, &node->keyval, 
-					attr_key->extra_state,
-					&inval, 
-					&attr_ival, &flag );
-	  attr_val = (void *)attr_ival;
-	  flag = MPIR_FROM_FLOG(flag);
+          int inval = (int)node->value;
+          mpi_errno = (*(attr_key->copy_fn))(&comm, &node->keyval, 
+                                             attr_key->extra_state,
+                                             &inval, 
+                                             &attr_ival, &flag );
+          attr_val = (void *)attr_ival;
+          flag = MPIR_FROM_FLOG(flag);
 	  }
       else {
-	  (void) (*(attr_key->copy_fn))(&comm, &node->keyval, 
-					attr_key->extra_state,
-					node->value, &attr_val, &flag );
-        }
-    if (flag) {
-      (void) MPIR_HBT_new_node ( node->keyval, attr_val, &attr );
-      (void) MPIR_HBT_insert ( comm_new->attr_cache, attr );
-    }
+          mpi_errno = (*(attr_key->copy_fn))(&comm, &node->keyval, 
+                                             attr_key->extra_state,
+                                             node->value, &attr_val, &flag );
+      }
+      if (flag) {
+          (void) MPIR_HBT_new_node ( node->keyval, attr_val, &attr );
+          (void) MPIR_HBT_insert ( comm_new->attr_cache, attr );
+      }
   }
 
-  return (MPI_SUCCESS);
+  if (mpi_errno) 
+      return MPIR_ERROR( comm, mpi_errno,
+			 "Error copying communicator attribute" );
+   return MPI_SUCCESS;
 }
 
 /*+
@@ -64,12 +68,19 @@ MPI_Comm comm, comm_new;
 MPIR_HBT *tree;
 MPIR_HBT_node *subtree;
 {
+  int tmp_mpi_errno, mpi_errno = MPI_SUCCESS;
+
   if(subtree != (MPIR_HBT_node *)0) {
-    (void) MPIR_Attr_copy_node ( comm, comm_new, subtree );
-    (void) MPIR_Attr_copy_subtree ( comm, comm_new, tree, subtree -> left );
-    (void) MPIR_Attr_copy_subtree ( comm, comm_new, tree, subtree -> right );
+      tmp_mpi_errno=MPIR_Attr_copy_node ( comm, comm_new, subtree );
+      if (tmp_mpi_errno != MPI_SUCCESS) mpi_errno = tmp_mpi_errno;
+      
+      tmp_mpi_errno=MPIR_Attr_copy_subtree(comm,comm_new,tree,subtree->left);
+      if (tmp_mpi_errno != MPI_SUCCESS) mpi_errno = tmp_mpi_errno;
+
+      tmp_mpi_errno=MPIR_Attr_copy_subtree(comm,comm_new,tree,subtree->right);
+      if (tmp_mpi_errno != MPI_SUCCESS) mpi_errno = tmp_mpi_errno;
   }
-  return (MPI_SUCCESS);
+  return (mpi_errno);
 }
 
 /*+
@@ -80,13 +91,15 @@ MPIR_Attr_copy - copy a tree of attributes
 int MPIR_Attr_copy ( comm, comm_new )
 MPI_Comm comm, comm_new;
 {
+  int mpi_errno = MPI_SUCCESS;
+
   (void) MPIR_HBT_new_tree ( &(comm_new->attr_cache) );
   if ( comm_new->attr_cache != (MPIR_HBT *)0 ) {
     comm_new->attr_cache->ref_count = 1;
-    (void) MPIR_Attr_copy_subtree ( comm, comm_new, comm_new->attr_cache,
-                                    comm->attr_cache->root );
+    mpi_errno = MPIR_Attr_copy_subtree (comm, comm_new, comm_new->attr_cache,
+                                        comm->attr_cache->root);
   }
-  return (MPI_SUCCESS);
+  return (mpi_errno);
 }
 
 

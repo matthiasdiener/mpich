@@ -13,7 +13,7 @@ int MPI_Ssend(void* buf, int count, MPI_Datatype datatype, int dest, int tag,
 int MPI_Rsend(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
 	      MPI_Comm comm);
 int MPI_Buffer_attach( void* buffer, int size);
-int MPI_Buffer_detach( void** buffer, int* size);
+int MPI_Buffer_detach( void* buffer, int* size);
 int MPI_Isend(void* buf, int count, MPI_Datatype datatype, int dest, int tag, 
 	      MPI_Comm comm, MPI_Request *request);
 int MPI_Ibsend(void* buf, int count, MPI_Datatype datatype, int dest, 
@@ -27,10 +27,8 @@ int MPI_Irecv(void* buf, int count, MPI_Datatype datatype, int source,
 int MPI_Wait(MPI_Request *request, MPI_Status *status);
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status);
 int MPI_Request_free(MPI_Request *request);
-int MPI_Waitany(int count, MPI_Request *array_of_requests, int *index, 
-		MPI_Status *status);
-int MPI_Testany(int count, MPI_Request *array_of_requests, int *index, 
-		int *flag, MPI_Status *status);
+int MPI_Waitany(int, MPI_Request *, int *, MPI_Status *);
+int MPI_Testany(int, MPI_Request *, int *, int *, MPI_Status *);
 int MPI_Waitall(int count, MPI_Request *array_of_requests, 
 		MPI_Status *array_of_statuses);
 int MPI_Testall(int count, MPI_Request *array_of_requests, int *flag, 
@@ -81,7 +79,7 @@ int MPI_Type_struct(int count, int *array_of_blocklengths,
 int MPI_Address(void* location, MPI_Aint *address);
 int MPI_Type_extent(MPI_Datatype datatype, MPI_Aint *extent);
 int MPI_Type_size(MPI_Datatype datatype, MPI_Aint *size);
-int MPI_Type_count(MPI_Datatype datatype, int *count);
+/* int MPI_Type_count(MPI_Datatype datatype, int *count); */
 int MPI_Type_lb(MPI_Datatype datatype, MPI_Aint* displacement);
 int MPI_Type_ub(MPI_Datatype datatype, MPI_Aint* displacement);
 int MPI_Type_commit(MPI_Datatype *datatype);
@@ -167,17 +165,15 @@ int MPI_Keyval_create(MPI_Copy_function *copy_fn,
 		      int *keyval, void* extra_state);
 int MPI_Keyval_free(int *keyval);
 int MPI_Attr_put(MPI_Comm comm, int keyval, void* attribute_val);
-int MPI_Attr_get(MPI_Comm comm, int keyval, void **attribute_val, int *flag);
+int MPI_Attr_get(MPI_Comm comm, int keyval, void *attribute_val, int *flag);
 int MPI_Attr_delete(MPI_Comm comm, int keyval);
 int MPI_Topo_test(MPI_Comm comm, int *status);
 int MPI_Cart_create(MPI_Comm comm_old, int ndims, int *dims, int *periods,
 		    int reorder, MPI_Comm *comm_cart);
 int MPI_Dims_create(int nnodes, int ndims, int *dims);
-int MPI_Graph_create(MPI_Comm comm_old, int nnodes, int *index, int *edges,
-		     int reorder, MPI_Comm *comm_graph);
+int MPI_Graph_create(MPI_Comm, int, int *, int *, int, MPI_Comm *);
 int MPI_Graphdims_Get(MPI_Comm comm, int *nnodes, int *nedges);
-int MPI_Graph_get(MPI_Comm comm, int maxindex, int maxedges, int *index,
-		  int *edges);
+int MPI_Graph_get(MPI_Comm, int, int, int *, int *);
 int MPI_Cartdim_get(MPI_Comm comm, int *ndims);
 int MPI_Cart_get(MPI_Comm comm, int maxdims, int *dims, int *periods,
 		 int *coords);
@@ -191,8 +187,7 @@ int MPI_Cart_shift(MPI_Comm comm, int direction, int disp,
 int MPI_Cart_sub(MPI_Comm comm, int *remain_dims, MPI_Comm *newcomm);
 int MPI_Cart_map(MPI_Comm comm, int ndims, int *dims, int *periods, 
 		 int *newrank);
-int MPI_Graph_map(MPI_Comm comm, int nnodes, int *index, int *edges,
-		  int *newrank);
+int MPI_Graph_map(MPI_Comm, int, int *, int *, int *);
 int MPI_Get_processor_name(char *name, int *result_len);
 int MPI_Errhandler_create(MPI_Handler_function *function, 
 			  MPI_Errhandler *errhandler);
@@ -203,6 +198,10 @@ int MPI_Error_string(int errorcode, char *string, int *result_len);
 int MPI_Error_class(int errorcode, int *errorclass);
 double MPI_Wtime(void);
 double MPI_Wtick(void);
+#ifndef MPI_Wtime
+double PMPI_Wtime(void);
+double PMPI_Wtick(void);
+#endif
 int MPI_Init(int *argc, char ***argv);
 int MPI_Finalize(void);
 int MPI_Initialized(int *flag);
@@ -210,12 +209,18 @@ int MPI_Abort(MPI_Comm comm, int errorcode);
 int MPI_Pcontrol(const int level, ...);
 
 int MPI_NULL_COPY_FN ( MPI_Comm *oldcomm, int *keyval, void *extra_state, 
-		       void *attr_in, void **attr_out, int *flag );
+		       void *attr_in, void *attr_out, int *flag );
 int MPI_NULL_DELETE_FN ( MPI_Comm *comm, int *keyval, void *attr, 
 			 void *extra_state );
+int MPI_DUP_FN ( MPI_Comm *comm, int *keyval, void *extra_state, void *attr_in,
+		 void *attr_out, int *flag );
 #else 
 extern double MPI_Wtime();
 extern double MPI_Wtick();
+#ifndef MPI_Wtime
+double PMPI_Wtime();
+double PMPI_Wtick();
+#endif
 
 extern int MPI_NULL_COPY_FN(), MPI_NULL_DELETE_FN();
 #endif

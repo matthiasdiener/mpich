@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_free.c,v 1.37 1995/02/26 14:24:25 gropp Exp $
+ *  $Id: comm_free.c,v 1.38 1995/05/08 02:30:49 doss Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -37,7 +37,7 @@ MPI_Comm *comm;
   DBG(fprintf(stderr,"About to check for perm comm\n");fflush(stderr);)
   /* We can't free permanent objects unless finalize has been called */
   if  ( ( (*comm)->permanent == 1 ) && (MPIR_Has_been_initialized == 1) )
-	return MPIR_ERROR( comm, MPI_ERR_PERM_KEY,
+	return MPIR_ERROR( *comm, MPI_ERR_PERM_KEY,
 					  "Error in MPI_COMM_FREE" );
 
   DBG(fprintf(stderr,"About to free group\n");fflush(stderr);)

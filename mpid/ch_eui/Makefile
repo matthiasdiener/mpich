@@ -23,8 +23,8 @@ OPTFLAGS    = -O
 ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =  -DFORTRANNOUNDERSCORE  -D_ALL_SOURCE=1  -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
-		-DMPID_DEVICE_CODE  -DMPID_LIMITED_BUFFERS -DMPID_DEBUG_NONE -DMPID_STAT_NONE
+CFLAGS   =  -DFORTRANNOUNDERSCORE  -D_ALL_SOURCE=1  -DHAVE_STDLIB_H=1 -DMALLOC_RET_VOID=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+		-DMPID_DEVICE_CODE -DIBMMPL  -DMPID_LIMITED_BUFFERS -DMPID_DEBUG_NONE -DMPID_STAT_NONE
 SOURCE   = euievent.c euirecv.c euisend.c euiinit.c euiprobe.c euisync.c \
 	   euirndv.c euicoll.c
 SOURCEC  = $(SOURCE)
@@ -37,9 +37,18 @@ default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
-default_all: $(MPI_OBJECTS)
+#
+# gclock/read_clock may give access to the global clock; we are allowed
+# only to distribute objects for these.
+#
+default_all: $(MPI_OBJECTS) gclock.o read_clock.o
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
 profile_all: 
+
+gclock.o: gclock.sav
+	cp gclock.sav gclock.o
+read_clock.o: read_clock.sav
+	cp read_clock.sav read_clock.o
 
 clean:
 	/bin/rm -f *~ $(MPI_OBJECTS) 

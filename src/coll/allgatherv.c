@@ -1,12 +1,12 @@
 /*
- *  $Id: allgatherv.c,v 1.14 1994/12/15 17:27:15 gropp Exp $
+ *  $Id: allgatherv.c,v 1.15 1995/05/16 18:10:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgatherv.c,v 1.14 1994/12/15 17:27:15 gropp Exp $";
+static char vcid[] = "$Id: allgatherv.c,v 1.15 1995/05/16 18:10:19 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -62,9 +62,11 @@ MPI_Comm          comm;
 
   /* Do a gather for each process in the communicator */
   /* This is a sorry way to do this, but for now ... */
-  for (root=0; root<size; root++)
-    MPI_Gatherv(sendbuf,sendcount,sendtype,
-		recvbuf,recvcounts,displs,recvtype,root,comm);
+  for (root=0; root<size; root++) {
+    mpi_errno = MPI_Gatherv(sendbuf,sendcount,sendtype,
+			    recvbuf,recvcounts,displs,recvtype,root,comm);
+    if (mpi_errno) break;
+    }
 
   return (mpi_errno);
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: recv.c,v 1.26 1995/03/05 22:53:49 gropp Exp $
+ *  $Id: recv.c,v 1.30 1995/05/16 18:10:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: recv.c,v 1.26 1995/03/05 22:53:49 gropp Exp $";
+static char vcid[] = "$Id: recv.c,v 1.30 1995/05/16 18:10:55 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -35,7 +35,7 @@ MPI_Status       *status;
 {
     MPI_Request request;
     MPIR_RHANDLE rhandle;
-    int         mpi_errno;
+    int         mpi_errno = MPI_SUCCESS;
 
     /* 
        Because this is a very common routine, we show how it can be
@@ -53,7 +53,12 @@ MPI_Status       *status;
 
         request = (MPI_Request)&rhandle;
 	request->type	   = MPIR_RECV;
+#ifdef MPID_NEEDS_WORLD_SRC_INDICES
+        rhandle.source = (source >= 0) ? (comm->lrank_to_grank[source])
+                                         : source;
+#else
 	rhandle.source	   = source;
+#endif
 	rhandle.tag	   = tag;
 	rhandle.contextid  = comm->recv_context;
 	rhandle.comm	   = comm;
@@ -68,19 +73,22 @@ MPI_Status       *status;
 #endif
 	MPID_Alloc_recv_handle(rhandle.comm->ADIctx, &(rhandle.dev_rhandle));
 
-	if (mpi_errno = MPIR_Receive_setup(&request)) 
+	/* The next "routine" is a macro that sets mpi_errno */
+	MPIR_RECV_SETUP_BUFFER( &request, rhandle );
+	if (mpi_errno) 
 	    return MPIR_ERROR( comm, mpi_errno, "Error in MPI_RECV" );
 
-	MPID_Blocking_recv( rhandle.comm->ADIctx, &rhandle );
+	mpi_errno = MPID_Blocking_recv( rhandle.comm->ADIctx, &rhandle );
 
 	status->count	       = rhandle.totallen;
 	status->MPI_SOURCE     = rhandle.source;
 	status->MPI_TAG        = rhandle.tag;
 
 #ifdef MPID_RETURN_PACKED
-	if (rhandle.bufpos) 
+	/* Count may change if size-changing conversion */
+	if (!mpi_errno && rhandle.bufpos) 
 	    mpi_errno = MPIR_UnPackMessage( buf, count, datatype, 
-				        source, request );
+				        source, request, &status->count );
 #endif
 	rhandle.datatype->ref_count--;
     }

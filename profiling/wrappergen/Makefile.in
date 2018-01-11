@@ -2,13 +2,13 @@
 #
 
 MPIR_HOME = @MPIR_HOME@
+OPTFLAGS  = @OPTFLAGS@
+CLINKER   = cc
 
-COPT    = -g
-CLINKER = cc
 EXECS = wrappergen write_proto
 MPI_PROTO = '-DPROTO_FILE="$(MPIR_HOME)/profiling/wrappergen/mpi_proto"'
 
-CFLAGS = $(COPT) $(OPTFLAGS) $(INCLUDE_DIR)
+CFLAGS = $(OPTFLAGS) $(INCLUDE_DIR)
 default: wrappergen
 
 all: $(EXECS)

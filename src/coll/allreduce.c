@@ -1,12 +1,12 @@
 /*
- *  $Id: allreduce.c,v 1.16 1994/12/15 17:27:28 gropp Exp $
+ *  $Id: allreduce.c,v 1.17 1995/05/16 18:10:13 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allreduce.c,v 1.16 1994/12/15 17:27:28 gropp Exp $";
+static char vcid[] = "$Id: allreduce.c,v 1.17 1995/05/16 18:10:13 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -51,8 +51,9 @@ MPI_Comm          comm;
 			  "Inter-communicator invalid in MPI_ALLREDUCE");
 
   /* Reduce to 0, then bcast */
-  MPI_Reduce ( sendbuf, recvbuf, count, datatype, op, 0, comm );
-  MPI_Bcast  ( recvbuf, count, datatype, 0, comm );
+  mpi_errno = MPI_Reduce ( sendbuf, recvbuf, count, datatype, op, 0, comm );
+  if (mpi_errno) return mpi_errno;
+  mpi_errno = MPI_Bcast  ( recvbuf, count, datatype, 0, comm );
 
   return (mpi_errno);
 }

@@ -43,3 +43,35 @@ plot square
 join '0'
 wait
 new page
+set default
+set font variable
+set curve window y 0.15 0.90
+title left 'time (us)', bottom 'Processes',
+      top 'Comm Perf for MPI (godzilla.mcs.anl.gov)',
+ 'type = scatter'
+
+#np time (us) for various sizes
+2 3.960000 1147.960000 1094.093023 1030.031250 1204.349515 
+4 3.920000 2383.960000 2345.450000 2456.883721 2368.052632 
+8 3.980000 4067.880000 3984.500000 3713.160000 3992.379310 
+# Model complexity is (8.139821e-04 + n * 1.488687e-06)
+# startup = 813.98 usec and transfer rate = 671.73 Kbytes/sec
+# Variance in fit = 0.001909 (smaller is better)
+set limits ymin 0
+set order x d d d d y
+plot square
+join '1024'
+set order x d d d y d
+plot square
+join '768'
+set order x d d y d d
+plot square
+join '512'
+set order x d y d d d
+plot square
+join '256'
+set order x y d d d d
+plot square
+join '0'
+wait
+new page

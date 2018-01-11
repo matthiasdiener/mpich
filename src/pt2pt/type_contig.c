@@ -1,12 +1,12 @@
 /*
- *  $Id: type_contig.c,v 1.14 1995/02/22 16:21:30 doss Exp $
+ *  $Id: type_contig.c,v 1.16 1995/06/01 20:50:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_contig.c,v 1.14 1995/02/22 16:21:30 doss Exp $";
+static char vcid[] = "$Id: type_contig.c,v 1.16 1995/06/01 20:50:39 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -59,6 +59,8 @@ MPI_Datatype *newtype;
   dteptr->blocklen    = 1;
   dteptr->is_contig   = old_type->is_contig;
   dteptr->elements    = count * old_type->elements;
+  dteptr->has_ub      = 0;
+  dteptr->has_lb      = 0;
 
   /* Take care of contiguous vs non-contiguous case.
      Note that some datatypes (MPIR_STRUCT) that are marked 
@@ -68,21 +70,23 @@ MPI_Datatype *newtype;
   if (old_type->is_contig && old_type->old_type) {
 	dteptr->old_type  = (MPI_Datatype)MPIR_Type_dup (old_type->old_type);
 	dteptr->count     = count * old_type->count;
-	dteptr->pad       = 0;
   }
   else {
 	dteptr->old_type  = (MPI_Datatype)MPIR_Type_dup (old_type);
 	dteptr->count     = count;
-	dteptr->pad       = ((old_type->align -
-             (old_type->size % old_type->align)) % old_type->align);
   }
 
   /* Set the upper/lower bounds and the extent and size */
   dteptr->lb          = dteptr->old_type->lb;
+  dteptr->has_lb      = dteptr->old_type->has_lb;
   dteptr->extent      = dteptr->count * dteptr->old_type->extent;
-  dteptr->ub          = dteptr->lb + dteptr->extent;
-  dteptr->size        = (dteptr->count * dteptr->old_type->size) +
-	                    ((dteptr->count - 1) * dteptr->pad);
+  if (dteptr->old_type->has_ub) {
+      dteptr->ub     = dteptr->old_type->ub;
+      dteptr->has_ub = 1;
+      }
+  else 
+      dteptr->ub          = dteptr->lb + dteptr->extent;
+  dteptr->size        = (dteptr->count * dteptr->old_type->size);
   
   return (mpi_errno);
 }

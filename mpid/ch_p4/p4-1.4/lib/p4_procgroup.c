@@ -107,6 +107,7 @@ int switch_port;
 {
     struct p4_global_data *g;
     struct proc_info *pi;
+    struct hostent *hp;
 
     g = p4_global;
     pi = &g->proctable[g->num_installed];
@@ -114,6 +115,15 @@ int switch_port;
     pi->port = port;
     pi->unix_id = unix_id;
     strcpy(pi->host_name, host_name);
+
+    /* gethostchange newstuff -RL */
+    hp = gethostbyname_p4(host_name);
+    bzero((P4VOID *) &pi->sockaddr, sizeof(pi->sockaddr));
+    bcopy((P4VOID *) hp->h_addr, (P4VOID *) &pi->sockaddr.sin_addr, hp->h_length);
+    pi->sockaddr.sin_family = hp->h_addrtype;
+    pi->sockaddr.sin_port = htons(port);
+    /* end of gethostchange newstuff -RL */
+
     strcpy(pi->machine_type,machine_type);
     pi->slave_idx = slv_idx;
     pi->switch_port = switch_port;

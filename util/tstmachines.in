@@ -4,11 +4,22 @@
 # to make sure that it is accessible and can run programs.  This is only
 # a partial test
 #
-#set -x
 rsh="#RSH_COMMAND#"
 # Could use #DEFAULT_ARCH#
 # and #DEFAULT_DEVICE# to see if we should check....
-arch=$1
+for arg in "$@" ; do
+    case $arg in 
+        -echo) set -x ;;
+        -help) cat <<.
+Tests that you can run remote shells with $rsh on the systems in 
+your machines file and that executables are all cross-mounted.  To run this
+test, you must be able to create files in the current directory.
+.
+        exit 1 
+	;;
+        *) arch=$arg ;;
+    esac
+done
 MPIR_HOME="#MPIR_HOME#"
 machineFile="${MPIR_HOME}/util/machines/machines.${arch}"
 if [ ! -f $machineFile ] ; then
@@ -16,6 +27,7 @@ if [ ! -f $machineFile ] ; then
     exit 1
 fi
 list=`cat $machineFile | sed -e '/\#/d' | tr -s '\012' ' '`
+/bin/rm -f foo
 echo "A test" > foo
 # Use same mechanism as in mpirun to get the value of pwd...
 if [ -n "$PWD" ] ; then
@@ -41,7 +53,7 @@ for machine in $list ; do
 	errcnt=`expr $errcnt + 1`
     fi
 done
-/bin/rm foo
+/bin/rm -f foo
 if [ $errcnt -gt 0 ] ; then
     echo "$errcnt errors were encountered while testing the machines list for $arch"
     exit 1

@@ -1,0 +1,69 @@
+# Generated automatically from Makefile.in by configure.
+P4ARCH = SUN
+MAKE = make
+CC = cc
+FC = f77
+CLINKER = cc
+FLINKER = f77
+RANLIB = ranlib
+AR = ar lruv
+RM = /bin/rm
+MDEP_LIBS = 
+MDEP_CFLAGS = 
+MDEP_FFLAGS = 
+MDEP_LFLAGS = 
+P4_OBJ = $(P4_COMM_OBJ) $(P4_SOCK_OBJ) $(P4_SHMEM_OBJ)
+
+CFLAGS = -g -I$(INCLUDEDIR) $(MDEP_CFLAGS) $(USER_CFLAGS)
+
+FFLAGS = -g -I$(FORTLIBDIR) $(MDEP_FFLAGS)
+P4_HOME_DIR = ..
+INCLUDEDIR = $(P4_HOME_DIR)/include
+LIBDIR = $(P4_HOME_DIR)/lib
+LIBS = $(MDEP_LIBS)
+
+USER_CFLAGS =  -D$(P4ARCH)
+
+USC_HDR = usc_sys.h usc.h
+USC_SRC = usc.c
+USC_OBJ = usc.o
+
+.SUFFIXES:	.o .c .f .h
+
+.c.o:$(P)
+	$(CC) $(CFLAGS) -c $*.c 
+
+.f.o:$(P)
+	$(FC) $(FFLAGS) -c $*.f 
+
+dummy:	default
+
+clean:
+	$(RM) -f *~ *.o *.bak tags TAGS core
+
+default:	
+	$(MAKE) $(LIBDIR)/libp4.a
+
+all:	
+	$(MAKE) $(LIBDIR)/libp4.a
+
+usc.o:$(P)
+	$(CC) $(CFLAGS) -I$(INCLUDEDIR) -c usc.c 
+
+$(USC_OBJ):  $(USC_SRC) $(USC_HDR)
+
+
+$(LIBDIR)/libp4.a:  $(USC_OBJ)
+	$(AR) $(LIBDIR)/libp4.a $?
+	$(RANLIB) $(LIBDIR)/libp4.a
+#	$(AR) $@ $?
+#	$(RANLIB) $@
+
+p4inmpi:$(P) $(USC_OBJ)
+	$(AR) ../../../../lib/$(MPIARCH)/ch_p4/libmpi.a $?
+	$(RANLIB) ../../../../lib/$(MPIARCH)/ch_p4/libmpi.a
+
+realclean:	clean
+	$(RM) -f $(LIBDIR)/libp4.a Makefile
+	@cd usctest; $(MAKE) clean
+

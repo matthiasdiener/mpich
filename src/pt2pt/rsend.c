@@ -1,5 +1,5 @@
 /*
- *  $Id: rsend.c,v 1.12 1995/03/05 22:56:21 gropp Exp $
+ *  $Id: rsend.c,v 1.13 1995/05/09 18:10:38 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: rsend.c,v 1.12 1995/03/05 22:56:21 gropp Exp $";
+static char vcid[] = "$Id: rsend.c,v 1.13 1995/05/09 18:10:38 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -40,8 +40,11 @@ MPI_Comm         comm;
         request = (MPI_Request)&shandle;
         MPIR_Send_init( buf, count, datatype, dest, tag, comm, request, 
 		        MPIR_MODE_READY, 0 );
-	/* It is only at this point that we can detect a null input buffer */
-	if (mpi_errno = MPIR_Send_setup(&request)) return mpi_errno;
+	/* It is only at this point that we can detect a null input buffer.
+	   The next "routine" is a macro that sets mpi_errno */
+	MPIR_SEND_SETUP_BUFFER( &request, shandle );
+	if (mpi_errno) 
+	    return mpi_errno;
 	MPID_Blocking_send_ready( comm->ADIctx, &shandle );
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
 	/* If this request had to allocate a buffer to send from,

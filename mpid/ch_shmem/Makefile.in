@@ -24,7 +24,8 @@ ALL: default
 
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = @CFLAGS@ $(OPTFLAGS) -I../.. -I../../include -I./ \
-		-DMPI_$(ARCH) -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@
+		-DMPI_$(ARCH) -DMPID_DEVICE_CODE @GETNAME_DEFS@ @DEVCFLAGS@ \
+	        @DEV_DEFS@
 SOURCE   = shmemevent.c shmemrecv.c shmemsend.c shmeminit.c shmemprobe.c \
 	   shmemsync.c p2p.c shmempriv.c shops2.c shmemcoll.c shmemget.c
 SOURCEC  = $(SOURCE)

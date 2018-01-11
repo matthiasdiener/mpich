@@ -8,7 +8,9 @@
 # Note that the -f is important to ensure that commands needed by csh are
 # not aliased to commands with the same name and different behavior.
 #
-
+#
+# THIS PROGRAM IS OBSOLETE.  SEE mpirun.*.in, PARTICULARLY mpirun.sh.in .
+#
 #set verbose
 set MPIR_HOME = #MPIR_HOME#
 set EXECER = #EXECER_DIR#/execer
@@ -24,6 +26,7 @@ set machine = '#DEFAULT_MACHINE#'
 set default_device='#DEFAULT_DEVICE#'
 set execer_machine=1
 set cmdLineArgs=''
+set cmdLineArgsExecer=''
 set cmdline=''
 set CAC=''
 set use_execer = 0
@@ -111,6 +114,10 @@ while ("$j" <= "$#argv")
       set leavePGFile = 1
       breaksw
     case -p4pg:
+      if ($np > 1) then
+	echo "-p4pg and -np are mutually exclusive; -np $np being ignored."
+        set np = 1
+      endif
       @ j++
       set p4pgfile = "$argv[$j]"
       set leavePGFile = 1
@@ -186,23 +193,21 @@ while ("$j" <= "$#argv")
 	@ j++
         # any following unrecognized arguments are assumed to be arguments
         # to be passed to the program, as well as all future args
+	# We can't use use_execer here to decide how to store the
+	# arguments, since we may later change it (see the switch on arch)
+	# Thus we store the args in tow forms
 	while ("$j" <= "$#argv")
 	  set arg = "$argv[$j]"
-          if ($use_execer) then
-            set cmdLineArgs = "$cmdLineArgs -arg=${argv[$j]}"
-          else
-            set cmdLineArgs = "$cmdLineArgs ${argv[$j]}"
-          endif
+          set cmdLineArgsExecer = "$cmdLineArgsExecer -arg=${argv[$j]}"
+          set cmdLineArgs = "$cmdLineArgs ${argv[$j]}"
 	  @ j++
         end
       else
 	echo "Warning: Command line arguments for program should be given"
         echo "after the program name.  Assuming that ${argv[$j]} is a"
         echo "command line argument for the program."
-        if ($use_execer) then
-            set cmdLineArgs = "$cmdLineArgs -arg=${argv[$j]}"
-        else
-            set cmdLineArgs = "$cmdLineArgs ${argv[$j]}"
+        set cmdLineArgsExecer = "$cmdLineArgsExecer -arg=${argv[$j]}"
+        set cmdLineArgs = "$cmdLineArgs ${argv[$j]}"
         endif	
       endif
       breaksw
@@ -211,7 +216,9 @@ while ("$j" <= "$#argv")
 end
 
 if ($?MPI_USEP4SSPORT && $?MPI_P4SSPORT) then
-    set p4ssport = $MPI_P4SSPORT
+    if ($MPI_USEP4SSPORT == "yes" || $MPI_USEP4SSPORT == "YES") then
+        set p4ssport = $MPI_P4SSPORT
+    endif
 endif
 
 # We need at least the program name
@@ -220,7 +227,7 @@ if ("$progname" == "") then
   echo "Missing: program name"
   if ("$fake_progname" != "") then
       echo "Program $fake_progname either does not exist, is not "
-      echo "executable, or it an erroneous argument to mpirun."
+      echo "executable, or is an erroneous argument to mpirun."
   endif
   exit 1
 endif
@@ -260,6 +267,9 @@ if ("$arch" == "") then
       endif
   endif
 
+  # archlist contains a list of synonyms for the arch; this is needed for
+  # the machines file (which has one choice of extension).
+  set archlist = "$arch"
   switch ("$ARCH")
     case sun4:
     case sun4m:
@@ -279,7 +289,9 @@ if ("$arch" == "") then
       else
         set arch="sun4"
       endif
+      set archlist = "$arch"
       breaksw
+    case "cray":
     case "CRAY Y-MP":
       set arch="CRAY"
       breaksw
@@ -290,6 +302,7 @@ if ("$arch" == "") then
     case hp9000s735:
     case HP-UX:
       set arch=HP-UX
+      set archlist = "hpux hp9000s700 hp9000s735 HP-UX"
       breaksw
     case NeXT:
       set arch=NeXT
@@ -300,6 +313,7 @@ if ("$arch" == "") then
     case IRIX:
     case sgi:
       set arch="IRIX"
+      set archlist = "IRIX sgi"
       breaksw
     case freebsd:
       set arch="freebsd"
@@ -313,15 +327,18 @@ if ("$arch" == "") then
     case i386:
     case symm_ptx:
       set arch="symm_ptx"
+      set archlist = "i386 symm_ptr"
       breaksw
     case IP19:
     case IP21:
       set arch="sgi_mp"
+      set archlist = "sgi_mp IP19 IP21"
       breaksw
     case ipsc860:
     case i860:
     case ipsc:
       set arch="ipsc860"
+      set archlist = "ipsc860 i860 ipsc"
       breaksw
     default:
       echo "Cannot determine machine architecture. Use the '-arch <arch>'"
@@ -330,6 +347,9 @@ if ("$arch" == "") then
       set arch=$default_arch
       breaksw
   endsw
+endif
+if ( "$archlist" == "" ) then
+    set archlist = "$arch"
 endif
 #
 # Some last-minute fixups
@@ -368,6 +388,7 @@ if ("$machine" == "") then
       endif
       endif
       breaksw
+    case cray:
     case CRAY:
     case HP-UX:
     case NeXT:
@@ -502,7 +523,7 @@ if (("$machine" == "execer") || ("$machine" == "p4")) then
   else
     # echo run local instance
     if ("$machine" == "execer") then
-      set cmdline = "$cmdline -host=${HOST} -pgm=${progname} -numprocs=1 $cmdLineArgs"
+      set cmdline = "$cmdline -host=${HOST} -pgm=${progname} -numprocs=1 $cmdLineArgsExecer"
     endif
     set procFound = 1
   endif
@@ -512,13 +533,17 @@ if (("$machine" == "execer") || ("$machine" == "p4")) then
     if ("$machine" == "ibmspx" && -e /usr/local/bin/getjid) then
 	set machineFile = "/sphome/$LOGNAME/SPnodes.`/usr/local/bin/getjid`"
     else
-        set machineFile = "${MPIR_HOME}/util/machines/machines.${arch}"
+        foreach march ($archlist)
+            set machineFile = "${MPIR_HOME}/util/machines/machines.${march}"
+	    if ( -e $machineFile ) break
+	end
     endif
   endif
 
   if (!(-e "$machineFile" && -r "$machineFile")) then
     if ($nolocal != 0 || $np != 1) then
         echo Cannot read $machineFile.  Exiting.
+	echo Looked for files with extension $archlist.
         exit 1
     endif
   endif
@@ -554,7 +579,7 @@ if (("$machine" == "execer") || ("$machine" == "p4")) then
     endif
     if ("$machine" == "execer") then
       if ("$nolocal" || $KeepHost || ("$machineName" != "$HOST")) then
-	set cmdline = "$cmdline -host=${machineName} -pgm=${progname} -numprocs=1 $cmdLineArgs"
+	set cmdline = "$cmdline -host=${machineName} -pgm=${progname} -numprocs=1 $cmdLineArgsExecer"
 	@ procFound++
       endif
     else
@@ -571,6 +596,9 @@ endif
 
 switch ($machine)
   case meiko:
+    # Note that the file /opt/MEIKOcs2/<machinename>/machine.des contains
+    # detailed information on the structure of the machine (i.e., 
+    # which nodes have disks, vector boards, etc).
     if ($just_testing) then
       if ("$debugger" != "") then
           echo "totalview prun -a -n$np $progname $cmdLineArgs"
@@ -656,7 +684,7 @@ switch ($machine)
         echo $progname -npes $np $cmdLineArgs
     else
         $progname -npes $np $cmdLineArgs
-    fi
+    endif
     breaksw
   case ibmspx:
     # This only works on SPx running release 2 software and with
@@ -725,6 +753,13 @@ switch ($machine)
 	    # If you don't remove the file first, sometimes the 
 	    # WRONG FILE (the OLD ONE) is found by the system.
 	    /bin/rm -f /sphome/$LOGNAME/$localpgm
+	    if (-e /sphome/$LOGNAME/$localpgm) then
+	        echo "Could not move $progname to /sphome/$LOGNAME/$localpgm"
+		if (-d /sphome/$LOGNAME/$localpgm) then
+		   echo "Destination is a directory!"
+		endif
+	        exit 1
+	    endif
 	    cp $progname /sphome/$LOGNAME/$localpgm
 	endif
 	set PWD_LOCAL = /sphome/$LOGNAME
@@ -775,7 +810,7 @@ exit 0
        set CAC = `whatcac | head -1 | cut -d' ' -f 9 | sed -e s/\"//g -e s/://`
     endif
     if ($just_testing) then
-	echo "spsubmit <<."
+	echo "spsubmit2 -nomail <<."
 	echo $CAC
 	echo $max_time
 	echo $np
@@ -796,7 +831,13 @@ exit 0
     else
         # Send output to /dev/null in case we're trying to 
         # use this to match up output
-	spsubmit <<. >& /dev/null 
+	set JID = `/usr/local/bin/getjid`
+	if "$JID" != "" then 
+	    echo "Can not start SP job while one is in the queue"
+	    echo "Job $JID was found"
+	    exit 1
+	endif
+	spsubmit2 -nomail <<. >& /dev/null 
 $CAC
 $max_time
 $np
@@ -807,10 +848,12 @@ $PWD_LOCAL/PIrun
 
 C
 .
+	set JID = `/usr/local/bin/getjid`
 	spwait
 	if ($rmhome == 1) then
 	   /bin/rm /sphome/$LOGNAME/$localpgm
 	endif
+	/bin/rm -f /sphome/$LOGNAME/SPnodes.$JID
 	if ("$mvback" != "") then
 	    (cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; /bin/rm $mvback )
         endif
@@ -867,10 +910,17 @@ C
     endif
     breaksw
   case execer:
+    set PWD_LOCAL = $HOME
     if ($just_testing) then
       echo $EXECER "-jobid=$jobid" $cmdline
+      if ("$mvback" != "") then
+	 echo "(cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; /bin/rm $mvback )"
+      endif
     else
       $EXECER "-jobid=$jobid" $cmdline
+      if ("$mvback" != "") then
+	  (cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; /bin/rm $mvback )
+      endif
     endif
     breaksw
   case p4:

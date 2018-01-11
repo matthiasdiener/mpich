@@ -36,7 +36,10 @@ va_dcl
     va_list ap;
 
     printf("%s: ", whoami_p4);
-    printf("(%f) ", p4_usclock());
+    if (p4_global)
+	printf("(%f) ", p4_usclock());
+    else
+	printf("(-) " );
     va_start(ap);
 #ifdef VPRINTF
     vprintf(fmt, ap);
@@ -72,7 +75,10 @@ va_dcl
     if (level > debug_level)
 	return;
     printf("%d: %s: ", level, whoami_p4);
-    printf("(%f) ", p4_usclock());
+    if (p4_global)
+	printf("(%f) ", p4_usclock());
+    else
+	printf("(-) " );
     va_start(ap);
 #ifdef VPRINTF
     vprintf(fmt, ap);

@@ -199,7 +199,8 @@ MPE_Seq_end(MPI_COMM_WORLD,1 );
 }
 
 typedef enum { HEADtoHEAD, ROUNDTRIP } CommType;
-typedef enum { Blocking, NonBlocking, ReadyReceiver, Persistant } Protocol;
+typedef enum { Blocking, NonBlocking, ReadyReceiver, Persistant, Vector } 
+               Protocol;
 
 double exchange_forcetype();
 double exchange_async();
@@ -209,6 +210,7 @@ double round_trip_sync();
 double round_trip_force();
 double round_trip_async();
 double round_trip_persis();
+double round_trip_vector();
 
 double round_trip_nc_sync();
 double round_trip_nc_force();
@@ -242,6 +244,13 @@ if (SYArgHasName( argc, argv, 1, "-persistant"  )) {
     protocol      = Persistant;
     strcpy( protocol_name, "persistant" );
     }
+if (SYArgHasName( argc, argv, 1, "-vector"  )) {
+    int stride;
+    protocol      = Vector;
+    strcpy( protocol_name, "vector" );
+    if (SYArgGetInt( argc, argv, 1, "-vstride", &stride ))
+	set_vector_stride( stride );
+    }
 use_cache = SYArgGetInt( argc, argv, 1, "-cachesize", &CacheSize );
 if (SYArgHasName( argc, argv, 1, "-head"  ))     comm_type = HEADtoHEAD;
 if (SYArgHasName( argc, argv, 1, "-roundtrip" )) comm_type = ROUNDTRIP;
@@ -255,6 +264,7 @@ if (comm_type == ROUNDTRIP) {
 	    /* Rolling through the cache means using different buffers
 	       for each op; not doable with persistent requests */
 	    case Persistant:    f = 0;                   break;
+	    case Vector:        f = 0;                   break;
 	    }
 	}
     else {
@@ -262,7 +272,8 @@ if (comm_type == ROUNDTRIP) {
 	    case ReadyReceiver: f = round_trip_force; break;
 	    case NonBlocking:   f = round_trip_async; break;
 	    case Blocking:      f = round_trip_sync;  break;
-	    case Persistant:     f = round_trip_persis;break;
+	    case Persistant:    f = round_trip_persis;break;
+	    case Vector:        f = round_trip_vector;break;
 	    }
 	}
     }
@@ -272,6 +283,7 @@ else {
 	case NonBlocking:   f = exchange_async;     break;
 	case Blocking:      f = exchange_sync;      break;
 	case Persistant:    f = 0;                  break;
+	case Vector:        f = 0;                  break;
 	}
     }
 if (!f) {
@@ -557,7 +569,7 @@ PairData *ctx;
   return(elapsed_time);
 }
 
-#ifdef MPI_SUCCESS
+#if defined(MPI_SUCCESS) || defined(HAS_MPI)
 /* 
    Persistant communication (only in MPI) 
  */
@@ -617,8 +629,79 @@ PairData *ctx;
   free(rbuffer);
   return(elapsed_time);
 }
+static int VectorStride = 10;
+int set_vector_stride( n )
+int n;
+{
+VectorStride = n;
+}
+double round_trip_vector(reps,len,ctx)
+int      reps,len;
+PairData *ctx;
+{
+  double elapsed_time;
+  double mean_time;
+  int  i,pid,myproc, to = ctx->destination, from = ctx->source;
+  double *rbuffer,*sbuffer;
+  double t0, t1;
+  MPI_Datatype vec, types[2];
+  int          blens[2];
+  MPI_Aint     displs[2];
+  MPI_Status   status;
+  MPI_Comm     comm;
+
+  /* Adjust len to be in bytes */
+  len = len / sizeof(double);
+
+  comm = MPI_COMM_WORLD;
+  blens[0] = 1; displs[0] = 0; types[0] = MPI_DOUBLE;
+  blens[1] = 1; displs[1] = VectorStride * sizeof(double); types[1] = MPI_UB;
+  MPI_Type_struct( 2, blens, displs, types, &vec );
+  MPI_Type_commit( &vec );
+
+  myproc = __MYPROCID;
+  sbuffer = (double *)malloc((unsigned)(VectorStride * len * sizeof(double) ));
+  rbuffer = (double *)malloc((unsigned)(VectorStride * len * sizeof(double) ));
+  if (!sbuffer)return 0;;
+  if (!rbuffer)return 0;;
+
+  elapsed_time = 0;
+  if(ctx->is_master){
+    MPI_Recv( rbuffer, len, vec, to, 0, comm, &status );
+    *(&t0)=MPI_Wtime();
+    for(i=0;i<reps;i++){
+      MPI_Send( sbuffer, len, vec, to, 1, comm );
+      MPI_Recv( rbuffer, len, vec, from, 1, comm, &status );
+      }
+    *(&t1)=MPI_Wtime();
+    elapsed_time = *(&t1 )-*(&t0);
+    }
+
+  if(ctx->is_slave){
+    MPI_Send( sbuffer, len, vec, from, 0, comm );
+    for(i=0;i<reps;i++){
+	MPI_Recv( rbuffer, len, vec, from, 1, comm, &status );
+	MPI_Send( sbuffer, len, vec, to, 1, comm );
+	}
+    }
+
+  free(sbuffer );
+  free(rbuffer );
+  MPI_Type_free( &vec );
+  return(elapsed_time);
+}
 #else
 double round_trip_persis(reps,len,ctx)
+int      reps,len;
+PairData *ctx;
+{
+exit(1 );
+}
+int set_vector_stride( n )
+int n;
+{
+}
+double round_trip_vector(reps,len,ctx)
 int      reps,len;
 PairData *ctx;
 {

@@ -1,5 +1,5 @@
 /* cart_get.c */
-/* Fortran interface file for sun4 */
+/* Custom Fortran interface file */
 #include "mpiimpl.h"
 
 #ifdef POINTER_64_BITS
@@ -8,13 +8,15 @@ extern int MPIR_FromPointer();
 extern void MPIR_RmPointer();
 #else
 #define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) a
+#define MPIR_FromPointer(a) (int)a
 #define MPIR_RmPointer(a)
 #endif
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_cart_get_ PMPI_CART_GET
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_cart_get_ pmpi_cart_get__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_cart_get_ pmpi_cart_get
 #else
@@ -23,6 +25,8 @@ extern void MPIR_RmPointer();
 #else
 #ifdef FORTRANCAPS
 #define mpi_cart_get_ MPI_CART_GET
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_cart_get_ mpi_cart_get__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_cart_get_ mpi_cart_get
 #endif

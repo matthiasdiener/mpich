@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "args.h"
 #include "expandingList.h"
@@ -8,7 +9,11 @@
 #define PROTO_FILE "/home/karrels/wrappers/mpi_proto"
 */
 
+#ifndef DEBUG
 #define DEBUG 0
+#endif
+
+int PrintHelp();
 
 /*
 void StrToLower( str )
@@ -46,7 +51,7 @@ char *str, searchChar;
 }
 
 
-main( argc, argv )
+int main( argc, argv )
 int argc;
 char *argv[];
 {
@@ -271,7 +276,7 @@ int nitems;
 
 
 
-PrintHelp() {
+int PrintHelp() {
   printf( "\n" );
   printf( "options:\n\n" );
   printf( "  -w <file>  Add <file> to the list of wrapper files to use.\n" );

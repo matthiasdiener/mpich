@@ -22,7 +22,7 @@
 #ifndef lint
 static char *(colornames[]) = { "white", "black", "red", "yellow", "green", 
 			      "cyan", "blue", "magenta", "aquamarine",
-			      "forestgreen", "orange", "violet", "brown",
+			      "forestgreen", "orange", "marroon", "brown",
 			      "pink", "coral", "gray" };
 #endif
 

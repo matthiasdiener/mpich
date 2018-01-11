@@ -1,5 +1,5 @@
 /*
- *  $Id: test.c,v 1.11 1994/07/13 04:04:35 lusk Exp $
+ *  $Id: test.c,v 1.12 1995/05/09 18:59:17 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -22,8 +22,6 @@ MPI_Request  *request;
 int          *flag;
 MPI_Status   *status;
 {
-    int              index;
-
-    /* We let Testany detect errors */
-    return MPI_Testany( 1, request, &index, flag, status );
+    /* We let Testall detect errors */
+    return MPI_Testall( 1, request, flag, status );
 }

@@ -93,4 +93,5 @@ char **argv;
 #endif
     Test_Waitforall( );
     MPI_Finalize();
+    return 0;
 }

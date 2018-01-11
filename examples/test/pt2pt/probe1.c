@@ -70,4 +70,5 @@ else {
 MPI_Barrier( MPI_COMM_WORLD );
 Test_Waitforall( );
 MPI_Finalize();
+return 0;
 }

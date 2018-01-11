@@ -129,12 +129,13 @@ D*/
     and environment.
 
     As an example, the Chameleon version of the ADI has these properties
-$   Transport Layer             -   MPID_Init starts processes
-$   ---------------------------------------------------------------
-$   p4, pvm, EUIH               -   yes
-$   Paragon                     -   depends on Paragon 
-$   Intel i860, Delta, CM5, POE -   no
-$
+.vb
+   Transport Layer             -   MPID_Init starts processes
+   ---------------------------------------------------------------
+   p4, pvm, EUIH               -   yes
+   Paragon                     -   depends on Paragon 
+   Intel i860, Delta, CM5, POE -   no
+.ve
 
     The pointer returned by this routine may be null; it is provided to allow
     for multiple, simultaneous ADI's.  For example, if the pointer returned
@@ -692,13 +693,15 @@ D*/
     All of these "routines" are actually macros, allowing the API code
     to contain code like
 
-$   #ifdef MPID_Barrier
-$   if (comm->AdiBarrier) MPID_Barrier( comm->AdiCtx, comm );
-$   else 
-$   #endif
-$   {
-$   ... code using pt-2-pt
-$   }
+.vb
+   #ifdef MPID_Barrier
+   if (comm->AdiBarrier) MPID_Barrier( comm->AdiCtx, comm );
+   else 
+   #endif
+   {
+   ... code using pt-2-pt
+   }
+.ve
    
     Not yet decided: are the reduction and scan reduced to a single root 
     or to all (I'd prefer to all).

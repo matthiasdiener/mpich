@@ -372,7 +372,7 @@ ReceiverTest3()
     MPI_Errhandler_set(MPI_COMM_WORLD, MPIR_ERRORS_WARN);
 
     if (MPI_Isend(buffer, 20, MPI_INT, dest,
-		 1, NULL, &Req) == MPI_SUCCESS){
+		 1, MPI_COMM_NULL, &Req) == MPI_SUCCESS){
 	Test_Failed("NULL Communicator Test");
     }
     else {

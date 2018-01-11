@@ -1,5 +1,5 @@
 /*
- *  $Id: ic_merge.c,v 1.9 1995/03/05 23:03:32 gropp Exp $
+ *  $Id: ic_merge.c,v 1.10 1995/05/09 18:51:48 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -68,6 +68,12 @@ MPI_Comm *comm_out;
   else 
 	MPI_Group_union(comm->local_group, comm->group, &(new_comm->group) );
   MPIR_Group_dup ( new_comm->group, &(new_comm->local_group) );
+
+  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) 
+      return mpi_errno;
+  new_comm->local_rank     = new_comm->local_group->local_rank;
+  new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
+  new_comm->np             = new_comm->group->np;
 
   /* Allocate 2 contexts for intra-communicator */
   MPIR_Context_alloc ( comm, 2, &(new_comm->send_context));

@@ -6,7 +6,7 @@
     
 /* Debugging information */
 
-PUBLIC char procgroup_file[100];
+PUBLIC char procgroup_file[256];
 PUBLIC char bm_outfile[100];
 PUBLIC char rm_outfile_head[100];
 PUBLIC char whoami_p4[100];

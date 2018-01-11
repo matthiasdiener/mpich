@@ -1,12 +1,12 @@
 /*
- *  $Id: type_ind.c,v 1.15 1995/02/22 16:34:59 doss Exp $
+ *  $Id: type_ind.c,v 1.17 1995/06/01 20:49:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_ind.c,v 1.15 1995/02/22 16:34:59 doss Exp $";
+static char vcid[] = "$Id: type_ind.c,v 1.17 1995/06/01 20:49:03 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -21,8 +21,8 @@ array_of_displacements  and array_of_blocklengths  (nonnegative integer)
 . array_of_blocklengths - number of elements per block 
 (array of nonnegative integers) 
 . array_of_displacements - displacement for each block, 
-in multiples of oldtype  extent (array of integer) 
-. oldtype - old datatype (handle) 
+in multiples of old_type  extent (array of integer) 
+. old_type - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 
@@ -72,11 +72,11 @@ MPI_Datatype *newtype;
   dteptr->old_type    = (MPI_Datatype)MPIR_Type_dup (old_type);
   dteptr->count       = count;
   dteptr->elements    = 0;
-  dteptr->pad         = ((old_type->align -
-                        (old_type->size % old_type->align)) % old_type->align);
+  dteptr->has_ub      = old_type->has_ub;
+  dteptr->has_lb      = old_type->has_lb;
 
   /* Create indices and blocklens arrays and fill them */
-  dteptr->indices     = ( int * ) MALLOC( count * sizeof( int ) );
+  dteptr->indices     = ( MPI_Aint * ) MALLOC( count * sizeof( MPI_Aint ) );
   dteptr->blocklens   = ( int * ) MALLOC( count * sizeof( int ) );
   if (!dteptr->indices || !dteptr->blocklens) 
       return MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
@@ -105,11 +105,17 @@ MPI_Datatype *newtype;
   }
 
   /* Set the upper/lower bounds and the extent and size */
-  dteptr->lb          = low;
-  dteptr->ub          = high;
+  /* Set the upper/lower bounds and the extent and size */
+  if (old_type->has_lb) 
+      dteptr->lb = old_type->lb;
+  else
+      dteptr->lb = low;
+  if (old_type->has_ub)
+      dteptr->ub = old_type->ub;
+  else
+      dteptr->ub = high;
   dteptr->extent      = high - low;
-  dteptr->size        = ((dteptr->elements * old_type->size) +
-	                    ((dteptr->elements - 1) * dteptr->pad));
+  dteptr->size        = dteptr->elements * old_type->size;
 
   /* 
     dteptr->elements contains the number of elements in the top level

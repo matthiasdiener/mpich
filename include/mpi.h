@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.44 1995/03/05 20:23:35 gropp Exp $
+ *  $Id: mpi.h,v 1.45 1995/05/09 17:44:52 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -26,14 +26,57 @@ extern "C" {
 /* Data types */
 /* MPI_LONG_LONG_INT is an OPTIONAL type, and may be set to NULL */
 typedef struct MPIR_DATATYPE *MPI_Datatype;
-extern MPI_Datatype MPI_CHAR, MPI_SHORT, MPI_INT, MPI_LONG, MPI_UNSIGNED_CHAR,
-       MPI_UNSIGNED_SHORT, MPI_UNSIGNED, MPI_UNSIGNED_LONG, MPI_FLOAT, 
-       MPI_DOUBLE, MPI_LONG_DOUBLE, MPI_LONG_DOUBLE_INT, 
-       MPI_BYTE, MPI_PACKED, MPI_UB, MPI_LB, MPI_LONG_LONG_INT, MPI_2INTEGER;
-extern MPI_Datatype MPIR_complex_dte, MPIR_dcomplex_dte;
-extern MPI_Datatype MPI_FLOAT_INT, MPI_DOUBLE_INT, MPI_LONG_INT, MPI_SHORT_INT,
-                    MPI_2INT, MPIR_2real_dte, MPIR_2double_dte, 
-                    MPIR_2complex_dte, MPIR_2dcomplex_dte, MPIR_logical_dte, 
+
+/* 
+   To allow compile-time use of MPI 'constants', they are declared in
+   static storage.  This is incomplete at present. 
+
+   Note that this will work for C but not for Fortran; in the Fortran
+   case we will probably need predefined indices.  A C version that
+   uses indices might have lower latency because of few cache misses
+   while searching out the features of the basic datatypes.
+ */
+extern struct MPIR_DATATYPE MPIR_I_CHAR, MPIR_I_SHORT, MPIR_I_INT, MPIR_I_LONG,
+                            MPIR_I_UCHAR, MPIR_I_USHORT, MPIR_I_UINT, 
+                            MPIR_I_ULONG, MPIR_I_FLOAT, MPIR_I_DOUBLE, 
+                            MPIR_I_LONG_DOUBLE, MPIR_I_LONG_DOUBLE_INT,
+                            MPIR_I_BYTE, MPIR_I_PACKED, MPIR_I_UB, MPIR_I_LB,
+                            MPIR_I_LONG_LONG_INT, MPIR_I_2INTEGER, 
+                            MPIR_I_FLOAT_INT, MPIR_I_DOUBLE_INT, 
+                            MPIR_I_LONG_INT, MPIR_I_SHORT_INT, MPIR_I_2INT,
+                            MPIR_I_REAL, MPIR_I_DOUBLE_PRECISION, 
+                            MPIR_I_COMPLEX, MPIR_I_DCOMPLEX, 
+                            MPIR_I_LONG_DOUBLE, MPIR_I_LONG_LONG_INT, 
+                            MPIR_I_LOGICAL;
+#define MPI_CHAR (&MPIR_I_CHAR)
+#define MPI_BYTE (&MPIR_I_BYTE)
+#define MPI_SHORT (&MPIR_I_SHORT)
+#define MPI_INT (&MPIR_I_INT)
+#define MPI_LONG (&MPIR_I_LONG)
+#define MPI_FLOAT (&MPIR_I_FLOAT)
+#define MPI_DOUBLE (&MPIR_I_DOUBLE)
+
+#define MPI_UNSIGNED_CHAR (&MPIR_I_UCHAR)
+#define MPI_UNSIGNED_SHORT (&MPIR_I_USHORT)
+#define MPI_UNSIGNED (&MPIR_I_UINT)
+#define MPI_UNSIGNED_LONG (&MPIR_I_ULONG)
+
+#define MPI_PACKED (&MPIR_I_PACKED)
+#define MPI_UB (&MPIR_I_UB)
+#define MPI_LB (&MPIR_I_LB)
+
+#define MPI_FLOAT_INT (&MPIR_I_FLOAT_INT)
+#define MPI_LONG_INT  (&MPIR_I_LONG_INT)
+#define MPI_DOUBLE_INT (&MPIR_I_DOUBLE_INT)
+#define MPI_SHORT_INT  (&MPIR_I_SHORT_INT)
+#define MPI_2INT       (&MPIR_I_2INT)
+
+extern MPI_Datatype MPI_LONG_DOUBLE, MPI_LONG_DOUBLE_INT, 
+       MPI_LONG_LONG_INT, MPI_2INTEGER;
+/* extern MPI_Datatype MPIR_complex_dte, MPIR_dcomplex_dte, 
+   MPIR_logical_dte, ; */
+extern MPI_Datatype MPIR_2real_dte, MPIR_2double_dte, 
+                    MPIR_2complex_dte, MPIR_2dcomplex_dte, 
                     MPIR_int1_dte, 
                     MPIR_int2_dte, MPIR_int4_dte, MPIR_real4_dte, 
                     MPIR_real8_dte, MPI_REAL, MPI_DOUBLE_PRECISION;
@@ -81,6 +124,9 @@ extern int MPIR_TAG_UB, MPIR_HOST, MPIR_IO;
 #define MPI_UNDEFINED_RANK MPI_UNDEFINED
 #define MPI_KEYVAL_INVALID 0
 
+/* Upper bound on the overhead in bsend for each message buffer */
+#define MPI_BSEND_OVERHEAD 512
+
 /* Topology types */
 #define MPI_GRAPH  1
 #define MPI_CART   2
@@ -97,6 +143,7 @@ typedef struct {
     int count;
     int MPI_SOURCE;
     int MPI_TAG;
+    int MPI_ERROR;
 } MPI_Status;
 
 /* Must be able to hold any valid address.  64 bit machines may need
@@ -133,10 +180,11 @@ typedef void (MPI_User_function)();
 
 /* MPI Attribute copy and delete functions */
 #if defined(__STDC__) || defined(__cplusplus)
-typedef int (MPI_Copy_function)( MPI_Comm *oldcomm, int *keyval, void *extra_state,
-			       void *attr_in, void **attr_out, int *flag);
+typedef int (MPI_Copy_function)( MPI_Comm *oldcomm, int *keyval, 
+				 void *extra_state,
+			         void *attr_in, void *attr_out, int *flag);
 typedef int (MPI_Delete_function)( MPI_Comm *comm, int *keyval, void *attr_val,
-			       void *extra_state );
+			           void *extra_state );
 #else
 typedef int (MPI_Copy_function)( );
 typedef int (MPI_Delete_function)( );

@@ -12,16 +12,31 @@
 #define PAD(n)
 #endif
 
-#if defined(MPI_hpux)
+/* IRIX uses non-mmap code */
+#if defined(MPI_IRIX) && defined(HAVE_MMAP)
+#undef HAVE_MMAP
+#endif
+
+#if defined(MPI_hpux) || defined(HAVE_MMAP)
+#    include <sys/types.h>
 #    include <sys/mman.h>
 #    define USE_XX_SHMALLOC
 #    define GLOBMEMSIZE  (8*1024*1024)
- 
+#endif 
+
+#if defined(MPI_hpux)
+/* HPUX uses a special lock/unlock set */
 typedef int p2p_lock_t[4];
 #define p2p_lock_init(l) { *((int*)(l)) = 1; }
 #define p2p_lock(l)      acquire_lock(l)
 #define p2p_unlock(l)    release_lock(l)
 
+#elif defined(HAVE_MMAP)
+
+typedef msemaphore p2p_lock_t;
+#define p2p_lock_init(l) msem_init(l, MSEM_UNLOCKED)
+#define p2p_lock(l)      msem_lock(l, 0)
+#define p2p_unlock(l )   msem_unlock(l, 0)
 
 #endif
 

@@ -162,7 +162,7 @@ int *__ierr;
 *__ierr = MPI_Sendrecv(sendbuf,*sendcount,
 	(MPI_Datatype)MPIR_ToPointer(*((int*)sendtype)),
 		       *dest,*sendtag,recvbuf,*recvcount,
-	(MPI_Datatype)MPIR_ToPoitner(*((int*)recvtype)),*source,*recvtag,
+	(MPI_Datatype)MPIR_ToPointer(*((int*)recvtype)),*source,*recvtag,
 	(MPI_Comm)MPIR_ToPointer(*((int*)comm)),status);
 }
 

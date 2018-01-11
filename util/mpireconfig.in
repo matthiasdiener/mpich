@@ -1,6 +1,16 @@
 #! /bin/sh
 CONFIG_FILES="$*"
 export CONFIG_FILES
+PREFIX="#PREFIX#"
+#
+# I once made a suggestion to do
+#if [ -n "$PREFIX" ] ; then 
+#    /bin/rm -f .t1 
+#    cat $file | sed -e "s%@INSTALL_DIR@%$PREFIX%g" > .t1
+#    mv .t1 $file
+#fi
+# 
+# but I've lost the example that made me suggest this.
 # 
 # First, try the device/architecture specific config.status
 if [ -s #MPIR_HOME#/lib/#ARCH#/#COMM#/config.status ] ; then 

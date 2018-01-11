@@ -9,6 +9,9 @@ struct proc_info {
     int group_id;
     P4BOOL am_rm;
     char host_name[HOSTNAME_LEN];
+#   ifdef CAN_DO_SOCKET_MSGS
+    struct sockaddr_in sockaddr;
+#   endif
     char machine_type[16];
 };
 

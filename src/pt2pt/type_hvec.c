@@ -1,12 +1,12 @@
 /*
- *  $Id: type_hvec.c,v 1.15 1995/02/22 16:32:09 doss Exp $
+ *  $Id: type_hvec.c,v 1.17 1995/06/01 20:52:35 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_hvec.c,v 1.15 1995/02/22 16:32:09 doss Exp $";
+static char vcid[] = "$Id: type_hvec.c,v 1.17 1995/06/01 20:52:35 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -20,7 +20,7 @@ Input Parameters:
 . blocklength - number of elements in each block 
 (nonnegative integer) 
 . stride - number of bytes between start of each block (integer) 
-. oldtype - old datatype (handle) 
+. old_type - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 
@@ -73,8 +73,8 @@ MPI_Datatype *newtype;
   dteptr->blocklen    = blocklen;
   dteptr->old_type    = (MPI_Datatype)MPIR_Type_dup (old_type);
   dteptr->count       = count;
-  dteptr->pad         = ((old_type->align -
-                        (old_type->size % old_type->align)) % old_type->align);
+  dteptr->has_ub      = old_type->has_ub;
+  dteptr->has_lb      = old_type->has_lb;
 
   /* Set the upper/lower bounds and the extent and size */
   dteptr->extent      = ((count-1) * stride) + (blocklen * old_type->extent);
@@ -85,10 +85,12 @@ MPI_Datatype *newtype;
   }
   else {
 	dteptr->lb     = old_type->lb;
-	dteptr->ub     = dteptr->lb + dteptr->extent;
+	if (dteptr->has_ub) 
+	    dteptr->ub = old_type->ub;
+	else
+	    dteptr->ub = dteptr->lb + dteptr->extent;
   }
-  dteptr->size        = (count * blocklen * dteptr->old_type->size) +
-	                    (((count * blocklen) - 1) * dteptr->pad);
+  dteptr->size        = count * blocklen * dteptr->old_type->size;
   
   return (mpi_errno);
 }

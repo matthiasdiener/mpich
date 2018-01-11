@@ -36,7 +36,7 @@ extern int __NUMNODES, __MYPROCID;static MPI_Status _mpi_status;static int _n, _
 
 /* Structure for the test routines */
 typedef struct {
-    MPI_Request pset;       /* Procset to test over */
+    MPI_Comm pset;       /* Procset to test over */
     int     src;         /* Source (for scatter) */
     } GOPctx;
 
@@ -269,7 +269,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int    i;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 double *lval, *work, time;
 double t0, t1;
 
@@ -298,7 +298,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 int     *lval, *work;
 double  time;
 double t0, t1;
@@ -328,7 +328,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 int     *lval;
 double  time;
 double t0, t1;
@@ -356,7 +356,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i, gsize, glen;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 int     *lval, *gval;
 double  time;
 double t0, t1;
@@ -387,7 +387,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i, gsize, glen;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 int     *lval, *gval, *gsizes;
 double  time;
 int     np, offset;
@@ -431,12 +431,14 @@ int    reps, len;
 GOPctx *ctx;
 {
 exit(2 );
+return -1.0;
 }
 double TestGCol( reps, len, ctx )
 int    reps, len;
 GOPctx *ctx;
 {
 exit(2 );
+return -1.0;
 }
 #endif
 
@@ -445,7 +447,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 double  time;
 double t0, t1;
 
@@ -469,7 +471,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int    i;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 double *lval, *work, time;
 double t0, t1;
 
@@ -499,7 +501,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 int     *lval, *work;
 double  time;
 double t0, t1;
@@ -530,7 +532,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 int     *lval;
 double  time;
 double t0, t1;
@@ -559,7 +561,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i, gsize, glen;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 int     *lval, *gval;
 double  time;
 double t0, t1;
@@ -591,7 +593,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 double  time;
 double t0, t1;
 
@@ -615,7 +617,7 @@ int    reps, len;
 GOPctx *ctx;
 {
 int     i, gsize, glen;
-MPI_Request pset = ctx->pset;
+MPI_Comm pset = ctx->pset;
 int     *lval, *gval, *gsizes;
 double  time;
 int     np;

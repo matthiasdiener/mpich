@@ -2,7 +2,9 @@
 #include "expandingList.h"
 #include <string.h>
 
+#ifndef DEBUG
 #define DEBUG 0
+#endif
 
 GetIntArg( argc, argv, switchName, val )
 int *argc, *val;

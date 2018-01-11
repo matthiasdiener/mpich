@@ -1,4 +1,4 @@
-.TH MPI_Comm_size 3 "12/15/1994" " " "MPI"
+.TH MPI_Comm_size 3 "4/23/1995" " " "MPI"
 .SH NAME
 MPI_Comm_size \- Determines the size of the group associated with a communictor
 
@@ -16,6 +16,8 @@ MPI_Comm_size \- Determines the size of the group associated with a communictor
 - number of processes in the group of comm  (integer) 
 .PD 1
 
+.SH NOTES
+MPI_COMM_NULL is `not` considered a valid argument to this function.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

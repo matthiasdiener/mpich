@@ -153,6 +153,7 @@ int        is_collective;
 	display = (char *)malloc( 100 );
 	gethostname( display, 100 );
 #else
+	display = (char *)malloc( MPI_MAX_PROCESSOR_NAME );
 	MPI_Get_processor_name( display, &namelen );
 #endif
 
@@ -310,7 +311,9 @@ int        freq;
     X11)
 .   color - Color INDEX value.  See MPE_Make_color_array.  By default,
             the colors MPE_WHITE, MPE_BLACK, MPE_RED, MPE_YELLOW,
-	    MPE_GREEN, MPE_CYAN, and MPE_BLUE are defined.
+	    MPE_GREEN, MPE_CYAN, MPE_BLUE, MPE_MAGENTA, MPE_AQUAMARINE, 
+            MPE_FORESTGREEN, MPE_ORANGE, MPE_VIOLET, MPE_BROWN, MPE_PINK, 
+            MPE_CORAL and MPE_GRAY  are defined.
 @*/
 int MPE_Draw_point( handle, x, y, color )
 MPE_XGraph handle;

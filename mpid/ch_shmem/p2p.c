@@ -4,7 +4,8 @@
 
 #define p2p_dprintf printf
 
-#if !defined(MPI_solaris) && !defined(MPI_IRIX) && !defined(MPI_hpux)
+#if !defined(MPI_solaris) && !defined(MPI_IRIX) && !defined(MPI_hpux) && \
+    !defined(HAVE_MMAP)
     ??? shmem device not defined for this architecture  
 #endif
 
@@ -19,7 +20,7 @@ void xx_init_shmalloc();
 
 #endif
 
-#if defined(MPI_hpux)
+#if defined(MPI_hpux) || defined(HAVE_MMAP)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -66,7 +67,7 @@ int memsize;
 			p2p_shared_map_fd, (off_t) 0);
 #endif
 
-#if defined(MPI_hpux)
+#if defined(MPI_hpux) || defined(HAVE_MMAP)
     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_SHARED|MAP_ANONYMOUS|MAP_VARIABLE, 
@@ -108,7 +109,7 @@ int numprocs;
 void *p2p_shmalloc(size)
 int size;
 {
-    void *p;
+    void *p = 0;
 
 #if defined(MPI_IRIX)
     p = usmalloc(size,p2p_sgi_usptr);
@@ -180,7 +181,7 @@ p2p_cleanup()
 #if defined(MPI_solaris)
 #endif
 
-#if defined(MPI_hpux)
+#if defined(MPI_hpux) || defined(HAVE_MMAP)
 #endif
 }
 
@@ -245,19 +246,23 @@ double p2p_wtime()
     double timeval;
     struct timeval tp;
 
-#if defined(MPI_IRIX) || defined(MPI_hpux)
+#if defined(MPI_IRIX) || defined(MPI_hpux) || defined(HAVE_GETTIMEOFDAY) || \
+    defined(USE_BSDGETTIMEOFDAY) || defined(USE_WIERDGETTIMEOFDAY)
     struct timezone tzp;
 #endif
 
-#if defined(MPI_IRIX)
+    tp.tv_sec  = 0;
+    tp.tv_usec = 0;
+
+#if defined(MPI_IRIX) || defined(USE_BSDGETTIMEOFDAY)
     BSDgettimeofday(&tp,&tzp);
 #endif
 
-#if defined(MPI_hpux)
+#if defined(MPI_hpux) || defined(HAVE_GETTIMEOFDAY)
     gettimeofday(&tp,&tzp);
 #endif
 
-#if defined(MPI_solaris)
+#if defined(MPI_solaris) || defined(USE_WIERDGETTIMEOFDAY)
     gettimeofday(&tp);
 #endif
 
@@ -280,7 +285,7 @@ sginap(0);
 #if defined(MPI_solaris)
 #endif
 
-#if defined(MPI_hpux)
+#if defined(MPI_hpux) || defined(HAVE_MMAP)
 #endif
 }
 
@@ -376,12 +381,14 @@ unsigned nbytes;
     unsigned nunits;
 #if defined(MPI_hpux)
     int msemsize = sizeof(struct msemaphore);
+#elif defined(HAVE_MMAP)
+    int msemsize = sizeof(msemaphore);
 #endif
 
     /* Force entire routine to be single threaded */
     (void) p2p_lock(p2p_shmem_lock);
 
-#if defined(MPI_hpux)
+#if defined(MPI_hpux) || defined(HAVE_MMAP)
     nbytes += msemsize;
 #endif
 

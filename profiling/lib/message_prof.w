@@ -93,7 +93,7 @@ static int procid_{{fileno}};
 {{fn fn_name MPI_Recv}}
   {{vardecl int size}}
   {{callfn}}
-  if ({{source}} != MPI_PROC_NULL) {
+  if ({{source}} != MPI_PROC_NULL && returnVal == MPI_SUCCESS) {
     MPI_Get_count( {{status}}, MPI_BYTE, &{{size}} );
     prof_recv( procid_{{fileno}}, {{status}}->MPI_SOURCE,
 	       {{status}}->MPI_TAG, {{size}}, "{{fn_name}}" );
@@ -104,7 +104,7 @@ static int procid_{{fileno}};
 {{fn fn_name MPI_Sendrecv}}
   {{vardecl int typesize, count}}
   {{callfn}}
-  if ({{dest}} != MPI_PROC_NULL) {
+  if ({{dest}} != MPI_PROC_NULL && returnVal == MPI_SUCCESS) {
     MPI_Type_size( {{sendtype}}, (MPI_Aint *)&{{typesize}} );
     prof_send( procid_{{fileno}}, {{dest}}, {{sendtag}},
 	       {{typesize}}*{{sendcount}}, "{{fn_name}}" );
@@ -118,7 +118,7 @@ static int procid_{{fileno}};
 {{fn fn_name MPI_Sendrecv_replace}}
   {{vardecl int size, typesize}}
   {{callfn}}
-  if ({{dest}} != MPI_PROC_NULL) {
+  if ({{dest}} != MPI_PROC_NULL && returnVal == MPI_SUCCESS) {
     MPI_Type_size( {{datatype}}, (MPI_Aint *)&{{typesize}} );
     prof_send( procid_{{fileno}}, {{dest}}, {{sendtag}},
 	       {{typesize}}*{{count}}, "{{fn_name}}" );
@@ -152,7 +152,7 @@ static int procid_{{fileno}};
 {{fn fn_name MPI_Irecv MPI_Recv_init}}
   {{vardecl request_list *newrq}}
   {{callfn}}
-  if ({{source}} != MPI_PROC_NULL) {
+  if ({{source}} != MPI_PROC_NULL && returnVal == MPI_SUCCESS) {
     if ({{newrq}} = (request_list*) malloc(sizeof( request_list ))) {
       {{newrq}}->request = {{request}};
       {{newrq}}->status = RQ_RECV;

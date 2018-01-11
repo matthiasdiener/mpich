@@ -40,7 +40,9 @@ int *__ierr;
 MPI_Request lrequest;
 lrequest = (MPI_Request)MPIR_ToPointer(*(int*)request);
 *__ierr = MPI_Wait(&lrequest,status);
-/* Must not to this is request is persistant */
-/* MPIR_RmPointer(*(int*)request);
- *(int*)request = 0; */
+/* By checking for null, we handle persistant requests */
+if (lrequest == MPI_REQUEST_NULL) {
+    MPIR_RmPointer( *((int *)(request)) );
+    *(int *)request = 0;
+    }
 }

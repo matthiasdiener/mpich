@@ -4,7 +4,9 @@
 #include <sys/stat.h>
 #include "wrappergen.h"
 
+#ifndef DEBUG
 #define DEBUG 0
+#endif
 
 #define RETURN_VAR_NAME "returnVal"
 
@@ -791,6 +793,7 @@ int lineno;
   fprintf( stderr, "ReadVardeclBasetype: '%s'\n", *basetype );
 #endif
 
+  return 1;
 }
   
 
@@ -832,7 +835,8 @@ char **readPt, **varPrefix, **varName, **varSuffix;
   fprintf( stderr, "ReadVardeclVarname: :%s:%s:%s:\n",
 	   *varPrefix, *varName, *varSuffix );
 #endif
-
+  /* ? return ? */
+  return 1;
 }
 
 

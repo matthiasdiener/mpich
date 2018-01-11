@@ -4,14 +4,14 @@
 
 
 /*
- *  $Id: chcoll.c,v 1.4 1995/01/03 19:40:12 gropp Exp gropp $
+ *  $Id: chcoll.c,v 1.5 1995/03/28 19:26:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: chcoll.c,v 1.5 1995/03/28 19:26:00 gropp Exp $";
 #endif
 
 /* 
@@ -122,7 +122,7 @@ int *sendbuf, *recvbuf;
 MPI_Comm comm;
 {
 int d;
-p4_global_op(__P4GLOBALTYPE,sendbuf,1,sizeof(int),p4_int_sum_op,P4NOX);
+p4_global_op(__P4GLOBALTYPE,sendbuf,1,sizeof(int),p4_int_sum_op,P4INT);
 *recvbuf = *sendbuf;
 }
 
@@ -131,7 +131,7 @@ double *sendbuf, *recvbuf;
 MPI_Comm comm;
 {
 double d;
-p4_global_op(__P4GLOBALTYPE,sendbuf,1,sizeof(double),p4_dbl_sum_op,P4NOX);
+p4_global_op(__P4GLOBALTYPE,sendbuf,1,sizeof(double),p4_dbl_sum_op,P4DBL);
 *recvbuf = *sendbuf;
 }
 

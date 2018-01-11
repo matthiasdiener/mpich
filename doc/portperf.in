@@ -93,12 +93,24 @@ if test $noperf = 0 ; then
 	/bin/rm -f maketst.log 
  	make mpptest goptest > maketst.log 2>&1
 	
+ 	if test ! -x mpptest ; then 
+	    echo "Failed to build performance test program!" >> $filename
+	    echo "Output of \\code{make mpptest goptest} is" >> $filename
+	    cat >> $filename <<.
+\begin{verbatim}
+.
+	    cat maketst.log >> $filename
+	    cat >> $filename <<.
+\end{verbatim}
+.
+	    exit 1
+	fi
 	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
-		-tgoal 0.1 -auto > short.gpl
+		-tgoal 0.1 -auto -givdy > short.gpl
 	RefineGnuplotfile "short"
 	#
 	mpirun -np 2 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
-		-tgoal 0.2 -auto -reps 25 -size 16384 65536 1024 > long.gpl
+	   -tgoal 0.2 -auto -reps 25 -size 16384 65536 1024 -givedy > long.gpl
 	RefineGnuplotfile "long"
 	#
 	# The collective routines need to aggregate over several values of
@@ -120,7 +132,7 @@ if test $noperf = 0 ; then
 	RefineGnuplotfile "dsum8"
 	#
 	mpirun -np 4 -mvhome -mvback mppout.gpl -arch=@ARCH@ mpptest -gnuplot \
-		-bisect > bisect.gpl
+		-bisect -givedy > bisect.gpl
 	RefineGnuplotfile "bisect"
 	cd $curdir
     fi

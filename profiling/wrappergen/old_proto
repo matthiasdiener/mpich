@@ -79,7 +79,7 @@ int   MPI_Gatherv
   ,MPI_Comm,comm, ,
 int  MPI_Op_create
 3
-  ,MPI_Uop *,function, ,
+  ,MPI_User_function *,function, ,
   ,int,commute, ,
   ,MPI_Op *,op, ,
 int  MPI_Op_free

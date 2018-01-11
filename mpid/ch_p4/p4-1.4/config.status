@@ -2,16 +2,16 @@
 # Generated automatically by configure.
 # Run this file to recreate the current configuration.
 # This directory was configured as follows,
-# on host ptera.mcs.anl.gov:
+# on host donner.mcs.anl.gov:
 #
-# ./configure -p4arch=ALPHA -p4make=/usr/bin/make
+# ./configure -p4arch=SUN -p4make=make -opt=-g
 
 for arg
 do
   case "$arg" in
     -recheck | --recheck | --rechec | --reche | --rech | --rec | --re | --r)
-    echo running ${CONFIG_SHELL-/bin/sh} ./configure -p4arch=ALPHA -p4make=/usr/bin/make
-    exec ${CONFIG_SHELL-/bin/sh} ./configure -p4arch=ALPHA -p4make=/usr/bin/make ;;
+    echo running ${CONFIG_SHELL-/bin/sh} ./configure -p4arch=SUN -p4make=make -opt=-g
+    exec ${CONFIG_SHELL-/bin/sh} ./configure -p4arch=SUN -p4make=make -opt=-g ;;
     *) echo "Usage: config.status --recheck" 2>&1; exit 1 ;;
   esac
 done
@@ -19,8 +19,8 @@ done
 trap 'rm -f Makefile lib/Makefile alog/Makefile usc/Makefile usc/usctest/Makefile messages/Makefile include/Makefile lib_f/Makefile contrib/Makefile contrib_f/Makefile bin/Makefile doc/Makefile messages_f/Makefile misc/Makefile monitors/Makefile servers/Makefile lib/p4_config.h; exit 1' 1 3 15
 RANLIB='ranlib'
 CPP='cc -E'
-P4ARCH='ALPHA'
-MAKE='/usr/bin/make'
+P4ARCH='SUN'
+MAKE='make'
 CC='cc'
 FC='f77'
 CLINKER='cc'
@@ -32,7 +32,8 @@ MDEP_LIBS=''
 MDEP_CFLAGS=''
 MDEP_FFLAGS=''
 MDEP_LFLAGS=''
-P4_CONFIGURED_TIME='Fri Mar 17 12:47:04 CST 1995'
+OPTFLAGS='-g'
+P4_CONFIGURED_TIME='Fri Jun  9 17:24:14 CDT 1995'
 DEFINE_ALOG='#undef ALOG_TRACE'
 DEFINE_SYSV_IPC='#undef SYSV_IPC'
 DEFINE_VENDOR_IPC='#undef VENDOR_IPC'
@@ -78,6 +79,7 @@ s%@MDEP_LIBS@%$MDEP_LIBS%g
 s%@MDEP_CFLAGS@%$MDEP_CFLAGS%g
 s%@MDEP_FFLAGS@%$MDEP_FFLAGS%g
 s%@MDEP_LFLAGS@%$MDEP_LFLAGS%g
+s%@OPTFLAGS@%$OPTFLAGS%g
 s%@P4_CONFIGURED_TIME@%$P4_CONFIGURED_TIME%g
 s%@DEFINE_ALOG@%$DEFINE_ALOG%g
 s%@DEFINE_SYSV_IPC@%$DEFINE_SYSV_IPC%g

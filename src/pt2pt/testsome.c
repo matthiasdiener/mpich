@@ -1,5 +1,5 @@
 /*
- *  $Id: testsome.c,v 1.14 1995/03/05 22:57:10 gropp Exp $
+ *  $Id: testsome.c,v 1.17 1995/05/16 18:11:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: testsome.c,v 1.14 1995/03/05 22:57:10 gropp Exp $";
+static char vcid[] = "$Id: testsome.c,v 1.17 1995/05/16 18:11:08 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -34,6 +34,7 @@ MPI_Status  array_of_statuses[];
 {
     int i, mpi_errno;
     int nfound = 0;
+    int nnull  = 0;
     MPI_Request request;
 
     /* NOTE:
@@ -51,16 +52,33 @@ MPI_Status  array_of_statuses[];
 	   operation */
 	request = array_of_requests[i];
 
-	if (!request || !request->chandle.active) continue;
+	if (!request || !request->chandle.active) {
+	    nnull ++;
+	    continue;
+	    }
 
+	if (!MPID_Test_request( MPID_Ctx( request ), request)) {
+	    /* Try to complete the send or receive */
+	    if (request->type == MPIR_SEND) {
+		if (MPID_Test_send( request->shandle.comm->ADIctx, 
+				   &request->shandle )) {
+		    MPID_Complete_send( request->shandle.comm->ADIctx, 
+				       &request->shandle );
+		    }
+		}
+	    else {
+		if (MPID_Test_recv( request->rhandle.comm->ADIctx, 
+				   &request->rhandle )) {
+		    MPID_Complete_recv( request->rhandle.comm->ADIctx, 
+				       &request->rhandle );
+		    }
+		}
+	    }
 	if (MPID_Test_request( MPID_Ctx( request ), request )) {
 	    
 	    array_of_indices[nfound] = i;
 	    if ( request->type == MPIR_RECV )
 		{
-		MPID_Complete_recv( request->rhandle.comm->ADIctx,
-				    &request->rhandle );
-		
 		array_of_statuses[nfound].MPI_SOURCE = 
 		    request->rhandle.source;
 		array_of_statuses[nfound].MPI_TAG    = 
@@ -74,12 +92,11 @@ MPI_Status  array_of_statuses[];
 						   request->rhandle.count, 
 						   request->rhandle.datatype, 
 						   request->rhandle.source,
-						   request );
+						   request, 
+   					  &array_of_statuses[nfound].count );
 #endif
 		}
 	    else {
-		MPID_Complete_send( request->shandle.comm->ADIctx,
-				    &request->shandle );
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
 		if (request->shandle.bufpos && 
 		    (mpi_errno = MPIR_SendBufferFree( request ))){
@@ -97,19 +114,13 @@ MPI_Status  array_of_statuses[];
 		array_of_requests[i]    = NULL;
 		}
 	    else {
-		request->chandle.active	= 0;
-		MPID_Clr_completed( MPID_Ctx( request ), request );
-		if (request->type == MPIR_RECV) {
-		    MPID_Reuse_recv_handle( request->rhandle.comm->ADIctx,
-					   &request->rhandle.dev_rhandle );
-		    }
-		else {
-		    MPID_Reuse_send_handle( request->shandle.comm->ADIctx,
-					   &request->shandle.dev_shandle );
-		    }
+		MPIR_RESET_PERSISTENT(request)
 		} 
 	    }
 	}
-    *outcount = nfound;
+    if (nnull == incount)
+	*outcount = MPI_UNDEFINED;
+    else
+	*outcount = nfound;
     return MPI_SUCCESS;
 }

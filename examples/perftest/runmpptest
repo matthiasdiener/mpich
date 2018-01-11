@@ -3,9 +3,11 @@
 # Run mpptest to get communication performance.  
 #
 # Set defaults
-set NP	    = 8
+set NP	    = 2
 set SHORT   = 0
+set LONG    = 0
 set fname   = "-fname mpp.out"
+set fbname  = "mpp.out"
 set system  = "MPI"
 set NATIVE  = ""
 set PAIR    = 1
@@ -13,15 +15,20 @@ set OVERLAP = 1
 set GOP	    = 1
 set BISECT  = 1
 set PLOT    = "Cit"
+set GIVEDY  = ""
 set MPIRUNOPT = ""
+set BLOCKING = 1
+set NONBLOCKING = 1
 if ($#argv > 0) then
     if ("$1" == "-help") then 
         echo "Run mpptest for round-trip messages from 0 to 1 MByte."
 	echo "Output goes to stdout"
 	echo " "
-	echo "mpptest [ -help ] [ -short ] [ -fname file ] [-gnuplot]"
+	echo "mpptest [ -help ] [ -short ] [ -long ] [ -fname file ] [-gnuplot]"
 	echo " [ -pair ] [ -gop ] [ -overlap ] [ -bisect ]"
-	echo " [ -mpirun options ] [ -np n]"
+	echo " [ -blocking ] [ -nonblocking ]"
+	echo " [ -givedy ] "
+	echo " [ -mpirun options ] [ -np n ]"
         exit
     endif
     while ( $#argv > 0 ) 
@@ -30,6 +37,27 @@ if ($#argv > 0) then
 	case -short:
 	shift
 	set SHORT = 1
+	breaksw
+
+	case -long:
+	shift
+	set LONG = 1
+        set SHORT = 0
+	breaksw
+
+	case -blocking:
+	shift
+	set NONBLOCKING = 0
+	breaksw
+
+	case -givedy:
+	shift
+	set GIVEDY  = "-givedy"
+	breaksw
+
+	case -nonblocking:
+	shift
+	set BLOCKING = 0
 	breaksw
 
 	case -np:
@@ -42,9 +70,14 @@ if ($#argv > 0) then
 	shift
         if ( "$1" == "-stdout" ) then
 	    set fname = ""
+	    set fbname = ""
 	else 
 	    set fname = "-fname $1"
+	    set fbname = "$1"
 	endif
+	if ( "$PLOT" == "gnuplot" ) then
+	    set fname = "-gnuplot $fname"
+        endif
 	shift
 	breaksw
 
@@ -120,28 +153,44 @@ set MPPTEST = "mpirun $MPIRUNOPT -np $NP mpptest"
 #
 # Round-trip times, blocking (from 0 to 1 MBytes)
 if ( $PAIR == 1 ) then
+if ( $BLOCKING == 1 ) then
 echo "Round trip tests-blocking"
-$MPPTEST $GRAPH11 -np 2 -tgoal 0.1 -auto 
+if ( $LONG == 0 ) then
+    $MPPTEST $GRAPH11 $GIVEDY -np 2 -tgoal 0.1 -auto 
+endif
 if ( $SHORT == 0 ) then 
-    $MPPTEST $GRAPH12 -np 2 -tgoal 0.1 -auto \
+    if ( $LONG == 0 ) then
+    $MPPTEST $GRAPH12 $GIVEDY -np 2 -tgoal 0.1 -auto \
 	    -size 1024 16384  256    -autodx 128 
-    $MPPTEST $GRAPH21 -np 2 -tgoal 0.5 -auto \
+    endif
+    $MPPTEST $GRAPH21 $GIVEDY -np 2 -tgoal 0.5 -auto \
 	    -size 16384 65536 1024   -autodx 512 -reps 100 
-    $MPPTEST $GRAPH22 -np 2 -tgoal 1.0 -auto \
+    if ( $LONG == 0 ) then
+    $MPPTEST $GRAPH22 $GIVEDY -np 2 -tgoal 1.0 -auto \
 	    -size 65536 1048576 8192 -autodx 8192 -reps 25
+    endif
+endif
 endif
 #
 #
 # Nonblocking times
+if ( $NONBLOCKING == 1 ) then
 echo "Round trip tests-nonblocking"
-$MPPTEST $GRAPH11 -async -np 2 -tgoal 0.1 -auto 
+if ( $LONG == 0 ) then
+    $MPPTEST $GRAPH11 $GIVEDY -async -np 2 -tgoal 0.1 -auto 
+endif
 if ( $SHORT == 0 ) then
-    $MPPTEST $GRAPH12 -async -np 2 -tgoal 0.1 -auto \
+    if ( $LONG == 0 ) then
+    $MPPTEST $GRAPH12 $GIVEDY -async -np 2 -tgoal 0.1 -auto \
 	    -size 1024 16384  256    -autodx 128 
-    $MPPTEST $GRAPH21 -async -np 2 -tgoal 0.5 -auto \
+    endif
+    $MPPTEST $GRAPH21 $GIVEDY -async -np 2 -tgoal 0.5 -auto \
 	    -size 16384 65536 1024   -autodx 512 -reps 100 
-    $MPPTEST $GRAPH22 -async -np 2 -tgoal 1.0 -auto \
+    if ( $LONG == 0 ) then
+    $MPPTEST $GRAPH22 $GIVEDY -async -np 2 -tgoal 1.0 -auto \
 	    -size 65536 1048576 8192 -autodx 8192 -reps 25
+    endif
+endif
 endif
 endif
 #
@@ -150,18 +199,32 @@ if ( $BISECT == 1 ) then
 # Bisection and contention tests
 # Round-trip times, blocking (from 0 to 1 MBytes)
 set BISECT = "-bisect -distance -nbrdbl"
+if ( "$PLOT" == "gnuplot" ) then
+    # Gnuplot doesn't have a nice way to handle multipage output in a single 
+    # file, so we turn off the variable distance feature
+    set BISECT = "-bisect"
+endif
+if ( $BLOCKING == 1 ) then
 echo "Bisection tests-blocking"
-$MPPTEST $GRAPH11 $BISECT -np $NP -tgoal 0.1 -auto 
+if ( $LONG == 0 ) then
+    $MPPTEST $GRAPH11 $BISECT -np $NP -tgoal 0.1 -auto 
+endif
 if ( $SHORT == 0 ) then 
+    if ( $LONG == 0 ) then
     $MPPTEST $GRAPH12 $BISECT -np $NP -tgoal 0.1 -auto \
 		-size 1024 16384  256    -autodx 128 
+    endif
     $MPPTEST $GRAPH21 $BISECT -np $NP -tgoal 0.5 -auto \
 	-size 16384 65536 1024   -autodx 512 -reps 100 
+    #if ( $LONG == 0 ) then
     #$MPPTEST $GRAPH22 $BISECT -np $NP -tgoal 1.0 -auto \
     #	-size 65536 1048576 8192 -autodx 8192 -reps 25
+    #endif
+endif
 endif
 #
 # Nonblocking times-bisection
+if ( $NONBLOCKING == 1 ) then
 echo "Bisection tests-nonblocking"
 $MPPTEST $GRAPH11 $BISECT -async -np $NP -tgoal 0.1 -auto 
 if ( $SHORT == 0 ) then
@@ -171,6 +234,7 @@ if ( $SHORT == 0 ) then
 	    -size 16384 65536 1024   -autodx 512 -reps 100 
     #$MPPTEST $GRAPH22 $BISECT -async -np $NP -tgoal 1.0 -auto \
     #	-size 65536 1048576 8192 -autodx 8192 -reps 25
+endif
 endif
 endif
 #

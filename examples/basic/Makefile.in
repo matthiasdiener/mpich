@@ -39,7 +39,7 @@ MPIPPLIB  = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS	  = $(LIB_PATH) $(LIB_LIST)
 FLIBS	  = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP	  = $(MPIPPLIB) $(LIBS)
-EXECS	  = fpi cpi cpilog systest
+EXECS	  = fpi cpi cpilog systest srtest
 
 default: $(EXECS)
 
@@ -64,6 +64,11 @@ clean:
 	/bin/rm -f *.o *~ PI* $(EXECS)
 
 cpilog.o: cpilog.c
+	@if test -z "$(MPE_DIR)" ; then \
+	    echo "Can only build cpilog if MPE libraries built" ; \
+	    echo "Use -mpe to configure to have the MPE libraries built" ; \
+	    exit 1 ; \
+	fi
 	$(CC) $(CFLAGSMPE) -c cpilog.c
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

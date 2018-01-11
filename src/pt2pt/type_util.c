@@ -1,5 +1,5 @@
 /*
- *  $Id: type_util.c,v 1.9 1994/12/21 14:33:54 gropp Exp $
+ *  $Id: type_util.c,v 1.11 1995/06/01 20:50:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -56,63 +56,99 @@ int MPIR_Type_free ( datatype )
 MPI_Datatype *datatype;
 {
   int mpi_errno = MPI_SUCCESS;
+  MPI_Datatype dtype = *datatype;
 
   /* Check for bad arguments */
   if (MPIR_TEST_ARG(datatype) || 
-      MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,*datatype))
+      MPIR_TEST_IS_DATATYPE(MPI_COMM_WORLD,dtype))
 	return MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
 			   "Error in MPI_TYPE_FREE" );
 
   /* Freeing null datatypes succeeds silently */
-  if ( (*datatype) == MPI_DATATYPE_NULL )
+  if ( dtype == MPI_DATATYPE_NULL )
 	return (MPI_SUCCESS);
 
   /* We can't free permanent objects unless finalize has been called */
-  if  ( ( (*datatype)->permanent ) && MPIR_Has_been_initialized == 1) {
-      if ((*datatype)->ref_count > 1) 
-	  (*datatype)->ref_count--;
+  if  ( ( dtype->permanent ) && MPIR_Has_been_initialized == 1) {
+      if (dtype->ref_count > 1) 
+	  dtype->ref_count--;
       return MPI_SUCCESS;
       }
 
   /* Free datatype */
-  if ( (*datatype)->ref_count <= 1 ) {
+  if ( dtype->ref_count <= 1 ) {
 
 	/* Free malloc'd memory for various datatypes */
-	if ( ((*datatype)->dte_type == MPIR_INDEXED)  ||
-		 ((*datatype)->dte_type == MPIR_HINDEXED) || 
-		 ((*datatype)->dte_type == MPIR_STRUCT)   ) {
-	  FREE ( (*datatype)->indices );
-	  FREE ( (*datatype)->blocklens );
+	if ( (dtype->dte_type == MPIR_INDEXED)  ||
+		 (dtype->dte_type == MPIR_HINDEXED) || 
+		 (dtype->dte_type == MPIR_STRUCT)   ) {
+	  FREE ( dtype->indices );
+	  FREE ( dtype->blocklens );
 	}
 
-	/* Free malloc'd memory for pads in struct */
-	if ( ((*datatype)->dte_type == MPIR_STRUCT) && (*datatype)->pads ) {
-	    FREE( (*datatype)->pads );
-	    }
-	
 	/* Free the old_type if not a struct */
-	if ( ((*datatype)->dte_type != MPIR_STRUCT) && (!(*datatype)->basic) )
-	  MPIR_Type_free ( &((*datatype)->old_type) );
+	if ( (dtype->dte_type != MPIR_STRUCT) && (!dtype->basic) )
+	  MPIR_Type_free ( &(dtype->old_type) );
 	
 	/* Free the old_types of a struct */
-	if ((*datatype)->dte_type == MPIR_STRUCT) {
+	if (dtype->dte_type == MPIR_STRUCT) {
 	  int i;
 
 	  /* Decrease the reference count */
-	  for (i=0; i<(*datatype)->count; i++)
-		MPIR_Type_free ( &((*datatype)->old_types[i]) );
+	  for (i=0; i<dtype->count; i++)
+		MPIR_Type_free ( &(dtype->old_types[i]) );
 
 	  /* Free the malloc'd memory */
-	  FREE ( (*datatype)->old_types );
+	  FREE ( dtype->old_types );
 	}
 
 	/* Free the datatype structure */
-	MPIR_SET_COOKIE((*datatype),0);
-	MPIR_SBfree ( MPIR_dtes, (*datatype) );
+	MPIR_SET_COOKIE(dtype,0);
+	/* If the type is permanent and in static storage, we can't
+	   free it here... Until all permanent datatypes are placed
+	   into static storage, this will leave some storage leaks.
+	   */
+	if  ( !dtype->permanent ) {
+	    MPIR_SBfree ( MPIR_dtes, dtype );
+	    }
   }
   else 
-	(*datatype)->ref_count--;
+	dtype->ref_count--;
 
-  (*datatype) = MPI_DATATYPE_NULL;
+  /* We have to do this because the permanent types are constants */
+  if ( !dtype->permanent )
+      (*datatype) = MPI_DATATYPE_NULL;
   return (mpi_errno);
+}
+
+/* Free the parts of a structure datatype */
+void MPIR_Type_free_struct( dtype )
+MPI_Datatype dtype;
+{
+/* Free malloc'd memory for various datatypes */
+if ( (dtype->dte_type == MPIR_INDEXED)  ||
+    (dtype->dte_type == MPIR_HINDEXED) || 
+    (dtype->dte_type == MPIR_STRUCT)   ) {
+    FREE ( dtype->indices );
+    FREE ( dtype->blocklens );
+    }
+
+/* Free the old_type if not a struct */
+if ( (dtype->dte_type != MPIR_STRUCT) && (!dtype->basic) )
+    MPIR_Type_free ( &(dtype->old_type) );
+
+/* Free the old_types of a struct */
+if (dtype->dte_type == MPIR_STRUCT) {
+    int i;
+
+    /* Decrease the reference count */
+    for (i=0; i<dtype->count; i++)
+	MPIR_Type_free ( &(dtype->old_types[i]) );
+    
+    /* Free the malloc'd memory */
+    FREE ( dtype->old_types );
+    }
+
+/* Free the datatype structure */
+MPIR_SET_COOKIE(dtype,0);
 }

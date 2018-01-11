@@ -8,6 +8,11 @@
 #include <stdio.h>
 /* #define SHOWMSG */
 
+/* 
+   This test requires that the MPI implementation support predefined 
+   MPI_Datatypes in static initializers (i.e., they must be compile time
+   constants).  This was voted as a clarification on 4/26/95.
+ */
 int main( argc, argv )
 int argc;
 char **argv;
@@ -20,8 +25,8 @@ char **argv;
     MPI_Status status;
     double data[100];
     MPI_Datatype rowtype;
-    int blens[2];
-    MPI_Datatype types[2];
+    static int blens[2] = { 1, 1 };
+    static MPI_Datatype types[2] = { MPI_DOUBLE, MPI_UB };
     MPI_Aint displs[2];
 
     MPI_Init( &argc, &argv );
@@ -39,12 +44,14 @@ char **argv;
 	dest = 0;
 	}
 
-    blens[0]  = 1;
-    blens[1]  = 1;
     displs[0] = 0;
     displs[1] = 10*sizeof(double);
+/*
+    blens[0]  = 1;
+    blens[1]  = 1;
     types[0]  = MPI_DOUBLE;
     types[1]  = MPI_UB;
+ */
     MPI_Type_struct( 2, blens, displs, types, &rowtype );
     MPI_Type_commit( &rowtype );
     /* First test: send a row */
@@ -315,6 +322,7 @@ char **argv;
     MPI_Type_free( &rowtype );
     Test_Waitforall( );
     MPI_Finalize();
+    return 0;
 }
 
 int ClearArray( a, n, v )

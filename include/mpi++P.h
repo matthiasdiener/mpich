@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi++P.h,v 1.5 1995/02/06 22:13:23 gropp Exp $
+ *  $Id: mpi++P.h,v 1.6 1995/04/14 15:45:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -16,7 +16,6 @@
 
 extern "C" {
 #include <mpi.h>
-#include <mpisys.h>
 
 // Functions that do not belong to a specific class 
 int MPI_Address(void* location, MPI_Aint *address);
@@ -56,7 +55,7 @@ public:
   ~MPIX_Op (void) { }
   
   // Type destructor
-  Free (void) {
+  int Free (void) {
       return (MPI_Op_free (&op));
   }
   
@@ -131,7 +130,7 @@ public:
   }
   
   // Type destructor
-  Free (void) {
+  int Free (void) {
 	return (MPI_Type_free (&type));
   }
   

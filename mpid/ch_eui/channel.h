@@ -61,11 +61,13 @@
       mpc_bsend(pkt,size,channel,MPID_PT2PT_TAG);\
       MPID_TRACE_CODE("ESendControl",channel);}
 #endif
+
 /* If we did not define SendControlBlock, make it the same as SendControl */
 #if !defined(MPID_SendControlBlock)
 #define MPID_SendControlBlock(pkt,size,channel) \
       MPID_SendControl(pkt,size,channel)
 #endif
+
 /* Because a common operation is to send a control block, and decide whether
    to use SendControl or SendControlBlock based on whether the send is 
    non-blocking, we include a definition for it here: 
@@ -78,7 +80,7 @@ else \
     MPID_SendControlBlock( pkt, len, dest );
 #else
 #define MPID_SENDCONTROL(mpid_send_handle,pkt,len,dest) \
-MPID_SendControl( pkt, len, dest );
+MPID_SendControl( pkt, len, dest )
 #endif
 
 #define MPID_SendChannel( buf, size, channel ) \
@@ -92,11 +94,11 @@ MPID_SendControl( pkt, len, dest );
  */
 #define MPID_IRecvFromChannel( buf, size, channel, id ) \
     {MPID_TRACE_CODE("BIRecvFrom",channel);\
-     {__EUIFROM=-1;__EUITYPE=MPID_PT2PT2_TAG(channel);mpc_recv(buf,size,&__EUIFROM,&__EUITYPE,&(id ));};\
+     {(id ).from=-1;(id ).tag=MPID_PT2PT2_TAG(channel);mpc_recv(buf,size,&((id ).from),&((id ).tag),&((id ).rid));};\
      MPID_TRACE_CODE("EIRecvFrom",channel);}
 #define MPID_WRecvFromChannel( buf, size, channel, id ) \
     {MPID_TRACE_CODE("BWRecvFrom",channel);\
-     mp_wait(&(id ),&__EUILEN);;\
+     mp_wait(&((id ).rid),&__EUILEN);__EUIFROM=(id ).from;__EUITYPE=(id ).tag;;\
      MPID_TRACE_CODE("EWRecvFrom",channel);}
 #define MPID_RecvStatus( id ) \
     (mp_status(&((id) )) > -1 )
@@ -111,6 +113,9 @@ MPID_SendControl( pkt, len, dest );
     {MPID_TRACE_CODE("BWSend",channel);\
     {int d; mp_wait(&(id ),&d);};\
     MPID_TRACE_CODE("EWSend",channel);}
+/* Test the channel operation */
+#define MPID_TSendChannel( id ) \
+    (mp_status(&((id) )) > -1 )
 
 /*
    We also need an abstraction for out-of-band operations.  These could
@@ -131,11 +136,11 @@ MPID_SendControl( pkt, len, dest );
 #ifndef PI_NO_NRECV
 #define MPID_StartRecvTransfer( buf, size, partner, id, rid ) \
     {MPID_TRACE_CODE("BIRRRecv",id);\
-     {__EUIFROM=-1;__EUITYPE=MPID_PT2PT2_TAG(id);mpc_recv(buf,size,&__EUIFROM,&__EUITYPE,&(rid ));};\
+     {(rid ).from=-1;(rid ).tag=MPID_PT2PT2_TAG(id);mpc_recv(buf,size,&((rid ).from),&((rid ).tag),&((rid ).rid));};\
      MPID_TRACE_CODE("EIRRRecv",id);}
 #define MPID_EndRecvTransfer( buf, size, partner, id, rid ) \
     {MPID_TRACE_CODE("BIWRRecv",id);\
-     mp_wait(&(rid ),&__EUILEN);;\
+     mp_wait(&((rid ).rid),&__EUILEN);__EUIFROM=(rid ).from;__EUITYPE=(rid ).tag;;\
      MPID_TRACE_CODE("EIWRRecv",id);\
      if (--TagsInUse == 0) CurTag = 1024; else if (id == CurTag-1) CurTag--;}
 #define MPID_TestRecvTransfer( rid ) \
@@ -148,13 +153,13 @@ MPID_SendControl( pkt, len, dest );
      MPID_TRACE_CODE("EIRRRecv",id);}
 #define MPID_EndRecvTransfer( buf, size, partner, id, rid ) \
     {MPID_TRACE_CODE("BIWRRecv",id);\
-     mp_wait(&(rid ),&__EUILEN);;\
+     mp_wait(&((rid ).rid),&__EUILEN);__EUIFROM=(rid ).from;__EUITYPE=(rid ).tag;;\
      MPID_TRACE_CODE("EIWRRecv",id);\
      if (--TagsInUse == 0) CurTag = 1024; else if (id == CurTag-1) CurTag--;}
 #define MPID_TestRecvTransfer( rid ) \
     (__EUIFROM=-1,__EUITYPE=rid ,mp_probe(&__EUIFROM,&__EUITYPE,&__EUILEN),(__EUILEN>=0))
-
 #endif
+
 #ifdef PI_NO_NSEND
 #define MPID_StartSendTransfer( buf, size, partner, id, sid ) \
     {MPID_TRACE_CODE("BIRRSend",id);\
@@ -178,4 +183,4 @@ MPID_SendControl( pkt, len, dest );
 #define MPID_TestSendTransfer( sid ) \
     (mp_status(&(sid )) > -1 )
 #endif
-/* Probably also need a test for completion */
+

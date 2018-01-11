@@ -1,5 +1,5 @@
 /*
- *  $Id: create_recv.c,v 1.12 1995/03/05 20:15:16 gropp Exp $
+ *  $Id: create_recv.c,v 1.15 1995/05/16 18:10:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,7 +15,7 @@ Input Parameters:
 . buf - initial address of receive buffer (choice) 
 . count - number of elements received (integer) 
 . datatype - type of each element (handle) 
-. dest - rank of source or MPI_ANY_SOURCE (integer) 
+. source - rank of source or MPI_ANY_SOURCE (integer) 
 . tag - message tag or MPI_ANY_TAG (integer) 
 . comm - communicator (handle) 
 
@@ -48,17 +48,27 @@ MPI_Comm     comm;
     handleptr			   = *request;
     MPIR_SET_COOKIE(&handleptr->rhandle,MPIR_REQUEST_COOKIE)
     handleptr->type		   = MPIR_RECV;
+#ifdef MPID_NEEDS_WORLD_SRC_INDICES
+    handleptr->rhandle.source = (source >= 0) ? (comm->lrank_to_grank[source])
+	                                    : source;
+#else
     handleptr->rhandle.source      = source;
+#endif
     handleptr->rhandle.tag	   = tag;
     handleptr->rhandle.contextid   = comm->recv_context;
+    handleptr->rhandle.comm        = comm;
     handleptr->rhandle.datatype	   = datatype;
     handleptr->rhandle.bufadd      = buf;
     handleptr->rhandle.count       = count;
     handleptr->rhandle.persistent  = 1;
     handleptr->rhandle.active      = 0;
+    handleptr->rhandle.perm_source = source;
+    handleptr->rhandle.perm_tag    = tag;
+    
 
     if (source == MPI_PROC_NULL) {
 	MPID_Set_completed(  comm->ADIctx, handleptr );
+	handleptr->rhandle.bufpos = 0;
 	}
     else {
 	MPID_Clr_completed(  comm->ADIctx, handleptr );

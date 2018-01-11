@@ -1,12 +1,12 @@
 /*
- *  $Id: red_scat.c,v 1.19 1994/12/15 20:00:01 gropp Exp $
+ *  $Id: red_scat.c,v 1.20 1995/05/16 18:09:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: red_scat.c,v 1.19 1994/12/15 20:00:01 gropp Exp $";
+static char vcid[] = "$Id: red_scat.c,v 1.20 1995/05/16 18:09:43 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -82,9 +82,10 @@ MPI_Comm          comm;
 			 "Out of space in MPI_REDUCE_SCATTER" );
 
   /* Reduce to 0, then scatter */
-  MPI_Reduce   ( sendbuf, buffer, count, datatype, op, 0, comm);
-  MPI_Scatterv ( buffer, recvcnts, displs, datatype, recvbuf, 
-				 recvcnts[rank], datatype, 0, comm );
+  mpi_errno = MPI_Reduce   ( sendbuf, buffer, count, datatype, op, 0, comm);
+  if (mpi_errno) return mpi_errno;
+  mpi_errno = MPI_Scatterv ( buffer, recvcnts, displs, datatype, recvbuf, 
+			     recvcnts[rank], datatype, 0, comm );
   
   /* Free the temporary buffers */
   FREE(buffer); FREE(displs);

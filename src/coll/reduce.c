@@ -1,5 +1,5 @@
 /*
- *  $Id: reduce.c,v 1.31 1995/03/16 20:14:43 lusk Exp $
+ *  $Id: reduce.c,v 1.32 1995/05/16 18:09:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: reduce.c,v 1.31 1995/03/16 20:14:43 lusk Exp $";
+static char vcid[] = "$Id: reduce.c,v 1.32 1995/05/16 18:09:36 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -137,6 +137,7 @@ MPI_Comm          comm;
     }
   }
 
+  /* This code isn't correct if the source is a more complex datatype */
   memcpy( recvbuf, sendbuf, extent*count );
   mask    = 0x1;
   if (op->commute) lroot   = root;

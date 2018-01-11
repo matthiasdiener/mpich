@@ -55,16 +55,24 @@ else if ("$LARCH" == "IP12") then
   set LARCH = "IRIX"
 else if ("$LARCH" == "i386") then
   set LARCH = "ipsc2"
+else if ("$LARCH" == "cray") then
+  set LARCH = "CRAY"
+else if ("$LARCH" == "CRAY Y-MP") then
+  set LARCH = "CRAY"
 else if ("$LARCH" == "CRAY C90") then
-  set LARCH = "cray"
+  set LARCH = "CRAY"
 else if ("$LARCH" == "CRAY-2") then
-  set LARCH = "cray"
+  set LARCH = "CRAY"
 else if ("$LARCH" == "sun4m") then
   set LARCH = "sun4"
 else if ("$LARCH" == "iris4d") then
   set LARCH = "IRIX"
 else if ("$LARCH" == "next") then
   set LARCH = "NeXT"
+else if ("$LARCH" == "KSR1") then
+  set LARCH = "ksr"
+else if (-e "/dev/elan") then
+  set LARCH = "meiko"
 endif
 #
 echo $LARCH

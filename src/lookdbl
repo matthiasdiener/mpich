@@ -1,0 +1,8 @@
+#! /bin/sh
+for file in *f.c ; do
+  if `grep DOUBLEUNDER $file >/dev/null` ; then 
+    true
+  else
+  echo $file
+  fi
+done

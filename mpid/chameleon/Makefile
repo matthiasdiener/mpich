@@ -7,13 +7,13 @@
 #
 ##### User configurable options #####
 
-ARCH        = rs6000
+ARCH        = sun4
 COMM        = p4
 DEVICE      = chameleon
 BOPT        = g
-P4_DIR      = /usr/local/p4-1.4a
+P4_DIR      = /usr/local/p4-1.4
 TOOLS_DIR   = /home/gropp/tools.n
-MPIR_HOME   = /home/MPI/mpich
+MPIR_HOME   = /Net/alriga/alriga9/MPI/mpich
 INCLUDE_DIR = -I/home/gropp/tools.n -Impid/chameleon -Iinclude
 
 ### End User configurable options ###
@@ -25,7 +25,7 @@ ALL: default
 ITOOLSDIR  = $(TOOLS_DIR)
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
 CFLAGS   = $(COPT) $(OPT) -I$(ITOOLSDIR) -I../.. -I../../include -I./ \
-	-DMPID_DEVICE_CODE 
+	-DMPID_DEVICE_CODE  -DMPID_PKT_VAR_SIZE
 LDIR     = $(ITOOLSDIR)/libs/libs$(BOPT)$(PROFILE)/$(ARCH)
 SOURCE   = chevent.c chrecv.c chsend.c chinit.c chprobe.c chsync.c
 SOURCEC  = $(SOURCE)

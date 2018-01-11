@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_size.c,v 1.12 1994/12/15 16:29:03 gropp Exp $
+ *  $Id: comm_size.c,v 1.13 1995/04/23 18:40:40 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,6 +18,8 @@ Input Parameter:
 Output Parameter:
 . size - number of processes in the group of comm  (integer) 
 
+Notes:
+   MPI_COMM_NULL is `not` considered a valid argument to this function.
 @*/
 int MPI_Comm_size ( comm, size )
 MPI_Comm comm;

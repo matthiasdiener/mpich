@@ -1,5 +1,5 @@
 /*
- *  $Id: initf.c,v 1.11 1995/02/24 21:25:27 gropp Exp $
+ *  $Id: initf.c,v 1.12 1995/06/09 15:46:01 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: initf.c,v 1.11 1995/02/24 21:25:27 gropp Exp $";
+static char vcid[] = "$Id: initf.c,v 1.12 1995/06/09 15:46:01 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -61,7 +61,7 @@ extern void MPIR_RmPointer();
 void mpi_init_( ierr )
 int *ierr;
 {
-int  Argc, i, argsize = 80;
+int  Argc, i, argsize = 1024;
 char **Argv, *p;
 int  ArgcSave;           /* Save the argument count */
 char **ArgvSave,         /* Save the pointer to the argument vector */

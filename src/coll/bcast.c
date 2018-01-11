@@ -1,12 +1,12 @@
 /*
- *  $Id: bcast.c,v 1.23 1994/12/15 20:00:39 gropp Exp $
+ *  $Id: bcast.c,v 1.25 1995/05/16 18:10:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: bcast.c,v 1.23 1994/12/15 20:00:39 gropp Exp $";
+static char vcid[] = "$Id: bcast.c,v 1.25 1995/05/16 18:10:03 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -55,9 +55,11 @@ MPI_Comm          comm;
 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COMM(comm,comm) ||
-   ( (root            <  0)          && (mpi_errno = MPI_ERR_ROOT) )  || 
-   ( ((count > 0) && (buffer == (void *)0)) && (mpi_errno = MPI_ERR_BUFFER) ) )
+   ( (root            <  0)          && (mpi_errno = MPI_ERR_ROOT) )) 
     return MPIR_ERROR( comm, mpi_errno, "Error in MPI_BCAST" );
+
+/*
+   ( ((count > 0) && (buffer == (void *)0)) && (mpi_errno = MPI_ERR_BUFFER) ) ) */
 
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
@@ -123,6 +125,13 @@ MPI_Comm          comm;
 	  int_n = n;
 
       /* While there's someone to send to or someone to receive from ... */
+      /* The MPI_Send to the subtree should be non-blocking in order to
+	 allow several to happen simultaneously (and not to be
+	 blocked by a slow destination early in the delivery) 
+
+	 In addition, the sends should allow pipelining for large messages,
+	 so that the maximum bandwidth of the network can be used.
+	 */
       while ( N > 1 ) {
 		
 		/* Determine the real rank of first node of middle block */
@@ -132,14 +141,17 @@ MPI_Comm          comm;
 		/* If I'm the "root" of some processes, then send */
 		if ( int_n == 0 ) {
 		  dst = (rank + N_rank) % size;
-		  MPI_Send (buffer,count,datatype,dst,MPIR_BCAST_TAG,comm);
+		  mpi_errno = MPI_Send (buffer,count,datatype,dst,
+					MPIR_BCAST_TAG,comm);
+		  if (mpi_errno) return mpi_errno;
 		}
 		/* If a root is sending me a message, then recv and become a 
 		   "root" */
 		else if ( int_n == N_rank ) {
 		  src = (rank - N_rank + size) % size;
-		  MPI_Recv(buffer,count,datatype,src,MPIR_BCAST_TAG,comm,
-			   &status);
+		  mpi_errno = MPI_Recv(buffer,count,datatype,src,
+				       MPIR_BCAST_TAG,comm,&status);
+		  if (mpi_errno) return mpi_errno;
 		  int_n   = 0;
 		}
 		/* I now have a new root to receive from */
@@ -151,30 +163,39 @@ MPI_Comm          comm;
 	  }
 	  
       /* Now linearly broadcast to the other members of my block */
-      for ( i = 1; i < num_in_block; i++ ) {
-		dst = (rank + i) % size;
-		MPI_Isend(buffer,count,datatype,dst,MPIR_BCAST_TAG,comm, 
-			  &hd[i]);
-      }
-	  MPI_Waitall(num_in_block-1, &hd[1], &statuses[1]);
+      if (num_in_block > 1) {
+	  for ( i = 1; i < num_in_block; i++ ) {
+	      dst = (rank + i) % size;
+	      mpi_errno = MPI_Isend(buffer,count,datatype,dst,
+				    MPIR_BCAST_TAG,comm, &hd[i]);
+	      if (mpi_errno) return mpi_errno;
+	      }
+	  mpi_errno = MPI_Waitall(num_in_block-1, &hd[1], &statuses[1]);
+	  if (mpi_errno) return mpi_errno;
+	  }
     }
     /* else I'm in a participating block, wait for a message from the first */
     /* node in my block */
     else {
       src = (rank + size - my_offset) % size;
-      MPI_Recv(buffer,count,datatype,src,MPIR_BCAST_TAG,comm,&status);
+      mpi_errno = MPI_Recv(buffer,count,datatype,src,
+			   MPIR_BCAST_TAG,comm,&status);
+      if (mpi_errno) return mpi_errno;
     }
 	
     /* Now send to any "extra" nodes */
     if ( n < surfeit ) {
       dst = ( rank + participants ) % size;
-      MPI_Send( buffer, count, datatype, dst, MPIR_BCAST_TAG, comm );
+      mpi_errno = MPI_Send( buffer, count, datatype, dst, 
+			   MPIR_BCAST_TAG, comm );
+      if (mpi_errno) return mpi_errno;
     }
   }
   /* else I'm not in a participating block, I'm an "extra" node */
   else {
     src = ( root + n - participants ) % size;
-    MPI_Recv ( buffer, count, datatype, src, MPIR_BCAST_TAG, comm, &status );
+    mpi_errno = MPI_Recv ( buffer, count, datatype, src, 
+			  MPIR_BCAST_TAG, comm, &status );
   }
 
   /* Unlock for collective operation */

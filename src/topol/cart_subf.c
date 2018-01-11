@@ -15,6 +15,8 @@ extern void MPIR_RmPointer();
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_cart_sub_ PMPI_CART_SUB
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_cart_sub_ pmpi_cart_sub__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_cart_sub_ pmpi_cart_sub
 #else
@@ -23,6 +25,8 @@ extern void MPIR_RmPointer();
 #else
 #ifdef FORTRANCAPS
 #define mpi_cart_sub_ MPI_CART_SUB
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_cart_sub_ mpi_cart_sub__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_cart_sub_ mpi_cart_sub
 #endif

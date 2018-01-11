@@ -29,16 +29,16 @@ MPEGRAPHICS_FOBJS   = @MPEGRAPHICS_FOBJS@
 ### End User configurable options ###
 SHELL = /bin/sh
 
-EXECS = dbxtest
+EXECS = dbxtest dbxtest2
 
 CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) -DMPI_$(ARCH) \
 	 $(MPE_GRAPH)
 
 MPE_CSOURCES = timers.c  $(MPEGRAPHICS_SOURCE) mpe_log.c decomp.c \
-	       mpe_seq.c examine.c
+	       mpe_seq.c examine.c privtags.c
 MPE_TSOURCES = $(MPEGRAPHICS_SOURCE) decomp.c mpe_seq.c dbxerr.c
 MPE_COBJECTS = timers.o  $(MPEGRAPHICS_OBJS) mpe_log.o decomp.o mpe_seq.o \
-		dbxerr.o examine.o 
+		dbxerr.o examine.o privtags.o
 MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c
 MPE_WOBJECTS = timersf.o $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o
 
@@ -56,7 +56,11 @@ profile_all:
 default: $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a \
 	 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe_nompi.a \
 	 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/mpe_prof.o \
-	 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/mpe_proff.o
+	 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/mpe_proff.o \
+	 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libtmpi.a \
+	 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/liblmpi.a \
+	 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libampi.a 
+
 profile:
 wrappers:
 	-/bin/rm -f $(MPI_WSOURCES)
@@ -71,7 +75,7 @@ wrappers:
 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a: $(MPE_OBJECTS)
 	$(AR) $@ $?
 	$(RANLIB) $@
-	-/bin/rm -f $?
+#	-/bin/rm -f $?
 
 $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe_nompi.a:  $(MPEGRAPHICS_SOURCE)
 	@if [ "$(MPEGRAPHICS_SOURCE)" != "" ] ; then \
@@ -94,7 +98,34 @@ wwwpages:
 
 mpe_log.o: mpe_log.h mpe_log.c mpe_log_genproc.c mpe_log_genproc.h \
 	  mpe_log_merge.c mpe_log_adjusttime.c
+mpe_plog.o: mpe_log.h mpe_log.c mpe_log_genproc.c mpe_log_genproc.h \
+	  mpe_log_merge.c mpe_log_adjusttime.c
+	$(CC) $(CFLAGS) -c -DUSE_PMPI mpe_log.c
+	/bin/mv mpe_log.o mpe_plog.o
 
+$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libtmpi.a: trc_wrappers.o
+	$(AR) $@ $?
+	$(RANLIB) $@
+#	-/bin/rm -f $?
+
+$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/liblmpi.a: log_wrappers.o mpe_plog.o
+	$(AR) $@ $?
+	$(RANLIB) $@
+#	-/bin/rm -f $?
+
+#
+# Some compilers (particularly on Suns) can't seem to handle this 
+#log1_wrappers.o: log_wrappers.c
+#	$(CC) $(CFLAGS) -c -DFIRST_HALF log_wrappers.c
+#	/bin/mv log_wrappers.o log1_wrappers.o
+
+$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libampi.a: visual_mess.c
+	if [ -n "@MPE_GRAPHICS@" ] ; then \
+	$(CC) $(CFLAGS) -c visual_mess.c ; \
+	$(AR) $@ visual_mess.o ; \
+	$(RANLIB) $@ ; fi
+#	-/bin/rm -f $?
+	
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 
@@ -115,9 +146,16 @@ dbxtest: dbxtest.o $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a
 		$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a \
 		$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a \
 	$(LIB_PATH) $(LIB_LIST)
+dbxtest2: dbxtest2.o $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a
+	$(CLINKER) -o dbxtest2 dbxtest2.o \
+		$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a \
+		$(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a \
+	$(LIB_PATH) $(LIB_LIST)
 clean:
-	/bin/rm -f *.o *~ $(EXECS)
-	(cd contrib/mandel ; $(MAKE) clean)
-	(cd contrib/mastermind ; make clean)
+	-/bin/rm -f *.o *~ $(EXECS)
+	-(cd contrib/mandel ; $(MAKE) clean)
+	-(cd contrib/mastermind ; $(MAKE) clean)
+	-(cd contrib/life ; $(MAKE) clean)
+	-(cd test ; $(MAKE) clean)
 
 

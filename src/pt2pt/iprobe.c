@@ -1,5 +1,5 @@
 /*
- *  $Id: iprobe.c,v 1.8 1995/03/05 20:16:23 gropp Exp $
+ *  $Id: iprobe.c,v 1.9 1995/05/16 18:10:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -45,7 +45,16 @@ MPI_Status  *status;
 	return MPI_SUCCESS;
 	}
 
+#ifdef MPID_NEEDS_WORLD_SRC_INDICES
     MPID_Iprobe( comm->ADIctx, 
-		 tag, source, comm->recv_context, flag, status );
+		 tag, 
+		 (source >= 0) ? (comm->lrank_to_grank[source]) : source,
+		 comm->recv_context, flag, status );
+#else
+    MPID_Iprobe( comm->ADIctx, 
+		 tag, 
+		 source, 
+		 comm->recv_context, flag, status );
+#endif
     return MPI_SUCCESS;
 }

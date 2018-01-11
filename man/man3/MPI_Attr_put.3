@@ -1,4 +1,4 @@
-.TH MPI_Attr_put 3 "12/21/1994" " " "MPI"
+.TH MPI_Attr_put 3 "6/2/1995" " " "MPI"
 .SH NAME
 MPI_Attr_put \- Stores attribute value associated with a key
 
@@ -28,6 +28,13 @@ In C, an attribute value is a pointer (void *); in Fortran, it is a single
 integer (NOT a pointer, since Fortran has no pointers and their are systems
 for which a pointer does not fit in an integer (e.g., any > 32 bit address
 system that uses 64 bits for Fortran DOUBLE PRECISION).
+
+If an attribute is already present, the delete function (specified when the
+corresponding keyval was created) will be called.
+
+.SH SEE ALSO
+ MPI_Attr_get, MPI_Keyval_create, MPI_Attr_delete
+.br
 .SH SYNOPSIS
 .nf
 #include "mpi.h"

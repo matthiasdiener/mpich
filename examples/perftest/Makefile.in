@@ -28,6 +28,7 @@ DEVICE      = @DEVICE@
 
 SHELL = /bin/sh
 
+PROFLIB = 
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 CCFLAGS = $(CFLAGS)
 FFLAGS = @FFLAGS@ $(OPTFLAGS)
@@ -35,9 +36,9 @@ MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a
 MPELIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpe.a 
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
-LIBS = $(LIB_PATH) $(LIB_LIST) -lm
+LIBS = $(LIB_PATH) $(PROFLIB) $(LIB_LIST) -lm
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = mpptest goptest vectest stress 
+EXECS = mpptest goptest vectest stress copytest
 
 default: $(EXECS)
 
@@ -50,14 +51,17 @@ mpptest: mpptest.o $(OBJS) $(MPILIB) $(MPELIB)
 goptest: goptest.o $(OBJS) $(MPILIB) $(MPELIB)
 	$(CLINKER) $(OPTFLAGS) -o goptest goptest.o $(OBJS) $(MPELIB) $(LIBS)
 
-stress: stress.o daytime.o $(OBJS) $(MPILIB) $(MPELIB)
+copytest: copytest.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o copytest copytest.o $(LIBS)
+
+stress: stress.o daytime.o getopts.o $(MPILIB) $(MPELIB)
 	$(CLINKER) $(OPTFLAGS) -o stress stress.o daytime.o \
-	$(OBJS) $(MPELIB) $(LIBS)
+		getopts.o $(MPELIB) $(LIBS)
 
 tunepkt: tunepkt.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o tunepkt tunepkt.o $(LIBS)
 
-vectest: vectest.o
+vectest: mpif.h vectest.o
 	$(FLINKER) $(OPTFLAGS) -o vectest vectest.o $(FLIBS)
 
 clean:
@@ -69,3 +73,5 @@ clean:
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
 
+mpif.h:
+	ln -s $(MPIR_HOME)/include/mpif.h mpif.h

@@ -273,6 +273,13 @@ extern int MPID_PKT_DATA_SIZE;
    at sender and receiver versus reduced data-load on the connection between
    sender and receiver.
  */
+
+/* This is the minimal packet */
+typedef struct {
+    MPID_PKT_MODE
+    } MPID_PKT_MODE_T;
+
+/* This is the minimal message packet */
 typedef struct {
     MPID_PKT_BASIC
     } MPID_PKT_HEAD_T;

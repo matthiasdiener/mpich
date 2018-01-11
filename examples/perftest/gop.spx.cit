@@ -1,0 +1,90 @@
+set default
+set font variable
+set curve window y 0.15 0.90
+title left 'time (us)', bottom 'Processes',
+      top 'Comm Perf for MPI (0.)',
+ 'type = scatter'
+
+#np time (us) for various sizes
+2 0.000000 89.200000 99.300000 110.160000 120.560000 
+set default
+set font variable
+set curve window y 0.15 0.90
+title left 'time (us)', bottom 'Processes',
+      top 'Comm Perf for MPI (0.)',
+ 'type = scatter'
+
+#np time (us) for various sizes
+2 0.000000 89.700000 99.520000 110.571116 120.883212 
+4 0.000000 238.660000 271.700000 304.902439 337.325424 
+6 0.000000 238.580000 271.180000 304.778116 337.210169 
+8 0.000000 253.200000 292.560000 333.996678 374.642857 
+10 0.000000 310.940000 357.780000 401.429150 444.290179 
+12 0.000000 312.620000 356.880000 400.461847 443.546667 
+14 0.000000 386.320000 442.580000 497.605000 551.511111 
+16 0.000000 388.100000 442.400000 499.407960 551.670391 
+# Model complexity is (6.669296e-05 + n * 2.372361e-07)
+# startup = 66.69 usec and transfer rate = 4.22 Mbytes/sec
+set limits ymin 0
+set order x d d d d y
+plot square
+join '1024'
+set order x d d d y d
+plot square
+join '768'
+set order x d d y d d
+plot square
+join '512'
+set order x d y d d d
+plot square
+join '256'
+set order x y d d d d
+plot square
+join '0'
+wait
+new page
+set default
+set font variable
+set curve window y 0.15 0.90
+title left 'time (us)', bottom 'Processes',
+      top 'Comm Perf for MPI (0.)',
+ 'type = scatter'
+
+#np time (us) for various sizes
+2 0.000000 72.020000 81.440000 91.794545 101.862986 
+4 0.000000 202.400000 232.240000 262.653543 293.029326 
+6 0.000000 202.380000 232.460000 263.060526 293.017647 
+8 0.000000 268.120000 308.780000 348.891608 390.019455 
+10 0.000000 267.940000 309.280000 349.312281 389.886719 
+12 0.000000 267.680000 309.080000 349.143860 390.433594 
+14 0.000000 334.940000 384.660000 435.452174 486.604878 
+16 0.000000 334.380000 384.660000 436.253275 486.274510 
+18 0.000000 333.420000 383.440000 435.373913 486.687805 
+20 0.000000 333.840000 384.060000 435.239130 485.419512 
+22 0.000000 334.480000 384.780000 436.021834 486.243902 
+24 0.000000 334.800000 383.720000 436.329004 487.088235 
+26 0.000000 409.280000 459.680000 521.693878 582.912281 
+28 0.000000 401.180000 468.280000 521.849462 583.271676 
+30 0.000000 401.360000 459.140000 521.854922 582.713450 
+32 0.000000 400.000000 459.640000 521.161458 582.467836 
+# Model complexity is (6.771722e-05 + n * 2.511908e-07)
+# startup = 67.72 usec and transfer rate = 3.98 Mbytes/sec
+# Variance in fit = 0.000322 (smaller is better)
+set limits ymin 0
+set order x d d d d y
+plot square
+join '1024'
+set order x d d d y d
+plot square
+join '768'
+set order x d d y d d
+plot square
+join '512'
+set order x d y d d d
+plot square
+join '256'
+set order x y d d d d
+plot square
+join '0'
+wait
+new page

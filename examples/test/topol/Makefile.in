@@ -30,7 +30,6 @@ SHELL = /bin/sh
 
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 CCFLAGS = $(CFLAGS)
-#FFLAGS = '-qdpc=e' 
 FFLAGS = @FFLAGS@ $(OPTFLAGS)
 MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
@@ -48,14 +47,22 @@ linktest: default clean
 
 all: testing
 
-cart: cart.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+fortran_tests: cartf twod
+
+cart: cart.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o cart cart.o test.o $(LIBS)
 
-cart2: cart2.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+cart2: cart2.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o cart2 cart2.o test.o $(LIBS)
 
+cartf: mpif.h cartf.o $(MPILIB)
+	$(FLINKER) $(OPTFLAGS) -o cartf cartf.o $(FLIBS)
+
+twod: mpif.h twod.o $(MPILIB)
+	$(FLINKER) $(OPTFLAGS) -o twod twod.o $(FLIBS)
+
 clean:
-	/bin/rm -f *.o *~ core PI* $(EXECS)
+	/bin/rm -f *.o *~ core PI* $(EXECS) cartf twod topol.diff
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

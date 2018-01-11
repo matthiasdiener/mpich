@@ -1,5 +1,5 @@
 /*
- *  $Id: scatter.c,v 1.20 1994/12/15 17:31:24 gropp Exp $
+ *  $Id: scatter.c,v 1.21 1995/05/16 18:09:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: scatter.c,v 1.20 1994/12/15 17:31:24 gropp Exp $";
+static char vcid[] = "$Id: scatter.c,v 1.21 1995/05/16 18:09:26 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -61,11 +61,12 @@ MPI_Comm          comm;
 
   /* Check for invalid arguments */
   if ( ( (root            <  0)           && (mpi_errno = MPI_ERR_ROOT) )   || 
-       ( (root            >= size)        && (mpi_errno = MPI_ERR_ROOT) )   || 
-       ( ((recvcnt>0)&&(recvbuf==(void *)0)) && 
-	(mpi_errno = MPI_ERR_BUFFER) ) )
+       ( (root            >= size)        && (mpi_errno = MPI_ERR_ROOT) ))
       return MPIR_ERROR( comm, mpi_errno, "Error in MPI_SCATTER" ); 
-  
+ 
+/*        ( ((recvcnt>0)&&(recvbuf==(void *)0)) && 
+	(mpi_errno = MPI_ERR_BUFFER) ) ) */
+ 
   /* Check for intra-communicator */
   MPI_Comm_test_inter ( comm, &flag );
   if (flag) 
@@ -83,21 +84,27 @@ MPI_Comm          comm;
 
   /* If I'm the root, send messages to the rest of 'em */
   if ( rank == root ) {
-    for ( i=0; i<root; i++ )
-      MPI_Send( (void *)((char *)sendbuf+i*sendcnt*extent), sendcnt, 
-               sendtype, i, MPIR_SCATTER_TAG, comm);
+    for ( i=0; i<root; i++ ) {
+	mpi_errno = MPI_Send( (void *)((char *)sendbuf+i*sendcnt*extent), 
+			     sendcnt, sendtype, i, MPIR_SCATTER_TAG, comm);
+	if (mpi_errno) return mpi_errno;
+	}
 
-    MPI_Sendrecv ( (void *)((char *)sendbuf+rank*sendcnt*extent),
-		  sendcnt,sendtype, rank, MPIR_SCATTER_TAG,
-                  recvbuf, recvcnt, recvtype, rank, MPIR_SCATTER_TAG, 
-                  comm, &status );
-    
-    for ( i=root+1; i<size; i++ )
-      MPI_Send( (void *)((char *)sendbuf+i*sendcnt*extent), sendcnt, 
-               sendtype, i, MPIR_SCATTER_TAG, comm);
+    mpi_errno = MPI_Sendrecv ( (void *)((char *)sendbuf+rank*sendcnt*extent),
+			      sendcnt,sendtype, rank, MPIR_SCATTER_TAG,
+			  recvbuf, recvcnt, recvtype, rank, MPIR_SCATTER_TAG, 
+			      comm, &status );
+    if (mpi_errno) return mpi_errno;
+
+    for ( i=root+1; i<size; i++ ) {
+	mpi_errno = MPI_Send( (void *)((char *)sendbuf+i*sendcnt*extent), 
+			      sendcnt, sendtype, i, MPIR_SCATTER_TAG, comm);
+	if (mpi_errno) return mpi_errno;
+	}
   }
   else 
-    MPI_Recv(recvbuf,recvcnt,recvtype,root,MPIR_SCATTER_TAG,comm,&status);
+      mpi_errno = MPI_Recv(recvbuf,recvcnt,recvtype,root,
+			   MPIR_SCATTER_TAG,comm,&status);
   
   /* Unlock for collective operation */
   MPID_THREAD_UNLOCK(comm->ADIctx,comm);

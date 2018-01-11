@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_dup.c,v 1.26 1994/12/15 16:23:43 gropp Exp $
+ *  $Id: comm_dup.c,v 1.27 1995/05/03 19:46:12 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -41,7 +41,13 @@ MPI_Comm comm, *comm_out;
   (void) MPIR_Comm_init( new_comm, comm, comm->comm_type );
   (void) MPIR_Group_dup ( comm->group,       &(new_comm->group) );
   (void) MPIR_Group_dup ( comm->local_group, &(new_comm->local_group) );
-  (void) MPIR_Attr_copy ( comm, new_comm ); 
+  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) 
+      return mpi_errno;
+  new_comm->local_rank     = new_comm->local_group->local_rank;
+  new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
+  new_comm->np             = new_comm->group->np;
+  if (mpi_errno = MPIR_Attr_copy ( comm, new_comm ) )
+      return MPIR_ERROR( comm, mpi_errno, "Error copying attributes" );
 
   /* Duplicate intra-communicators */
   if ( comm->comm_type == MPIR_INTRA ) {

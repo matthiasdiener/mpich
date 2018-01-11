@@ -5,7 +5,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: shmempriv.c,v 1.4 1995/03/07 22:34:26 gropp Exp $";
+static char vcid[] = "$Id: shmempriv.c,v 1.6 1995/05/25 22:25:16 gropp Exp $";
 #endif
 
 #include "mpid.h"
@@ -24,16 +24,25 @@ int numprocs, i;
 int cnt, j, pkts_per_proc;
 int memsize;
 
-numprocs = 0;
+/* Make one process the default */
+numprocs = 1;
 for (i=1; i<*argc; i++) {
     if (strcmp( argv[i], "-np" ) == 0) {
+	/* Need to remove both args and check for missing value for -np */
+	if (i + 1 == *argc) {
+	    fprintf( stderr, 
+		    "Missing argument to -np for number of processes\n" );
+	    exit( 1 );
+	    }
 	numprocs = atoi( argv[i+1] );
+	argv[i] = 0;
+	argv[i+1] = 0;
+	MPIR_ArgSqueeze( argc, argv );
 	break;
 	}
     }
 if (numprocs <= 0 || numprocs > MPID_MAX_PROCS) {
-    fprintf( stderr, "Invalid number of processes or not specified with \n\
--np number\n" );
+    fprintf( stderr, "Invalid number of processes (%d) invalid\n", numprocs );
     exit( 1 );
     }
 memsize = MPID_MAX_SHMEM;

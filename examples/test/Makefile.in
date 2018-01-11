@@ -63,6 +63,7 @@ testing: $(MPIR_HOME)/util/mpirun
 		done
 
 clean:
+	/bin/rm -f test.log
 	@for dir in $(SUBDIRS) ;\
 		do \
 			echo " " ;\

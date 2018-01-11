@@ -1,12 +1,12 @@
 /*
- *  $Id: alltoall.c,v 1.22 1995/02/06 22:23:23 gropp Exp $
+ *  $Id: alltoall.c,v 1.24 1995/05/16 18:10:08 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: alltoall.c,v 1.22 1995/02/06 22:23:23 gropp Exp $";
+static char vcid[] = "$Id: alltoall.c,v 1.24 1995/05/16 18:10:08 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -40,7 +40,7 @@ MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
   int          size, rank, i;
-  MPI_Aint     extent;
+  MPI_Aint     send_extent, recv_extent;
   int          mpi_errno = MPI_SUCCESS;
   MPI_Status   status;
   int          flag;
@@ -64,8 +64,9 @@ MPI_Comm          comm;
   MPI_Comm_rank ( comm, &rank );
   comm = comm->comm_coll;
   
-  /* Get extent of recvtype */
-  MPI_Type_extent ( recvtype, &extent );
+  /* Get extent of send and recv types */
+  MPI_Type_extent ( sendtype, &send_extent );
+  MPI_Type_extent ( recvtype, &recv_extent );
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx, comm);
@@ -88,7 +89,7 @@ MPI_Comm          comm;
       /* We'd like to avoid sending and receiving to ourselves; 
 	 however, this is complicated by the presence of different
 	 sendtype and recvtypes. */
-      if ( mpi_errno=MPI_Irecv((void *)((char *)recvbuf + i*recvcnt*extent),
+      if ( mpi_errno=MPI_Irecv((void *)((char *)recvbuf + i*recvcnt*recv_extent),
                            recvcnt,
                            recvtype,
                            i,
@@ -97,7 +98,7 @@ MPI_Comm          comm;
                            &reqarray[2*i+1])
           )
           break;
-      if ( mpi_errno=MPI_Isend((void *)((char *)sendbuf + i*sendcount*extent),
+      if (mpi_errno=MPI_Isend((void *)((char *)sendbuf+i*sendcount*send_extent),
                            sendcount,
                            sendtype,
                            i,
@@ -108,6 +109,8 @@ MPI_Comm          comm;
           break;
   }
   
+  if (mpi_errno) return mpi_errno;
+
   /* ... then wait for *all* of them to finish: */
   mpi_errno = MPI_Waitall(2*size,reqarray,starray);
   

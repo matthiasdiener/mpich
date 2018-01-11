@@ -1,5 +1,5 @@
 /*
- *  $Id: waitany.c,v 1.15 1995/03/05 22:55:56 gropp Exp $
+ *  $Id: waitany.c,v 1.17 1995/05/16 18:11:31 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: waitany.c,v 1.15 1995/03/05 22:55:56 gropp Exp $";
+static char vcid[] = "$Id: waitany.c,v 1.17 1995/05/16 18:11:31 gropp Exp $";
 #endif /* lint */
 #include "mpiimpl.h"
 #include "mpisys.h"
@@ -67,7 +67,7 @@ MPI_Status  *status;
 						   request->rhandle.count, 
 						   request->rhandle.datatype, 
 						   request->rhandle.source,
-						   request );
+						   request, &status->count );
 #endif
 		    }
 		else {
@@ -89,19 +89,10 @@ MPI_Status  *status;
 			MPIR_Type_free( &request->chandle.datatype );
 			}
 		    MPI_Request_free( &array_of_requests[i] ); 
-		    array_of_requests[i]    = NULL;
+		    /* array_of_requests[i]    = NULL; */
 		    }
 		else {
-		    request->chandle.active    = 0;
-		    MPID_Clr_completed( MPID_Ctx( request ), request );
-		    if (request->type == MPIR_RECV) {
-			MPID_Reuse_recv_handle( request->rhandle.comm->ADIctx,
-					      &request->rhandle.dev_rhandle );
-			}
-		    else {
-			MPID_Reuse_send_handle( request->shandle.comm->ADIctx,
-					      &request->shandle.dev_shandle );
-			}
+		    MPIR_RESET_PERSISTENT(request)
 		    }
 		return MPI_SUCCESS;
 		}

@@ -6,7 +6,6 @@
 
 ARCH        = @ARCH@
 BOPT        = @BOPT@
-COPT        = -g
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 CLINKER     = $(CC)

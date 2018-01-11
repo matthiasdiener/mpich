@@ -1,0 +1,11 @@
+This is a native Meiko CS2 version of the ADI.  It is NOT derived from
+the Chameleon code, though it is important to keep mpid.h and
+dmmeiko.h up-to-date.
+
+This version operates on a single tport, and packs the
+source,tag,context all into the tport's tag field. (Giving them 8,16,8
+bits respectively). 
+
+It does not yet provide collective operations, which are still done by
+the default code, built on top of MPI point to point operations.
+

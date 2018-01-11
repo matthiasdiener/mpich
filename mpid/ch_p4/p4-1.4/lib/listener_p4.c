@@ -30,7 +30,7 @@ char **argv;
     p4_global = (struct p4_global_data *)
 		p4_shmalloc(sizeof(struct p4_global_data));
     p4_global->max_connections = atoi(argv[2]);
-
+    p4_global->num_in_proctable = 0;
     p4_local = alloc_local_listener();
 
     listener_info = alloc_listener_info();

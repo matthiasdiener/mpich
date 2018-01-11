@@ -4,12 +4,13 @@
 
 ##### User configurable options #####
 
-SRC_DIR     = `pwd`
+SRC_DIR     = @NUPSHOT_HOME@
 CC          = @CC@
 CLINKER     = $(CC)
 X_INC	    = @XINCLUDES@
 INCLUDE_DIR = $(X_INC) $(TCLTK_INC)
 LIBS        = $(TCLTK_LIB) -ltk -ltcl @XLIBSW@ @LIBS@ -lm
+OPTFLAGS    = @OPTFLAGS@
 
 # It is easier if the tcl and tcl stuff is in the same directory,
 # but if your installation has them in separate directories, so be it.

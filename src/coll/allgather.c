@@ -1,12 +1,12 @@
 /*
- *  $Id: allgather.c,v 1.16 1994/12/22 07:36:48 doss Exp $
+ *  $Id: allgather.c,v 1.18 1995/05/16 18:10:23 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: allgather.c,v 1.16 1994/12/22 07:36:48 doss Exp $";
+static char vcid[] = "$Id: allgather.c,v 1.18 1995/05/16 18:10:23 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -37,7 +37,7 @@ int               recvcount;
 MPI_Datatype      recvtype;
 MPI_Comm          comm;
 {
-  int size, rank;
+  int size, rank, root;
   int mpi_errno = MPI_SUCCESS;
   int flag;
 
@@ -59,9 +59,11 @@ MPI_Comm          comm;
 
   /* Do a gather for each process in the communicator */
   /* This is a sorry way to do this, but for now ... */
-  MPI_Gather(sendbuf,sendcount,sendtype,
-	       recvbuf,recvcount,recvtype,0,comm);
-  MPI_Bcast(recvbuf,recvcount*size,recvtype,0,comm);
+  for (root=0; root<size; root++) {
+    mpi_errno = MPI_Gather(sendbuf,sendcount,sendtype,
+			   recvbuf,recvcount,recvtype,root,comm);
+    if (mpi_errno) break;
+    }
 
   return (mpi_errno);
 }

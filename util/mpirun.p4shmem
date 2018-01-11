@@ -1,0 +1,33 @@
+#! /bin/sh
+if [ "$MPIR_HOME" = "" ] ; then 
+    MPIR_HOME=/home/MPI/mpich
+fi
+if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
+    MPIR_HOME=`pwd`/..
+fi
+MPIRUN_HOME=$MPIR_HOME/util
+if [ "$argsset" = "" ] ; then
+   . $MPIRUN_HOME/mpirun.args
+   argsset=1
+fi
+
+if [ "$p4pgfile" = "" ] ; then
+    np=`expr $np - 1`
+    p4pgfile="$PWD_TRIAL/PI$$"
+    if [ $just_testing = 1 ] then
+      echo "local $np $progname"
+    else
+      echo "local $np $progname" >  "$p4pgfile"
+    fi
+    np=`expr $np + 1`
+fi
+if [ $just_testing = 1 ] ; then
+  echo $progname $cmdLineArgs -p4pg "$p4pgfile"
+else
+  $progname $cmdLineArgs -p4pg "$p4pgfile"
+  if [ $leavePGFile = 1 ] ; then
+    echo "P4 procgroup file is $p4pgfile"
+  else
+    /bin/rm "$p4pgfile"
+  fi
+fi

@@ -6,15 +6,16 @@
 
 
 
+
 /*
- *  $Id: chsend.c,v 1.30 1995/02/06 22:12:43 gropp Exp gropp $
+ *  $Id: chsend.c,v 1.32 1995/05/09 19:08:45 gropp Exp gropp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chsend.c,v 1.30 1995/02/06 22:12:43 gropp Exp gropp $";
+static char vcid[] = "$Id: chsend.c,v 1.32 1995/05/09 19:08:45 gropp Exp gropp $";
 #endif
 
 #include "mpid.h"
@@ -236,6 +237,16 @@ if (mpid_send_handle->sid)  {
 }
 #endif
 
+/*
+   We should really:
+
+   a) remove the sync_send code
+   b) ALWAYS use the rndv code
+
+   This will require calling the appropriate test and unexpected
+   message routines.
+ */
+#ifndef MPID_USE_RNDV
 int MPID_CMMD_post_send_sync_short( dmpi_send_handle, mpid_send_handle, len ) 
 MPIR_SHANDLE *dmpi_send_handle;
 MPID_SHANDLE *mpid_send_handle;
@@ -368,6 +379,22 @@ while (!MPID_Test_handle(dmpi_send_handle)) {
     }
 DEBUG_PRINT_MSG("S Exiting complete send")
 }
+#else   /* non-rndv sync send */
+int MPID_CMMD_post_send_sync_long( dmpi_send_handle, mpid_send_handle, len ) 
+MPIR_SHANDLE *dmpi_send_handle;
+MPID_SHANDLE *mpid_send_handle;
+int len;
+{
+MPID_CMMD_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, len );
+}
+int MPID_CMMD_post_send_sync_short( dmpi_send_handle, mpid_send_handle, len ) 
+MPIR_SHANDLE *dmpi_send_handle;
+MPID_SHANDLE *mpid_send_handle;
+int len;
+{
+MPID_CMMD_post_send_long_rndv( dmpi_send_handle, mpid_send_handle, len );
+}
+#endif  /* else of non-rndv sync send */
 
 /*
    This sends the data.
@@ -382,6 +409,8 @@ int         actual_len, rc;
 
 mpid_send_handle = &dmpi_send_handle->dev_shandle;
 actual_len       = mpid_send_handle->bytes_as_contig;
+
+DEBUG_PRINT_MSG("S Entering post send")
 
 if (actual_len > MPID_PKT_DATA_SIZE) 
 #ifdef MPID_USE_GET
@@ -399,7 +428,9 @@ else
 				    actual_len );
 
 /* Poke the device in case there is data ... */
+DEBUG_PRINT_MSG("S Draining incoming...")
 MPID_DRAIN_INCOMING;
+DEBUG_PRINT_MSG("S Exiting post send")
 
 return rc;
 }
@@ -473,10 +504,13 @@ if (mpid_send_handle->sid) {
        wait. */
     while (!CMMD_msg_done(mpid_send_handle->sid))
 	(void) MPID_CMMD_check_incoming( MPID_NOTBLOCKING );
-#endif
-    MPID_WSendChannel( (void *)0, mpid_send_handle->bytes_as_contig, -1,
-		       mpid_send_handle->sid );
+    /* Once we have it, the message is completed */
     mpid_send_handle->sid = 0;
+#else
+    MPID_WSendChannel( (void *)0, mpid_send_handle->bytes_as_contig, -1,
+		      mpid_send_handle->sid );
+    mpid_send_handle->sid = 0;
+#endif
     }
 #endif
 if (dmpi_send_handle->mode != MPIR_MODE_SYNCHRONOUS) {
@@ -525,10 +559,12 @@ switch (dmpi_send_handle->completer) {
 	 MPID_CMMD_Cmpl_send_nb( dmpi_send_handle );
          break;
 #endif
+#ifndef MPID_USE_RNDV
     case MPID_CMPL_SEND_SYNC:
 	 /* Also does non-blocking sync sends */
 	 MPID_CMMD_Cmpl_send_sync( dmpi_send_handle );
 	 break;
+#endif
     default:
 	 fprintf( stdout, "[%d]* Unexpected send completion mode %d\n", 
 	          MPID_MyWorldRank, dmpi_send_handle->completer );
@@ -631,6 +667,14 @@ if (!MPID_Test_handle(dmpi_send_handle) && dmpi_send_handle->dev_shandle.sid) {
 	}
     }
 #endif
+#ifndef PI_NO_NSEND
+if (!MPID_Test_handle(dmpi_send_handle) &&
+    dmpi_send_handle->dev_shandle.sid && 
+    dmpi_send_handle->completer == MPID_CMPL_SEND_NB) {
+    return MPID_TSendChannel( dmpi_send_handle->dev_shandle.sid ) ;
+    }
+#endif
+/* Need code for GET? */
 return MPID_Test_handle(dmpi_send_handle);
 }
 

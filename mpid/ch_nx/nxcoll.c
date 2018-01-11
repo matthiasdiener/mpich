@@ -6,14 +6,14 @@
 
 
 /*
- *  $Id: chcoll.c,v 1.4 1995/01/03 19:40:12 gropp Exp gropp $
+ *  $Id: chcoll.c,v 1.5 1995/03/28 19:26:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: chcoll.c,v 1.5 1995/03/28 19:26:00 gropp Exp $";
 #endif
 
 /* 
@@ -116,7 +116,7 @@ return MPI_SUCCESS;
 void MPID_NX_Barrier( comm ) 
 MPI_Comm comm;
 {
-gsync;
+gsync();
 }
 
 void MPID_NX_Reduce_sum_int( sendbuf, recvbuf, comm )

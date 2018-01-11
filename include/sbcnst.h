@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst.h,v 1.8 1994/12/11 16:59:36 gropp Exp $
+ *  $Id: sbcnst.h,v 1.10 1995/05/11 17:49:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -31,14 +31,14 @@ extern void *MPIR_SBinit(), MPIR_SBfree(), MPIR_SBiAllocate(),
    to track storage leaks.  */
 #ifndef MALLOC
 #if defined(DEVICE_CHAMELEON) && defined(MPIR_DEBUG_MEM)
-#define MALLOC(a)    trmalloc((unsigned)(a),__LINE__,__FILE__)
-#define CALLOC(a,b)  trcalloc((unsigned)(a),(unsigned)(b),__LINE__,__FILE__)
+#define MALLOC(a)    trmalloc((unsigned int)(a),__LINE__,__FILE__)
+#define CALLOC(a,b)  trcalloc((unsigned int)(a),(unsigned)(b),__LINE__,__FILE__)
 #define FREE(a)      trfree((char *)(a),__LINE__,__FILE__)
 #define NEW(a)    (a *)MALLOC(sizeof(a))
 /* Also replace the SB allocators so that we can get the trmalloc line/file
    tracing. */
 #define MPIR_SBinit(a,b,c) ((void *)(a))
-#define MPIR_SBalloc(a)    trmalloc((unsigned)(a),__LINE__,__FILE__)
+#define MPIR_SBalloc(a)    trmalloc((unsigned int)(a),__LINE__,__FILE__)
 #define MPIR_SBfree(a,b)   trfree((char *)(b),__LINE__,__FILE__)
 #define MPIR_SBdestroy(a)
 
@@ -70,6 +70,9 @@ extern void *MPIR_trmalloc(), MPIR_trfree(), *MPIR_trcalloc();
 extern void 	*calloc(/*size_t, size_t*/);
 extern void	free(/*void * */);
 extern void	*malloc(/*size_t*/);
+#elif defined(MALLOC_RET_VOID)
+extern void *malloc();
+extern void *calloc();
 #else
 extern char *malloc();
 extern char *calloc();

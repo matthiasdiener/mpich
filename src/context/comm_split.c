@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.34 1994/12/15 16:29:23 gropp Exp $
+ *  $Id: comm_split.c,v 1.35 1995/05/09 18:51:28 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -19,27 +19,32 @@ MPI_Comm_split - Creates new communicators based on colors and keys
 
 Input Parameters:
 . comm - communicator (handle) 
-. color - control of subset assignment (integer) 
+. color - control of subset assignment (nonnegative integer) 
 . key - control of rank assigment (integer) 
 
 Output Parameter:
 . newcomm - new communicator (handle) 
 
+Notes:
+  The 'color' must be non-negative or 'MPI_UNDEFINED'.
 Algorithm:
 
 The current algorithm used has quite a few (read: a lot of) inefficiencies 
-that can be removed.  Here's what we do for now:
-$ 1) A table is built of colors, and keys (has a next field also).
-$ 2) The tables of all processes are merged using MPI_Allreduce
-$ 3) Two contexts are allocated for all the comms to be created.  These
+that can be removed.  Here's what we do for now
+
+.vb
+ 1) A table is built of colors, and keys (has a next field also).
+ 2) The tables of all processes are merged using MPI_Allreduce
+ 3) Two contexts are allocated for all the comms to be created.  These
      same two contexts can be used for all created communicators since
      the communicators will not overlap.
-$ 4) If the local process has a color of MPI_UNDEFINED, it can return
+ 4) If the local process has a color of MPI_UNDEFINED, it can return
      a NULL comm. 
-$ 5) The table entries that match the local process color are sorted 
+ 5) The table entries that match the local process color are sorted 
      by key/rank. 
-$ 6) A group is created from the sorted list and a communicator is created
+ 6) A group is created from the sorted list and a communicator is created
      with this group and the previously allocated contexts.
+.ve
 @*/
 int MPI_Comm_split ( comm, color, key, comm_out )
 MPI_Comm  comm;
@@ -110,7 +115,12 @@ MPI_Comm *comm_out;
 
   new_comm->group         = group;
   MPIR_Group_dup ( group, &(new_comm->local_group) );
-  new_comm->send_context  = new_comm->recv_context = context;
+  if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) 
+      return mpi_errno;
+  new_comm->local_rank	   = new_comm->local_group->local_rank;
+  new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
+  new_comm->np             = new_comm->group->np;
+  new_comm->send_context   = new_comm->recv_context = context;
   (void) MPIR_Attr_create_tree ( new_comm );
   (void) MPIR_Comm_make_coll( new_comm, MPIR_INTRA );
 

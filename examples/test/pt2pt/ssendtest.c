@@ -39,58 +39,91 @@ char **argv;
 {
     int rank; /* My Rank (0 or 1) */
     int act_size = 0;
-    int flag;
+    int flag, np, rval, i;
     int buffer[SIZE];
     double t0;
     char *Current_Test = NULL;
-    MPI_Status status;
+    MPI_Status status, status1, status2;
+    int count1, count2;
+    int sizes[4];
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size( MPI_COMM_WORLD, &np );
+    if (np != 2) {
+        fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
+        MPI_Abort( MPI_COMM_WORLD, 1 );
+        }
 
-    if (rank == src) { 
-	Generate_Data(buffer, SIZE);
-	MPI_Recv( buffer, 0, MPI_INT, dest, 0, MPI_COMM_WORLD, &status );
-	MPI_Send( buffer, 0, MPI_INT, dest, 0, MPI_COMM_WORLD );
-	MPI_Ssend( buffer, act_size, MPI_INT, dest, 1, MPI_COMM_WORLD );
-	MPI_Ssend( buffer, act_size, MPI_INT, dest, 2, MPI_COMM_WORLD );
-	Test_Waitforall( );
-	MPI_Finalize();
+    sizes[0] = 0;
+    sizes[1] = 1;
+    sizes[2] = 1000;
+    sizes[3] = SIZE;
+/*    for (i = 0; i < 4; i++ ) { */
+    for (i = 1; i < 2; i++ ) {
+	act_size = sizes[i];
+        if (rank == src) { 
+            Generate_Data(buffer, SIZE);
+            MPI_Recv( buffer, 0, MPI_INT, dest, 0, MPI_COMM_WORLD, &status );
+            MPI_Send( buffer, 0, MPI_INT, dest, 0, MPI_COMM_WORLD );
+            MPI_Ssend( buffer, act_size, MPI_INT, dest, 1, MPI_COMM_WORLD );
+            MPI_Ssend( buffer, act_size, MPI_INT, dest, 2, MPI_COMM_WORLD );
+            
+        } else if (rank == dest) {
+            Test_Init("ssendtest", rank);
+            /* Test 1 */
+            Current_Test = "Ssend Test (Synchronous Send -> Normal Recieve)";
+            MPI_Send( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD );
+            MPI_Recv( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD, &status );
+            t0 = MPI_Wtime();
+            flag = 0;
+            while (MPI_Wtime() - t0 < MAX_TIME) {
+                MPI_Iprobe( src, 2, MPI_COMM_WORLD, &flag, &status );
+                if (flag) {
+                    Test_Failed(Current_Test);
+                    break;
+                    }
+                }
+            if (!flag) 
+                Test_Passed(Current_Test);
+            MPI_Recv( buffer, act_size, MPI_INT, src, 1, MPI_COMM_WORLD, 
+                     &status1 );
+            MPI_Recv( buffer, act_size, MPI_INT, src, 2, MPI_COMM_WORLD, 
+                     &status2 );
+            
+            MPI_Get_count( &status1, MPI_INT, &count1 );
+            MPI_Get_count( &status2, MPI_INT, &count2 );
+            if (count1 != act_size) {
+                fprintf( stdout, 
+                        "(1) Wrong count from recv of ssend: got %d (%d)\n", 
+                        count1, act_size );
+                }
+            if (status1.MPI_TAG != 1) {
+                fprintf( stdout, "(1) Wrong tag from recv of ssend: got %d\n", 
+                        status1.MPI_TAG );
+                }
+            if (count2 != act_size) {
+                fprintf( stdout, 
+                        "(2) Wrong count from recv of ssend: got %d (%d)\n", 
+                        count1, act_size );
+                }
+            if (status2.MPI_TAG != 2) {
+                fprintf( stdout, "(2) Wrong tag from recv of ssend: got %d\n", 
+                        status2.MPI_TAG );
+                }
 
-    } else if (rank == dest) {
-	Test_Init("ssendtest", rank);
-	/* Test 1 */
-	Current_Test = "Ssend Test (Synchronous Send -> Normal Recieve)";
-	MPI_Send( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD );
-	MPI_Recv( buffer, 0, MPI_INT, src, 0, MPI_COMM_WORLD, &status );
-	t0 = MPI_Wtime();
-	flag = 0;
-	while (MPI_Wtime() - t0 < MAX_TIME) {
-	    MPI_Iprobe( src, 2, MPI_COMM_WORLD, &flag, &status );
-	    if (flag) {
-		Test_Failed(Current_Test);
-		break;
-		}
-	    }
-	if (!flag) 
-	    Test_Passed(Current_Test);
-	MPI_Recv( buffer, act_size, MPI_INT, src, 1, MPI_COMM_WORLD, &status );
-	MPI_Recv( buffer, act_size, MPI_INT, src, 2, MPI_COMM_WORLD, &status );
+            }
+        }
 
-	Test_Waitforall( );
-	MPI_Finalize();
-	{
-	    int rval = Summarize_Test_Results(); /* Returns number of tests;
+    Test_Waitforall( );
+    rval = 0;
+    if (rank == dest) {
+	    rval = Summarize_Test_Results(); /* Returns number of tests;
 						    that failed */
 	    Test_Finalize();
-	    return rval;
-	}
-    } else {
-	fprintf(stderr, "*** This program uses exactly 2 processes! ***\n");
-	exit(-1);
-    }
-
-    return 0;
+	    }
+    MPI_Finalize();
+    return rval;
 }
 
 

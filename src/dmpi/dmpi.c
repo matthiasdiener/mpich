@@ -1,12 +1,12 @@
 /*
- *  $Id: dmpi.c,v 1.25 1995/03/05 20:19:18 gropp Exp $
+ *  $Id: dmpi.c,v 1.29 1995/05/11 17:44:06 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: dmpi.c,v 1.25 1995/03/05 20:19:18 gropp Exp $";
+static char vcid[] = "$Id: dmpi.c,v 1.29 1995/05/11 17:44:06 gropp Exp $";
 #endif /* lint */
 
 /*  dmpi.c - routines in mpir that are called by the device */
@@ -53,6 +53,10 @@ MPIR_RHANDLE      **dmpi_recv_handle;
 	*dmpi_recv_handle       = 
 	    ( MPIR_RHANDLE * ) MPIR_SBalloc ( MPIR_rhandles );
 	handleptr         	= *dmpi_recv_handle;
+	if (!handleptr) {
+	    MPIR_ERROR( MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+		        "Could not dynamically allocate internal handle" );
+	    }
 	handleptr->handle_type  = MPIR_RECV;
 	handleptr->source 	= src;
 	handleptr->tag  	= tag;
@@ -72,45 +76,24 @@ MPIR_RHANDLE      **dmpi_recv_handle;
 
 
 
-/*
- *  This code implements one of the interfaces between the device and the
- *  MPI code for moving data between the two systems.  This code delivers
- *  to the device contiguous chuncks of data, packing or unpacking as
- *  required.
- */
-
-/* get length of data to be sent
- */
-DMPI_get_totallen( handle, len )
-MPIR_SHANDLE *handle;
-int          *len;
-{
-    *len = (handle->count)*(handle->datatype->size);
-				/* correct for contig messages, at least*/
-    handle->totallen       = *len;
-    handle->bufpos         = handle->bufadd;
-    handle->transfer_count = 0;
-}
-
-/* tell mpi how many bytes have been read 
- */
-DMPI_put_totallen( handle, len )
-MPIR_RHANDLE *handle;
-int          len;
-{
-    handle->totallen       = len;
-    handle->bufpos         = handle->bufadd;
-    handle->transfer_count = 0;
-}
 
 #ifdef MPID_HAS_HETERO
 /* Returns 2 if the data needs XDR conversion,
            1 if the data needs byteswapping,
-	   0 if none of the above... */
+	   0 if none of the above... 
+   This is also used for receives, where "dest" is source, and may 
+   be MPI_ANY_SOURCE, in which case the "worst-case" is chosen 
+   (XDR).
+
+   Eventually, there should be a comm argument to this (for PACK) 
+   and a separate Source_needs_conversion (with comm) so that
+   each communicator can store heterogeneity information.
+*/
 int 
 MPIR_Dest_needs_conversion(dest)
 int dest;
 {
+  if (dest < 0) return 2;
   if ( (MPID_Dest_byte_order(MPIR_tid) == MPID_H_XDR) ||
        (MPID_Dest_byte_order(dest) == MPID_H_XDR))
     return 2;
@@ -134,124 +117,7 @@ MPI_Comm comm;
 }
 #endif
 
-/* SENDS */
 
-
-/* device has send buffer ready, wants mpi to copy data to it
-
-   Should be called only for len > 0
- */
-int DMPI_get_into_contig( handle, addr, maxlen, actlen )
-MPIR_SHANDLE *handle;
-void         *addr;
-int          maxlen;
-int          *actlen;
-{
-  int len_left;
-
-len_left = (handle->count)*(handle->datatype->size) - 
-    handle->transfer_count;
-
-if (!handle->bufpos) {
-    return MPI_ERR_BUFFER;
-    }
-*actlen = MPIR_MIN(len_left,maxlen);
-
-#ifdef DEVICE_PREFERS_MEMCPY
-#ifdef MPID_HAS_HETERO
-    if ((MPID_IS_HETERO == 1) && 
-	MPIR_Dest_needs_conversion(handle->dest)) {
-      /* Make sure actlen is a multiple of the datatype size */
-      *actlen = (*actlen) / (handle->datatype->size);
-      *actlen = (*actlen) * (handle->datatype->size);
-      MPIR_Type_convert_copy( handle->comm, 
-			     addr, handle->bufpos, handle->datatype,
-			     (*actlen)/(handle->datatype->size),
-			     handle->dest, &handle->msgrep);
-    }
-    else 
-#endif
-    {
-      handle->msgrep = MPIR_MSGREP_RECEIVER;
-      memcpy( addr, handle->bufpos, *actlen );
-    }
-#else
-    /* device-defined macro for data movement, for example load-store through
-       vector registers. */
-#endif
-    handle->bufpos         += *actlen;
-    handle->transfer_count += *actlen;
-
-return MPI_SUCCESS;
-}
-
-/* device will copy mpi's contiguous buffer, wants to know where it is
- */
-int DMPI_get_from_contig( handle, addr, maxlen, actlen )
-MPIR_SHANDLE *handle;
-void         **addr;
-int          maxlen;
-int          *actlen;
-{
-    /* XXX - This needs to handle the heterogeneous case and be fixed for the
-       case where maxlen = -1 */
-    if (!handle->bufpos) return MPI_ERR_BUFFER;
-
-    *addr   = handle->bufpos;
-    *actlen = (handle->count)*(handle->datatype->size);
-    if (*actlen > maxlen) *actlen = maxlen;
-    handle->bufpos         += *actlen;
-    handle->transfer_count += *actlen;
-/* XXX - This really needs to be fleshed out! */
-#ifdef MPID_HAS_HETERO 
-    MPIR_ERROR(MPI_COMM_NULL, MPI_ERR_INTERN, 
-	       "DMPI_get_from_contig doesn't support heterogeneous systems. \
- Complain Loudly to mpi-bugs@mcs.anl.gov.");
-    handle->msgrep = MPIR_MSGREP_RECEIVER;
-#endif
-    return MPI_SUCCESS;
-}
-
-/* RECEIVES */
-/* device will put data into mpi's contiguous buffer, wants to know where it is
- */
-DMPI_put_into_contig( handle, addr, maxlen, actlen )
-MPIR_RHANDLE *handle;
-void         **addr;
-int          maxlen;
-int          *actlen;
-{
-    *addr                  = handle->bufpos;
-    *actlen                = (handle->actcount)*(handle->datatype->size);
-    if (*actlen > maxlen) *actlen = maxlen;
-    handle->bufpos         += *actlen;
-    handle->transfer_count += *actlen;
-}
-
-/* 
- * device has contiguous buffer ready, wants mpi to copy data from it
- * XXXX - This routine should handle de-xdring for receives.
- */
-DMPI_put_from_contig( handle, addr, maxlen )
-MPIR_RHANDLE *handle;
-void         *addr;
-int          maxlen;
-{
-    int actlen;
-
-    actlen = MPIR_MIN( maxlen, handle->totallen - handle->transfer_count);
-
-#ifdef DEVICE_PREFERS_MEMCPY
-    memcpy( handle->bufpos, addr, actlen );
-#else
-    /* device-defined macro for data movement, for example load-store through
-       vector registers */
-#endif
-    handle->bufpos         += actlen;
-    handle->transfer_count += actlen;
-    handle->actcount        =  handle->transfer_count / 
-	(handle->datatype->size);
-}
 
 /*
    Let the device tell the API that a handle can be freed (this handle
@@ -260,12 +126,34 @@ int          maxlen;
 DMPI_free_unexpected( dmpi_recv_handle  )
 MPIR_RHANDLE      *dmpi_recv_handle;
 {
+MPID_Free_recv_handle( dmpi_recv_handle->comm->ADIctx, 
+		       &dmpi_recv_handle->dev_rhandle );
 MPIR_SBfree( MPIR_rhandles, dmpi_recv_handle );
 }
 
+/*
+   This sets up the buffers for a send.  The logic is:
+   if can use in place, setup buffer for that, 
+   else use MPI_PACK.
 
-int
-MPIR_Send_setup(request)
+   Note that in the homogeneous case with contiguous data, we can inline
+   this routine and the receive counterpart.  It can always handle 
+   contiguous messages, but may be bypassed by the macro below.
+
+   A macro of the form (passed the actual shandle structure) could be used:
+   MPIR_Send_setup_contig( request, shandle ) \
+   if (shandle.datatype->is_contig) {\
+   shandle.active       = 1;\
+   shandle.dev_shandle.bytes_as_contig =\
+   shandle.count * shandle.datatype->size;\
+   if (shandle.dev_shandle.bytes_as_contig > 0 && shandle.bufadd == 0)\
+       mpi_errno = MPI_ERR_BUFFER;\
+   shandle.dev_shandle.start = shandle.bufadd;\
+   shandle.bufpos		 = 0;}\
+   else{mpi_errno = MPIR_Send_setup( request );} 
+
+ */
+int MPIR_Send_setup(request)
 MPI_Request *request;
 {
   register MPIR_SHANDLE *shandle;
@@ -277,31 +165,40 @@ MPI_Request *request;
 
   shandle->active       = 1;
 
-  /* XXXX - marks development comments to be taken out after design is 
-            ironed out */
- 
   if (shandle->datatype->is_contig)
 #ifdef MPID_HAS_HETERO
     if ((MPID_IS_HETERO == 1) &&
 	(dest_type = MPIR_Dest_needs_conversion(shandle->dest))) {
       /* This is a heterogeneous case - can't send from the user's
-	 buffer   because we have to swap. This would be faster if the 
+	 buffer because we have to swap or xdr encoded. 
+	 This would be faster if the 
 	 device swapped as it copied, but this is a MPIR level 
-	 heterogeneous implementation. */
+	 heterogeneous implementation. 
+       */
+#ifdef FOO	
+      if (shandle->count > 0 && shandle->bufadd == 0) {
+	  return MPI_ERR_BUFFER;
+	  }
       shandle->dev_shandle.bytes_as_contig =
-	shandle->count * shandle->datatype->extent;
-      /* XDR buffer must be a multiple of 4 in size! */
-      if ((dest_type == 2) && 
-	  (shandle->datatype->extent <= 4)) 
-	shandle->bufpos = (char *)MALLOC(shandle->count * 4);
-      else
-	shandle->bufpos = (char *)MALLOC(shandle->dev_shandle.bytes_as_contig);
+	  MPIR_Mem_convert_len( dest_type, shandle->datatype, shandle->count );
+      shandle->bufpos = (char *)MALLOC(shandle->dev_shandle.bytes_as_contig);
 
       shandle->dev_shandle.start = shandle->bufpos;
-      MPIR_Type_convert_copy( shandle->comm, shandle->dev_shandle.start,
+      /* Should check that the result len is not larger than allocated! */
+      shandle->dev_shandle.bytes_as_contig = 
+	  MPIR_Type_convert_copy( shandle->comm, shandle->dev_shandle.start,
+				 shandle->dev_shandle.bytes_as_contig,
 			     shandle->bufadd, shandle->datatype, 
 			     shandle->count, shandle->dest,
 			     &shandle->msgrep);
+#endif
+    /* Heterogeneous case handled in MPIR_Pack and MPIR_Pack_Hvector */
+    if (mpi_errno = 
+	MPIR_PackMessage(shandle->bufadd, shandle->count, 
+			 shandle->datatype, shandle->dest, *request )) {
+      MPIR_ERROR( MPI_COMM_WORLD, mpi_errno, 
+		 "Could not pack message in MPIR_Send_setup" );
+    }
     } else 
 #endif
     {
@@ -309,7 +206,7 @@ MPI_Request *request;
       shandle->msgrep = MPIR_MSGREP_RECEIVER;
 #endif
       shandle->dev_shandle.bytes_as_contig =
-	shandle->count * shandle->datatype->extent;
+	shandle->count * shandle->datatype->size;
       if (shandle->dev_shandle.bytes_as_contig > 0 && shandle->bufadd == 0)
 	  mpi_errno = MPI_ERR_BUFFER;
       shandle->dev_shandle.start = shandle->bufadd;
@@ -349,19 +246,55 @@ MPI_Request request;
 }
 
 
+/* 
+   This handles setting up a receive request; primarily handling the
+   allocation of a receive buffer for aggressive receives.
+
+   NOTE: If the rendevous protocol is used, then in the heterogeneous 
+   case, we don't need to do this aggressive (in space) buffer allocation.
+ */
 int 
 MPIR_Receive_setup(request)
 MPI_Request *request;
 {
   MPIR_RHANDLE *rhandle;
   int mpi_errno = MPI_SUCCESS;
-
+  int dest_type;
 
   rhandle = &(*request)->rhandle;
   if (rhandle->source == MPI_PROC_NULL) return mpi_errno;
   rhandle->active       = 1;
-  
+
+  /* Even for contiguous data, if heterogeneous, we may need to 
+     allocate a larger buffer ... */
+
   if (rhandle->datatype->is_contig) {
+#if defined(MPID_HAS_HETERO)
+    if (MPID_IS_HETERO == 1 && 
+	(dest_type = MPIR_Dest_needs_conversion(rhandle->source))) {
+      /* This is a heterogeneous case - we MAY need a longer buffer, 
+	 depending on whether XDR may be used in this communicator 
+	 and whether the source is known... */
+	if (rhandle->count > 0 && rhandle->bufadd == 0) 
+	    return MPI_ERR_BUFFER;
+	rhandle->dev_rhandle.bytes_as_contig =
+	  MPIR_Mem_convert_len( dest_type, rhandle->datatype, rhandle->count );
+	/* This is needed only if a non-rendevous, non-packetized approach
+	   is used */
+	if (rhandle->dev_rhandle.bytes_as_contig) {
+	    rhandle->bufpos = 
+		(char *)MALLOC(rhandle->dev_rhandle.bytes_as_contig);
+	    if (!rhandle->bufpos) 
+		return MPI_ERR_EXHAUSTED;
+	    }
+	else
+	    rhandle->bufpos = 0;
+	rhandle->dev_rhandle.start = rhandle->bufpos;
+	/* printf( "Receive buffer size is %d for count of %d\n", 
+	         rhandle->dev_rhandle.bytes_as_contig, rhandle->count ); */
+    } else 
+#endif
+    {
     rhandle->dev_rhandle.start = rhandle->bufadd;
     rhandle->dev_rhandle.bytes_as_contig =
       rhandle->count * rhandle->datatype->extent;
@@ -369,8 +302,11 @@ MPI_Request *request;
 	rhandle->bufadd == 0) 
 	mpi_errno = MPI_ERR_BUFFER;
     rhandle->bufpos                      = 0;
-  }
+    }
+    }
 #ifdef MPID_RETURN_PACKED
+    /* This will also need to know how to handle heterogeneous 
+       communications */
   else {
     if (mpi_errno = 
 	MPIR_SetupUnPackMessage( rhandle->bufadd, rhandle->count, 
@@ -388,6 +324,7 @@ MPI_Request *request;
   return mpi_errno;
 }
 
+#if 0
 /*
    This is drawn directly from the code in src/pt2pt/unpack; both should be
    modified together.
@@ -614,3 +551,4 @@ int  in_offset, out_offset;
   /* Everything fell through, must have been successful */
   return mpi_errno;
 }
+#endif

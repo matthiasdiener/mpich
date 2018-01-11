@@ -10,6 +10,6 @@
 (cd ch_pvm3_3 ; makepvm3_3 )
 (cd ch_tcp ; maketcp )
 (cd ch_shmem ; makeshmem )
-(cd ch_shsgi ; makeshsgi )
-(cd ch_sgisproc ; makesgisproc )
+#(cd ch_shsgi ; makeshsgi )
+#(cd ch_sgisproc ; makesgisproc )
 (cd ch_dummy ; makedummy )

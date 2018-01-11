@@ -1,10 +1,12 @@
 /*
- *  $Id: mpid.h,v 1.3 1994/09/21 15:28:00 gropp Exp $
+ *  $Id: mpid.h,v 1.4 1995/05/09 19:09:03 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
+#ifndef _MPID_H_INCLUDED
+#define _MPID_H_INCLUDED
 #include "dmch.h"
 
 #ifdef MPID_DEVICE_CODE
@@ -18,4 +20,5 @@
 
 #include "packets.h"
 #include "mpid_bind.h"
+#endif
 #endif

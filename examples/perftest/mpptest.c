@@ -44,9 +44,13 @@ void *SetupGraph();
 double RunSingleTest();
 
 /* These statics (globals) are used to estimate the parameters in the
-   basic (s + rn) complexity model */
+   basic (s + rn) complexity model
+   Sum of lengths is stored as a double to give 53 bit integer on
+   systems where sizeof(int) == 4.
+ */
 static double sumtime = 0.0, sumlentime = 0.0;
-static double sumlen  = 0,  sumlen2 = 0;
+static double sumlen  = 0.0,  sumlen2 = 0.0;
+static double sumtime2 = 0.0;
 static int    ntest   = 0;
 
 /* If doinfo is 0, don't write out the various text lines */
@@ -94,6 +98,8 @@ static int nsizes = 0;
 /* These are used to contain results for a single test */
 typedef struct {
     double len, t, mean_time, rate;
+    double max_time,        /* max of the observations */
+           smean_time;      /* smean is the mean of the observations */
     int    reps;
     } TwinResults;
 typedef struct {
@@ -124,18 +130,21 @@ double t, mean_time;
 int    len = (int)x, k;
 int    reps = ctx->reps;
 int    flag, iwork;
+double tmax, tmean;
 
 if (AutoReps) {
     reps = GetRepititions( ctx->t1, ctx->t2, ctx->len1, ctx->len2, len, reps );
     }
 
-t = RunSingleTest( ctx->f, reps, len, ctx->msgctx );
+t = RunSingleTest( ctx->f, reps, len, ctx->msgctx, &tmax, &tmean );
 
-mean_time         = t / reps;              /* take average over trials */
-result->t         = t;
-result->len       = x;
-result->reps      = reps;
-result->mean_time = mean_time;
+mean_time	   = t / reps;              /* take average over trials */
+result->t	   = t;
+result->len	   = x;
+result->reps	   = reps;
+result->mean_time  = mean_time;
+result->smean_time = tmean;
+result->max_time   = tmax;
 if (mean_time > 0.0) 
     result->rate      = ((double)len) / mean_time;
 else
@@ -151,6 +160,7 @@ sumlen     += len;
 sumtime    += mean_time;
 sumlen2    += ((double)len) * ((double)len);
 sumlentime += mean_time * len;
+sumtime2   += mean_time * mean_time;
 ntest      ++;
 
 /* We need to insure that everyone gets the same result */
@@ -416,8 +426,10 @@ void   *msgctx;
 	  for (i = 0; i < nvals; i++) {
 	      DataoutGraph( outctx, proc1, proc2, distance, 
 			  (int)results[i].len, results[i].t * TimeScale,
-			  results[i].mean_time * TimeScale, 
-			  results[i].rate * RateScale );
+			   results[i].mean_time * TimeScale, 
+			   results[i].rate * RateScale, 
+			   results[i].smean_time * TimeScale, 
+			   results[i].max_time * TimeScale );
 	      }
 	  }
       free(results );
@@ -444,7 +456,8 @@ void   *msgctx;
 /* Generate C.It output */
 if (doinfo && myproc == 0) {
     RateoutputGraph( outctx, 
-		   sumlen, sumtime, sumlentime, sumlen2, ntest, &s, &r );
+		    sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
+		    ntest, &s, &r );
     DrawGraph( outctx, first, last, s, r );
     }
 
@@ -465,11 +478,12 @@ double (*f)();
 void   *outctx, *msgctx;
 {
 double mean_time, t, rate;
+double tmax, tmean;
 
 if (AutoReps) {
     *reps = GetRepititions( *T1, *T2, *Len1, *Len2, len, *reps );
     }
-t = RunSingleTest( f, *reps, len, msgctx );
+t = RunSingleTest( f, *reps, len, msgctx, &tmax, &tmean );
 mean_time = t;
 mean_time = mean_time / *reps;  /* take average over trials */
 if (mean_time > 0.0) 
@@ -479,7 +493,7 @@ else
 if(myproc==0) {
     DataoutGraph( outctx, proc1, proc2, distance, len, 
 	       t * TimeScale, mean_time * TimeScale, 
-	       rate * RateScale );
+	       rate * RateScale, tmean * TimeScale, tmax * TimeScale );
     }
 
 *T1   = *T2;
@@ -545,11 +559,14 @@ return reps;
   (For purists, the divison should be slightly different from (1/N) in the
   variance formula.  I'll deal with that later.)
 
+  tmax = max time observed
+  tmean = mean time observed
  */
-double RunSingleTest( f, reps, len, msgctx )
+double RunSingleTest( f, reps, len, msgctx, tmaxtime, tmean )
 double (*f)();
 int    reps;
 void   *msgctx;
+double *tmaxtime, *tmean;
 {
 int    flag, k, iwork, natmin;
 double t, tmin, mean_time, tmax, tsum;
@@ -560,7 +577,7 @@ tmin   = 1.0e+38;
 tmax   = tsum = 0.0;
 natmin = 0;
 
-for (k=0; k<minreps; k++) {
+for (k=0; k<minreps && flag == 0; k++) {
     t = (* f) (reps,len,msgctx);
     if (__MYPROCID == 0) {
 	tsum += t;
@@ -579,7 +596,6 @@ for (k=0; k<minreps; k++) {
 	}
     MPI_Allreduce(&flag, &iwork, 1, MPI_INT,MPI_SUM,MPI_COMM_WORLD );
 memcpy(&flag,&iwork,(1)*sizeof(int));;
-    if (flag > 0) break;
     }
 
 mean_time  = tmin / reps;
@@ -587,8 +603,11 @@ sumlen     += len;
 sumtime    += mean_time;
 sumlen2    += ((double)len)*((double)len);
 sumlentime += mean_time * len;
+sumtime2   += mean_time * mean_time;
 ntest      ++;
 
+if (tmaxtime) *tmaxtime = tmax / reps;
+if (tmean)    *tmean    = (tsum / reps ) / k;
 return tmin;
 }
 
@@ -659,7 +678,8 @@ ClearTimes()
 {
 sumtime	   = 0.0;
 sumlentime = 0.0;
-sumlen	   = 0;
-sumlen2	   = 0;
+sumlen	   = 0.0;
+sumlen2	   = 0.0;
+sumtime2   = 0.0;
 ntest	   = 0;
 }

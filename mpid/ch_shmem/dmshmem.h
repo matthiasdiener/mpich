@@ -1,5 +1,5 @@
 /*
- *  $Id: dmch.h,v 1.32 1995/01/23 22:16:45 gropp Exp gropp $
+ *  $Id: dmch.h,v 1.35 1995/05/09 19:08:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -30,7 +30,7 @@
 #if !defined(MPID_NO_TINY_BUFFERS) && !defined(MPID_TINY_BUFFERS)
 #define MPID_TINY_BUFFERS
 #endif
-#endif
+#endif /* PI_NO_MSG_SEMANTICS */
 
 /* This indicates that the ADI defines the debug routines
    (MPID_SetSendDebugFlag, MPID_SetRecvDebugFlag, MPID_SetSpaceDebugFlag,
@@ -57,13 +57,19 @@
    structures
  */
 /* #CMMD DECLARATION# */
+
+
+
 #if defined(DEVICE_CHAMELEON)
 /* Note that IBM MPL will require a struct for int in order to
-   provide correctness */
+   provide correctness:
+if defined(eui) 
+typedef struct { int rid, tag, from; } int;
+ */
 typedef long int;
 typedef long int;
-#endif
-#endif
+#endif 
+#endif /* MPID_DEVICE_CODE */
 
 #include "mpi.h"
 #include "dmpiatom.h"
@@ -99,9 +105,9 @@ typedef long int;
 #endif
 
 #if defined(MPID_NOT_HETERO) && !defined(MPID_HAS_HETERO)
-#define MPID_Aint void *
+typedef void *MPID_Aint;
 #else
-#define MPID_Aint long
+typedef long MPID_Aint;
 #endif
 
 #if !defined(MPID_RNDV_T_SET)
@@ -162,6 +168,10 @@ typedef enum { MPID_NOTBLOCKING = 0, MPID_BLOCKING } MPID_BLOCKING_TYPE;
  */
 typedef struct {
     int           is_non_blocking;
+        /* The following describes the buffer to be sent */
+    void          *start;
+    int           bytes_as_contig;
+        /* Rest of data */
     int sid;              /* Id of non-blocking send, if used.
 				       0 if no non-blocking send used, 
 				       or if non-blocking send has 
@@ -172,13 +182,14 @@ typedef struct {
 				       non-blocking sends; in these systems,
 				       the packets need to be allocated
 				       and managed */
-        /* The following describes the buffer to be sent */
-    void          *start;
-    int           bytes_as_contig;
     } MPID_SHANDLE;
 
 typedef struct {
     int           is_non_blocking;
+        /* The following describes the buffer to be received */
+    void          *start;
+    int           bytes_as_contig;
+        /* Rest of data */
     int rid;              /* Id of non-blocking recv, if used.
 				       0 if no non-blocking recv used.
 				       Used only if MPID_USE_RNDV set. */
@@ -196,13 +207,7 @@ typedef struct {
     int           from;             /* Absolute process number that sent
 				       message; used only for SYNC ack and 
 				       in rendevous messages */
-
-        /* The following describes the buffer to be received */
-    void          *start;
-    int           bytes_as_contig;
     } MPID_RHANDLE;
-
-#define MPID_CAN_SEND_CONTIG
 
 /* 
    Since allocation is done by placing the device structure directly into
@@ -214,7 +219,7 @@ typedef struct {
 #define MPID_Alloc_send_handle( ctx, a )
 #define MPID_Alloc_recv_handle( ctx, a ) {(a)->temp  = 0;}
 #define MPID_Free_send_handle( ctx, a )  
-#define MPID_Free_recv_handle( ctx, a )  if ((a)->temp  ) {FREE((a)->temp);}
+#define MPID_Free_recv_handle( ctx, a )  if ((a)->temp  ) {FREE((a)->temp);(a)->temp=0;}
 #define MPID_Reuse_send_handle( ctx, a ) 
 #define MPID_Reuse_recv_handle( ctx, a ) {(a)->temp  = 0;}
 #define MPID_Set_send_is_nonblocking( ctx, a, v ) (a)->is_non_blocking = v
@@ -239,22 +244,26 @@ typedef struct {
 #define MPID_Blocking_send_ready(ctx, dmpi_send_handle) \
     MPID_SHMEM_Blocking_send(dmpi_send_handle)
 #define MPID_Test_send( ctx, dmpi_send_handle ) \
-    ((dmpi_send_handle)->completer == 0)
+    ((dmpi_send_handle)->completer == 0 ? \
+     1 : MPID_SHMEM_Test_send( dmpi_send_handle ))
 
-#define MPID_Post_recv(ctx,dmpi_recv_handle, is_available ) \
-    MPID_SHMEM_post_recv(dmpi_recv_handle, is_available ) 
+#define MPID_Post_recv(ctx,dmpi_recv_handle ) \
+    MPID_SHMEM_post_recv(dmpi_recv_handle ) 
 #define MPID_Blocking_recv(ctx,dmpi_recv_handle ) \
     MPID_SHMEM_blocking_recv(dmpi_recv_handle) 
 #define MPID_Complete_recv(ctx,dmpi_recv_handle) \
     MPID_SHMEM_complete_recv(dmpi_recv_handle) 
+/* This definition makes a complete receive test fast and allows others to 
+   call a routine to push the receive along. */
 #define MPID_Test_recv( ctx, dmpi_recv_handle ) \
-    ((dmpi_recv_handle)->completer == 0)
+    ((dmpi_recv_handle)->completer == 0 ? \
+        1 : MPID_SHMEM_Test_recv_push( dmpi_recv_handle )) 
 
 /* This is a generic test for completion.  Note that it takes a request.
    It returns true for completed, false if not */
 #define MPID_Ctx( request ) (request)->chandle.comm->ADIctx
 #define MPID_Test_request( ctx, request ) ((request)->chandle.completer == 0)
-#define MPID_Test_handle( request ) ((request)->completer == 0)
+#define MPID_Test_handle( dmpi_handle ) ((dmpi_handle)->completer == 0)
 #define MPID_Clr_completed( ctx, request ) \
     (request)->chandle.completer = 1
 #define MPID_Set_completed( ctx, request ) \
@@ -270,7 +279,9 @@ typedef struct {
 #define MPID_NODE_NAME( ctx, name, len ) \
     MPID_SHMEM_Node_name( name, len )
 #define MPID_Version_name( ctx, name ) MPID_SHMEM_Version_name( name )
+#ifndef MPID_WTIME
 #define MPID_WTIME(ctx)         MPID_SHMEM_Wtime()
+#endif
 #define MPID_WTICK(ctx)         MPID_SHMEM_Wtick()
 #define MPID_INIT(argc,argv) MPID_SHMEM_Init( argc, argv )
 #define MPID_END(ctx)           MPID_SHMEM_End()
@@ -316,13 +327,12 @@ typedef struct {
 /* Others as they are determined */
 #else
 #define MPID_Comm_init(ctx,comm,newcomm) MPI_SUCCESS
-#define MPID_Comm_free(ctx,comm) MPI_SUCCESS
-#endif
+#define MPID_Comm_free(ctx,comm)         MPI_SUCCESS
+#endif /* MPID_USE_ADI_COLLECTIVE */
 
 /* This device prefers that the data be prepacked (at least for now) */
 #define MPID_PACK_IN_ADVANCE
 #define MPID_RETURN_PACKED
-
 
 #endif
 
@@ -383,8 +393,7 @@ extern FILE *MPID_DEBUG_FILE;
 extern void (*MPID_ErrorHandler)();
 extern void MPID_DefaultErrorHandler();
 
-/* For heterogeneous support --- NOT YET FULLY IMPLEMENTED 
-   (fully means that there is some code that is not yet used).
+/* For heterogeneous support 
    This provides information on how data should be communicated to 
    a processor.  The approach is to only convert data when
    the formats are different on the source and destination, and then to
@@ -393,7 +402,10 @@ extern void MPID_DefaultErrorHandler();
    a sender that had to use MPID_H_XDR; otherwise, the received data is
    already in the correct format.
 
-   None of this code is executed or included in a homogeneous environment
+   None of this code is executed or included in a homogeneous environment.
+
+   We will need additional types to indicate 4 or 8 byte ints and longs, etc.
+   We also need to check the length of long long and long double.
  */
 #ifndef MPID_H_INC
 #define MPID_H_INC
@@ -405,6 +417,12 @@ typedef enum { MPID_H_NONE = 0,
  */
 typedef struct {
     MPID_H_TYPE byte_order;
+    int         short_size, 
+                int_size,
+                long_size,
+                float_size,
+                double_size,
+                float_type;
     } MPID_INFO;
 extern MPID_INFO *MPID_procinfo;
 extern MPID_H_TYPE MPID_byte_order;
@@ -412,7 +430,7 @@ extern MPID_H_TYPE MPID_byte_order;
 #ifdef MPID_HAS_HETERO
 extern int MPID_IS_HETERO;
 #define MPID_Dest_byte_order(dest) MPID_SHMEM_Dest_byte_order(dest)
-#endif
+#endif 
 
-#endif
+#endif /* DMCH_INCLUDED */
 

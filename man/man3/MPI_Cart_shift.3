@@ -1,4 +1,4 @@
-.TH MPI_Cart_shift 3 "12/15/1994" " " "MPI"
+.TH MPI_Cart_shift 3 "5/9/1995" " " "MPI"
 .SH NAME
 MPI_Cart_shift \- Returns the shifted source and destination ranks, given a
 shift direction and amount
@@ -31,6 +31,10 @@ shift direction and amount
 .B rank_dest 
 - rank of destination process (integer) 
 .PD 1
+
+.SH NOTES
+The 'direction' argument is in the range [0,n-1] for an n-dimensional
+Cartesian mesh.
 
 .SH SYNOPSIS
 .nf

@@ -43,14 +43,17 @@ int *__ierr;
 #ifdef POINTER_64_BITS
 int i;
 MPI_Request *r = (MPI_Request*)MALLOC(sizeof(MPI_Request)* *count);
+if (!r) {
+    *__ierr = MPIR_ERROR(MPI_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+					  "Out of space in MPI_WAITANY" );
+    return;
+    }
 for (i=0; i<*count; i++) {
     r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
     }
 *__ierr = MPI_Waitany(*count,r,index,status);
 if (!*__ierr) {
-    /* Must not do this if request is persistant.  Check to see if 
-       Waitany set the request to NULL FIX ME
-     */
+    /* By checking for r[i] = 0, we handle persistant requests */
     if (r[*index] == MPI_REQUEST_NULL) {
 	MPIR_RmPointer( *((int *)(array_of_requests) + *index) );
 	*((int *)(array_of_requests)+*index) = 0;

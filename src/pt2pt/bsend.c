@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend.c,v 1.7 1994/12/15 17:11:07 gropp Exp $
+ *  $Id: bsend.c,v 1.9 1995/05/12 18:01:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: bsend.c,v 1.7 1994/12/15 17:11:07 gropp Exp $";
+static char vcid[] = "$Id: bsend.c,v 1.9 1995/05/12 18:01:44 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -26,7 +26,19 @@ Input Parameters:
 Notes:
 This send is provided as a convenience function; it allows the user to 
 send messages without worring about where they are buffered (because the
-user MUST have provided buffer space with MPI_Buffer_attach).
+user `must` have provided buffer space with MPI_Buffer_attach).  
+
+The buffer space can not be reused unless you are certain that the message
+has been received (not just that it should have been received).  In C, you can 
+force the messages to be deliverd by 
+.vb
+    MPI_Buffer_detach( &b, &n );
+    MPI_Buffer_attach( b, n );
+.ve
+(The 'MPI_Buffer_detach' will not complete until all buffered messages are 
+delivered.)
+
+.seealso: MPI_Buffer_attach, MPI_Ibsend, MPI_Bsend_init
 @*/
 int MPI_Bsend( buf, count, datatype, dest, tag, comm )
 void             *buf;

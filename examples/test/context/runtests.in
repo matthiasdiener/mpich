@@ -6,12 +6,9 @@
 # -mvhome is needed for the ANL SP, and is ignored by others
 args="-pg -mvhome"
 #
-# If the programs are not available, run make.
-if [ ! -x attrt ] ; then
-    make 
-fi
 #
 runtests=1
+makeeach=0
 for arg in "$@" ; do
     case $arg in 
 	-checkonly )
@@ -21,11 +18,15 @@ for arg in "$@" ; do
 	margs=`echo $arg | sed 's/-margs=//'`
 	args="$args $margs"
 	;;
+	-small)
+	makeeach=1
+	;;
 	-help|-u)
 	echo "runtests [-checkonly] [-margs='...']"
 	echo "run tests in this directory.  If -checkonly set, just run"
 	echo "the differences check (do NO rerun the test programs)."
 	echo "If -margs is used, these options are passed to mpirun."
+	echo "If -small is used, the examples are built, run, and deleted."
 	exit 1
 	;;
 	*)
@@ -37,6 +38,22 @@ for arg in "$@" ; do
     esac
 done
 
+MakeExe() {
+    if [ $makeeach = 1 -o ! -x $1 ] ; then
+	make $1
+    fi
+}
+CleanExe() {
+    if [ $makeeach = 1 ] ; then
+	/bin/rm $1 $1.o
+    fi
+}
+
+# If the programs are not available, run make.
+if [ ! -x attrt -a $makeeach = 0 ] ; then
+    make 
+fi
+
 testfiles=""
 if [ $runtests = 1 ] ; then
 
@@ -45,23 +62,35 @@ if [ $runtests = 1 ] ; then
 if [ @HAS_FORTRAN@ = 1 ] ; then 
     testfiles="$testfiles attrf.out"
     /bin/rm -f attrf.out
-    make fortran_tests
+    MakeExe attrtest
     echo '*** Testing attributes from Fortran ***'
     echo '*** Testing attributes from Fortran ***' >> attrf.out
     mpirun $args -np 2 attrtest $* >> attr.out 2>&1
     echo '*** Testing attributes from Fortran ***' >> attrf.out
+    CleanExe attrtest
 fi
 
 testfiles="$testfiles attr.out"
 /bin/rm -f attr.out
+MakeExe attrt
 echo '*** Testing attributes ***'
 echo '*** Testing attributes ***' >> attr.out
 mpirun $args -np 2 attrt $* >> attr.out 2>&1
 echo '*** Testing attributes ***' >> attr.out
+CleanExe attrt
+
+testfiles="$testfiles ictest.out"
+/bin/rm -f ictest.out
+MakeExe ictest
+echo '*** Testing Intercommunicators ***'
+echo '*** Testing Intercommunicators ***' >> ictest.out
+mpirun $args -np 4 ictest $* >> ictest.out 2>&1
+echo '*** Testing Intercommunicators ***' >> ictest.out
+CleanExe ictest
 
 else
     # Just run checks
-    testfiles=*.out
+    testfiles=`echo *.out`
 fi
 
 echo '*** Differences from expected output ***'

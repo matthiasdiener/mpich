@@ -30,14 +30,13 @@ SHELL = /bin/sh
 
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 CCFLAGS = $(CFLAGS)
-#FFLAGS = '-qdpc=e' 
 FFLAGS = @FFLAGS@ $(OPTFLAGS)
 MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = timers baseattr errhand sigchk
+EXECS = timers baseattr errhand sigchk timertest
 
 default: $(EXECS)
 
@@ -48,18 +47,20 @@ linktest: default clean
 
 all: testing
 
-timers: timers.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+timers: timers.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o timers timers.o test.o $(LIBS)
-baseattr: baseattr.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+timertest: timertest.o test.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o timertest timertest.o test.o $(LIBS)
+baseattr: baseattr.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o baseattr baseattr.o test.o $(LIBS)
-baseattrf: baseattrf.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+baseattrf: baseattrf.o $(MPILIB)
 	$(FLINKER) $(OPTFLAGS) -o baseattrf baseattrf.o $(LIBS)
-errhand: errhand.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+errhand: errhand.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o errhand errhand.o test.o $(LIBS)
-sigchk: sigchk.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+sigchk: sigchk.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o sigchk sigchk.o test.o $(LIBS)
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core *.out *.orig
+	/bin/rm -f *.o *~ PI* $(EXECS) baseattrf core *.out *.orig env.diff
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

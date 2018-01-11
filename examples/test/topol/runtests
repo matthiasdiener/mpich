@@ -7,11 +7,9 @@
 args="-pg -mvhome"
 #
 # If the programs are not available, run make.
-if [ ! -x cart ] ; then
-    make 
-fi
 #
 runtests=1
+makeeach=0
 for arg in "$@" ; do
     case $arg in 
 	-checkonly )
@@ -21,11 +19,15 @@ for arg in "$@" ; do
 	margs=`echo $arg | sed 's/-margs=//'`
 	args="$args $margs"
 	;;
+	-small)
+	makeeach=1
+	;;
 	-help|-u)
-	echo "runtests [-checkonly] [-margs='...']"
+	echo "runtests [-checkonly] [-margs='...'] [-small]"
 	echo "run tests in this directory.  If -checkonly set, just run"
 	echo "the differences check (do NO rerun the test programs)."
 	echo "If -margs is used, these options are passed to mpirun."
+	echo "If -small is used, the examples are built, run, and deleted."
 	exit 1
 	;;
 	*)
@@ -37,23 +39,65 @@ for arg in "$@" ; do
     esac
 done
 
+MakeExe() {
+    if [ $makeeach = 1 -o ! -x $1 ] ; then
+	make $1
+    fi
+}
+CleanExe() {
+    if [ $makeeach = 1 ] ; then
+	/bin/rm -f $1 $1.o
+    fi
+}
+
+if [ ! -x cart -a $makeeach = 0 ] ; then
+    make 
+fi
+
 testfiles=""
 if [ $runtests = 1 ] ; then
 
 testfiles="$testfiles cart.out"
 /bin/rm -f cart.out
+MakeExe cart
 echo '**** Testing MPI_Cart_create etc ****' >> cart.out
 echo '**** Testing MPI_Cart_create etc ****' 
 mpirun $args -np 4 cart $* >> cart.out 2>&1
 echo '**** Testing MPI_Cart_create etc ****' >> cart.out
+CleanExe cart
 #
 testfiles="$testfiles cart2.out"
 /bin/rm -f cart2.out
+MakeExe cart2
 echo '**** Testing MPI_Cart_coords etc ****' >> cart2.out
 echo '**** Testing MPI_Cart_coords etc ****' 
 mpirun $args -np 4 cart2 $* >> cart2.out 2>&1
 echo '**** Testing MPI_Cart_coords etc ****' >> cart2.out
+CleanExe cart2
 #
+# Run Fortran tests ONLY if Fortran available
+if [ 1 = 1 ] ; then 
+    echo "FORTRAN TESTS"
+    #
+    #
+    testfiles="$testfiles cartf.out"
+    /bin/rm -f cartf.out
+    MakeExe cartf
+    echo '*** Testing cart from Fortran ***'
+    echo '*** Testing cart from Fortran ***' >> cartf.out
+    mpirun $args -np 4 cartf "$@" >> cartf.out
+    echo '*** Testing cart from Fortran ***' >> cartf.out
+    CleanExe
+    #
+    testfiles="$testfiles twod.out"
+    /bin/rm -f twod.out
+    MakeExe twod
+    echo '*** Testing twod from Fortran ***'
+    echo '*** Testing twod from Fortran ***' >> twod.out
+    mpirun $args -np 2 twod "$@" >> twod.out
+    echo '*** Testing twod from Fortran ***' >> twod.out
+    CleanExe
+fi
 else
     # Just run checks
     testfiles=*.out

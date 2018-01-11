@@ -30,14 +30,13 @@ SHELL = /bin/sh
 
 CFLAGS  = @USER_CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH)
 CCFLAGS = $(CFLAGS)
-#FFLAGS = '-qdpc=e' 
 FFLAGS = @FFLAGS@ $(OPTFLAGS)
 MPILIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi.a 
 MPIPPLIB = $(MPIR_HOME)/lib/$(ARCH)/$(COMM)/libmpi++.a
 LIBS = $(LIB_PATH) $(LIB_LIST)
 FLIBS = $(FLIB_PATH) $(LIB_LIST)
 LIBSPP = $(MPIPPLIB) $(LIBS)
-EXECS = attrtest attrt
+EXECS = attrtest attrt ictest
 
 default: $(EXECS)
 
@@ -50,14 +49,22 @@ linktest: default clean
 
 all: testing
 
-attrtest: attrtest.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+attrtest: mpif.h attrtest.o $(MPILIB)
 	$(FLINKER) $(OPTFLAGS) -o attrtest attrtest.o $(FLIBS)
 
-attrt: attrt.o test.o $(MPIR_HOME)/include/mpir.h $(MPILIB)
+attrt: attrt.o test.o $(MPILIB)
 	$(CLINKER) $(OPTFLAGS) -o attrt attrt.o test.o $(LIBS)
 
+ictest: ictest.o $(MPILIB)
+	$(CLINKER) $(OPTFLAGS) -o ictest ictest.o $(LIBS)
+
+mpif.h: $(MPIR_HOME)/include/mpif.h
+	if test \! -f mpif.h ; then \
+	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
+	fi
+
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) core *.out
+	/bin/rm -f *.o *~ PI* $(EXECS) core *.out context.diff
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c

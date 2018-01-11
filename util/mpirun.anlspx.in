@@ -1,0 +1,160 @@
+#! /bin/sh
+if [ "$MPIR_HOME" = "" ] ; then 
+    MPIR_HOME=#MPIR_HOME#
+fi
+if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
+    MPIR_HOME=`pwd`/..
+fi
+MPIRUN_HOME=$MPIR_HOME/util
+if [ "$argsset" = "" ] ; then
+   . $MPIRUN_HOME/mpirun.args
+   argsset=1
+fi
+# This if for the ANL SP1/2, using the ANL "spsubmit" program.
+# Users of "loadleveler" will probably want something like this
+#
+# Check to see if we need to move the file
+firstchar=`expr "$localpgm" : '\(.\)'`
+if [ $mvhome == 0 -a "$firschar" != "/" ] ; then
+    # May need to set mvhome.  This looks for /bonnie or /clyde in the
+    # current directory
+    curdir=`pwd | sed -e 's%/tmp_mnt%%g' -e 's%/Net%%g'`
+    curname6=`expr "$curdir" : '/\(......\)'`
+    curname5=`expr "$curdir" : '/\(.....\)'`
+    if [ "$curname6" != "bonnie" -a "$curname5" != "clyde" ] ; then
+	mvhome=1
+	echo "Setting -mvhome for you (executable appears to not be"
+	echo "in /sphome file system)."
+    fi
+fi
+#
+# Create a new file
+if [ $mvhome = 1 ] ; then
+    localpgm=`basename $progname`
+    # if mvhome set, and the executable does NOT exist, then
+    # remove it when we exit
+    if [ -x /sphome/$LOGNAME/$localpgm ] ; then
+	rmhome=0
+    else
+	rmhome=1
+    fi
+    if [ $just_testing = 1 ] ; then
+	echo cp $progname /sphome/$LOGNAME/$localpgm
+    else
+	# If you don't remove the file first, sometimes the 
+	# WRONG FILE (the OLD ONE) is found by the system.
+	/bin/rm -f /sphome/$LOGNAME/$localpgm
+	if [ -s /sphome/$LOGNAME/$localpgm ] ; then
+	    echo "Could not move $progname to /sphome/$LOGNAME/$localpgm"
+	    if [ -d /sphome/$LOGNAME/$localpgm ] ; then
+		echo "Destination is a directory!"
+	    fi
+	    exit 1
+	fi
+        cp $progname /sphome/$LOGNAME/$localpgm
+    fi
+    PWD_LOCAL=/sphome/$LOGNAME
+else
+    rmhome=0
+    localpgm=$progname
+    PWD_LOCAL=$PWD_TRIAL
+fi
+/bin/rm -f $PWD_LOCAL/PIrun
+/bin/rm -f /sphome/$LOGNAME/job.output
+cat >$PWD_LOCAL/PIrun <<.
+#! /bin/sh
+JID=\`/usr/local/bin/getjid\`
+trap "sprelease \$JID"
+cd $PWD_LOCAL
+MP_EUILIB=us
+MP_RMPOOL=0
+MP_HOSTFILE=/sphome/$LOGNAME/SPnodes.\$JID    
+MP_PROCS=$np
+MP_INFOLEVEL=0
+MP_HOLD_STDIN=YES
+MP_PULSE=0
+export MP_EUILIB
+export MP_RMPOOL
+export MP_HOSTFILE
+export MP_PROCS
+export MP_INFOLEVEL
+export MP_HOLD_STDIN
+export MP_PULSE
+if [ $polling_mode = 0 ] ; then
+   MP_CSS_INTERRUPT=YES
+   export MP_CSS_INTERRUPT
+fi
+/bin/rm -f /sphome/$LOGNAME/job.output
+if [ $mpirun_verbose = 1 ] ; then
+    echo "About to run poe ... " >> /sphome/$LOGNAME/job.output
+fi
+poe $localpgm $cmdLineArgs >> /sphome/$LOGNAME/job.output 2>&1
+if [ $mpirun_verbose = 1 ] ; then
+    echo "Poe exited ..." >> /sphome/$LOGNAME/job.output
+fi
+sprelease \$JID
+exit 0
+.
+#
+# End of script for running progrma
+chmod a+x $PWD_LOCAL/PIrun
+# Determine CAC
+if [ "$CAC" = "" ] ; then
+   CAC=`whatcac | head -1 | cut -d' ' -f 9 | sed -e s/\"//g -e s/://`
+fi
+if [ $just_testing = 1 ] ; then
+    echo "spsubmit -nomail <<."
+    echo $CAC
+    echo $max_time
+    echo $np
+    echo B
+    echo M
+    echo n
+    echo $PWD_LOCAL/PIrun
+    echo 
+    echo C
+    echo .
+    echo spwait
+    if [ $rmhome = 1 ] ; then
+	echo "/bin/rm /sphome/$LOGNAME/$localpgm"
+    fi
+    if [ "$mvback" != "" ] ; then
+	echo "(cd $PWD_LOCAL ; cp $mvback $PWD_TRIAL ; /bin/rm $mvback )"
+    fi
+else
+    # Send output to /dev/null in case we're trying to 
+    # use this to match up output
+    JID=`/usr/local/bin/getjid`
+    if [ "$JID" != "" ] ; then 
+	echo "Can not start SP job while one is in the queue"
+	echo "Job $JID was found"
+	exit 1
+    fi
+    spsubmit -nomail <<. >& /dev/null 
+$CAC
+$max_time
+$np
+B
+M
+n
+$PWD_LOCAL/PIrun
+
+C
+.
+    JID=`/usr/local/bin/getjid`
+    spwait
+    if [ $rmhome = 1 ] ; then
+	/bin/rm /sphome/$LOGNAME/$localpgm
+    fi
+    /bin/rm -f /sphome/$LOGNAME/SPnodes.$JID
+    if [ "$mvback" != "" ] ; then
+	(cd $PWD_LOCAL ; for file in $mvback ; do \
+	if [ -s $file ] ; then cp $file $PWD_TRIAL ; /bin/rm $file ; \
+	fi ; done )
+    fi
+    if [ -s /sphome/$LOGNAME/job.output ] ; then 
+	cat /sphome/$LOGNAME/job.output
+    else
+	echo "No output file!  Job did not run! "
+    fi
+fi

@@ -1,4 +1,4 @@
-.TH MPI_Attr_get 3 "12/15/1994" " " "MPI"
+.TH MPI_Attr_get 3 "5/9/1995" " " "MPI"
 .SH NAME
 MPI_Attr_get \- Retrieves attribute value by key
 
@@ -17,7 +17,7 @@ MPI_Attr_get \- Retrieves attribute value by key
 .SH OUTPUT PARAMETERS
 .PD 0
 .TP
-.B attribute_val 
+.B attr_value 
 - attribute value, unless flag = false 
 .PD 1
 .PD 0
@@ -26,13 +26,25 @@ MPI_Attr_get \- Retrieves attribute value by key
 -  true if an attribute value was extracted;  false if no attribute is associated with the key 
 .PD 1
 
+.SH NOTES
+Attributes must be extracted from the same language as they were inserted
+in with 'MPI_ATTR_PUT'.  The notes for C and Fortran below explain why.
+
+.SH NOTES FOR C
+Even though the 'attr_value' arguement is declared as 'void *', it is
+really the address of a void pointer.  See the rationale in the
+standard for more details.
+
+.SH NOTES FOR FORTRAN
+The 'attr_value' in Fortran is a pointer to a Fortran integer, not
+a pointer to a 'void *'.
 .SH SYNOPSIS
 .nf
 #include "mpi.h"
 int MPI_Attr_get ( comm, keyval, attr_value, flag )
 MPI_Comm comm;
 int keyval;
-void **attr_value;
+void *attr_value;
 int *flag;
 
 .fi

@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend_init.c,v 1.19 1995/03/05 20:15:07 gropp Exp $
+ *  $Id: bsend_init.c,v 1.20 1995/05/09 18:11:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -55,16 +55,17 @@ MPI_Request   *request;
 	handleptr->shandle.dest	  = dest;
 	MPID_Set_completed( comm->ADIctx, handleptr );
 	handleptr->shandle.active = 1;
+	handleptr->shandle.bufpos = 0;
 	}
     else {
-	handleptr->shandle.dest	  = comm->group->lrank_to_grank[dest];
+	handleptr->shandle.dest	  = comm->lrank_to_grank[dest];
 	MPID_Clr_completed( comm->ADIctx, handleptr );
 	handleptr->shandle.active = 0;
 	}
     handleptr->shandle.tag          = tag;
     handleptr->shandle.contextid    = comm->send_context;
     handleptr->shandle.comm         = comm;
-    handleptr->shandle.lrank        = comm->local_group->local_rank;
+    handleptr->shandle.lrank        = comm->local_rank;
     handleptr->shandle.mode         = MPIR_MODE_BUFFERED;
     handleptr->shandle.datatype     = datatype;
 

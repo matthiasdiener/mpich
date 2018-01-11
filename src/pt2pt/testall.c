@@ -1,5 +1,5 @@
 /*
- *  $Id: testall.c,v 1.14 1995/03/05 22:55:28 gropp Exp $
+ *  $Id: testall.c,v 1.17 1995/05/16 18:11:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -35,8 +35,14 @@ MPI_Status *array_of_statuses;
 	{
 	request = array_of_requests[i];
 
-	if ( request != NULL && 
-	     request->chandle.active) {
+	if ( !request || !request->chandle.active) {
+	    /* See MPI Standard, 3.7 */
+	    array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
+	    array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
+	    array_of_statuses[i].count	    = 0;
+	    continue;
+	    }
+	else {
 	    if (!MPID_Test_request( MPID_Ctx( request ), request)) {
 		/* Try to complete the send or receive */
 		if (request->type == MPIR_SEND) {
@@ -67,8 +73,18 @@ MPI_Status *array_of_statuses;
 					       request->rhandle.count, 
 					       request->rhandle.datatype, 
 					       request->rhandle.source,
-					       request )) 
+					       request, 
+   					       &array_of_statuses[i].count )) 
 			    return mpi_errno;
+#endif
+		    }
+		else {
+#if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
+		    if (request->shandle.bufpos && 
+			(mpi_errno = MPIR_SendBufferFree( request ))){
+			MPIR_ERROR( MPI_COMM_NULL, mpi_errno, 
+		       "Could not free allocated send buffer in MPI_TESTALL" );
+			}
 #endif
 		    }
 		if (!request->chandle.persistent) {
@@ -80,16 +96,7 @@ MPI_Status *array_of_statuses;
 		    array_of_requests[i]    = NULL;
 		    }
 		else {
-		    request->chandle.active    = 0;
-		    MPID_Clr_completed( MPID_Ctx( request ), request );
-		    if (request->type == MPIR_RECV) {
-			MPID_Reuse_recv_handle(request->rhandle.comm->ADIctx, 
-					      &request->rhandle.dev_rhandle );
-			}
-		    else {
-			MPID_Reuse_send_handle(request->shandle.comm->ADIctx,
-					      &request->shandle.dev_shandle );
-			}
+		    MPIR_RESET_PERSISTENT(request)
 		    }
 		}
 	    else 

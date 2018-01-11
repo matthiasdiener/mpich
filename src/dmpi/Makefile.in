@@ -31,8 +31,8 @@ MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
 DEVICE_LIB = 
 CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE)
 LIBS = ../../lib/$(ARCH)/$(COMM)/libmpi.a $(DEVICE_LIB)
-MPI_SOURCES = dmpi.c dmpipk.c bswap.c
-MPI_OBJECTS = dmpi.o dmpipk.o bswap.o
+MPI_SOURCES = dmpi.c dmpipk.c bswap.c pkutil.c
+MPI_OBJECTS = dmpi.o dmpipk.o bswap.o pkutil.o
 
 default: ../../lib/$(ARCH)/$(COMM)/libmpi.a
 

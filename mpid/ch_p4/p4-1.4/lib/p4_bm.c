@@ -494,11 +494,27 @@ struct p4_procgroup *pg;
 	for (j=0; j < pe->numslaves_in_group; j++)
 	{
 	    if (i == 0)
-		strcpy(p4_global->proctable[ptidx].host_name,p4_global->proctable[0].host_name);
+		strcpy(p4_global->proctable[ptidx].host_name,
+		       p4_global->proctable[0].host_name);
 	    else
 		strcpy(p4_global->proctable[ptidx].host_name,pe->host_name);
 	    get_qualified_hostname(p4_global->proctable[ptidx].host_name);
 	    p4_global->proctable[ptidx].group_id = i;
+#           ifdef CAN_DO_SOCKET_MSGS
+	    {
+	    struct hostent *hp = 
+		gethostbyname_p4(p4_global->proctable[ptidx].host_name);
+	    struct sockaddr_in *listener = 
+		&p4_global->proctable[ptidx].sockaddr;
+	    bzero( (P4VOID*) listener, sizeof(struct sockaddr_in) );
+	    bcopy((P4VOID *) hp->h_addr, (P4VOID *)&listener->sin_addr, 
+		  hp->h_length);
+	    listener->sin_family = hp->h_addrtype;
+	    /* Set a dummy port so that we can detect that the field
+	       has been initialized */
+	    listener->sin_port = 1;
+	    }
+#           endif
 	    ptidx++;
 	}
 	p4_global->num_in_proctable = ptidx;

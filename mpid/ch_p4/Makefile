@@ -12,7 +12,7 @@ P4_ARCH	      = SUN
 COMM	      = ch_p4
 DEVICE	      = ch_p4
 BOPT	      = 
-MPIR_HOME     = /Net/alriga/alriga9/MPI/mpich
+MPIR_HOME     = /home/lusk/mpich
 INCLUDE_DIR   = -Ip4-1.4/include  -Impid/ch_p4 -Iinclude
 CC	      = cc
 AR	      = ar crl
@@ -28,7 +28,7 @@ ALL: default
 
 P4_HOME  = ./p4-1.4
 LIBNAME  = ../../lib/$(ARCH)/$(COMM)/libmpi.a
-CFLAGS   =   -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1  -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
+CFLAGS   =  -DFORTRANUNDERSCORE  -DMPE_USE_EXTENSIONS=1 -DHAS_XDR=1  -DHAVE_STDLIB_H=1 -DHAVE_SYSTEM=1 -DHAVE_NICE=1 $(OPTFLAGS) -I../.. -I../../include -I./ \
 	   -DMPID_DEVICE_CODE  -DHAVE_GETDOMAINNAME=1 -DHAVE_GETHOSTNAME=1 -DHAVE_UNAME=1  -DMPID_PKT_VAR_SIZE
 SOURCE   = p4event.c p4recv.c p4send.c p4init.c p4probe.c p4sync.c p4coll.c \
 	   p4rndv.c

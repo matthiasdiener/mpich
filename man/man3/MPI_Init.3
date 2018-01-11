@@ -1,4 +1,4 @@
-.TH MPI_Init 3 "3/16/1995" " " "MPI"
+.TH MPI_Init 3 "6/9/1995" " " "MPI"
 .SH NAME
 MPI_Init \- Initialize the MPI execution environment
 
@@ -31,6 +31,13 @@ is intended as a debugging aid.
 - print out the version of the implementation (NOT of MPI),
 including the arguments that were used with configure.
 .PD 1
+.PD 0
+.TP
+.B -mpinice 
+nn - Increments the nice value by nn (lowering the priority 
+of the program by nn).  nn must be positive (except for root).  Not
+all systems support this argument; those that do not will ignore it.
+.PD 1
 
 .PD 0
 .TP
@@ -62,6 +69,13 @@ devices built with debugging code.
 - (Chameleon device only) Print out a list of unreclaimed
 memory.  This requires that MPI be built with the -DMPIR_DEBUG_MEM
 switch.  This is intended for debugging the MPI implementation itself.
+.PD 1
+.PD 0
+.TP
+.B -mpimem 
+- If MPICH was built with -DMPIR_DEBUG_MEM, this checks all
+malloc and free operations (internal to MPICH) for signs of injury 
+to the memory allocation areas.
 .PD 1
 .PD 0
 .TP
@@ -110,6 +124,15 @@ SIGUSR2
 
 .SH CH_P4 DEVICE
 SIGUSR1
+
+.SH INTEL PARAGON (CH_NX DEVICE)
+SIGUSR2
+
+Note that if you are using software that needs the same signals, you may
+find that there is no way to use that software with the MPI implementation.
+The signals that cause the most trouble for applications include
+SIGIO, SIGALRM, and SIGPIPE.  For example, using SIGIO and SIGPIPE may
+prevent X11 routines from working.
 
 .SH SYNOPSIS
 .nf

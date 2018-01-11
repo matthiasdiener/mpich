@@ -1,0 +1,32 @@
+#! /bin/sh
+JID=`/usr/local/bin/getjid`
+trap "sprelease $JID"
+cd /Net/alriga/alriga9/MPI/mpich/examples/perftest
+MP_EUILIB=us
+MP_RMPOOL=0
+MP_HOSTFILE=/sphome/lusk/SPnodes.$JID    
+MP_PROCS=2
+MP_INFOLEVEL=0
+MP_HOLD_STDIN=YES
+MP_PULSE=0
+export MP_EUILIB
+export MP_RMPOOL
+export MP_HOSTFILE
+export MP_PROCS
+export MP_INFOLEVEL
+export MP_HOLD_STDIN
+export MP_PULSE
+if [ 1 = 0 ] ; then
+   MP_CSS_INTERRUPT=YES
+   export MP_CSS_INTERRUPT
+fi
+/bin/rm -f /sphome/lusk/job.output
+if [ 0 = 1 ] ; then
+    echo "About to run poe ... " >> /sphome/lusk/job.output
+fi
+poe /Net/alriga/alriga9/MPI/mpich/examples/perftest/copytest  >> /sphome/lusk/job.output 2>&1
+if [ 0 = 1 ] ; then
+    echo "Poe exited ..." >> /sphome/lusk/job.output
+fi
+sprelease $JID
+exit 0

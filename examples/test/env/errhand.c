@@ -31,7 +31,13 @@ int Test_errorhandling()
 char errstring[MPI_MAX_ERROR_STRING];
 MPI_Comm dup_comm_world, dummy;
 MPI_Errhandler errhandler_a, errhandler_b, errhandler, old_handler;
+#ifdef __STDC__
+void handler_a( MPI_Comm *, int * ), 
+     handler_b( MPI_Comm *, int * ), 
+     error_handler( MPI_Comm *, int * );
+#else
 void handler_a(), handler_b(), error_handler();
+#endif
 int  err, world_rank, class, resultlen;
 
 #ifdef FOO

@@ -1,5 +1,5 @@
 /*
- *  $Id: testany.c,v 1.23 1995/03/07 16:18:01 gropp Exp $
+ *  $Id: testany.c,v 1.26 1995/05/16 18:11:04 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -54,12 +54,31 @@ MPI_Status  *status;
         request = array_of_requests[i];
 	if ( !request  || !request->chandle.active ) continue;
 
+	/* If Test request fails, we need to call the operation-specific
+	   test routines to check the status of an operation.  See 
+	   testall.c */
+	if (!MPID_Test_request( MPID_Ctx( request ), request)) {
+	    /* Try to complete the send or receive */
+	    if (request->type == MPIR_SEND) {
+		if (MPID_Test_send( request->shandle.comm->ADIctx, 
+				   &request->shandle )) {
+		    MPID_Complete_send( request->shandle.comm->ADIctx, 
+				       &request->shandle );
+		    }
+		}
+	    else {
+		if (MPID_Test_recv( request->rhandle.comm->ADIctx, 
+				   &request->rhandle )) {
+		    MPID_Complete_recv( request->rhandle.comm->ADIctx, 
+				       &request->rhandle );
+		    }
+		}
+	    }
+	
   	if (MPID_Test_request( MPID_Ctx( request ), request )) {
 	    found         = 1;
 	    *index        = i;
 	    if ( request->type == MPIR_SEND ) {
-		MPID_Complete_send( request->shandle.comm->ADIctx, 
-				    &request->shandle );
 #if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
 		if (request->shandle.bufpos && 
 		      (mpi_errno = MPIR_SendBufferFree( request ))){
@@ -69,9 +88,6 @@ MPI_Status  *status;
 #endif
 	        }
 	    else {
-		MPID_Complete_recv( request->rhandle.comm->ADIctx, 
-				    &request->rhandle );
-
 		status->MPI_SOURCE     = request->rhandle.source;
 		status->MPI_TAG	       = request->rhandle.tag;
 		status->count	       = request->rhandle.totallen;
@@ -82,7 +98,8 @@ MPI_Status  *status;
 						   request->rhandle.count, 
 						   request->rhandle.datatype, 
 						   request->rhandle.source,
-						   request );
+						   request, 
+   					           &status->count );
 #endif
 	    }
 	    if (!request->chandle.persistent) {
@@ -93,16 +110,7 @@ MPI_Status  *status;
 		array_of_requests[i]    = NULL;
 		}
 	    else {
-		request->chandle.active	   = 0;
-		MPID_Clr_completed( MPID_Ctx( request ), request );
-		if (request->type == MPIR_RECV) {
-		    MPID_Reuse_recv_handle( request->rhandle.comm->ADIctx,
-					    &request->rhandle.dev_rhandle );
-		    }
-		else {
-		    MPID_Reuse_send_handle( request->shandle.comm->ADIctx, 
-					    &request->shandle.dev_shandle );
-		    }
+		MPIR_RESET_PERSISTENT(request)
 		}
 	    break;
         }

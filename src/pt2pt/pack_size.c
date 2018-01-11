@@ -1,5 +1,5 @@
 /*
- *  $Id: pack_size.c,v 1.6 1994/12/15 17:24:33 gropp Exp $
+ *  $Id: pack_size.c,v 1.7 1995/05/09 18:58:56 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: pack_size.c,v 1.6 1994/12/15 17:24:33 gropp Exp $";
+static char vcid[] = "$Id: pack_size.c,v 1.7 1995/05/09 18:58:56 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -38,35 +38,12 @@ int          *size;
       MPIR_TEST_ARG(size))
       return MPIR_ERROR(comm, mpi_errno, "Error in MPI_PACK_SIZE" );
 
-
   /* Figure out size needed to pack type and add the biggest size
 	 of other types to give an upper bound */
-  if (incount > 1)
-	pad = (datatype->align - 
-	       (datatype->size % datatype->align)) % datatype->align;
-  (*size) = (incount * datatype->size) +
-	((incount - 1) * pad) + MPIR_dcomplex_dte->size;
+  MPIR_Pack_size( incount, datatype, comm, size );
+  (*size) += MPIR_I_DCOMPLEX.size;
 
 return MPI_SUCCESS;
 }
 
 
-/*+
-    MPIR_Pack_size - Returns the exact amount of space needed to 
-	                 pack a message
-+*/
-int MPIR_Pack_size ( incount, type, comm, size )
-int           incount;
-MPI_Datatype  type;
-MPI_Comm      comm;
-int          *size;
-{
-  int pad = 0;
-
-  /* Figure out size needed to pack type */
-  if (incount > 1)
-	pad = (type->align - (type->size % type->align)) % type->align;
-  (*size) = (incount * type->size) +
-	        ((incount - 1) * pad);
-return MPI_SUCCESS;
-}

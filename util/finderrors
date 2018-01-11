@@ -70,10 +70,11 @@ if ($LARCH == "386BSD") then
 endif
 if ($ISRC) then
     set RC = `egrep '^"|^\*\#|^accom:|^/usr.*:|^Error|^ar:|^mv:|^ld:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9]*\.c: [1-9]|^cc:|^f77:' $1 | wc -l`
-    set RC1 = `egrep 'No space left|^[-0-9 ]*ERROR:' $1 | wc -l`
+    set RC1 = `egrep 'No space left|^[-0-9 ]*ERROR:|Connection timed' $1 | \
+		wc -l`
     if ($RC1 != 0) set RC = $RC1
 else
     egrep '^"|^\*\#|^accom:|^/usr.*:|^Error|^ar:|^mv:|^ld:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9]*\.c: [1-9]|^cc:|^f77:' $1
-    egrep 'No space left|^[-0-9 ]*ERROR:' $1
+    egrep 'No space left|^[-0-9 ]*ERROR:|Connection timed' $1
 endif
 exit($RC)

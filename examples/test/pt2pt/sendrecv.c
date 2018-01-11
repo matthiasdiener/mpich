@@ -134,7 +134,7 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
     for (j = 0; j < bufferlen; j++) {
 	if (buffertype == MPI_CHAR) {
 	    if (((char *)bufferspace)[j] != (char)j) {
-		sprintf( valerr, "%c != %c", 
+		sprintf( valerr, "%x != %x", 
 			((char *)bufferspace)[j], (char)j );
 		break;
 		}
@@ -194,6 +194,8 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
     if (j < bufferlen) {
 	if (valerr[0]) fprintf( stderr, "Different value[%d] = %s\n", 
 			        j, valerr );
+	else
+	    fprintf( stderr, "Different value[%d]\n", j );
 	return j+1;
 	}
     return 0;
@@ -297,10 +299,13 @@ ReceiverTest1()
 		Test_Failed(message);
 		passed = 0;
 	    } else if(CheckBuffer(bufferspace[i], BasicTypes[i], j)) {
-		fprintf(stderr, "*** Incorrect Message received. ***\n");
+		fprintf(stderr, 
+	       "*** Incorrect Message received (type = %d, count = %d). ***\n",
+			i, j );
 		Test_Failed(message);
 		passed = 0;
-	    } else fprintf(stderr, "Message of count %d, type %d received correctly.\n", j, i);
+	    } else fprintf(stderr, 
+	       "Message of count %d, type %d received correctly.\n", j, i);
 	}
 	sprintf(message, "Send-Receive Test, Type %d",
 		i);
@@ -400,7 +405,7 @@ ReceiverTest3()
 {
     int err_code;
     int buffer[20];
-    MPI_Datatype bogus_type = NULL;
+    MPI_Datatype bogus_type = MPI_DATATYPE_NULL;
     MPI_Status status;
     int myrank;
     int *tag_ubp;
@@ -412,11 +417,11 @@ ReceiverTest3()
 
     if (myrank == 0) {
 	fprintf( stderr, 
-"There should be seven error messages about invalid communicator\n\
+"There should be eight error messages about invalid communicator\n\
 count argument, datatype argument, tag, rank, buffer send and buffer recv\n" );
 	}
     if (MPI_Send(buffer, 20, MPI_INT, dest,
-		 1, NULL) == MPI_SUCCESS){
+		 1, MPI_COMM_NULL) == MPI_SUCCESS){
 	Test_Failed("NULL Communicator Test");
     }
     else
@@ -494,8 +499,6 @@ main(argc, argv)
     int rc;
 
     MPI_Init(&argc, &argv);
-/*    MPID_SetSendDebugFlag(1);
-    MPID_SetRecvDebugFlag(1); */
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
     MPI_Comm_size(MPI_COMM_WORLD, &mysize);
     Test_Init("sendrecv", myrank);

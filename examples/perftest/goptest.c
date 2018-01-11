@@ -33,6 +33,7 @@ double RunSingleTest();
    basic (s + rn) complexity model */
 static double sumtime = 0.0, sumlentime = 0.0;
 static double sumlen  = 0,  sumlen2 = 0;
+static double sumtime2 = 0.0;
 static int    ntest   = 0;
 
 /* If doinfo is 0, don't write out the various text lines */
@@ -140,6 +141,7 @@ sumlen     += len;
 sumtime    += mean_time;
 sumlen2    += ((double)len) * ((double)len);
 sumlentime += mean_time * len;
+sumtime2   += mean_time * mean_time;
 ntest      ++;
 
 /* We need to insure that everyone gets the same result */
@@ -306,7 +308,8 @@ void   *msgctx;
       DataendForGop( outctx );
       if (dotail) {
 	  RateoutputGraph( outctx, 
-		      sumlen, sumtime, sumlentime, sumlen2, ntest, &s, &r );
+		      sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
+			  ntest, &s, &r );
 	  DrawGraphGop( outctx, first, last, s, r, nsizes, sizelist );
 	  }
       }
@@ -331,6 +334,7 @@ double (*f)();
 void   *outctx, *msgctx;
 {
 double mean_time, t, rate;
+double tmean = 0.0, tmax = 0.0;
 
 if (AutoReps) {
     *reps = GetRepititions( *T1, *T2, *Len1, *Len2, len, *reps );
@@ -344,8 +348,8 @@ else
     rate      = 0.0;
 if(myproc==0) {
     DataoutGraphForGop( outctx, len, 
-	       t * TimeScale, mean_time * TimeScale, 
-	       rate * RateScale );
+		       t * TimeScale, mean_time * TimeScale, 
+		       rate * RateScale, tmean, tmax );
     }
 
 *T1   = *T2;
@@ -453,6 +457,7 @@ sumlen     += len;
 sumtime    += mean_time;
 sumlen2    += ((double)len)*((double)len);
 sumlentime += mean_time * len;
+sumtime2   += mean_time * mean_time;
 ntest      ++;
 
 return tmin;
@@ -504,7 +509,8 @@ ClearTimes()
 {
 sumtime	   = 0.0;
 sumlentime = 0.0;
-sumlen	   = 0;
-sumlen2	   = 0;
+sumlen	   = 0.0;
+sumlen2	   = 0.0;
+sumtime2   = 0.0;
 ntest	   = 0;
 }

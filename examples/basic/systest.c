@@ -16,12 +16,15 @@ int argc;
 char **argv;
 {
 
-    int me, option;
+    int me, option, namelen;
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&me);
+    MPI_Get_processor_name(processor_name,&namelen);
 
-    fprintf(stderr,"Process %d is alive\n",me);
+    fprintf(stderr,"Process %d is alive on %s\n",
+	    me, processor_name);
 
     while (1) {
 

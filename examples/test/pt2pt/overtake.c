@@ -75,6 +75,8 @@ double *buffer;
 int buff_size;
 {
     int i, j;
+    void *bbuffer;
+    int size;
 
     for (j = 0; j < 2; j++) {
 	/* send a long message */
@@ -85,6 +87,9 @@ int buff_size;
 	for (i = 0; i < 10; i++)
 	    MPI_Bsend(buffer++, 1, MPI_DOUBLE, 
 		      dest, 2000, MPI_COMM_WORLD);
+        /* Force this set of Bsends to complete */
+        MPI_Buffer_detach( &bbuffer, &size );
+        MPI_Buffer_attach( bbuffer, size );
     }
 }
 
@@ -162,8 +167,8 @@ int argc;
 char **argv;
 {
     int rank; /* My Rank (0 or 1) */
-    double buffer[SIZE], tmpbuffer[SIZE+100], *tmpbuf;
-    int tsize;
+    double buffer[SIZE], *tmpbuffer, *tmpbuf;
+    int tsize, bsize;
     char *Current_Test = NULL;
 
     MPI_Init(&argc, &argv);
@@ -174,10 +179,17 @@ char **argv;
 	Normal_Test_Send(buffer, SIZE);
 	Normal_Test_Send(buffer, SIZE);
 #if !defined(SIMPLE_SENDS) && !defined(NO_BUFFERED_SENDS)
-        MPI_Buffer_attach( tmpbuffer, (SIZE + 100) * sizeof(double) );
+	MPI_Pack_size( SIZE, MPI_DOUBLE, MPI_COMM_WORLD, &bsize );
+	tmpbuffer = (double *) malloc( bsize + MPI_BSEND_OVERHEAD );
+	if (!tmpbuffer) {
+	    fprintf( stderr, "Could not allocate bsend buffer of size %d\n",
+		     bsize );
+	    MPI_Abort( MPI_COMM_WORLD, 1 );
+	    }
+        MPI_Buffer_attach( tmpbuffer, bsize + MPI_BSEND_OVERHEAD );
 	Buffered_Test_Send(buffer, SIZE);
 	Buffered_Test_Send(buffer, SIZE);
-	MPI_Buffer_detach( (void **)&tmpbuf, &tsize );
+	MPI_Buffer_detach( &tmpbuf, &tsize );
 #endif
 #if !defined(SIMPLE_SENDS) && !defined(NO_ASYNC_SENDS)
 	Async_Test_Send(buffer, SIZE);

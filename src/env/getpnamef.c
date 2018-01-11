@@ -1,12 +1,12 @@
 /*
- *  $Id: getpnamef.c,v 1.9 1994/09/29 21:51:12 gropp Exp $
+ *  $Id: getpnamef.c,v 1.10 1995/05/09 18:57:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: getpnamef.c,v 1.9 1994/09/29 21:51:12 gropp Exp $";
+static char vcid[] = "$Id: getpnamef.c,v 1.10 1995/05/09 18:57:53 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -17,13 +17,15 @@ extern int MPIR_FromPointer();
 extern void MPIR_RmPointer();
 #else
 #define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) a
+#define MPIR_FromPointer(a) (int)a
 #define MPIR_RmPointer(a)
 #endif
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_get_processor_name_ PMPI_GET_PROCESSOR_NAME
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_get_processor_name_ pmpi_get_processor_name__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_get_processor_name_ pmpi_get_processor_name
 #else
@@ -32,6 +34,8 @@ extern void MPIR_RmPointer();
 #else
 #ifdef FORTRANCAPS
 #define mpi_get_processor_name_ MPI_GET_PROCESSOR_NAME
+#elif defined(FORTRANDOUBLEUNDERSCORE)
+#define mpi_get_processor_name_ mpi_get_processor_name__
 #elif !defined(FORTRANUNDERSCORE)
 #define mpi_get_processor_name_ mpi_get_processor_name
 #endif

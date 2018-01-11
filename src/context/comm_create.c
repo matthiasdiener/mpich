@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_create.c,v 1.16 1994/12/15 16:37:39 gropp Exp $
+ *  $Id: comm_create.c,v 1.17 1995/05/09 18:51:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -56,7 +56,13 @@ MPI_Comm *comm_out;
 					"Out of space in MPI_COMM_CREATE" );
     (void) MPIR_Comm_init( new_comm, comm, MPIR_INTRA );
     (void) MPIR_Group_dup( group, &(new_comm->group) );
-	(void) MPIR_Group_dup( group, &(new_comm->local_group) );
+    (void) MPIR_Group_dup( group, &(new_comm->local_group) );
+    /* Initialize the communicator with the device */
+    if (mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) 
+	return mpi_errno;
+    new_comm->local_rank     = new_comm->local_group->local_rank;
+    new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
+    new_comm->np             = new_comm->group->np;
     (void) MPIR_Context_alloc( comm, 2, &(new_comm->send_context) );
     new_comm->recv_context = new_comm->send_context;
     (void) MPIR_Attr_create_tree ( new_comm );

@@ -1,12 +1,12 @@
 /*
- *  $Id: gather.c,v 1.21 1994/12/15 17:29:10 gropp Exp $
+ *  $Id: gather.c,v 1.22 1995/05/16 18:09:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: gather.c,v 1.21 1994/12/15 17:29:10 gropp Exp $";
+static char vcid[] = "$Id: gather.c,v 1.22 1995/05/16 18:09:53 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"
@@ -149,17 +149,21 @@ MPI_Comm          comm;
     MPI_Request req;
     MPI_Status  status;
 
-    MPI_Isend(sendbuf, sendcnt, sendtype, root, MPIR_GATHER_TAG, comm, &req);
+    mpi_errno = MPI_Isend(sendbuf, sendcnt, sendtype, root, 
+			  MPIR_GATHER_TAG, comm, &req);
+    if (mpi_errno) return mpi_errno;
     MPI_Type_extent(recvtype, &extent);
     for ( i=0; i<size; i++ ) {
-      MPI_Recv( (void *)(((char*)recvbuf)+i*extent*recvcount), 
-			   recvcount, recvtype, i, 
-			   MPIR_GATHER_TAG, comm, &status);
+	mpi_errno = MPI_Recv( (void *)(((char*)recvbuf)+i*extent*recvcount), 
+			     recvcount, recvtype, i, 
+			     MPIR_GATHER_TAG, comm, &status);
+	if (mpi_errno) return mpi_errno;
     }
-	MPI_Wait(&req, &status);
+    mpi_errno = MPI_Wait(&req, &status);
   }
   else 
-    MPI_Send(sendbuf, sendcnt, sendtype, root, MPIR_GATHER_TAG, comm);
+      mpi_errno = MPI_Send(sendbuf, sendcnt, sendtype, root, 
+			   MPIR_GATHER_TAG, comm);
 #endif  
 
   /* Unlock for collective operation */

@@ -36,6 +36,7 @@ typedef struct {
     void (*drawgop)();
     /* Information about the graph */
     int wxi, wxn, wyi, wyn, is_lastwindow;
+    int givedy;
     } GraphData;
 
 void PrintGraphHelp( )
@@ -44,6 +45,7 @@ fprintf( stderr, "\n\
 Output\n\
   -cit         Generate data for CIt (default)\n\
   -gnuplot     Generate data for GNUPLOT\n\
+  -givedy      Give the range of data measurements\n\
   -fname filename             (default is stdout)\n\
                (opened for append, not truncated)\n\
   -noinfo      Do not generate plotter command lines or rate estimate\n\
@@ -64,7 +66,10 @@ fprintf( ctx->fp, "set curve window y 0.15 0.90\n" );
 if (ctx->wxn > 1 || ctx->wyn > 1) 
     fprintf( ctx->fp, "set window x %d %d y %d %d\n", 
 	     ctx->wxi, ctx->wxn, ctx->wyi, ctx->wyn );
-fprintf( ctx->fp, "set order d d d x y d\n" );
+if (ctx->givedy) 
+    fprintf( ctx->fp, "set order d d d x y d d d\n" );
+else
+    fprintf( ctx->fp, "set order d d d x y d\n" );
 fprintf( ctx->fp, "title left 'time (us)', bottom 'Size %s',\n", units );
 strcpy(archname,"MPI" );
 MPI_Get_processor_name(hostname,&_n);
@@ -114,19 +119,25 @@ fprintf( ctx->fp, "\n#np time (us) for various sizes\n");
 fflush( ctx->fp );
 }
 
-void DataoutGraph( ctx, proc1, proc2, distance, len, t, mean_time, rate )
+void DataoutGraph( ctx, proc1, proc2, distance, len, t, mean_time, rate,
+		   tmean, tmax )
 GraphData *ctx;
 int     proc1, proc2, distance, len;
-double  t, mean_time, rate;
+double  t, mean_time, rate, tmean, tmax;
 {
-fprintf( ctx->fpdata, "%d\t%d\t%d\t%d\t%f\t%.2f\n",
+if(ctx->givedy) 
+    fprintf( ctx->fpdata, "%d\t%d\t%d\t%d\t%f\t%.2f\t%f\t%f\n",
+	    proc1, proc2, distance, len, tmean * 1.0e6, rate, 
+	    mean_time*1.0e6, tmax * 1.0e6 );
+else
+    fprintf( ctx->fpdata, "%d\t%d\t%d\t%d\t%f\t%.2f\n",
 	    proc1, proc2, distance, len, mean_time*1.0e6, rate );
 }
 
-void DataoutGraphForGop( ctx, len, t, mean_time, rate )
+void DataoutGraphForGop( ctx, len, t, mean_time, rate, tmean, tmax )
 GraphData *ctx;
 int     len;
-double  t, mean_time, rate;
+double  t, mean_time, rate, tmean, tmax;
 {
 fprintf( ctx->fpdata, "%f ", mean_time*1.0e6 );
 fflush( ctx->fpdata );
@@ -145,17 +156,26 @@ int       np;
 fprintf( ctx->fpdata, "%d ", np );
 }
 
-void RateoutputGraph( ctx, sumlen, sumtime, sumlentime, sumlen2, ntest, S, R )
+void RateoutputGraph( ctx, sumlen, sumtime, sumlentime, sumlen2, sumtime2, 
+		     ntest, S, R )
 GraphData *ctx;
-double  sumlen, sumtime, sumlentime, sumlen2;
+double  sumlen, sumtime, sumlentime, sumlen2, sumtime2;
 int     ntest;
 double  *S, *R;
 {
 double  s, r;
-
+double  variance, st;
 PIComputeRate( sumlen, sumtime, sumlentime, sumlen2, ntest, &s, &r );
 s = s * 0.5;
 r = r * 0.5;
+/* Do we need to wait until AFTER the variance to scale s, r ? */
+if (ntest > 1) {
+    st = sumtime / ntest;
+    variance = (1.0 / (ntest - 1.0)) * 
+	(sumtime2 - 2.0 * s * sumtime - 2.0 * r * sumlentime + 
+	 ntest * s * s + 2.0 * r * sumlen + r * r * sumlen2 );
+    }
+					
 fprintf( ctx->fp, "# Model complexity is (%e + n * %e)\n", s, r );
 fprintf( ctx->fp, "# startup = " );
 if (s > 1.0e-3)
@@ -167,7 +187,9 @@ if (r > 1.e-6)
     fprintf( ctx->fp, "%.2f Kbytes/sec\n", 1.0e-3 / r );
 else
     fprintf( ctx->fp, "%.2f Mbytes/sec\n", 1.0e-6 / r );
-
+if (ntest > 1) 
+    fprintf( ctx->fp, "# Variance in fit = %f (smaller is better)\n", 
+	    variance );
 *S = s;
 *R = r;
 }
@@ -280,17 +302,22 @@ GraphData *ctx;
 int     first, last;
 double  s, r;
 {
-
+if (ctx->givedy)
+    fprintf( ctx->fp, "plot '%s' using 4:5:7:8 with errorbars,\\\n", 
+	     ctx->fname2 );
+else {
+    fprintf( ctx->fp, "plot '%s' using 4:5 with ", ctx->fname2 );
+    
 #ifdef GNUVERSION_HAS_BOXES
-fprintf( ctx->fp, "plot '%s' using 4:5 with boxes,\\\n\
-'%s' using 4:7 with lines,\\\n", ctx->fname2, ctx->fname2 );
-fprintf( ctx->fp, "%f+%f*x with dots\n", 
-	 s*1.0e6, r*1.0e6  );
+    fprintf( ctx->fp, "boxes,\\\n\
+'%s' using 4:7 with lines,\\\n", ctx->fname2 );
 #else
-fprintf( ctx->fp, "plot '%s' using 4:5 with lines,\\\n", ctx->fname2 );
+    fprintf( ctx->fp, "lines,\\\n" );
+#endif
+    }
+
 fprintf( ctx->fp, "%f+%f*x with dots\n", 
 	 s*1.0e6, r*1.0e6  );
-#endif
 }
 
 void DrawGopGnuplot( ctx, first, last, s, r, nsizes, sizelist )
@@ -366,6 +393,7 @@ GraphData *new;
 char     filename[1024];
 int      wsize[2];
 int      isgnu;
+int      givedy;
 
 new = (GraphData *)malloc(sizeof(GraphData));    if (!new)return 0;;
 
@@ -382,11 +410,14 @@ if (SYArgGetString( argc, argv, 1, "-fname", filename, 1024 ) &&
     }
 else 
     new->fp = stdout;
+givedy = SYArgHasName( argc, argv, 1, "-givedy" );
+
 /* Graphics layout */
-new->wxi = 1;
-new->wxn = 1;
-new->wyi = 1;
-new->wyn = 1;
+new->wxi    = 1;
+new->wxn    = 1;
+new->wyi    = 1;
+new->wyn    = 1;
+new->givedy = givedy;
 if (SYArgGetIntVec( argc, argv, 1, "-wx", 2, wsize )) {
     new->wxi           = wsize[0];
     new->wxn           = wsize[1];
@@ -419,7 +450,7 @@ else {
     new->drawgop    = DrawGopGnuplot;
     new->endpage    = EndPageGnuplot;
     sprintf( filename2, "%s.gpl", (filename[0] ? filename : "mppout" ) );
-    new->fpdata	    = fopen( filename2, "w" );
+    new->fpdata	    = fopen( filename2, "a" );
     if (!new->fpdata) {
 	fprintf( stderr, "Could not open file %s\n\
 used for holding data for GNUPLOT\n", filename2 );

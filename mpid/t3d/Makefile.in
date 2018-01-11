@@ -1,0 +1,58 @@
+#
+#  $Id: Makefile.in,v 1.3 1995/06/07 06:09:14 bright Exp $
+#
+#  (C) 1993 by Argonne National Laboratory and Mississipi State University.
+#      All rights reserved.  See COPYRIGHT in top-level directory.
+#
+##### User configurable options #####
+
+ARCH        = @ARCH@
+COMM        = @COMM@
+DEVICE      = @DEVICE@
+BOPT        = @BOPT@
+P4_DIR      = @P4_DIR@
+TOOLS_DIR   = @TOOLS_DIR@
+MPIR_HOME   = @MPIR_HOME@
+INCLUDE_DIR = @INCLUDE_PATH@ -Impid/@DEVICE@ -Iinclude -I.
+AR          = @AR@
+RANLIB      = @RANLIB@
+LINTFLAGS   = -v -u
+CC          = @CC@
+ASM         = @ASM@
+ASMFILES_O  = @ASMFILES_O@
+
+### End User configurable options ###
+
+SHELL = /bin/sh
+
+LIBNAME     = ../../lib/$(ARCH)/$(COMM)/libmpi.a
+CFLAGS      = @CFLAGS@ @OPTFLAGS@ $(COPT) $(OPT) -I../.. -I../../include -I. \
+              -DMPID_DEVICE_CODE @DEVCFLAGS@
+SOURCES     = t3dcoll.c   t3dinit.c   t3drecv.c   t3dsync.c \
+              t3devent.c  t3dprobe.c  t3dsend.c   t3ddebug.c
+OBJECTS     = $(SOURCES:.c=.o) $(ASMFILES_O)
+
+
+ALL: default
+
+default: $(LIBNAME) 
+
+$(LIBNAME): $(OBJECTS) 
+	$(AR) $@ $?
+	$(RANLIB) $@
+
+default_all: $(OBJECTS)
+	$(AR) ../../lib/$(ARCH)/$(COMM)/libmpi.a $?
+
+.c.o:
+	$(CC) $(CFLAGS) $(BASEOPT) -c $*.c $(MPI_PROFILE)
+
+.s.o:
+	$(ASM) -I/usr/include/mpp $*.s
+
+lint:
+	lint $(LINTFLAGS) $(CFLAGS) $(SOURCES)
+
+clean:
+	/bin/rm -f *~ $(OBJECTS) 
+

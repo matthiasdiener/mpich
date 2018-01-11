@@ -1,0 +1,138 @@
+#! /bin/sh
+#
+if [ "$MPIR_HOME" = "" ] ; then 
+    MPIR_HOME=/home/MPI/mpich
+fi
+if [ "$MPIR_HOME" = "#""MPIR_HOME""#" ] ; then
+    MPIR_HOME=`pwd`/..
+fi
+MPIRUN_HOME=$MPIR_HOME/util
+if [ "$argsset" = "" ] ; then
+   . $MPIRUN_HOME/mpirun.args
+   argsset=1
+fi
+#
+if [ "$MPI_P4SSPORT" != "" ] ; then
+    if [ "$MPI_USEP4SSPORT" = "yes" -o "$MPI_USEP4SSPORT" = "YES" ] ; then
+        p4ssport=$MPI_P4SSPORT
+    fi
+fi
+# Make sure that the application is in the .p4apps file.  Note that 
+# progname is already an absolute path
+if [ "$p4ssport" != "" ] ; then
+    if [ -e ~/.p4apps ] ; then
+        grep $progname ~/.p4apps > /dev/null 2>&1
+        if [ $? != 0 ] ; then 
+	    echo "$progname" >> ~/.p4apps
+            chmod 600 ~/.p4apps
+	fi
+    else
+	echo "$progname" >> ~/.p4apps
+        chmod 600 ~/.p4apps
+    fi
+    cmdLineArgs="$cmdLineArgs -p4ssport $p4ssport"
+fi
+#
+# Construct the procgroup file
+. $MPIRUN_HOME/mpirun.pg
+# machinelist has the hosts
+# archuselist has the architectures
+#
+# We use this form instead of "local 0" in-case the user is trying to
+# select a second network whose names are not those returned by
+# "hostname".  For example, a system with a DEC Gigiswitch, Myricom 
+# network, or IP over the IBM SP2 switch (HPS).
+prognamemain=$progname
+if [ "$p4pgfile" = "" ] ; then
+    p4pgfile="$PWD_TRIAL/PI$$"
+    procNum=1
+    archval=`echo $archuselist | cut -d' ' -f1`
+    proginstance=`echo $progname | sed "s/%a/$archval/g"`
+    prognamemain=$proginstance
+    if [ $just_testing = 1 ] ; then
+       echo "Procgroup file:"
+       if [ $nolocal = 0 ] ; then
+	    echo "$HOST 0 $proginstance"
+       else 
+	    echo "$machinehead 0 $proginstance"
+            procNum=2
+       fi
+    else
+       if [ $nolocal = 0 ] ; then
+	    echo "$HOST 0 $proginstance" > $p4pgfile
+       else
+	    echo "$machinehead 0 $proginstance" > $p4pgfile
+            procNum=2
+       fi
+    fi
+    cnt=1
+    for machine in $machinelist ; do 
+	if [ $procNum = 2 ] ; then 
+	    procNum=1; cnt=`expr $cnt + 1`; continue ; 
+	fi
+	archval=`echo $archuselist | cut -d' ' -f$cnt`
+	cnt=`expr $cnt + 1`
+	proginstance=`echo $progname | sed "s/%a/$archval/g"`
+	if [ $just_testing = 1 ] ; then
+	    echo $machine 1 $proginstance
+	else
+	    echo $machine 1 $proginstance >> $p4pgfile
+	fi
+    done
+
+    # make sure the procgroup file was written
+    if [ $just_testing = 0 -a \! -r "$p4pgfile" ] ; then
+        echo Failed to write "$p4pgfile".  Exiting.
+        exit 1
+    fi
+
+    if [ $just_testing = 0 -a $mpirun_verbose = 1 ] ; then
+      echo Created "$p4pgfile"
+    fi
+fi
+#
+startpgm="eval"
+if [ "$debugger" != "" ] ; then
+    # If gdb has an equivalent, the documentation is well hidden.
+    if [ $debugger = dbx -a -r $HOME/.dbxinit ] ; then
+	cat $HOME/.dbxinit > $PWD_TRIAL/PId$$
+    fi
+	cat >> $PWD_TRIAL/PId$$ <<.
+ignore USR1
+# Use this command to start your programm:
+run  $cmdLineArgs -p4pg $p4pgfile
+.
+	startpgm="$debugger $progname $commandfile $PWD_TRIAL/PId$$"
+fi
+#
+if [ $just_testing = 1 ] ; then
+  echo ""
+  if [ $nolocal = 1 ] ; then
+	echo $rshcmd $machinehead $prognamemain  $cmdLineArgs -p4pg "$p4pgfile"
+  else
+	echo $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
+  fi
+else
+  if [ $nolocal = 1 ] ; then
+    if [ "$debugger" != "" ] ; then
+	  $rshcmd $machinehead $debugger $commandfile $PWD_TRIAL/PId$$ $prognamemain
+    else
+	  $rshcmd $machinehead $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
+    fi
+  else
+    if [ "$debugger" != "" ] ; then
+	    $debugger $commandfile $PWD_TRIAL/PId$$ $prognamemain
+    else
+	    $prognamemain $cmdLineArgs -p4pg "$p4pgfile"
+    fi
+  fi # nolocal
+  if [ $leavePGFile = 1 ] ; then
+	echo "P4 procgroup file is $p4pgfile."
+  else
+    /bin/rm "$p4pgfile"
+  fi
+fi #just testing
+
+
+
+
