@@ -23,13 +23,20 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_get_elements_ ANSI_ARGS(( MPI_Status *, MPI_Datatype *, int *, int * ));
+void mpi_get_elements_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                   MPI_Fint * ));
 
 void mpi_get_elements_ ( status, datatype, elements, __ierr )
-MPI_Status    *status;
-MPI_Datatype  *datatype;
-int          *elements;
-int *__ierr;
+MPI_Fint *status;
+MPI_Fint *datatype;
+MPI_Fint *elements;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Get_elements(status,*datatype,elements);
+    int lelements;
+    MPI_Status c_status;
+
+    MPI_Status_f2c(status, &c_status);
+    *__ierr = MPI_Get_elements(&c_status,MPI_Type_f2c(*datatype),
+                               &lelements);
+    *elements = (MPI_Fint)lelements;
 }

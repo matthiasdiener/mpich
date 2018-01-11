@@ -40,6 +40,9 @@ typedef struct {
     MPIR_OPTYPE handle_type;
     MPIR_COOKIE                 /* Cookie to help detect valid item */
     int is_complete;
+    int self_index;             /* Used when mapping to/from indices */
+    int ref_count;              /* Used to handle freed (by user) but
+				   not complete */
     } MPIR_COMMON;
 
 /*
@@ -54,6 +57,9 @@ struct _MPIR_SHANDLE {
     MPIR_OPTYPE  handle_type;    
     MPIR_COOKIE                   /* Cookie to help detect valid item */
     int          is_complete;     /* Indicates if complete */
+    int          self_index;      /* Used when mapping to/from indices */
+    int          ref_count;       /* Used to handle freed (by user) but
+				     not complete */
     int          errval;          /* Holds any error code; 0 for none */
     MPI_Comm     comm;            /* Do we need this?  */
 
@@ -95,6 +101,9 @@ struct _MPIR_RHANDLE {
     MPIR_OPTYPE  handle_type;    
     MPIR_COOKIE                /* Cookie to help detect valid item */
     int          is_complete;  /* Indicates is complete */
+    int          self_index;   /* Used when mapping to/from indices */
+    int          ref_count;    /* Used to handle freed (by user) but
+				  not complete */
     MPI_Status   s;            /* Status of data */
     int          contextid;    /* context id -- why? */
     void         *buf;         /* address of buffer */
@@ -171,6 +180,9 @@ typedef struct {
     MPIR_OPTYPE handle_type;    
     MPIR_COOKIE                 /* Cookie to help detect valid item */
     int         is_complete;    /* Is request complete? */
+    int         self_index;     /* Used when mapping to/from indices */
+    int         ref_count;      /* Used to handle freed (by user) but
+				   not complete */
     int         active;         /* Should this be ignored? */
     int         (*create_ureq) ANSI_ARGS((MPI_Request));
     int         (*free_ureq)   ANSI_ARGS((MPI_Request));
@@ -193,10 +205,20 @@ union MPIR_HANDLE {
     MPIR_UHANDLE  uhandle;
 };
 
+#ifdef STDC_HEADERS
+/* Prototype for memset() */
+#include <string.h>
+#elif defined(HAVE_STRING_H)
+#include <string.h>
+#elif defines(HAVE_MEMORY_H)
+#include <memory.h>
+#endif
+
 #ifdef DEBUG_INIT_MEM
 #define MPID_Request_init( ptr, in_type ) { \
 		      memset(ptr,0,sizeof(*(ptr)));\
 		      (ptr)->handle_type = in_type;\
+                      (ptr)->ref_count = 1;\
 		      MPIR_SET_COOKIE((ptr),MPIR_REQUEST_COOKIE);}
 #else
 /* For now, turn on deliberate garbaging of memory to catch problems */
@@ -205,6 +227,7 @@ union MPIR_HANDLE {
 #define MPID_Request_init( ptr, in_type ) { \
 		      memset(ptr,0,sizeof(*(ptr)));\
 		      (ptr)->handle_type = in_type;\
+                      (ptr)->ref_count = 1;\
 		      MPIR_SET_COOKIE((ptr),MPIR_REQUEST_COOKIE);}
 #endif
 

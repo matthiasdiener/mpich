@@ -1,5 +1,5 @@
 /*
- *  $Id: wait.c,v 1.15 1997/01/24 21:55:18 gropp Exp $
+ *  $Id: wait.c,v 1.2 1998/01/16 16:27:00 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -36,6 +36,7 @@ MPI_Status   *status;
     MPIR_ERROR_PUSH(MPIR_COMM_WORLD);
     /* We'll let MPI_Waitall catch the errors */
     mpi_errno = MPI_Waitall( 1, request, status );
+
     MPIR_ERROR_POP(MPIR_COMM_WORLD);
     if (mpi_errno == MPI_ERR_IN_STATUS)
 	mpi_errno = status->MPI_ERROR;

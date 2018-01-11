@@ -23,11 +23,12 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_op_free_ ANSI_ARGS(( MPI_Op *, int * ));
+void mpi_op_free_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_op_free_( op, __ierr )
-MPI_Op  *op;
-int *__ierr;
+MPI_Fint *op;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Op_free( op );
+    MPI_Op l_op = MPI_Op_f2c(*op);
+    *__ierr = MPI_Op_free(&l_op);
 }

@@ -34,7 +34,7 @@ static MPI_Status _mpi_status;static int _n, _MPILEN;
 int EachToAll(), EachToAllNB(), AllToAll(), AllToAllNB(), AllToAllPhased();
 
 #define NPATTERNS 12
-static long Patterns[12] = {
+static unsigned long Patterns[12] = {
     0xffffffff, 0xaaaaaaaa, 0x88888888, 0x80808080, 0x80008000, 0x80000000,
     0x00000000, 0x55555555, 0x77777777, 0x7f7f7f7f, 0x7fff7fff, 0x7fffffff };
 static double bytes_sent;
@@ -58,7 +58,8 @@ char *argv[];
 {
 int c;
 int (* f)();
-long len,size, pattern;
+long len,size;
+unsigned long pattern;
 long first,last,incr, svals[3];
 Protocol protocol  = Blocking;
 int      toall     = 0, isphased = 0;
@@ -444,10 +445,10 @@ return err;
   and checking it.
  --------------------------------------------------------------------------- */
 SetBuffer( buf, size, pattern )
-long *buf;
+unsigned long *buf;
 int  size, pattern;
 {
-long val;
+unsigned long val;
 int  i;
 
 if (pattern < NPATTERNS) {
@@ -463,10 +464,10 @@ else {
 }
 
 int CheckBuffer( buf, size, pattern )
-long *buf;
+unsigned long *buf;
 int  size, pattern;
 {
-long val;
+unsigned long val;
 int  i;
 
 if (pattern < NPATTERNS) {

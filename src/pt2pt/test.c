@@ -1,5 +1,5 @@
 /*
- *  $Id: test.c,v 1.16 1997/01/24 21:55:18 gropp Exp $
+ *  $Id: test.c,v 1.2 1998/04/28 21:47:17 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,8 +14,8 @@ Input Parameter:
 . request - communication request (handle) 
 
 Output Parameter:
-. flag - true if operation completed (logical) 
-. status - status object (Status) 
++ flag - true if operation completed (logical) 
+- status - status object (Status) 
 
 .N waitstatus
 

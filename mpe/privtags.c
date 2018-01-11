@@ -40,12 +40,12 @@ return MPI_SUCCESS;
   communicator
 
   Input Parameters:
-. comm_in - Input communicator
-. ntags   - Number of tags
++ comm_in - Input communicator
+- ntags   - Number of tags
 
   Output Parameters:
-. comm_out - Output communicator.  May be 'comm_in'.
-. first_tag - First tag available
++ comm_out - Output communicator.  May be 'comm_in'.
+- first_tag - First tag available
 
   Returns:
   MPI_SUCCESS on success, MPI error class on failure.
@@ -110,9 +110,9 @@ return MPI_SUCCESS;
   MPE_ReturnTags - Returns tags allocated with MPE_GetTags.
 
   Input Parameters:
-. comm - Communicator to return tags to
++ comm - Communicator to return tags to
 . first_tag - First of the tags to return
-. ntags - Number of tags to return.
+- ntags - Number of tags to return.
 
 .seealso: MPE_GetTags
   

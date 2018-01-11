@@ -1,4 +1,4 @@
-.TH CLOG_mergelogs 4 "4/9/1997" " " "MPE"
+.TH CLOG_mergelogs 4 "7/1/1998" " " "MPE"
 .SH NAME
 CLOG_mergelogs \-  merge individual logfiles into one via messages 
 .SH SYNOPSIS
@@ -15,8 +15,8 @@ second arg is filename
 
 On process 0 in MPI_COMM_WORLD, collect logs from other processes and merge
 them with own log.  Timestamps are assumed to be already adjusted on both
-incoming logs and the master''s.  On the other processes, fill in length and
-process id''s and send them, a block at a time, to the master.  The master
+incoming logs and the master's.  On the other processes, fill in length and
+process id's and send them, a block at a time, to the master.  The master
 writes out the merged log.
 
 .SH LOCATION

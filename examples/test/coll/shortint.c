@@ -30,7 +30,7 @@ for (i=0; i<10; i++) {
     }
 if (rank == 1) 
     MPI_Send( sout, 10, MPI_SHORT_INT, 0, 0, MPI_COMM_WORLD );
-else
+else if (rank == 0)
     MPI_Recv( sout, 10, MPI_SHORT_INT, 1, 0, MPI_COMM_WORLD, &status );
 /* MPI_Bcast( sout, 10, MPI_SHORT_INT, 1, MPI_COMM_WORLD ); */
 for (i=0; i<10; i++) {

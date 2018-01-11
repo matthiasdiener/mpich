@@ -1,6 +1,7 @@
 /* dims_create.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
+#include "mpimem.h"
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
@@ -23,13 +24,35 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_dims_create_ ANSI_ARGS(( int *, int *, int *, int * ));
+void mpi_dims_create_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                  MPI_Fint * ));
 
 void mpi_dims_create_(nnodes, ndims, dims, __ierr )
-int*nnodes;
-int*ndims;
-int *dims;
-int *__ierr;
+MPI_Fint *nnodes;
+MPI_Fint *ndims;
+MPI_Fint *dims;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Dims_create(*nnodes,*ndims,dims);
+
+    if (sizeof(MPI_Fint) == sizeof(int))
+        *__ierr = MPI_Dims_create(*nnodes,*ndims,dims);
+    else {
+        int *ldims;
+        int i;
+
+	MPIR_FALLOC(ldims,(int*)MALLOC(sizeof(int)* (int)*ndims),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Dims_create");
+
+        for (i=0; i<(int)*ndims; i++)
+	    ldims[i] = (int)dims[i];
+
+        *__ierr = MPI_Dims_create((int)*nnodes, (int)*ndims, ldims);
+
+        for (i=0; i<(int)*ndims; i++)
+	    dims[i] = (MPI_Fint)ldims[i];
+	    
+        FREE( ldims );
+    }
+
 }

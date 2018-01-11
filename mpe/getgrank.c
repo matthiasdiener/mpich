@@ -6,8 +6,8 @@
   given (communicator,rank) pair
 
   Input Parameters:
-. comm - Communicator
-. rank - Rank in comm
++ comm - Communicator
+- rank - Rank in comm
 
   Output Parameters:
 . grank - Rank in comm world

@@ -75,6 +75,12 @@ may be faster than expected.
 
 (You need to use mpirun because copytest uses MPI_Wtime to get times)
 
+Finally, the program buflimit is a simple program that estimates the size
+of message that you can send with an MPI_Send without having a matching 
+receive.  Just run
+
+mpirun -np 2 buflimit
+
 The following uses of runmpptest and rungoptest will produce a basic survey 
 of your system.  This script can be placed in a file and executed.
 

@@ -1,5 +1,5 @@
 #ifndef lint
-static char vcid[] = "$Id: lrtest.c,v 1.2 1994/09/10 19:29:38 gropp Exp $";
+static char vcid[] = "$Id: lrtest.c,v 1.2 1998/04/29 15:15:43 swider Exp $";
 #endif
 
 /*
@@ -68,10 +68,10 @@ return new;
     LRRunSingleTest - Run a single test of f for time
 
     Input Parameters:
-.   lrctx - Context
++   lrctx - Context
 .   f     - function to run test.  Returns time test took
 .   fctx  - Context to pass to test function
-.   x     - parameter to pass to function (also parameter in model)
+-   x     - parameter to pass to function (also parameter in model)
 
 $    Format of function is
 $       time = f( x, fctx )

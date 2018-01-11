@@ -6,7 +6,7 @@ c     MPI_PROC_NULL source/destinations.  It should be run with 4
 c     processes 
 c
         program main
-        include "mpif.h"
+        include 'mpif.h'
         integer maxn
         parameter (maxn = 35)
         double precision  a(maxn,maxn)

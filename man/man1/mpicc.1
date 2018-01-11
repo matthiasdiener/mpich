@@ -1,9 +1,9 @@
-.TH mpicc 1 "4/14/1997" " " "MPI Commands"
+.TH mpiCC 1 "6/5/1998" " " "MPI Commands"
 .SH NAME
-mpicc \-  Compiles and links MPI programs written in C 
+mpiCC \-  Compiles and links MPI programs written in C++ 
 .SH DESCRIPTION
 This command can be used to compile and link MPI programs written in
-C.  It provides the options and any special libraries that are
+C++.  It provides the options and any special libraries that are
 needed to compile and link MPI programs.
 
 It is important to use this command (or a 
@@ -20,6 +20,8 @@ profiling libraries, through the use of the
 and 
 .I -mpianim
 commands.
+
+mpiCC cannot be used to compile C programs.  Use mpicc for C programs.
 
 .SH COMMAND LINE ARGUMENTS
 .PD 0
@@ -71,6 +73,17 @@ executable given the name
 .
 .PD 1
 
+.SH ENVIRONMENT VARIABLES
+The environment variables 
+.I MPICH_CCC
+and 
+.I MPICH_CCLINKER
+may be used
+to select different C++ compiler and linker.  Note that since
+MPICH is built with a particular C++ and C compiler, change the
+compilers used can cause problems.  Use this only if you could intermix
+code compiled with the different compilers.
+
 .SH EXAMPLES
 To compile a single file 
 .I foo.c
@@ -79,18 +92,21 @@ To compile a single file
 mpicc -c foo.c 
 .fi
 
+
 To link the output and make an executable, use
 .nf
 mpicc -o foo foo.o
 .fi
+
 Combining compilation and linking in a single command
 .nf
 mpicc -o foo foo.c
 .fi
+
 is a convenient way to build simple programs.
 
 .SH SEE ALSO
 mpif77, mpireconfig
 .br
 .SH LOCATION
-util/README
+/home/MPI/mansrc/commands

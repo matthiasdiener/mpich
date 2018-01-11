@@ -13,7 +13,7 @@
 % This file contains the standard Postscript prolog used when
 % generating Postscript from canvas widgets.
 %
-% $Header: /user6/ouster/wish/library/RCS/prolog.ps,v 1.6 93/04/01 14:03:52 ouster Exp $ SPRITE (Berkeley);
+% $Header: /home/MPI/cvsMaster/mpich/mpe/srtest5.cps,v 1.1.1.1 1997/09/17 20:38:26 gropp Exp $ SPRITE (Berkeley);
 
 %%BeginProlog
 50 dict begin

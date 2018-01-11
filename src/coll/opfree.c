@@ -1,16 +1,12 @@
 /*
- *  $Id: opfree.c,v 1.15 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: opfree.c,v 1.2 1998/01/29 14:26:02 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 #include "mpiops.h"
 
 /*@

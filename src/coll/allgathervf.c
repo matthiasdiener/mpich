@@ -2,6 +2,8 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
+#include "mpimem.h"
+
 #ifdef _CRAY
 #include <fortran.h>
 #include <stdarg.h>
@@ -101,24 +103,57 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_allgatherv_ ANSI_ARGS(( void *, int *, MPI_Datatype *,
-				 void *, int *, int *, MPI_Datatype *,
-				 MPI_Comm *, int * ));
+void mpi_allgatherv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+                                 MPI_Fint *, MPI_Fint *, MPI_Fint *,
+				 MPI_Fint *, MPI_Fint * ));
 
 void mpi_allgatherv_ ( sendbuf, sendcount,  sendtype, 
 		       recvbuf, recvcounts, displs,   recvtype, comm, __ierr )
-void             *sendbuf;
-int*sendcount;
-MPI_Datatype     *sendtype;
-void             *recvbuf;
-int              *recvcounts;
-int              *displs;
-MPI_Datatype     *recvtype;
-MPI_Comm         *comm;
-int *__ierr;
+void     *sendbuf;
+MPI_Fint *sendcount;
+MPI_Fint *sendtype;
+void     *recvbuf;
+MPI_Fint *recvcounts;
+MPI_Fint *displs;
+MPI_Fint *recvtype;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Allgatherv(MPIR_F_PTR(sendbuf),*sendcount,*sendtype,
-			     MPIR_F_PTR(recvbuf),recvcounts,displs,*recvtype,
-			     *comm);
+
+    if (sizeof(MPI_Fint) == sizeof(int)) 
+        *__ierr = MPI_Allgatherv(MPIR_F_PTR(sendbuf), *sendcount,
+                                 MPI_Type_f2c(*sendtype),
+			         MPIR_F_PTR(recvbuf), recvcounts,
+                                 displs, MPI_Type_f2c(*recvtype),
+			         MPI_Comm_f2c(*comm));
+    else {
+	int size;
+        int *l_recvcounts;
+        int *l_displs;
+	int i;
+
+	MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+ 
+	MPIR_FALLOC(l_recvcounts,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Allgatherv");
+	MPIR_FALLOC(l_displs,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Allgatherv");
+	for (i=0; i<size; i++) {
+	    l_recvcounts[i] = (int)recvcounts[i];
+	    l_displs[i] = (int)displs[i];
+	}    
+
+        *__ierr = MPI_Allgatherv(MPIR_F_PTR(sendbuf), (int)*sendcount,
+                                 MPI_Type_f2c(*sendtype),
+			         MPIR_F_PTR(recvbuf), l_recvcounts,
+                                 l_displs, MPI_Type_f2c(*recvtype),
+			         MPI_Comm_f2c(*comm));
+	FREE( l_recvcounts );
+	FREE( l_displs );
+    }
+
+
 }
 #endif

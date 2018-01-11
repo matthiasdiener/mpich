@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2recv.c,v 1.3 1996/12/01 23:34:41 gropp Exp $
+ *  $Id: adi2recv.c,v 1.3 1998/02/17 20:44:15 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,6 +7,7 @@
 
 #include "mpid.h"
 #include "mpiddev.h"
+#include "reqalloc.h"
 #include "../util/queue.h"
 
 /* 
@@ -25,6 +26,12 @@
 /***************************************************************************/
 /* Does this need to return msgrep if heterogeneous? */
 
+/* 
+ * Error handling needs additional work.  Is a request that has detected an
+ * error complete?  Who sets it?  What if the error is ERR_TRUNCATE (where
+ * we'd like to make everything work to the limit of the buffer)?
+ */
+
 void MPID_RecvContig( comm_ptr, buf, maxlen, src_lrank, tag, context_id, 
 		      status, error_code )
 struct MPIR_COMMUNICATOR *comm_ptr;
@@ -36,6 +43,7 @@ MPI_Status *status;
     MPI_Request  request = (MPI_Request)&rhandle;
 
     DEBUG_INIT_STRUCT(request,sizeof(rhandle));
+    MPID_RecvInit( &rhandle );
 
     /* Just in case; make sure that finish is 0 */
     rhandle.finish = 0;
@@ -168,7 +176,11 @@ int         *error_code;
 		dev = MPID_devset->dev_list;
 		if (!rhandle->is_complete) {
 		    lerr = (*dev->check_device)( dev, MPID_BLOCKING );
-		    if (lerr > 0) {
+		    /* An error return from check_device might apply
+		       to a different request.  We break only if
+		       the request that encountered the error is the one
+		       we detected */
+		    if (lerr > 0 && rhandle->s.MPI_ERROR) {
 			*error_code = lerr;
 			break;
 		    }
@@ -179,7 +191,7 @@ int         *error_code;
 		    dev = MPID_devset->dev_list;
 		    while (dev) {
 			lerr = (*dev->check_device)( dev, MPID_NOTBLOCKING );
-			if (lerr > 0) {
+			if (lerr > 0 && rhandle->s.MPI_ERROR) {
 			    *error_code = lerr;
 			    break;
 			}

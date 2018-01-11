@@ -1,5 +1,5 @@
 /*
- *  $Id: mpid.h,v 1.2 1993/11/12 11:54:52 doss Exp $
+ *  $Id: mpid.h,v 1.1.1.1 1997/09/17 20:40:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

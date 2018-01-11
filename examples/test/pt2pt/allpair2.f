@@ -382,7 +382,7 @@ C            print *, 'flag = ', flag
          call rq_check( requests, 2, 'issend and irecv (testall)' )
 
          call msg_check( recv_buf, prev, tag, count, statuses(1,1),
-     $           TEST_SIZE, 'issend and recv' )
+     $           TEST_SIZE, 'issend and recv (testall)' )
 
       else
 
@@ -532,7 +532,7 @@ c
 
       do 119 c = 1, TEST_COUNT+9
       call clear_test_data(recv_buf,TEST_SIZE)
-
+      
       call MPI_Ssend_init(send_buf, count, MPI_REAL, next, tag,
      .                    MPI_COMM_WORLD, requests(2), ierr) 
 
@@ -689,6 +689,13 @@ c------------------------------------------------------------------------------
       call MPI_Comm_rank( MPI_COMM_WORLD, rank, ierr )
       call MPI_Get_count(status, MPI_REAL, recv_count, ierr)
 
+C     Check for null status
+      if (recv_src .eq. MPI_ANY_SOURCE .and. 
+     *    recv_tag .eq. MPI_ANY_TAG .and. 
+     *    status(MPI_ERROR) .eq. MPI_SUCCESS) then
+         print *, '[', rank, '] Unexpected NULL status in ', name
+         call MPI_Abort( MPI_COMM_WORLD, 104, ierr )
+      end if
       if (recv_src .ne. source) then
          print *, '[', rank, '] Unexpected source:', recv_src, 
      *            ' in ', name

@@ -1,5 +1,5 @@
 /*
- *  $Id: red_scat.c,v 1.25 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: red_scat.c,v 1.2 1998/04/28 18:50:59 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,13 +14,13 @@
 MPI_Reduce_scatter - Combines values and scatters the results
 
 Input Parameters:
-. sendbuf - starting address of send buffer (choice) 
++ sendbuf - starting address of send buffer (choice) 
 . recvcounts - integer array specifying the 
 number of elements in result distributed to each process.
 Array must be identical on all calling processes. 
 . datatype - data type of elements of input buffer (handle) 
 . op - operation (handle) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - starting address of receive buffer (choice) 

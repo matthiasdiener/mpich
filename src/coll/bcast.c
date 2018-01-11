@@ -1,5 +1,5 @@
 /*
- *  $Id: bcast.c,v 1.31 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: bcast.c,v 1.2 1998/04/28 18:50:49 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,11 +14,11 @@ MPI_Bcast - Broadcasts a message from the process with rank "root" to
             all other processes of the group. 
 
 Input/output Parameters:
-. buffer - starting address of buffer (choice) 
++ buffer - starting address of buffer (choice) 
 . count - number of entries in buffer (integer) 
 . datatype - data type of buffer (handle) 
 . root - rank of broadcast root (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Algorithm:  
 If the underlying device does not take responsibility, this function

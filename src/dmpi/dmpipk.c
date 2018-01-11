@@ -1,16 +1,12 @@
 /*
- *  $Id: dmpipk.c,v 1.27 1997/01/07 01:46:59 gropp Exp $
+ *  $Id: dmpipk.c,v 1.3 1998/01/29 14:26:58 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpidmpi.h"
-#else
-#include "mpisys.h"
-#endif
 
 /* 
    This file contains the first pass at routines to pack and unpack datatypes
@@ -21,7 +17,10 @@
  */
 
 /* Pack for a send.  Eventually, this will need to handle the Heterogeneous 
-   case - XXXX.  */
+   case - XXXX.  
+
+   It also fails to detect an overrun error, or inadequate input data.
+*/
 void MPIR_Pack_Hvector( comm_ptr, buf, count, datatype, dest, outbuf )
 struct MPIR_COMMUNICATOR *comm_ptr;
 char        *buf;
@@ -152,154 +151,3 @@ struct MPIR_DATATYPE *datatype;
 {
     return datatype->size * count;
 }
-
-#ifndef MPI_ADI2
-/*
-    These routines pack/unpack data for messages.  They KNOW how the 
-    message request areas are arranged, and how the send/receive routines
-    known when to use these routines.
-    
-    dest_type is the format to use (XDR/Swap/Unchanged)
- */
-int MPIR_PackMessage( buf, count, dtype_ptr, dest, dest_type, request )
-char         *buf;
-int          count, dest, dest_type;
-struct MPIR_DATATYPE *dtype_ptr;
-MPI_Request  request;
-{
-  int size;
-  int mpi_errno = MPI_SUCCESS;
-  
-  if (!dtype_ptr->committed) 
-    return MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED;
-
-  if (count == 0) {
-      request->chandle.bufpos			   = 0;
-      request->shandle.dev_shandle.bytes_as_contig = 0;
-      return MPI_SUCCESS;
-      }
-
-  if (dtype_ptr->dte_type == MPIR_PACKED) {
-      /* Data requires no further modification */
-      /* PRINTF( "Packing packed data!\n" ); */
-      /* Mark this data appropriately and indicate that it is packed in the 
-         request 
-       */
-#ifdef MPID_HAS_HETERO
-      /* Hetero buffers have a 4 byte, network byte order, header
-	 indicating type of representation */
-      if (dest_type == MPIR_MSGFORM_XDR)
-	  request->chandle.msgrep = MPIR_MSGREP_XDR;
-      /* Otherwise in receivers order (may change when senders order 
-	 supported) */
-#endif
-      request->chandle.bufpos			   = 0;
-      request->shandle.dev_shandle.start           = buf;
-      request->shandle.dev_shandle.bytes_as_contig = count;
-      return MPI_SUCCESS;
-      }
-  /* Use the generic pack routine */
-  MPIR_Pack_size( count, datatype, request->chandle.comm, dest_type, &size );
-  if (size == 0) {
-      request->chandle.bufpos			   = 0;
-      request->shandle.dev_shandle.bytes_as_contig = 0;
-      return mpi_errno;
-      }
-  request->chandle.bufpos = (char *)MALLOC( size );
-  if (!request->chandle.bufpos) {
-      return MPI_ERR_EXHAUSTED;
-      }
-  mpi_errno = MPIR_Pack( request->chandle.comm, dest_type, 
-			   buf, count, datatype, 
-			   request->chandle.bufpos, size, &size );
-#ifdef MPID_HAS_HETERO
-  if (dest_type == MPIR_MSGFORM_XDR)
-      request->chandle.msgrep = MPIR_MSGREP_XDR;
-/*  if ((MPID_IS_HETERO == 1) &&
-      MPIR_Comm_needs_conversion(request->chandle.comm))
-      request->chandle.msgrep = MPIR_MSGREP_XDR; 
- */
-#endif
-  {struct MPIR_DATATYPE *packed_ptr;
-    packed_ptr   = MPIR_GET_DTYPE_PTR(MPI_PACKED);
-    MPIR_REF_INCR(packed_ptr);
-  }
-/*  MPI_PACKED->ref_count ++; */
-  if (!request->shandle.persistent) 
-      MPIR_Type_free( &request->shandle.datatype );
-  request->shandle.datatype			 = MPI_PACKED;
-  request->shandle.dev_shandle.start		 = request->chandle.bufpos;
-  request->shandle.dev_shandle.bytes_as_contig = size;
-  return mpi_errno;
-}
-
-/* This is unused; Use MPIR_SendBufferFree */ 
-int MPIR_EndPackMessage( request )
-MPI_Request request;
-{
-FREE( request->chandle.bufpos );
-return MPI_SUCCESS;
-}
-
-int MPIR_SetupUnPackMessage( buf, count, dtype_ptr, source, request )
-char         *buf;
-int          count, source;
-struct MPIR_DATATYPE *dtype_ptr;
-MPI_Request  request;
-{
-int len;
-
-if (!dtype_ptr->committed) 
-    return MPI_ERR_TYPE | MPIR_ERR_UNCOMMITTED;
-
-/* We can't use datatype->size * count, since the actual code may require 
-   padding */
-(void) MPI_Pack_size( count, datatype, request->rhandle.comm, &len );
-
-if (len > 0) {
-    request->chandle.bufpos = (char *)MALLOC( len );
-    if (!request->chandle.bufpos) {
-	return MPI_ERR_EXHAUSTED;
-	}
-    }
-else
-    request->chandle.bufpos = 0;
-
-request->rhandle.dev_rhandle.bytes_as_contig = len;
-request->rhandle.dev_rhandle.start           = request->chandle.bufpos;
-return MPI_SUCCESS;
-}
-
-/* 
-   Set act_count only if changed (on input, is number of bytes) 
-   On output, it should be the number of bytes in OUTPUT (placed into
-   status.count field).
-*/
-int MPIR_UnPackMessage( buf, count, dtype_ptr, source, request, act_count )
-char         *buf;
-int          count, source;
-struct MPIR_DATATYPE *dtype_ptr;
-MPI_Request  request;
-int          *act_count;
-{
-int mpi_errno = MPI_SUCCESS;
-int dest_len;
-
-/* Use generic unpack */
-/* PRINTF( "Using generic unpack\n" ); */
-/* Need to update act_count to bytes WRITTEN */
-if (dtype_ptr->dte_type == MPIR_PACKED) {
-    /* Data requires no further modification */
-    memcpy( buf, request->chandle.bufpos, *act_count );
-    }
-else {
-    mpi_errno = MPIR_Unpack( request->chandle.comm, 
-				request->chandle.bufpos, *act_count, 
-				count, datatype, request->rhandle.msgrep,
-			        buf, act_count, &dest_len );
-    *act_count = dest_len;
-    }
-FREE( request->chandle.bufpos );
-return mpi_errno;
-}
-#endif

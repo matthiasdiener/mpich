@@ -20,9 +20,7 @@ OPTFLAGS    = @OPTFLAGS@
 
 SHELL = /bin/sh
 
-MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
-                 ../../include/mpir.h ../../include/mpi_ad.h \
-		 ../../include/mpisys.h 
+MPI_INCLUDE    = ../../include/mpi.h
 DEVICE_LIB = 
 CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) -DMPI_$(ARCH) \
 	$(MPIPROFILE)
@@ -32,22 +30,22 @@ MPI_FOBJECTS = farg.o initfcmn.o initfdte.o
 MPI_COBJECTS = abort.o debugutil.o init.o initutil.o finalize.o initialize.o \
 	errorstring.o fstrutils.o initdte.o \
 	getpname.o errcreate.o errset.o errget.o errfree.o errclass.o \
-	wtime.o wtick.o errmsg.o int2handle.o handle2int.o
+	wtime.o wtick.o errmsg.o getversion.o
 MPI_FSOURCES = farg.f initfcmn.f initfdte.f
 MPI_CSOURCES = abort.c debugutil.c init.c initutil.c \
 	finalize.c fstrutils.c initialize.c errorstring.c initdte.c \
 	getpname.c errcreate.c errset.c errget.c errfree.c errclass.c \
-	wtime.c wtick.c errmsg.c int2handle.c handle2int.c
+	wtime.c wtick.c errmsg.c getversion.c
 MPI_TSOURCES = errclass.c 
 MPI_WSOURCES = abortf.c finalizef.c errclassf.c
 MPI_WOBJECTS = initializef.o abortf.o initf.o finalizef.o errorstringf.o \
 	getpnamef.o errcreatef.o errsetf.o errgetf.o errfreef.o errclassf.o \
-	wtimef.o wtickf.o 
+	wtimef.o wtickf.o getversionf.o
 
 MPI_SOURCES = $(MPI_CSOURCES) $(MPI_WSOURCES)
 MPI_OBJECTS = $(MPI_COBJECTS) $(MPI_WOBJECTS)
 
-default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
+default: setlinks ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a
 
 profile: ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a
 
@@ -57,7 +55,8 @@ wrapperlib: $(MPI_WOBJECTS)
 # default_all is the same as default, but without the RANLIB.  This
 # can speed up the build (ranlibs can take a LONG time).  profile_all 
 # is the same, but for the profile library
-default_all: $(MPI_OBJECTS) @MPI_FOBJECTS@ @MPE_MPI_EXT_O@
+default_all: setlinks default_objs
+default_objs: $(MPI_OBJECTS) @MPI_FOBJECTS@ @MPE_MPI_EXT_O@
 	$(AR) ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $?
 profile_all: $(MPI_OBJECTS) @MPI_FOBJECTS@
 	$(AR) ../../lib/$(ARCH)/$(COMM)/libp@MPILIBNAME@.a $?
@@ -65,6 +64,15 @@ profile_all: $(MPI_OBJECTS) @MPI_FOBJECTS@
 $(MPI_OBJECTS) :  $(MPI_INCLUDE)
 $(MPI_FOBJECTS) :  $(MPI_INCLUDE)
 
+# 
+# This is needed for initutil.c
+setlinks:
+	if [ ! -s ../../include/mpeexten.h ] ; then \
+	    (cd ../../include ; ln -s ../mpe/mpeexten.h mpeexten.h ) ; fi
+	if [ ! -s dbxerr.c ] ; then \
+	    ln -s ../../mpe/dbxerr.c dbxerr.c ; fi
+	if [ ! -s mpehname.c ] ; then \
+	    ln -s ../../mpe/mpehname.c mpehname.c ; fi
 wrappers:
 	-/bin/rm -f $(MPI_WSOURCES)
 	../../util/bfort -ferr -mpi -mnative -mapptr -ptrprefix MPIR_ \

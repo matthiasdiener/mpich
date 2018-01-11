@@ -1,5 +1,0 @@
-dnl
-dnl rcsid = $Header: /nfs/globus1/src/master/nexus_config/configure.in,v 1.2 1996/02/06 19:39:32 geisler Exp $
-dnl
-AC_INIT(CONFIG)
-AC_OUTPUT(Makefile)

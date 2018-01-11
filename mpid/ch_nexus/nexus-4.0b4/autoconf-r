@@ -1,7 +1,0 @@
-#! /bin/sh
-#
-# Simple script to run autoconf in all subdirectories of this one.
-#
-
-find . -name configure.in -exec autoconf-r-subdir {} \; -o -name quickthreads -prune
-

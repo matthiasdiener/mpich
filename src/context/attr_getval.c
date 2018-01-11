@@ -1,26 +1,24 @@
 /*
- *  $Id: attr_getval.c,v 1.19 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: attr_getval.c,v 1.3 1998/04/28 20:57:54 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "attr.h"
-#endif
 
 /*@C
 
 MPI_Attr_get - Retrieves attribute value by key
 
 Input Parameters:
-. comm - communicator to which attribute is attached (handle) 
-. keyval - key value (integer) 
++ comm - communicator to which attribute is attached (handle) 
+- keyval - key value (integer) 
 
 Output Parameters:
-. attr_value - attribute value, unless 'flag' = false 
-. flag -  true if an attribute value was extracted;  false if no attribute is
++ attr_value - attribute value, unless 'flag' = false 
+- flag -  true if an attribute value was extracted;  false if no attribute is
   associated with the key 
 
 Notes:

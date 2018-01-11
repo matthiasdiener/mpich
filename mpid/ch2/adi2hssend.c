@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2hssend.c,v 1.4 1996/12/01 23:34:41 gropp Exp $
+ *  $Id: adi2hssend.c,v 1.2 1997/10/06 18:30:36 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -54,8 +54,8 @@ int          count, src_lrank, tag, context_id, dest_grank, *error_code;
     }
 
     mybuf = 0;
-    MPID_PackMessage( buf, count, dtype_ptr, comm_ptr, dest_grank, msgrep, msgact,
-		      (void **)&mybuf, &len, error_code );
+    MPID_PackMessage( buf, count, dtype_ptr, comm_ptr, dest_grank, 
+		      msgrep, msgact, (void **)&mybuf, &len, error_code );
     if (*error_code) return;
 
     MPID_SsendContig( comm_ptr, mybuf, len, src_lrank, tag, context_id, 
@@ -109,8 +109,8 @@ MPI_Request  request;
     }
 
     mybuf = 0;
-    MPID_PackMessage( buf, count, dtype_ptr, comm_ptr, dest_grank, msgrep, msgact,
-		      (void **)&mybuf, &len, error_code );
+    MPID_PackMessage( buf, count, dtype_ptr, comm_ptr, dest_grank, 
+		      msgrep, msgact, (void **)&mybuf, &len, error_code );
     if (*error_code) return;
 
     MPID_IssendContig( comm_ptr, mybuf, len, src_lrank, tag, context_id, 

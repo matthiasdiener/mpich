@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_map.c,v 1.10 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: cart_map.c,v 1.3 1998/04/29 14:28:34 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,10 +12,10 @@
 MPI_Cart_map - Maps process to Cartesian topology information 
 
 Input Parameters:
-. comm - input communicator (handle) 
++ comm - input communicator (handle) 
 . ndims - number of dimensions of cartesian structure (integer) 
 . dims - integer array of size 'ndims' specifying the number of processes in each coordinate direction 
-. periods - logical array of size 'ndims' specifying the periodicity specification in each coordinate direction 
+- periods - logical array of size 'ndims' specifying the periodicity specification in each coordinate direction 
 
 Output Parameter:
 . newrank - reordered rank of the calling process; 'MPI_UNDEFINED' if calling process does not belong to grid (integer) 
@@ -55,15 +55,15 @@ int     *newrank;
   /* Determine number of processes needed for topology */
   for ( i=0; i<ndims; i++ )
     nranks *= dims[i];
-
+  
   /* Test that the communicator is large enough */
   MPIR_Comm_size( comm_old_ptr, &size );
   if (size < nranks) {
-      return MPIR_ERROR( comm_old_ptr, MPI_ERR_ARG, myname );
+      return MPIR_ERROR( comm_old_ptr, MPI_ERR_DIMS, myname );
   }
 
   /* Am I in this range? */
-  MPIR_Comm_rank ( comm_old_ptr, &rank );
+  MPIR_Comm_rank ( comm_old_ptr, &rank ); 
   if ( rank < nranks )
     (*newrank) = rank;
   else

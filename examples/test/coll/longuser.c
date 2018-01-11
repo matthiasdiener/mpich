@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "test.h"
 
+int add ANSI_ARGS(( double *, double *, int *, MPI_Datatype * ));
 /*
  * User-defined operation on a long value (tests proper handling of
  * possible pipelining in the implementation of reductions with user-defined

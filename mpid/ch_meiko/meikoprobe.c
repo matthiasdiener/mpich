@@ -6,7 +6,7 @@
 
 
 /*
- *  $Id: chprobe.c,v 1.10 1995/09/18 21:11:51 gropp Exp $
+ *  $Id: meikoprobe.c,v 1.1.1.1 1997/09/17 20:40:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

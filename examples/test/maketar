@@ -6,6 +6,12 @@ set -x
 cd /tmp
 /bin/rm -rf /tmp/mpich-test
 cp -rp /home/MPI/mpich/examples/test /tmp/mpich-test
+# Try to clean the directory tree
+if [ -s /tmp/mpich-test/Makefile ] ; then
+     (cd /tmp/mpich-test ; make clean )
+fi
+# Remove stale copies of mpirun
+find /tmp/mpich-test -name mpirun -exec /bin/rm \{\} \;
 # The next copy pulls in versions of mpicc and mpirun that may
 # be useful.
 cp -rp /home/MPI/class/mpiexmpl/maint/envs /tmp/mpich-test/bin

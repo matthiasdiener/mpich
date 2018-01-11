@@ -1,4 +1,4 @@
-/*  $Id: attach.h,v 1.2 1996/12/04 23:02:00 gropp Exp $
+/*  $Id: attach.h,v 1.1.1.1 1997/09/17 20:39:24 gropp Exp $
  */
 
 /* This file contains support for bringing processes up stopped, so that

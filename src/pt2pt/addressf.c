@@ -85,18 +85,18 @@ if (_isfcd(location)) {
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_address_ ANSI_ARGS(( void *, int *, int * ));
+void mpi_address_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_address_( location, address, __ierr )
 void     *location;
-int      *address;
-int      *__ierr;
+MPI_Fint *address;
+MPI_Fint *__ierr;
 {
     MPI_Aint a, b;
 
     *__ierr = MPI_Address( location, &a );
     if (*__ierr != MPI_SUCCESS) return;
-
+    
     b = a - (MPI_Aint)MPIR_F_MPI_BOTTOM;
     *address = (int)( b );
     if (((MPI_Aint)*address) - b != 0) {
@@ -106,3 +106,4 @@ int      *__ierr;
     }
 }
 #endif
+

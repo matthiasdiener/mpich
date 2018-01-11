@@ -23,12 +23,15 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_errhandler_get_ ANSI_ARGS(( MPI_Comm *, MPI_Errhandler *, int * ));
+void mpi_errhandler_get_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, 
+                                     MPI_Fint * ));
 
 void mpi_errhandler_get_( comm, errhandler, __ierr )
-MPI_Comm *comm;
-MPI_Errhandler *errhandler;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *errhandler;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Errhandler_get( *comm, errhandler );
+    MPI_Errhandler l_errhandler;
+    *__ierr = MPI_Errhandler_get( MPI_Comm_f2c(*comm), &l_errhandler );
+    *errhandler = MPI_Errhandler_c2f(l_errhandler);
 }

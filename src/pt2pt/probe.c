@@ -1,5 +1,5 @@
 /*
- *  $Id: probe.c,v 1.19 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: probe.c,v 1.4 1998/04/28 21:47:02 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,17 +7,14 @@
 
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Probe - Blocking test for a message
 
 Input Parameters:
-. source - source rank, or 'MPI_ANY_SOURCE' (integer) 
++ source - source rank, or 'MPI_ANY_SOURCE' (integer) 
 . tag - tag value or 'MPI_ANY_TAG' (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . status - status object (Status) 
@@ -49,23 +46,10 @@ MPI_Status  *status;
     if (source == MPI_PROC_NULL) {
 	status->MPI_SOURCE = MPI_PROC_NULL;
 	status->MPI_TAG	   = MPI_ANY_TAG;
-	status->count	   = 0;
+	MPID_ZERO_STATUS_COUNT(status);
 	return MPI_SUCCESS;
 	}
-#ifdef MPI_ADI2
     MPID_Probe( comm_ptr, tag, comm_ptr->recv_context, source, &mpi_errno, 
 		status );
     MPIR_RETURN(comm_ptr,mpi_errno,myname);
-#else
-#ifdef MPID_NEEDS_WORLD_SRC_INDICES
-    MPID_Probe( comm->ADIctx, tag, 
-	        (source >= 0) ? (comm->lrank_to_grank[source])  : source,
-	        comm->recv_context, status );
-#else
-    MPID_Probe( comm->ADIctx, tag, 
-	        source, 
-	        comm->recv_context, status );
-#endif
-    return MPI_SUCCESS;
-#endif
 }

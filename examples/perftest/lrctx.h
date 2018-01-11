@@ -1,4 +1,4 @@
-/*   $Id: lrctx.h,v 1.1 1994/03/18 00:22:10 gropp Exp $ */
+/*   $Id: lrctx.h,v 1.1.1.1 1997/09/17 20:37:47 gropp Exp $ */
 
 #ifndef _LRCTX
 #define _LRCTX

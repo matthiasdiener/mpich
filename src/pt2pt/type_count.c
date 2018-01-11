@@ -1,12 +1,12 @@
 /*
- *  $Id: type_count.c,v 1.8 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_count.c,v 1.1.1.1 1997/09/17 20:42:10 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: type_count.c,v 1.8 1997/01/07 01:45:29 gropp Exp $";
+static char vcid[] = "$Id: type_count.c,v 1.1.1.1 1997/09/17 20:42:10 gropp Exp $";
 #endif /* lint */
 
 #include "mpiimpl.h"

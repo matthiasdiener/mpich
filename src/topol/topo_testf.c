@@ -23,12 +23,14 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_topo_test_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
+void mpi_topo_test_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_topo_test_ ( comm, top_type, __ierr )
-MPI_Comm *comm;
-int      *top_type; 
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *top_type; 
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Topo_test( *comm, top_type);
+    int ltop_type;
+    *__ierr = MPI_Topo_test( MPI_Comm_f2c(*comm), &ltop_type);
+    *top_type = (MPI_Fint)ltop_type;
 }

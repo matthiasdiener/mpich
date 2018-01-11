@@ -12,6 +12,8 @@ if ($#argv > 0) then
 	echo "if the install completed correctly."
 	echo " "
 	echo "Also extracts test suite results (examples/test)."
+	echo "(By default, only shows results of test suite, not run"
+	echo "information that includes time and host.)
         exit 1
     endif
 endif
@@ -61,6 +63,10 @@ endif
 # have the same problems.  Reject strings containing
 #    /X11R5/.../Xlib.h: ... function declaration ... a prototype
 #
+# We also need to accept /..../mpicc and /.../mpif77 as names for the
+# compilers, since this is what is used in the tests.  gcc is also a
+# valid compiler name.
+#
 set ISRC = 0
 set RC   = 0
 set LARCH = ""
@@ -77,10 +83,14 @@ if ($LARCH == "386BSD") then
     # was ^[a-zA-Z0-9]*\.c: [1-9]
     if ($ISRC) then
         set RC = `egrep '^"|^Error on line|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:' $1 | \
-     egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' \
-             | wc -l`
+     egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' | \
+     egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
+     egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' | \
+             wc -l`
     else
-        egrep '^"|^Error on line|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9]*\.c:|^cc:' $1 | egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype'
+        egrep '^"|^Error on line|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9]*\.c:|^cc:' $1 | egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' | \
+     egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
+     egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' 
     endif
     exit($RC)
 endif
@@ -89,12 +99,16 @@ if ($LARCH == "LINUX") then
     # LINUX has very hard to detect error messages.
     if ($ISRC) then
     # was ^[a-zA-Z0-9]*\.c: [1-9]
-    set RC = `egrep '^"|^\.|^\*\#|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^make\[|^[a-zA-Z0-9_]*\.c:|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.o.*:|^cc:|^f77:' $1 | wc -l`
+    set RC = `egrep '^"|^\.|^\*\#|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^make\[|^[a-zA-Z0-9_]*\.c:|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.o.*:|^cc:|^f77:' $1 | egrep -v 'Warning .*declared EXTERNAL but never used' | \
+ egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
+ wc -l`
     set RC1 = `egrep 'No space left|^[-0-9 ]*ERROR:|Connection timed' $1 | \
 		wc -l`
     if ($RC1 != 0) set RC = $RC1
 else
-    egrep '^"|^\.|^\*\#|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^make\[|^[a-zA-Z0-9_]*\.c:|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.o.*:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1
+    egrep '^"|^\.|^\*\#|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^make\[|^[a-zA-Z0-9_]*\.c:|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.o.*:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1 | \
+    egrep -v 'Warning .*declared EXTERNAL but never used' |\
+    egrep -v 'if \[ .* \] ; then ln -s .* fi'
     egrep 'No space left|Connection timed' $1
 endif
     exit($RC)
@@ -104,18 +118,30 @@ endif
 #
 if ($ISRC) then
     # was ^[a-zA-Z0-9_]*\.c: [1-9]
-    set RC = `egrep '^"|^\.|^\*\#|^accom:|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:' $1 | \
+    set RC = `egrep '^"|^\\.|^\*\#|^accom:|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:' $1 | \
 	egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' \
+        egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' | \
+        egrep -v '^ar: creating|^ar: writing' | \
+        egrep -v 'Warning .*declared EXTERNAL but never used' | \
+        egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
+	egrep -v 'Type long double has the same' |\
 	| wc -l`
     set RC1 = `egrep 'No space left|^[-0-9 ]*ERROR:|Connection timed' $1 | \
 		wc -l`
     if ($RC1 != 0) set RC = $RC1
 else
-    egrep '^"|^\.|^\*\#|^accom:|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1 | \
-    egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype'
+    egrep '^"|^\\.|^\*\#|^accom:|^/usr.*:|^Error|^ar:|^mv:|^ld:|^Archive:|^make:|^xlc:|^cfe:|^PGC\-|^[a-zA-Z0-9_][a-zA-Z0-9_]*\.c:|^cc:|^f77:|^[-0-9 ]*ERROR:' $1 | \
+    egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' |\
+    egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' | \
+    egrep -v '^ar: creating|^ar: writing' | \
+    egrep -v 'Warning .*declared EXTERNAL but never used' | \
+    egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
+    egrep -v 'Type long double has the same' 
     egrep 'No space left|Connection timed' $1
 endif
 #
-# Try for test suite
-sed -n -e '/from expected output/,/\/bin\/rm/p' $1
+# Try for test suite.  Print out the head line and the summary for the 
+# directory
+sed -n -e '/^Making testing/p' -e '/\*\*\* Checking for diff/,/^End of testing/p' $1 | grep -v '^.*/mpicc' | \
+	grep -v '^.*/mpif77'
 exit($RC)

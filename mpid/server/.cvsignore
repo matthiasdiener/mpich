@@ -1,7 +1,0 @@
-Makefile
-server.h
-server.o
-server
-config.log
-config.cache
-config.status

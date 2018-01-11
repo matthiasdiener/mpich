@@ -1,16 +1,12 @@
 /*
- *  $Id: wtime.c,v 1.6 1996/04/11 20:31:11 gropp Exp $
+ *  $Id: wtime.c,v 1.2 1998/01/29 14:27:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpid_time.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
   MPI_Wtime - Returns an elapsed time on the calling processor
@@ -31,11 +27,7 @@
 @*/
 double MPI_Wtime()
 {
-#ifdef MPI_ADI2
     double t1;
     MPID_Wtime( &t1 );
     return t1;
-#else
-    return MPID_WTIME( MPI_COMM_WORLD->ADIctx );
-#endif
 }

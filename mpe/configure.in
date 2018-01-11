@@ -9,7 +9,6 @@ dnl explaining how to rebuild it.
 dnl
 dnl TODO
 dnl
-dnl Check for MPI_Pcontrol (const ... )
 [#!/bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
@@ -402,6 +401,13 @@ if test -n "$arch_cray" ; then
 fi
 # End of arch setup
 # 
+if test -z "$CC" ; then
+    CC=cc
+fi
+if test -z "$F77" -a $NOF77 = 0 ; then
+    F77=f77
+fi
+#
 # Should eventually use a file like $file.run to see if the program should
 # be run or just compiled.  And eventually, this should be run EARLY,
 # before checking for things like functions and include files.
@@ -428,7 +434,8 @@ fi
 # Check for header files
 # stdlib.h is used mostly for things like malloc and free, so it isn't
 # so important that stdlib.h be exactly "right".
-PAC_CHECK_HEADERS(stdlib.h)
+# string.h is for strchr etc.
+PAC_CHECK_HEADERS(stdlib.h string.h)
 #
 #
 AR="ar cr$AR_LOCAL"

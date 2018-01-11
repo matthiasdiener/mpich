@@ -176,10 +176,13 @@ int   from_grank;
 	/* Compute length available to send.  If this is it,
 	   remember so that we can mark the operation as complete */
 	len		 = shandle->bytes_as_contig - pkt->cur_offset;
-	is_done = 1;
 	if (len > pkt->len_avail) {
 	    len = pkt->len_avail;
 	    is_done = 0;
+	}
+	else {
+	    is_done = 1;
+	    pkt->len_avail = len;
 	}
 	    
 	if (len > 0) {
@@ -195,6 +198,14 @@ int   from_grank;
 	    if (shandle->finish)
 		(shandle->finish)( shandle );
 	    /* ? clear wait/test */
+	    /* If the corresponding send request is orphaned, delete it */
+	    /* printf( "Completed rendezvous send shandle = %x (ref=%d)\n", 
+		    (long)shandle, shandle->ref_count ); */
+	    if (shandle->ref_count == 0) {
+		/* ? persistent requests? */
+	        MPIR_FORGET_SEND( shandle );
+		MPID_SendFree( shandle );
+	    }
 	}
     }
     else if (pkt->mode == MPID_PKT_CONT_GET) {

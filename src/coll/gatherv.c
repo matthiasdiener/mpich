@@ -1,5 +1,5 @@
 /*
- *  $Id: gatherv.c,v 1.26 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: gatherv.c,v 1.4 1998/04/28 18:50:54 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,7 +13,7 @@
 MPI_Gatherv - Gathers into specified locations from all processes in a group
 
 Input Parameters:
-. sendbuf - starting address of send buffer (choice) 
++ sendbuf - starting address of send buffer (choice) 
 . sendcount - number of elements in send buffer (integer) 
 . sendtype - data type of send buffer elements (handle) 
 . recvcounts - integer array (of length group size) 
@@ -26,7 +26,7 @@ at root)
 . recvtype - data type of recv buffer elements 
 (significant only at 'root') (handle) 
 . root - rank of receiving process (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice, significant only at 'root') 
@@ -53,6 +53,7 @@ int               root;
 MPI_Comm          comm;
 {
   int        mpi_errno = MPI_SUCCESS;
+  int        rank;
   struct MPIR_COMMUNICATOR *comm_ptr;
   struct MPIR_DATATYPE     *stype_ptr, *rtype_ptr;
   MPIR_ERROR_DECL;
@@ -67,8 +68,15 @@ MPI_Comm          comm;
   MPIR_TEST_DTYPE(sendtype,stype_ptr,comm_ptr, myname );
 
   /* rtype is significant only at root */
-  rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
-  MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+  (void) MPIR_Comm_rank ( comm_ptr, &rank );
+  if (rank == root) {
+      rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
+      MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+  }
+
+  /* Check for mismatched receive/send types - Debbie Swider 11/20/97 */
+  if (recvtype != sendtype)
+      return MPIR_ERROR(comm_ptr, MPI_ERR_TYPE, myname);
 
   if ( MPIR_TEST_COUNT(comm,sendcnt) ) 
     return MPIR_ERROR(comm_ptr, mpi_errno, myname );

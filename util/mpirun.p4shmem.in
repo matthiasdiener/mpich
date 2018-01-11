@@ -1,4 +1,5 @@
 #! /bin/sh
+exitstatus=1
 if [ "$MPIR_HOME" = "" ] ; then 
     MPIR_HOME=#MPIR_HOME#
 fi
@@ -22,6 +23,7 @@ if [ -z "$p4pgfile" ] ; then
     np=`expr $np + 1`
 fi
 $Show $progname $cmdLineArgs -p4pg "$p4pgfile"
+exitstatus=$?
 if [ $leavePGFile = 1 ] ; then
   echo "P4 procgroup file is $p4pgfile"
 else

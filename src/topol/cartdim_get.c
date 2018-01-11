@@ -1,5 +1,5 @@
 /*
- *  $Id: cartdim_get.c,v 1.10 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: cartdim_get.c,v 1.1.1.1 1997/09/17 20:42:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

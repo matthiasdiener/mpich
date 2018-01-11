@@ -83,6 +83,7 @@ MPID_Msgrep_t msgrep;
 
     DEBUG_INIT_STRUCT(&shandle,sizeof(shandle));
     MPIR_SET_COOKIE((&shandle),MPIR_REQUEST_COOKIE);
+    MPID_SendInit( &shandle );
     shandle.finish = 0;
     MPID_CH_Rndvn_isend( buf, len, src_lrank, tag, context_id, dest,
 			 msgrep, &shandle );
@@ -282,6 +283,9 @@ int   from_grank;
     shandle->is_complete = 0;
     shandle->wait	 = MPID_CH_Rndvn_send_wait;
     shandle->test	 = MPID_CH_Rndvn_send_test;
+    /* If the ref count is 0, we should just forget about the request, 
+       as in the shared memory case.  For this, we'll need a request
+       free operation in the interface */
     return MPI_SUCCESS;
 }
 

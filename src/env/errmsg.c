@@ -1,5 +1,8 @@
 
 #include "mpiimpl.h"
+#if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
+#include <string.h>
+#endif
 
 /*
  * This file provides for error message handling including the use
@@ -18,6 +21,8 @@ static nl_catd errmsg = (nl_catd)(-1);
 static int     opened_msgcat = 0;
 static int     catavail = 0;
 static int     usecat   = 1;
+
+char *MPIR_GetNLSMsg ANSI_ARGS(( int, char * ));
 
 char *MPIR_GetNLSMsg( errnum, defmsg )
 int errnum;

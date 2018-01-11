@@ -2,10 +2,33 @@
 /* Custom Fortran interface file */
 /* These have been edited because they require special string processing */
 /* See mpe_prof.c for what these are interfacing to */
+
+/* 
+ * If not building for MPICH, then MPIR_ERROR and the mpi_iargc_/mpir_getarg_
+ * calls need to be replaced.
+ */
+
 #ifdef MPI_BUILD_PROFILING
 #undef MPI_BUILD_PROFILING
 #endif
 #include "mpi.h"
+
+#ifndef MPICH_NAME
+/* If we aren't running MPICH, just use fprintf for errors */
+#define MPIR_ERROR(comm,errcode,str) (fprintf( stderr, "%s\n", str ),errcode)
+/* Also avoid Fortran arguments */
+#define mpir_iargc_() 0
+#define mpir_getarg_( idx, str, ln ) strncpy(str,"Unknown",ln)
+#endif
+
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
 /* 
    Include a definition of MALLOC and FREE to allow the use of Chameleon
    memory debug code 
@@ -83,6 +106,37 @@
 #define mpi_finalize_ mpi_finalize
 #define mpi_allreduce_ mpi_allreduce
 #endif
+
+/*
+ * Define prototypes to keep the compiler happy
+ */
+void mpi_init_ ANSI_ARGS(( int * ));
+void mpi_send_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *, 
+			   MPI_Comm *, int * ));
+void mpi_recv_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *, 
+			   MPI_Comm *, MPI_Status *, int * ));
+void mpi_sendrecv_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *,
+			       void *, int *, MPI_Datatype *, int *, int *,
+			       MPI_Comm *, MPI_Status *, int * ));
+void mpi_bcast_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, 
+			    MPI_Comm *, int * ));
+void mpi_reduce_ ANSI_ARGS(( void *, void *, int *, MPI_Datatype *, 
+			     MPI_Op *, int *, MPI_Comm *, int * ));
+void mpi_barrier_ ANSI_ARGS(( MPI_Comm *, int * ));
+void mpi_isend_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *, 
+			    MPI_Comm *, MPI_Request *, int * ));
+void mpi_irecv_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *, 
+			    MPI_Comm *, MPI_Request *, int * ));
+void mpi_wait_ ANSI_ARGS(( MPI_Request *, MPI_Status *, int * ));
+void mpi_test_ ANSI_ARGS(( MPI_Request *, int *, MPI_Status *, int * ));
+void mpi_waitall_ ANSI_ARGS(( int *, MPI_Request *, MPI_Status *, int * ));
+void mpi_waitany_ ANSI_ARGS(( int *, MPI_Request *, int *, MPI_Status *, 
+			      int * ));
+void mpi_ssend_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *,
+			    MPI_Comm *, int * ));
+void mpi_finalize_ ANSI_ARGS(( int * ));
+void mpi_allreduce_ ANSI_ARGS(( void *, void *, int *, MPI_Datatype *, 
+				MPI_Op *, MPI_Comm *, int * ));
 
 void mpi_init_( ierr )
 int *ierr;

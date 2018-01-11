@@ -1,4 +1,4 @@
-.TH MPI_Init 3 "1/6/1997" " " "MPI"
+.TH MPI_Init 3 "2/2/1998" " " "MPI"
 .SH NAME
 MPI_Init \-  Initialize the MPI execution environment 
 .SH SYNOPSIS
@@ -68,70 +68,12 @@ was configured with
 
 .PD 0
 .TP
-.B -mpipktsize nn 
-- Set the message length where the ADI changed to 
-the long message protocol to 
-.I nn
-.  This only works if MPICH was 
-configured with 
-.I -var_pkt
-.
-.PD 1
-
-The following options are available only on the Chameleon device and
-devices built with debugging code.  Normally, these should only be used
-by MPICH implementors when debugging new ports.
-
-.PD 0
-.TP
-.B -mpichdebug 
-- Print out the Chameleon device operations
-.PD 1
-
-.PD 0
-.TP
-.B -mpidbfile filename 
-- Like mpichdebug, but sends the output to the
-specified file.  If the filename contains a 
-.I %d
-, then that part of
-the filename is replaced with the rank in 
-.I MPI_COMM_WORLD
-.  For example,
-.PD 1
-.nf
--mpidbfile log.%d 
-.fi
-writes to 
-.I log.0
-, 
-.I log.1
-, etc.
-
-.PD 0
-.TP
-.B -mpichmemdebug 
-- (Chameleon device only) Print out a list of unreclaimed
-memory.  This requires that MPI be built with the 
-.I -DMPIR_DEBUG_MEM
-switch.  This is intended for debugging the MPI implementation itself.
-.PD 1
-
-.PD 0
-.TP
 .B -mpimem 
 - If MPICH was built with 
 .I -DMPIR_DEBUG_MEM
 , this checks all
 malloc and free operations (internal to MPICH) for signs of injury 
 to the memory allocation areas.
-.PD 1
-
-.PD 0
-.TP
-.B -mpichmsg 
-- Print out the number of messages 
-received, by category, when the program exits.
 .PD 1
 
 .PD 0
@@ -154,6 +96,7 @@ reffile filename - Trace use of internal MPI objects with output
 to the indicated file
 trace   - Trace routine calls
 .fi
+
 
 .SH NOTES
 Note that the Fortran binding for this routine has only the error return

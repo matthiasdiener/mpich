@@ -25,12 +25,13 @@ LIBS =
 FLIBS = 
 EXECS = overtake sendrecv isndrcv third fourth fifth sixth hvectest \
 	hvectest2 hvec probe probe1 testtest1 ssendtest ssendtest2 typetest\
-	dtypelife issendtest issendinit relrank nullproc trunc \
-	typeub typeub2 typeub3 irecvtest htmsg \
-	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitall \
-	pack bsendtest typebase irsend irsendinit \
+	dtypelife issendtest issend2 issendinit relrank nullproc trunc \
+	truncmult typeub typeub2 typeub3 irecvtest htmsg \
+	isendtest self sendrecv2 sendrecv3 sendrecv4 persistent waitany \
+	pack bsendtest typebase irsend irsendinit longmsgs waitall \
 	testsome getelm testall sndrcv nbtest nblock sendmany order hindexed \
-	commit cancel persist typecreate reqcreate sndrcvrep flood flood2
+	commit cancel persist typecreate reqcreate sndrcvrep flood flood2 \
+	persist2 dataalign dtyperecv reqfree sndrcvrpl2 cancel2
 OTHEREXECS = testtypes secondf allpair systest send1 \
 		systest1 allpair2 bsendtest structf typebasef 
 default: $(EXECS)
@@ -70,6 +71,9 @@ flood2: flood2.o test.o
 persist: persist.o
 	$(CLINKER) $(OPTFLAGS) -o persist persist.o $(LIBS)
 
+persist2: persist2.o
+	$(CLINKER) $(OPTFLAGS) -o persist2 persist2.o $(LIBS)
+
 sendrecv2: sendrecv2.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o sendrecv2 sendrecv2.o dtypes.o gcomm.o $(LIBS)
 
@@ -85,6 +89,9 @@ irsend: irsend.o dtypes.o gcomm.o
 irsendinit: irsendinit.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o irsendinit irsendinit.o dtypes.o gcomm.o $(LIBS)
 
+longmsgs: longmsgs.o
+	$(CLINKER) $(OPTFLAGS) -o longmsgs longmsgs.o $(LIBS)
+
 testsome: testsome.o dtypes.o gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o testsome testsome.o dtypes.o gcomm.o $(LIBS)
 
@@ -96,6 +103,9 @@ sndrcv: sndrcv.o dtypes.o gcomm.o
 
 sndrcvrep: sndrcvrep.o
 	$(CLINKER) $(OPTFLAGS) -o sndrcvrep sndrcvrep.o $(LIBS)
+
+sndrcvrpl2: sndrcvrpl2.o
+	$(CLINKER) $(OPTFLAGS) -o sndrcvrpl2 sndrcvrpl2.o $(LIBS)
 
 getelm: getelm.o 
 	$(CLINKER) $(OPTFLAGS) -o getelm getelm.o $(LIBS)
@@ -118,6 +128,9 @@ typecreate: typecreate.o
 reqcreate: reqcreate.o
 	$(CLINKER) $(OPTFLAGS) -o reqcreate reqcreate.o $(LIBS)
 
+reqfree: reqfree.o
+	$(CLINKER) $(OPTFLAGS) -o reqfree reqfree.o $(LIBS)
+
 isndrcv: isndrcv.o test.o
 	$(CLINKER) $(OPTFLAGS) -o isndrcv isndrcv.o test.o $(LIBS)
 
@@ -126,6 +139,9 @@ nullproc: nullproc.o test.o
 
 trunc: trunc.o
 	$(CLINKER) $(OPTFLAGS) -o trunc trunc.o $(LIBS)
+
+truncmult: truncmult.o
+	$(CLINKER) $(OPTFLAGS) -o truncmult truncmult.o $(LIBS)
 
 typetest: typetest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o typetest typetest.o test.o $(LIBS)
@@ -142,11 +158,20 @@ ssendtest2: ssendtest2.o
 issendtest: issendtest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o issendtest issendtest.o test.o $(LIBS)
 
+issend2: issend2.o
+	$(CLINKER) $(OPTFLAGS) -o issend2 issend2.o $(LIBS)
+
 issendinit: issendinit.o test.o
 	$(CLINKER) $(OPTFLAGS) -o issendinit issendinit.o test.o $(LIBS)
 
 testtypes: testtypes.o test.o
 	$(CLINKER) $(OPTFLAGS) -o testtypes testtypes.o test.o $(LIBS)
+
+dataalign: dataalign.o
+	$(CLINKER) $(OPTFLAGS) -o dataalign dataalign.o $(LIBS)
+
+dtyperecv: dtyperecv.o
+	$(CLINKER) $(OPTFLAGS) -o dtyperecv dtyperecv.o $(LIBS)
 
 dtypelife: dtypelife.o test.o
 	$(CLINKER) $(OPTFLAGS) -o dtypelife dtypelife.o test.o $(LIBS)
@@ -208,6 +233,9 @@ irecvtest: irecvtest.o test.o
 nbtest: nbtest.o
 	$(CLINKER) $(OPTFLAGS) -o nbtest nbtest.o $(LIBS)
 
+waitany: waitany.o
+	$(CLINKER) $(OPTFLAGS) -o waitany waitany.o $(LIBS)
+
 waitall: waitall.o
 	$(CLINKER) $(OPTFLAGS) -o waitall waitall.o $(LIBS)
 
@@ -216,6 +244,9 @@ commit: commit.o
 
 cancel: cancel.o
 	$(CLINKER) $(OPTFLAGS) -o cancel cancel.o $(LIBS)
+
+cancel2: cancel2.o
+	$(CLINKER) $(OPTFLAGS) -o cancel2 cancel2.o $(LIBS)
 
 secondf: $(MPIFDEP) secondf.o
 	$(FLINKER) $(OPTFLAGS) -o secondf secondf.o $(FLIBS)
@@ -241,18 +272,18 @@ typebasef: $(MPIFDEP) typebasef.o
 #
 # Some systems have no test for a symbolic link and return false for
 # a link that exists
-mpif.h: $(MPIR_HOME)/include/mpif.h
-	if test \! -f mpif.h ; then \
-	    /bin/rm -f mpif.h ; \
-	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
-	fi
+#mpif.h: $(MPIR_HOME)/include/mpif.h
+#	if test \! -f mpif.h ; then \
+#	    /bin/rm -f mpif.h ; \
+#	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
+#	fi
 
 #
 # Make sure that we remove executables for specific architectures
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) *.out core pt2pt.diff $(OTHEREXECS) \
+	@-/bin/rm -f *.o *~ PI* $(EXECS) *.out core pt2pt.diff $(OTHEREXECS) \
 		*.trace rdb.* startup.* 
-	for file in $(EXECS) Makefile ; do \
+	@-for file in $(EXECS) Makefile ; do \
 	   /bin/rm -f $$file.sun4 $$file.alpha $$file.IRIX $$file.freebsd ;\
 	done
 
@@ -260,7 +291,3 @@ clean:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
-
-# This is MPICH specific
-#$(MPIR_HOME)/util/mpirun:
-#	(cd $(MPIR_HOME) ; make mpirun )

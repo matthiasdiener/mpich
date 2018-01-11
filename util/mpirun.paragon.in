@@ -1,4 +1,5 @@
 #! /bin/sh
+exitstatus=1
 if [ "$MPIR_HOME" = "" ] ; then 
     MPIR_HOME=#MPIR_HOME#
 fi
@@ -19,6 +20,8 @@ if [ -z "$stdinfile" ] ; then
    stdinfile=/dev/null
 fi
 # Handle NQS, no default partition, and default partition Paragons
+# not all cases can handle exit return status
+exitstatus=0
 case $paragon_type in
     mkpart)
     # 2 = SIGINT and 3 = SIGQUIT, we hope
@@ -49,10 +52,12 @@ rmpart ${LOGNAME}$$
 
     default)
     $Show $progname -sz $np $paragon_pn $cmdLineArgs
+    exitstatus=$?
     ;;
 
     *)
     echo "Unrecongnized Paragon run type $paragon_type"
+    exitstatus=1
     exit 1
     ;;
 esac

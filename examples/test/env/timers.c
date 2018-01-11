@@ -25,7 +25,7 @@ char **argv;
 	t1 = MPI_Wtime();
 	sleep(1);
 	t2 = MPI_Wtime();
-	if (t2 - t1 >= 1.0 && t2 - t1 <= 5.0) break;
+	if (t2 - t1 >= (1.0 - 0.01) && t2 - t1 <= 5.0) break;
 	if (t2 - t1 > 5.0) i = 9;
     }
     if (i == 10) {

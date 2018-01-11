@@ -1,5 +1,5 @@
 /*
- *  $Id: errget.c,v 1.10 1997/01/07 01:46:11 gropp Exp $
+ *  $Id: errget.c,v 1.1.1.1 1997/09/17 20:41:54 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

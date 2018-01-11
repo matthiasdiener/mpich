@@ -23,14 +23,18 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_comm_create_ ANSI_ARGS(( MPI_Comm *, MPI_Group *, MPI_Comm *, 
-				  int * ));
+void mpi_comm_create_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+				  MPI_Fint * ));
 
 void mpi_comm_create_ ( comm, group, comm_out, __ierr )
-MPI_Comm  *comm;
-MPI_Group *group;
-MPI_Comm *comm_out;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *group;
+MPI_Fint *comm_out;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Comm_create( *comm,*group,comm_out);
+    MPI_Comm l_comm_out;
+
+    *__ierr = MPI_Comm_create( MPI_Comm_f2c(*comm), MPI_Group_f2c(*group),
+                               &l_comm_out);
+    *comm_out = MPI_Comm_c2f(l_comm_out);
 }

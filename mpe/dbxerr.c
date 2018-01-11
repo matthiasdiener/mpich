@@ -6,6 +6,9 @@
 #include "mpichconf.h"
 #endif
 
+#if defined(HAVE_STRING_H) || defined(STDC_HEADERS)
+#include <string.h>
+#endif
 #include "mpi.h"
 #include "mpe.h"
 #include "mpeexten.h"
@@ -214,9 +217,9 @@ char     *string, *file;
    start the specified debugger on the program
 
    Input Parameters:
-.  pgm - Name of the program.
++  pgm - Name of the program.
 .  dbg - Name of the debugger.  If null, use a default (usually dbx)
-.  args - arguments to use in generating the debugger.
+-  args - arguments to use in generating the debugger.
    This allows things like "'xterm -e dbx pgm pid'", or 
    "'xdbx -geometry +%d+%d pgm pid'".  The list should be null terminated.
    (The '%d %d' format is not yet supported).
@@ -394,8 +397,8 @@ static char *SIGNAME[] = { "Unknown", "HUP", "INT", "QUIT", "ILL",
   MPE_DefaultHandler - Default signal handler.
 
   Input Parameters:
-. sig   - signal value
-. code,scp,addr - see the signal man page
++ sig   - signal value
+- code,scp,addr - see the signal man page
 */
 #ifdef MPI_sun4
 #define SIG_HANDLER_PROTOTYPE int, int, struct sigcontext *, char *

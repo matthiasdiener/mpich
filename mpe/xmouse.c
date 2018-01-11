@@ -25,9 +25,9 @@ static int MPE_Get_drag_region2 ANSI_ARGS(( MPE_XGraph, int, int,
 . graph - MPE graphics handle
 
   Output Parameters:
-. x - horizontal coordinate of the point where the mouse button was pressed
++ x - horizontal coordinate of the point where the mouse button was pressed
 . y - vertical coordinate of the point where the mouse button was pressed
-. button - which button was pressed: 'MPE_BUTTON[1-5]'
+- button - which button was pressed: 'MPE_BUTTON[1-5]'
 
   Notes:
   This routine waits for mouse button press, blocking
@@ -88,10 +88,10 @@ it's a %s\n", eventNames[event.type] );
 . graph - MPE graphics handle
 
   Output Parameters:
-. x - horizontal coordinate of the point where the mouse button was pressed
++ x - horizontal coordinate of the point where the mouse button was pressed
 . y - vertical coordinate of the point where the mouse button was pressed
 . button - which button was pressed: MPE_BUTTON[1-5]
-. wasPressed - 1 if the button was pressed, 0 if not
+- wasPressed - 1 if the button was pressed, 0 if not
 
 @*/
 int MPE_Iget_mouse_press( graph, x, y, button, wasPressed )

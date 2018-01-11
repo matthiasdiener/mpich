@@ -18,7 +18,7 @@ char **argv;
     MPI_Request r1;
     int         size, rank;
     int         err = 0;
-    int         partner, buf[10], flag;
+    int         partner, buf[10], flag, idx;
     MPI_Status  status;
 
     MPI_Init( &argc, &argv );
@@ -59,8 +59,9 @@ char **argv;
 		      MPI_COMM_WORLD, &status );
 	if (!flag) {
 	    err++;
-	    printf( "Cancel of a receive failed where it should succeed.\n" );
+	    printf( "Cancel of a receive failed where it should succeed (Wait).\n" );
 	}
+	MPI_Request_free( &r1 );
 
 	/* Cancel fails */
 	MPI_Recv_init( buf, 10, MPI_INT, partner, 2, MPI_COMM_WORLD, &r1 );
@@ -73,8 +74,42 @@ char **argv;
 	MPI_Test_cancelled( &status, &flag );
 	if (flag) {
 	    err++;
-	    printf( "Cancel of a receive succeeded where it shouldn't.\n" );
+	    printf( "Cancel of a receive succeeded where it shouldn't (Test).\n" );
 	}
+	MPI_Request_free( &r1 );
+
+	/* Cancel succeeds */
+	MPI_Recv_init( buf, 10, MPI_INT, partner, 0, MPI_COMM_WORLD, &r1 );
+	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_COMM_WORLD, &status );
+	MPI_Start( &r1 );
+	MPI_Cancel( &r1 );
+	MPI_Waitany( 1, &r1, &idx, &status );
+	MPI_Test_cancelled( &status, &flag );
+	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_COMM_WORLD, &status );
+	if (!flag) {
+	    err++;
+	    printf( "Cancel of a receive failed where it should succeed (Waitany).\n" );
+	}
+	MPI_Request_free( &r1 );
+	
+	/* Cancel fails */
+	MPI_Recv_init( buf, 10, MPI_INT, partner, 2, MPI_COMM_WORLD, &r1 );
+	MPI_Start( &r1 );
+	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_COMM_WORLD, &status );
+	MPI_Cancel( &r1 );
+	MPI_Testany( 1, &r1, &idx, &flag, &status );
+	MPI_Test_cancelled( &status, &flag );
+	if (flag) {
+	    err++;
+	    printf( "Cancel of a receive succeeded where it shouldn't (Testany).\n" );
+	}
+	MPI_Request_free( &r1 );
 
 	if (err) {
 	    printf( "Test failed with %d errors.\n", err );
@@ -97,6 +132,19 @@ char **argv;
 	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, 1,
 		      MPI_BOTTOM, 0, MPI_INT, partner, 1,
 		      MPI_COMM_WORLD, &status );
+
+	/* Cancel succeeds */
+	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_COMM_WORLD, &status );
+	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_COMM_WORLD, &status );
+	/* Cancel fails */
+	MPI_Send( buf, 3, MPI_INT, partner, 2, MPI_COMM_WORLD );
+	MPI_Sendrecv( MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_BOTTOM, 0, MPI_INT, partner, 1,
+		      MPI_COMM_WORLD, &status );
     }
 
     /* 
@@ -104,8 +152,11 @@ char **argv;
        MPI_PROC_NULL succeeds (there is some suspicion that some
        systems can't handle this - also, MPI_REQUEST_NULL 
      */
+    /* A null request is an error. (null objects are errors unless otherwise
+       allowed)
     r1 = MPI_REQUEST_NULL;
     MPI_Cancel( &r1 );
+    */
     MPI_Recv_init( buf, 10, MPI_INT, MPI_PROC_NULL, 0, MPI_COMM_WORLD, &r1 );
     MPI_Start( &r1 );
     MPI_Cancel( &r1 );

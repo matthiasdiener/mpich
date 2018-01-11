@@ -1,4 +1,4 @@
-.TH MPI_Type_struct 3 "2/18/1997" " " "MPI"
+.TH MPI_Type_struct 3 "6/22/1998" " " "MPI"
 .SH NAME
 MPI_Type_struct \-  Creates a struct datatype 
 .SH SYNOPSIS
@@ -55,6 +55,7 @@ be sent with a count greater than one.  For example,
 .nf
 struct { int a; char b; } foo;
 .fi
+
 may have 
 .I sizeof(foo) > sizeof(int) + sizeof(char)
 ; for example,
@@ -66,9 +67,22 @@ that would have
 allowed an implementation to make the extent an MPI datatype
 for this structure equal to 
 .I 2*sizeof(int)
-.  However, since different systems
-might define different paddings, a clarification to the standard made epsilon
-zero.  Thus, if you define a structure datatype and wish to send or receive
+.
+However, since different systems might define different paddings, there was
+much discussion by the MPI Forum about what was the correct value of
+epsilon, and one suggestion was to define epsilon as zero.
+This would have been the best thing to do in MPI 1.0, particularly since
+the 
+.I MPI_UB
+type allows the user to easily set the end of the structure.
+Unfortunately, this change did not make it into the final document.
+Currently, this routine does not add any padding, since the amount of
+padding needed is determined by the compiler that the user is using to
+build their code, not the compiler used to construct the MPI library.
+A later version of MPICH may provide for some natural choices of padding
+(e.g., multiple of the size of the largest basic member), but users are
+advised to never depend on this, even with vendor MPI implementations.
+Instead, if you define a structure datatype and wish to send or receive
 multiple items, you should explicitly include an 
 .I MPI_UB
 entry as the
@@ -80,6 +94,7 @@ blen[1] = 1; indices[1] = &foo.b - &foo; oldtypes[1] = MPI_CHAR;
 blen[2] = 1; indices[2] = sizeof(foo); oldtypes[2] = MPI_UB;
 MPI_Type_struct( 3, blen, indices, oldtypes, &newtype );
 .fi
+
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 
@@ -133,10 +148,10 @@ an error.
 .TP
 .B MPI_ERR_TYPE 
 - Invalid datatype argument.  May be an uncommitted 
-.PD 1
 MPI_Datatype (see 
 .I MPI_Type_commit
 ).
+.PD 1
 .PD 0
 .TP
 .B MPI_ERR_COUNT 

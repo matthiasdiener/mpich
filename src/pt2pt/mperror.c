@@ -1,15 +1,13 @@
 /*
- *  $Id: mperror.c,v 1.28 1997/02/18 23:05:35 gropp Exp $
+ *  $Id: mperror.c,v 1.3 1998/02/17 20:44:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 /* Include the prototypes for these service functions */
 #include "mpipt2pt.h"
-#endif
 
 /* Note that some systems define all of these, but because of problems 
    in the header files, don't actually support them.  We've had this
@@ -67,7 +65,6 @@ char     *string, *file;
   struct MPIR_COMMUNICATOR *comm_ptr;
 #endif
 
-#ifdef MPI_ADI2
   MPI_Error_string( *code, (char *)buf, &result_len );
   FPRINTF( stderr, "%d - %s : %s\n", MPID_MyWorldRank,
           string ? string : "<NO ERROR MESSAGE>", buf );
@@ -82,17 +79,6 @@ char     *string, *file;
   comm_ptr = MPIR_GET_COMM_PTR(*comm);
 
   MPID_Abort( comm_ptr, *code, (char *)0, (char *)0 );
-#else
-  {
-  int myid;
-  MPID_Myrank( MPI_COMM_WORLD->ADIctx, &myid );
-  MPI_Error_string( *code, (char *)buf, &result_len );
-  FPRINTF( stderr, "%d - %s : %s\n", myid, 
-          string ? string : "<NO ERROR MESSAGE>", buf );
-  }
-  /* Comm might be null... */
-  MPI_Abort( (comm) ? *comm : (MPI_Comm)0, *code );
-#endif
 }
 
 
@@ -140,11 +126,7 @@ char     *string, *file;
   int  myid, result_len; 
 #endif
 
-#ifdef MPI_ADI2
   myid = MPID_MyWorldRank;
-#else  
-  MPID_Myrank( MPI_COMM_WORLD->ADIctx, &myid );
-#endif
   MPI_Error_string( *code, buf, &result_len );
 #ifdef MPIR_DEBUG
   /* Generate this information ONLY when debugging MPIR */
@@ -209,3 +191,55 @@ May be MPI call before MPI_INIT.  Error message is %s and code is %d\n",
   return (code);
 }
 
+/*
+ * The following is a special routine to set the MPI_ERROR fields in
+ * an array of statuses when a request fails.  We do NOT attempt to 
+ * complete requests once an error is detected; we just use MPI_ERR_PENDING
+ * to indicate any incomplete requests.
+ */
+void MPIR_Set_Status_error_array( array_of_requests, count, i_failed, 
+				  err_failed, array_of_statuses )
+MPI_Request array_of_requests[];
+int         count, i_failed, err_failed;
+MPI_Status  array_of_statuses[];
+{
+    int i;
+    MPI_Request request;
+
+    for (i=0; i<count; i++) {
+	request = array_of_requests[i];
+	if (i == i_failed) array_of_statuses[i].MPI_ERROR = err_failed;
+	else if (!request) array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+	else {
+	    switch (request->handle_type) {
+	    case MPIR_SEND:
+/*
+		if (request->shandle.is_complete) 
+		    array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+		else */
+		    array_of_statuses[i].MPI_ERROR = MPI_ERR_PENDING;
+		break;
+	    case MPIR_RECV:
+/*		if (request->rhandle.is_complete) 
+		    array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+		else */
+		    array_of_statuses[i].MPI_ERROR = MPI_ERR_PENDING;
+		break;
+	    case MPIR_PERSISTENT_SEND:
+		if (!request->persistent_shandle.active /* ||
+		    request->persistent_shandle.shandle.is_complete */) 
+		    array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+		else
+		    array_of_statuses[i].MPI_ERROR = MPI_ERR_PENDING;
+		break;
+	    case MPIR_PERSISTENT_RECV:
+		if (!request->persistent_rhandle.active /* ||
+		    request->persistent_rhandle.rhandle.is_complete */) 
+		    array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+		else
+		    array_of_statuses[i].MPI_ERROR = MPI_ERR_PENDING;
+		break;
+	    }
+	}
+    }
+}

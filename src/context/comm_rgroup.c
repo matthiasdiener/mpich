@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_rgroup.c,v 1.13 1997/01/24 21:55:29 gropp Exp $
+ *  $Id: comm_rgroup.c,v 1.1.1.1 1997/09/17 20:41:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

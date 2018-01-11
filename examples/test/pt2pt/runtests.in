@@ -9,16 +9,32 @@ args="-pg -mvhome"
 # Some people don't include "." in their path (! in case an ls trojan horse,
 # I guess - if someone does that to you, you have bigger problems).  This
 # code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
-IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
-for dir in $PATH ; do 
-    if [ -x $dir/mpirun ] ; then
-        mpirun="mpirun"
-        break
-    fi
-done
-IFS="$saveifs"
+if [ -z "$MPICH_USE_LIB_MPIRUN" ] ; then
+    IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+    for dir in $PATH ; do 
+        if [ -x $dir/mpirun ] ; then
+	    if [ -n "@MPICH_VERSION@" ] ; then
+		# Test that we've found the correct mpirun
+		if strings $dir/mpirun | grep "MPIRUN for MPICH" > /dev/null ; then
+		    :
+		else
+		    # echo "$dir/mpirun isn't for MPICH"
+		    continue
+		fi
+	    fi
+            mpirun="mpirun"
+            break
+        fi
+    done
+    IFS="$saveifs"
+fi
 if [ -z "$mpirun" -a -x "./mpirun" ] ; then
     mpirun=./mpirun
+fi
+#
+# Here is the location of the MPICH version of mpirun
+if [ -z "$mpirun" -a -x @LIB_DIR@/mpirun ] ; then 
+    mpirun="@LIB_DIR@/mpirun"
 fi
 if [ -z "$mpirun" ] ; then
     echo "No mpirun in path.  Testing can not proceed."
@@ -31,6 +47,7 @@ makeeach=0
 check_at_once=1
 quiet=0
 MAKE="@MAKE@"
+check_canrun=0
 # Using shifts should  remove args from the list.
 for arg in "$@" ; do
     case $arg in 
@@ -47,6 +64,9 @@ for arg in "$@" ; do
 	shift
 	set -x
 	;;
+	-check)
+	check_canrun=1
+	;;
 	-quiet)
 	shift
 	quiet=1
@@ -61,13 +81,15 @@ for arg in "$@" ; do
 	;;
 	-help|-u)
 	shift
-	echo "runtests [-checkonly] [-margs='...'] [-atend]"
+	echo "runtests [-checkonly] [-margs='...'] [-atend] [-check]"
 	echo "run tests in this directory.  If -checkonly set, just run"
 	echo "the differences check (do NO rerun the test programs)."
 	echo "If -margs is used, these options are passed to mpirun."
 	echo "If -small is used, the examples are built, run, and deleted."
 	echo "If -atend is used, the success of the tests is checked only"
 	echo "at the end of the test rather than also after each test."
+	echo "If -check is used, only a single simple test is run; this"
+	echo "is used to check that mpirun can run an MPI program."
 	exit 1
 	;;
 	*)
@@ -145,6 +167,24 @@ CheckOutput() {
 #    echo "$2" >> $3
 #    CleanExe $1
 #}   
+
+# If canrun test, do that and exit
+if [ $check_canrun = 1 ] ; then
+    MakeExe third
+    /bin/rm -f third.out
+    echo '*** Testing Unexpected messages ***' >> third.out
+    $mpirun $args -np 2 third >> third.out 2>&1
+    echo '*** Testing Unexpected messages ***' >> third.out
+    if diff -b third.out third.std > /dev/null ; then
+	rc=0
+    else
+	echo "Failed to run simple program!"
+	rc=1
+    fi
+    CleanExe third
+    /bin/rm -f third.out 
+    exit $rc
+fi
 
 # If the programs are not available, run make.
 if [ ! -x sendrecv -a $makeeach = 0 ] ; then
@@ -250,6 +290,17 @@ CheckOutput irsendinit
 CleanExe irsendinit
 #
 OutTime
+testfiles="$testfiles longmsgs.out"
+/bin/rm -f longmsgs.out
+MakeExe longmsgs
+echo '**** Testing long messages ****' >> longmsgs.out
+echo '**** Testing long messages ****' 
+$mpirun $args -np 2 longmsgs "$@" >> longmsgs.out 2>&1
+echo '**** Testing long messages ****' >> longmsgs.out
+CheckOutput longmsgs
+CleanExe longmsgs
+
+OutTime
 testfiles="$testfiles testsome.out"
 /bin/rm -f testsome.out
 MakeExe testsome
@@ -283,6 +334,17 @@ CheckOutput cancel
 CleanExe cancel
 #
 OutTime
+testfiles="$testfiles cancel2.out"
+/bin/rm -f cancel2.out
+MakeExe cancel2
+echo '**** Checking MPI_Cancel ****'
+echo '**** Checking MPI_Cancel ****' >> cancel2.out
+$mpirun $args -np 2 cancel2 "$@" >> cancel2.out 2>&1
+echo '**** Checking MPI_Cancel ****' >> cancel2.out
+CheckOutput cancel2
+CleanExe cancel2
+#
+OutTime
 testfiles="$testfiles sndrcv.out"
 /bin/rm -f sndrcv.out
 MakeExe sndrcv
@@ -303,6 +365,17 @@ $mpirun $args -np 2 sndrcvrep "$@" >> sndrcvrep.out 2>&1
 echo '**** Testing MPI_Sendrecv_replace ****' >> sndrcvrep.out
 CheckOutput sndrcvrep
 CleanExe sndrcvrep
+#
+OutTime
+testfiles="$testfiles sndrcvrpl2.out"
+/bin/rm -f sndrcvrpl2.out
+MakeExe sndrcvrpl2
+echo '**** Testing MPI_Sendrecv_replace (long) ****' >> sndrcvrpl2.out
+echo '**** Testing MPI_Sendrecv_replace (long) ****' 
+$mpirun $args -np 2 sndrcvrpl2 "$@" >> sndrcvrpl2.out 2>&1
+echo '**** Testing MPI_Sendrecv_replace (long) ****' >> sndrcvrpl2.out
+CheckOutput sndrcvrpl2
+CleanExe sndrcvrpl2
 #
 OutTime
 testfiles="$testfiles getelm.out"
@@ -335,7 +408,7 @@ testfiles="$testfiles ssendtest.out"
 MakeExe ssendtest
 echo '**** Verifying ssend ****'
 echo '**** Verifying ssend ****' >> ssendtest.out
-$mpirun $args -np 2 -mvback "ssendtest-1.out" ssendtest "$@" >> ssendtest.out 2>&1
+$mpirun $args -np 2 ssendtest "$@" >> ssendtest.out 2>&1
 echo '**** Verifying ssend ****' >> ssendtest.out
 CheckOutput ssendtest
 CleanExe ssendtest
@@ -346,7 +419,7 @@ testfiles="$testfiles ssendtest2.out"
 MakeExe ssendtest2
 echo '**** Verifying ssend (2) ****'
 echo '**** Verifying ssend (2) ****' >> ssendtest2.out
-$mpirun $args -np 2 -mvback "ssendtest2-1.out" ssendtest2 "$@" >> ssendtest2.out 2>&1
+$mpirun $args -np 2 ssendtest2 "$@" >> ssendtest2.out 2>&1
 echo '**** Verifying ssend (2) ****' >> ssendtest2.out
 CheckOutput ssendtest2
 CleanExe ssendtest2
@@ -363,6 +436,17 @@ CheckOutput issendtest
 CleanExe issendtest
 #
 OutTime
+testfiles="$testfiles issend2.out"
+/bin/rm -f issend2.out
+MakeExe issend2
+echo '**** Verifying Issend (2) ****'
+echo '**** Verifying Issend (2) ****' >> issend2.out
+$mpirun $args -np 2 issend2 "$@" >> issend2.out 2>&1
+echo '**** Verifying Issend (2) ****' >> issend2.out
+CheckOutput issend2
+CleanExe issend2
+#
+OutTime
 testfiles="$testfiles reqcreate.out"
 /bin/rm -f reqcreate.out
 MakeExe reqcreate
@@ -372,6 +456,17 @@ $mpirun $args -np 1 reqcreate "$@" >> reqcreate.out 2>&1
 echo '**** Checking the request creation routines ****' >> reqcreate.out
 CheckOutput reqcreate
 CleanExe reqcreate
+#
+OutTime
+testfiles="$testfiles reqfree.out"
+/bin/rm -f reqfree.out
+MakeExe reqfree
+echo '**** Checking request free ****'
+echo '**** Checking request free ****' >> reqfree.out
+$mpirun $args -np 2 reqfree "$@" >> reqfree.out 2>&1
+echo '**** Checking request free ****' >> reqfree.out
+CheckOutput reqfree
+CleanExe reqfree
 #
 OutTime
 testfiles="$testfiles typebase.out"
@@ -454,6 +549,28 @@ $mpirun $args -np 2 dtypelife "$@" >> dtypelife.out 2>&1
 echo '**** Checking the type routines: MPI_Type_free ****' >> dtypelife.out
 CheckOutput dtypelife
 CleanExe dtypelife
+#
+OutTime
+testfiles="$testfiles dataalign.out"
+/bin/rm -f dataalign.out
+MakeExe dataalign
+echo '**** Checking the type alignment ****'
+echo '**** Checking the type alignment ****' >> dataalign.out
+$mpirun $args -np 2 dataalign "$@" >> dataalign.out 2>&1
+echo '**** Checking the type alignment ****' >> dataalign.out
+CheckOutput dataalign
+CleanExe dataalign
+#
+OutTime
+testfiles="$testfiles dtyperecv.out"
+/bin/rm -f dtyperecv.out
+MakeExe dtyperecv
+echo '**** Checking the type recv ****'
+echo '**** Checking the type recv ****' >> dtyperecv.out
+$mpirun $args -np 2 dtyperecv "$@" >> dtyperecv.out 2>&1
+echo '**** Checking the type recv ****' >> dtyperecv.out
+CheckOutput dtyperecv
+CleanExe dtyperecv
 #
 OutTime
 testfiles="$testfiles commit.out"
@@ -564,6 +681,17 @@ $mpirun $args -np 2 trunc "$@" >> trunc.out 2>&1
 echo '*** Testing Message trunction ***' >> trunc.out
 CheckOutput trunc
 CleanExe trunc
+#
+OutTime
+testfiles="$testfiles truncmult.out"
+/bin/rm -f truncmult.out
+MakeExe truncmult
+echo '*** Testing Message trunction in multiple completions ***'
+echo '*** Testing Message trunction in multiple completions ***' >> truncmult.out
+$mpirun $args -np 2 truncmult "$@" >> truncmult.out 2>&1
+echo '*** Testing Message trunction in multiple completions ***' >> truncmult.out
+CheckOutput truncmult
+CleanExe truncmult
 #
 OutTime
 testfiles="$testfiles nullproc.out"
@@ -699,6 +827,17 @@ CheckOutput persist
 CleanExe persist
 #
 OutTime
+testfiles="$testfiles persist2.out"
+/bin/rm -f persist2.out
+MakeExe persist2
+echo '*** Testing MPI_Startall(Bsend)/Request_free ***' 
+echo '*** Testing MPI_Startall(Bsend)/Request_free ***' >> persist2.out
+$mpirun $args -np 4 persist2 "$@" >> persist2.out 2>&1
+echo '*** Testing MPI_Startall(Bsend)/Request_free ***' >> persist2.out
+CheckOutput persist2
+CleanExe persist2
+#
+OutTime
 testfiles="$testfiles waitall.out"
 /bin/rm -f waitall.out
 MakeExe waitall
@@ -708,6 +847,17 @@ $mpirun $args -np 4 waitall "$@" >> waitall.out 2>&1
 echo '*** Testing MPI_Waitall ***' >> waitall.out
 CheckOutput waitall
 CleanExe waitall
+#
+OutTime
+testfiles="$testfiles waitany.out"
+/bin/rm -f waitany.out
+MakeExe waitany
+echo '*** Testing MPI_Waitany ***' 
+echo '*** Testing MPI_Waitany ***' >> waitany.out
+$mpirun $args -np 4 waitany "$@" >> waitany.out 2>&1
+echo '*** Testing MPI_Waitany ***' >> waitany.out
+CheckOutput waitany
+CleanExe waitany
 #
 OutTime
 testfiles="$testfiles pack.out"

@@ -1,6 +1,0 @@
-cc -g -I/Net/alriga/alriga9/MPI/mpich/include -DMPI_sun4  -I/Net/alriga/alriga9/MPI/mpich/profiling/lib -I/Net/alriga/alriga9/MPI/mpich/mpe -c systest.c
-(cd ; make wrappergen)
-make: Fatal error: Don't know how to make target `wrappergen'
-Current working directory /tmp_mnt/Net/antireo/antireo6/lusk
-*** Error code 1
-make: Fatal error: Command failed for target `/wrappergen'

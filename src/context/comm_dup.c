@@ -1,16 +1,12 @@
 /*
- *  $Id: comm_dup.c,v 1.36 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: comm_dup.c,v 1.2 1998/01/29 14:26:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 #include "ic.h"
 
 #define DBG(a)
@@ -55,7 +51,7 @@ MPI_Comm comm, *comm_out;
 
   /* Duplicate the communicator */
   MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm_ptr,MPI_ERR_EXHAUSTED, 
-	     "Out of space in MPI_COMM_DUP" );
+	     "MPI_COMM_DUP" );
     MPIR_Comm_init( new_comm, comm_ptr, comm_ptr->comm_type );
   MPIR_Group_dup ( comm_ptr->group,       &(new_comm->group) );
   MPIR_Group_dup ( comm_ptr->local_group, &(new_comm->local_group) );
@@ -63,13 +59,8 @@ MPI_Comm comm, *comm_out;
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
   new_comm->np             = new_comm->group->np;
   new_comm->comm_name	   = 0;
-#ifdef MPI_ADI2
     if ((mpi_errno = MPID_CommInit( comm, new_comm )))
 	return mpi_errno;
-#else
-  if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm ))) 
-      return mpi_errno;
-#endif
   DBG(FPRINTF(OUTFILE,"Dup:About to copy attr for comm %ld\n",(long)comm);)
   /* Also free at least some of the parts of the commuicator */      
   if ((mpi_errno = MPIR_Attr_copy ( comm_ptr, new_comm ) )) {

@@ -1,0 +1,11 @@
+#ifndef MPI_DEFS
+#define MPI_DEFS
+typedef @MPI_FINT@ MPI_Fint;
+typedef @MPI_AINT@ MPI_Aint;
+
+#define ROMIO @ROMIO@
+#if ROMIO == 1
+#include "mpio.h"
+#endif
+
+#endif

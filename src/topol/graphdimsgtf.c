@@ -23,13 +23,21 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_graphdims_get_ ANSI_ARGS(( MPI_Comm *, int *, int *, int * ));
+void mpi_graphdims_get_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                    MPI_Fint * ));
 
 void mpi_graphdims_get_ ( comm, nnodes, nedges, __ierr )
-MPI_Comm  *comm;
-int       *nnodes;
-int       *nedges;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *nnodes;
+MPI_Fint *nedges;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Graphdims_get( *comm, nnodes,nedges);
+    int lnnodes;
+    int lnedges;
+
+    *__ierr = MPI_Graphdims_get( MPI_Comm_f2c(*comm), &lnnodes,
+                                 &lnedges);
+    *nnodes = (MPI_Fint)lnnodes;
+    *nedges = (MPI_Fint)lnedges;
+    
 }

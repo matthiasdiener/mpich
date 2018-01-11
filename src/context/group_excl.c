@@ -1,16 +1,12 @@
 /*
- *  $Id: group_excl.c,v 1.21 1997/01/17 22:59:30 gropp Exp $
+ *  $Id: group_excl.c,v 1.4 1998/04/28 20:58:06 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
@@ -18,9 +14,9 @@ MPI_Group_excl - Produces a group by reordering an existing group and taking
         only unlisted members
 
 Input Parameters:
-. group - group (handle) 
++ group - group (handle) 
 . n - number of elements in array 'ranks' (integer) 
-. ranks - array of integer ranks in 'group' not to appear in 'newgroup' 
+- ranks - array of integer ranks in 'group' not to appear in 'newgroup' 
 
 Output Parameter:
 . newgroup - new group derived from above, preserving the order defined by 
@@ -82,9 +78,28 @@ int       n, *ranks;
     return (mpi_errno);
   }
 
+  /* Check that the ranks are in range, at least (still need to check for
+     duplicates) */
+  for (i=0; i<n; i++) {
+      if (ranks[i] < 0 || ranks[i] >= group_ptr->np) {
+	  MPIR_ERROR_PUSH_ARG(&ranks[i]);
+	  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ARG, myname );
+	  }
+  /*** Check for duplicate ranks - Debbie Swider 11/18/97 ***/
+      else {
+          for (j=i+1; j<n; j++) {
+	      if (ranks[i] == ranks[j]) {
+		  MPIR_ERROR_PUSH_ARG(&ranks[j]);
+		  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
+	      }
+	  }
+      }
+  }
+
+
   /* Create the new group */
   MPIR_ALLOC(new_group_ptr,NEW(struct MPIR_GROUP),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_EXCL" );
+	     MPI_ERR_EXHAUSTED, "MPI_GROUP_EXCL" );
   new_group_ptr->self = MPIR_FromPointer( new_group_ptr );
   *newgroup = new_group_ptr->self;
   MPIR_SET_COOKIE(new_group_ptr,MPIR_GROUP_COOKIE)
@@ -95,14 +110,13 @@ int       n, *ranks;
   new_group_ptr->np             = group_ptr->np - n;
   MPIR_ALLOC(new_group_ptr->lrank_to_grank,
 	     (int *)MALLOC(new_group_ptr->np * sizeof(int)),
-	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-	     "Out of space in MPI_GROUP_EXCL" );
+	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, "MPI_GROUP_EXCL" );
 
   /* Allocate set marking space for group if necessary */
   if (group_ptr->set_mark == NULL) {
       MPIR_ALLOC(group_ptr->set_mark,(int *) MALLOC( group_ptr->np * sizeof(int) ),
 		 MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-		 "Out of space in MPI_GROUP_EXCL" );
+		 "MPI_GROUP_EXCL" );
   }
   (void) memset( group_ptr->set_mark, (char)0, group_ptr->np * sizeof(int) );
 

@@ -40,10 +40,10 @@ char **argv;
    wait                                       recv(count=1) (unexpected recv)
                                               irecv( count = 1)
    sendrecv                                   sendrecv               
-   send( count = 10)                          wait (expected/error in status)
+   send( count = 10)                          wait (expected/err trunc)
                                               irecv( count = 1)
    sendrecv                                   sendrecv
-   send( count = 10)                          test (expected/error in status)
+   send( count = 10)                          test (expected/err trunc)
  */
    
     if (rank == 0) {
@@ -146,8 +146,9 @@ char       *msg;
 
     case MPI_ERR_IN_STATUS:
 	/* Check for correct message */
-	if (status->MPI_ERROR == MPI_ERR_TRUNCATE)
-	    break;
+	/* ERR IN STATUS is correct ONLY for multiple completion routines */
+/*	if (status->MPI_ERROR == MPI_ERR_TRUNCATE) 
+	    break; */
 	/* Else, fall through into default... */
     default:
 	/* Wrong error; get message and print */

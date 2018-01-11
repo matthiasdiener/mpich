@@ -23,10 +23,12 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_commit_ ANSI_ARGS(( MPI_Datatype *, int * ));
+void mpi_type_commit_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 void mpi_type_commit_ ( datatype, __ierr )
-MPI_Datatype *datatype;
-int *__ierr;
+MPI_Fint *datatype;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Type_commit( datatype );
+    MPI_Datatype ldatatype = MPI_Type_f2c(*datatype);
+    *__ierr = MPI_Type_commit( &ldatatype );
+    *datatype = MPI_Type_c2f(ldatatype);    
 }

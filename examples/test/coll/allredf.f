@@ -434,7 +434,7 @@ C Test LXOR
        fnderr = .false.
        do 23036 i=1,count
 	login(i) = .true.
-        logsol(i) = .false.
+        logsol(i) = mod(size,2) .ne. 0 
 	logout(i) = .FALSE.
 23036	continue
        call MPI_Allreduce( login, logout, count, 
@@ -674,7 +674,11 @@ C Assumes -1 == all bits set
        fnderr = .false.
        do 23054 i=1,count
 	intin(i) = (-1)
-        intsol(i) = 0
+	if (mod(size,2) .eq. 0) then
+            intsol(i) = 0
+        else
+            intsol(i) = -1
+        endif
 	intout(i) = 0
 23054	continue
        call MPI_Allreduce( intin, intout, count, 

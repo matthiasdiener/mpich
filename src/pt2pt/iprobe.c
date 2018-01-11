@@ -1,5 +1,5 @@
 /*
- *  $Id: iprobe.c,v 1.13 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: iprobe.c,v 1.4 1998/04/28 21:46:52 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,21 +7,18 @@
 
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Iprobe - Nonblocking test for a message
 
 Input Parameters:
-. source - source rank, or  'MPI_ANY_SOURCE' (integer) 
++ source - source rank, or  'MPI_ANY_SOURCE' (integer) 
 . tag - tag value or  'MPI_ANY_TAG' (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
-. flag - (logical) 
-. status - status object (Status) 
++ flag - (logical) 
+- status - status object (Status) 
 
 .N fortran
 
@@ -54,24 +51,11 @@ MPI_Status  *status;
     if (source == MPI_PROC_NULL) {
 	status->MPI_SOURCE = MPI_PROC_NULL;
 	status->MPI_TAG	   = MPI_ANY_TAG;
-	status->count	   = 0;
+	MPID_ZERO_STATUS_COUNT(status);
 	return MPI_SUCCESS;
 	}
-#ifdef MPI_ADI2
     MPID_Iprobe( comm_ptr, tag, comm_ptr->recv_context, source, flag, 
 		 &mpi_errno, status );
-#else
-
-#ifdef MPID_NEEDS_WORLD_SRC_INDICES
-    MPID_Iprobe( comm_ptr->ADIctx, 
-		 tag, 
-		 (source >= 0) ? (comm_ptr->lrank_to_grank[source]) : source,
-		 comm_ptr->recv_context, flag, status );
-#else
-    MPID_Iprobe( comm_ptr->ADIctx, tag, source, 
-		 comm_ptr->recv_context, flag, status );
-#endif
-#endif
     TR_POP;
     MPIR_RETURN( comm_ptr, mpi_errno, myname );
 }

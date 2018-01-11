@@ -23,15 +23,19 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_pack_size_ ANSI_ARGS(( int *, MPI_Datatype *, MPI_Comm *, int *, 
-				int * ));
+void mpi_pack_size_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                MPI_Fint *, MPI_Fint * ));
 
 void mpi_pack_size_ ( incount, datatype, comm, size, __ierr )
-int*incount;
-MPI_Datatype  *datatype;
-MPI_Comm      *comm;
-int          *size;
-int *__ierr;
+MPI_Fint *incount;
+MPI_Fint *datatype;
+MPI_Fint *comm;
+MPI_Fint *size;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Pack_size(*incount,*datatype,*comm,size);
+    int lsize;
+
+    *__ierr = MPI_Pack_size((int)*incount, MPI_Type_f2c(*datatype),
+                            MPI_Comm_f2c(*comm), &lsize);
+    *size = (MPI_Fint)lsize;
 }

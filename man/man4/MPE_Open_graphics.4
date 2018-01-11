@@ -1,4 +1,4 @@
-.TH MPE_Open_graphics 4 "1/31/1997" " " "MPE"
+.TH MPE_Open_graphics 4 "7/1/1998" " " "MPE"
 .SH NAME
 MPE_Open_graphics \-  (collectively) opens an X Windows display 
 .SH SYNOPSIS
@@ -23,14 +23,18 @@ int        is_collective;
 .TP
 .B display 
 - Name of X window display.  If null, display will be taken from
-the DISPLAY variable on the process with rank 0 in 'comm'.  If that is
+the DISPLAY variable on the process with rank 0 in 
+.I comm
+.  If that is
 either undefined, or starts with w ":", then the value of display is
-``hostname``:0
+`hostname`:0
 .PD 1
 .PD 0
 .TP
 .B x,y 
-- position of the window.  If '(-1,-1)', then the user should be
+- position of the window.  If 
+.I (-1,-1)
+, then the user should be
 asked to position the window (this is a window manager issue).
 .PD 1
 .PD 0
@@ -57,7 +61,9 @@ X window server allows.  Not yet implemented.
 
 .SH NOTES
 This is a collective routine.  All processes in the given communicator
-must call it, and it has the same semantics as 'MPI_Barrier' (that is,
+must call it, and it has the same semantics as 
+.I MPI_Barrier
+(that is,
 other collective operations can not cross this routine).
 .SH LOCATION
 mpe_graphics.c

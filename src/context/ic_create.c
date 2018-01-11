@@ -1,27 +1,23 @@
 /*
- *  $Id: ic_create.c,v 1.28 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: ic_create.c,v 1.3 1998/04/28 20:58:23 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
 MPI_Intercomm_create - Creates an intercommuncator from two intracommunicators
 
 Input Paramters:
-. local_comm - Local (intra)communicator
++ local_comm - Local (intra)communicator
 . local_leader - Rank in local_comm of leader (often 0)
 . peer_comm - Remote communicator
 . remote_leader - Rank in peer_comm of remote leader (often 0)
-. tag - Message tag to use in constructing intercommunicator; if multiple
+- tag - Message tag to use in constructing intercommunicator; if multiple
   'MPI_Intercomm_creates' are being made, they should use different tags (more
   precisely, ensure that the local and remote leaders are using different
   tags for each 'MPI_intercomm_create').
@@ -223,25 +219,19 @@ MPI_Comm *comm_out;
   /* We all now have all the information necessary, start building the */
   /* inter-communicator */
   MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),local_comm_ptr, 
-	     MPI_ERR_EXHAUSTED,"Out of space in MPI_INTERCOMM_CREATE" );
+	     MPI_ERR_EXHAUSTED,"MPI_INTERCOMM_CREATE" );
   MPIR_Comm_init( new_comm, local_comm_ptr, MPIR_INTER );
   *comm_out = new_comm->self;
   new_comm->group = remote_group_ptr;
   MPIR_Group_dup( local_comm_ptr->group, &(new_comm->local_group) );
-#ifndef MPI_ADI2
-  if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, local_comm_ptr, new_comm )) )
-      return mpi_errno;
-#endif
   new_comm->local_rank	   = new_comm->local_group->local_rank;
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
   new_comm->np             = new_comm->group->np;
   new_comm->send_context   = send_context;
   new_comm->recv_context   = context;
   new_comm->comm_name      = 0;
-#ifdef MPI_ADI2
   if ((mpi_errno = MPID_CommInit( local_comm, new_comm )) )
       return mpi_errno;
-#endif
   (void) MPIR_Attr_create_tree ( new_comm );
 
   /* Build the collective inter-communicator */

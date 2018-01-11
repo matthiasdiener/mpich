@@ -1,5 +1,5 @@
 /*
- *  $Id: pack_size.c,v 1.13 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: pack_size.c,v 1.5 1998/04/28 21:47:00 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,9 +7,6 @@
 
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 extern struct MPIR_DATATYPE MPIR_I_DCOMPLEX;
 
@@ -18,12 +15,17 @@ extern struct MPIR_DATATYPE MPIR_I_DCOMPLEX;
                     pack a message
 
 Input Parameters:
-. incount - count argument to packing call (integer) 
++ incount - count argument to packing call (integer) 
 . datatype - datatype argument to packing call (handle) 
-. comm - communicator argument to packing call (handle) 
+- comm - communicator argument to packing call (handle) 
 
 Output Parameter:
 . size - upper bound on size of packed message, in bytes (integer) 
+
+Notes:
+The MPI standard document describes this in terms of 'MPI_Pack', but it 
+applies to both 'MPI_Pack' and 'MPI_Unpack'.  That is, the value 'size' is 
+the maximum that is needed by either 'MPI_Pack' or 'MPI_Unpack'.
 
 .N fortran
 
@@ -56,7 +58,16 @@ int          *size;
   if (MPIR_TEST_ARG(size) || MPIR_TEST_COUNT(comm,incount))
       return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
-#ifdef MPI_ADI2
+  /******************************************************************
+   ***** Debbie Swider put this error check in on 11/17/97 **********
+   ******************************************************************/
+
+  /*** Check to see that datatype is committed ***/
+  if (!dtype_ptr->committed) {
+      return MPIR_ERROR(comm_ptr, MPI_ERR_UNCOMMITTED, myname );
+  }
+
+
   /* Msgform is the form for ALL messages; we need to convert it into
      a Msgrep which may be different for each system.  Eventually, 
      Msgform should just be one of the Msgrep cases.
@@ -66,12 +77,6 @@ int          *size;
 /*		  (comm_ptr->msgform == MPID_MSGFORM_OK) ? MPID_MSG_OK : 
 		  MPID_MSG_XDR, */ size );
   (*size) += MPIR_I_DCOMPLEX.size;
-#else
-  /* Figure out size needed to pack type and add the biggest size
-	 of other types to give an upper bound */
-  MPIR_Pack_size( incount, datatype, comm, comm_ptr->msgrep, size );
-  (*size) += MPIR_I_DCOMPLEX.size;
-#endif
 
   TR_POP;
   return MPI_SUCCESS;

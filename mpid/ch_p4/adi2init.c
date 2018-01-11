@@ -1,1 +1,0 @@
-../ch2/adi2init.c

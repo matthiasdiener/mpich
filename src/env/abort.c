@@ -1,5 +1,5 @@
 /*
- *  $Id: abort.c,v 1.11 1997/01/07 01:46:11 gropp Exp $
+ *  $Id: abort.c,v 1.3 1998/04/28 21:08:49 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -10,8 +10,8 @@
    MPI_Abort - Terminates MPI execution environment
 
 Input Parameters:
-. comm - communicator of tasks to abort 
-. errorcode - error code to return to invoking environment 
++ comm - communicator of tasks to abort 
+- errorcode - error code to return to invoking environment 
 
 Notes:
 Terminates all MPI processes associated with the communicator 'comm'; in
@@ -29,11 +29,7 @@ int              errorcode;
     comm_ptr = MPIR_GET_COMM_PTR(comm);
     MPIR_TEST_MPI_COMM(comm,comm_ptr,comm_ptr,myname);
     
-#ifdef MPI_ADI2
     MPID_Abort( comm_ptr, errorcode, "MPI Abort by user", (char *)0 );
-#else
-    MPID_ABORT( comm->ADIctx, errorcode );
-#endif
 
 /* If for some reason we get here, force an abort */
     abort( );

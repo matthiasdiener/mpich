@@ -1,28 +1,24 @@
 /*
- *  $Id: type_hind.c,v 1.25 1997/02/18 23:05:35 gropp Exp $
+ *  $Id: type_hind.c,v 1.4 1998/04/28 21:47:24 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
 /* pt2pt for MPIR_Type_dup */
 #include "mpipt2pt.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Type_hindexed - Creates an indexed datatype with offsets in bytes
 
 Input Parameters:
-. count - number of blocks -- also number of entries in indices and blocklens
++ count - number of blocks -- also number of entries in indices and blocklens
 . blocklens - number of elements in each block (array of nonnegative integers) 
 . indices - byte displacement of each block (array of MPI_Aint) 
-. old_type - old datatype (handle) 
+- old_type - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 
@@ -102,7 +98,7 @@ MPI_Datatype *newtype;
   dteptr->blocklens   = ( int * ) MALLOC( count * sizeof( int ) );
   if (!dteptr->indices || !dteptr->blocklens) 
       return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_HINDEXED" );
+			 "MPI_TYPE_HINDEXED" );
   low                 = indices[0];
   high                = indices[0] + 
       ((MPI_Aint)blocklens[0] * old_dtype_ptr->extent);

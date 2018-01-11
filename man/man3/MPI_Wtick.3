@@ -1,4 +1,4 @@
-.TH MPI_Wtick 3 "4/11/1996" " " "MPI"
+.TH MPI_Wtick 3 "1/29/1998" " " "MPI"
 .SH NAME
 MPI_Wtick \-  Returns the resolution of MPI_Wtime 
 .SH SYNOPSIS
@@ -13,16 +13,6 @@ Time in seconds of resolution of MPI_Wtime
 This is a function, declared as 
 .I DOUBLE PRECISION MPI_WTICK()
 in Fortran.
-@*/
-double MPI_Wtick()
-{
-#ifdef MPI_ADI2
-double t1;
-MPID_Wtick( &t1 );
-return t1;
-#else
-return MPID_WTICK( MPI_COMM_WORLD->ADIctx );
-#endif
-}
+
 .SH LOCATION
 wtick.c

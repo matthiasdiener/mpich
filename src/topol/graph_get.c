@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_get.c,v 1.11 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: graph_get.c,v 1.2 1998/04/29 14:28:43 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,13 +14,13 @@ MPI_Graph_get - Retrieves graph topology information associated with a
                 communicator
 
 Input Parameters:
-. comm - communicator with graph structure (handle) 
++ comm - communicator with graph structure (handle) 
 . maxindex - length of vector 'index' in the calling program  (integer) 
-. maxedges - length of vector 'edges' in the calling program  (integer) 
+- maxedges - length of vector 'edges' in the calling program  (integer) 
 
 Output Parameter:
-. index - array of integers containing the graph structure (for details see the definition of 'MPI_GRAPH_CREATE') 
-. edges - array of integers containing the graph structure 
++ index - array of integers containing the graph structure (for details see the definition of 'MPI_GRAPH_CREATE') 
+- edges - array of integers containing the graph structure 
 
 .N fortran
 

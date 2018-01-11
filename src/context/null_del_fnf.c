@@ -25,13 +25,15 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_null_delete_fn_ ANSI_ARGS(( MPI_Comm, int *, void *, void * ));
+void mpi_null_delete_fn_ ANSI_ARGS(( MPI_Fint, MPI_Fint *, void *, 
+                                     void * ));
 
 void mpi_null_delete_fn_ ( comm, keyval, attr, extra_state )
-MPI_Comm  comm;
-int       *keyval;
+MPI_Fint  comm;
+MPI_Fint  *keyval;
 void      *attr;
 void      *extra_state;
 {
-    MPIR_null_delete_fn(comm,*keyval,attr,extra_state);
+    MPIR_null_delete_fn(MPI_Comm_f2c(comm), (int)*keyval, attr,
+                        extra_state);
 }

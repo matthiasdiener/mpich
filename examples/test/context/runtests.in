@@ -9,16 +9,32 @@ args="-pg -mvhome"
 # Some people don't include "." in their path (! in case an ls trojan horse,
 # I guess - if someone does that to you, you have bigger problems).  This
 # code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
-IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
-for dir in $PATH ; do 
-    if [ -x $dir/mpirun ] ; then
-        mpirun="mpirun"
-        break
-    fi
-done
-IFS="$saveifs"
+if [ -z "$MPICH_USE_LIB_MPIRUN" ] ; then
+    IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+    for dir in $PATH ; do 
+        if [ -x $dir/mpirun ] ; then
+	    if [ -n "@MPICH_VERSION@" ] ; then
+		# Test that we've found the correct mpirun
+		if strings $dir/mpirun | grep "MPIRUN for MPICH" > /dev/null ; then
+		    :
+		else
+		    # echo "$dir/mpirun isn't for MPICH"
+		    continue
+		fi
+	    fi
+            mpirun="mpirun"
+            break
+        fi
+    done
+    IFS="$saveifs"
+fi
 if [ -z "$mpirun" -a -x "./mpirun" ] ; then
     mpirun=./mpirun
+fi
+#
+# Here is the location of the MPICH version of mpirun
+if [ -z "$mpirun" -a -x @LIB_DIR@/mpirun ] ; then 
+    mpirun="@LIB_DIR@/mpirun"
 fi
 if [ -z "$mpirun" ] ; then
     echo "No mpirun in path.  Testing can not proceed."

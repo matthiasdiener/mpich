@@ -1,16 +1,12 @@
 /*
- *  $Id: oputil.c,v 1.3 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: oputil.c,v 1.2 1998/01/29 14:26:04 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 #include "mpiops.h"
 
 /* 
@@ -29,7 +25,7 @@ MPI_Op            newop;
 
     struct MPIR_OP *new;
     MPIR_ALLOC(new,NEW( struct MPIR_OP ),MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-	       "Out of space in MPI_OP_CREATE");
+	       "MPI_OP_CREATE");
     MPIR_SET_COOKIE(new,MPIR_OP_COOKIE)
     new->commute   = commute;
     new->op	   = function;

@@ -42,6 +42,7 @@ Usage: ${progname} -arch=ARCH_TYPE
                    [-cflags=CFLAGS] [-fflags=FFLAGS]
                    [-optcc=C_OPTFLAGS] [-optf77=F77_OPTFLAGS]
                    [-lib=LIBRARY] [-mpilibname=MPINAME]
+		   [-mpichpath=path]
                    [-cross] [-mpi2]
 where
    ARCH_TYPE    = the type of machine that MPI is to be configured for
@@ -249,6 +250,10 @@ do
        MAKE="$package"
 	;;
 
+     -mpichpath=*|--mpichpath=*)
+	mpichpath=`echo A$arg | sed 's/A-*mpichpath=//'`
+	;;
+
      -mpi2)
 	HAS_MPI2=1
 	;;
@@ -289,6 +294,12 @@ AC_PREPARE()
 #
 PAC_GETWD(MPIR_TRIAL,Makefile.in)
 MPIR_HOME=$MPIR_TRIAL
+#
+if test -n "$mpichpath" ; then
+    if test -z "$CC" ; then CC=$mpichpath/mpicc ; fi
+    if test -z "$FC" ; then FC=$mpichpath/mpif77 ; fi
+    # Could also set mpirun=$mpichpath/mpirun
+fi
 #
 F77="$FC"
 #
@@ -432,6 +443,9 @@ AC_SUBST(OPTFLAGS)dnl
 AC_SUBST(OPTFLAGSC)dnl
 AC_SUBST(OPTFLAGSF)dnl
 AC_SUBST(HAS_MPI2)dnl
+MPICH_VERSION=""
+dnl This is used to make sure that we get the correct mpirun.
+AC_SUBST(MPICH_VERSION)dnl
 # End configuration file
-AC_OUTPUT(Makefile pt2pt/Makefile coll/Makefile topol/Makefile context/Makefile env/Makefile profile/Makefile lederman/Makefile )
+AC_OUTPUT(Makefile pt2pt/Makefile coll/Makefile topol/Makefile context/Makefile env/Makefile profile/Makefile )
 PAC_OUTPUT_EXEC(pt2pt/runtests coll/runtests topol/runtests context/runtests env/runtests profile/runtests,a+x )

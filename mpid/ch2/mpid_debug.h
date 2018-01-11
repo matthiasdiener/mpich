@@ -94,6 +94,11 @@ __FILE__, __LINE__ );\
 	    MPID_MyWorldRank, msg, __FILE__, __LINE__ );\
     fflush( MPID_DEBUG_FILE );}}
 	    
+#define DEBUG_PRINT_MSG2(msg,val)\
+{if (MPID_DebugFlag) {\
+    char localbuf[1024]; sprintf( localbuf, msg, val );\
+    DEBUG_PRINT_MSG(localbuf);}}
+	    
 #define DEBUG_PRINT_RECV_PKT(msg,pkt)\
     {if (MPID_DebugFlag) {\
 	FPRINTF( MPID_DEBUG_FILE,\
@@ -161,6 +166,7 @@ if (MPID_DebugFlag) {\
 #else
 #define DEBUG_PRINT_PKT(msg,pkt)
 #define DEBUG_PRINT_MSG(msg)
+#define DEBUG_PRINT_MSG2(msg,val)
 #define DEBUG_PRINT_ARGS(msg) 
 #define DEBUG_PRINT_SEND_PKT(msg,pkt)
 #define DEBUG_PRINT_BASIC_SEND_PKT(msg,pkt)

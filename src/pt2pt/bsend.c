@@ -1,5 +1,5 @@
 /*
- *  $Id: bsend.c,v 1.16 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: bsend.c,v 1.5 1998/04/28 21:46:37 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,20 +7,18 @@
 
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "reqalloc.h"
-#endif
 
 /*@
     MPI_Bsend - Basic send with user-specified buffering
 
 Input Parameters:
-. buf - initial address of send buffer (choice) 
++ buf - initial address of send buffer (choice) 
 . count - number of elements in send buffer (nonnegative integer) 
 . datatype - datatype of each send buffer element (handle) 
 . dest - rank of destination (integer) 
 . tag - message tag (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Notes:
 This send is provided as a convenience function; it allows the user to 
@@ -92,7 +90,6 @@ MPI_Comm         comm;
 	    MPIR_TEST_SEND_RANK(comm_ptr,dest) || MPIR_TEST_SEND_TAG(comm,tag))
 	    return MPIR_ERROR( comm_ptr, mpi_errno, myname );
 
-#ifdef MPI_ADI2
 	/* 
 	   ? BsendDatatype?
 	   MPID_BsendContig( comm, buf, len, src_lrank, tag, context_id,
@@ -101,15 +98,14 @@ MPI_Comm         comm;
 	   if (mpi_errno != MPIR_ERR_MAY_BLOCK) 
 	   return MPIR_ERROR( comm, mpi_errno, myname );
 	 */
-#endif
 	MPIR_ERROR_PUSH(comm_ptr);
 	/* We don't use MPIR_CALL_POP so that we can free the handle */
+	handle = MPI_REQUEST_NULL;
 	if ((mpi_errno = MPI_Ibsend( buf, count, datatype, dest, tag, comm, 
 				  &handle ))) {
 	    MPIR_ERROR_POP(comm_ptr);
-#ifdef MPI_ADI2
-	    MPID_SendFree( handle );
-#endif
+	    if (handle != MPI_REQUEST_NULL) 
+		MPID_SendFree( handle );
 	    return MPIR_ERROR(comm_ptr,mpi_errno,myname);
 	}
 
@@ -123,3 +119,6 @@ MPI_Comm         comm;
     TR_POP;
     return mpi_errno;
 }
+
+
+

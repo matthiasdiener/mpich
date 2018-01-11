@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2req.c,v 1.4 1997/02/18 23:09:04 gropp Exp $
+ *  $Id: adi2req.c,v 1.2 1998/03/13 22:32:20 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -20,36 +20,47 @@
 void MPID_Request_free( request )
 MPI_Request request;
 {
-    /* Allow only one member for now */
-    while (MPID_devset->req_pending) {
-	MPI_Request rq = MPID_devset->req_pending;
-	int         mpi_errno = MPI_SUCCESS;
-
-	switch (rq->handle_type) {
-	case MPIR_SEND:
-	    if (MPID_SendIcomplete( request, &mpi_errno )) {
-	        MPIR_FORGET_SEND( &rq->shandle );
-		MPID_SendFree( rq );
-		MPID_devset->req_pending = 0;
-	    }
-	    break;
-	case MPIR_RECV:
-	    if (MPID_RecvIcomplete( request, (MPI_Status *)0, &mpi_errno )) {
-		MPID_RecvFree( rq );
-		MPID_devset->req_pending = 0;
-	    }
-	    break;
-	case MPIR_PERSISTENT_SEND:
-	    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
-			"Unimplemented operation - persistent send free" );
-	    break;
-	case MPIR_PERSISTENT_RECV:
-	    MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
-			"Unimplemented operation - persistent recv free" );
-	    break;
+    MPI_Request rq = request ; /* MPID_devset->req_pending; */
+    int         mpi_errno = MPI_SUCCESS;
+    
+    switch (rq->handle_type) {
+    case MPIR_SEND:
+	if (MPID_SendIcomplete( rq, &mpi_errno )) {
+	    MPIR_FORGET_SEND( &rq->shandle );
+	    MPID_SendFree( rq );
+	    /* MPID_devset->req_pending = 0;*/
+	    rq = 0;
 	}
-	MPID_DeviceCheck( MPID_NOTBLOCKING );
+	break;
+    case MPIR_RECV:
+	if (MPID_RecvIcomplete( rq, (MPI_Status *)0, &mpi_errno )) {
+	    MPID_RecvFree( rq );
+	    /* MPID_devset->req_pending = 0; */
+	    rq = 0;
+	}
+	break;
+    case MPIR_PERSISTENT_SEND:
+	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
+		    "Unimplemented operation - persistent send free" );
+	break;
+    case MPIR_PERSISTENT_RECV:
+	MPID_Abort( (struct MPIR_COMMUNICATOR *)0, 1, "MPI internal", 
+		    "Unimplemented operation - persistent recv free" );
+	break;
     }
-    /* Add to devset's request list */
-    MPID_devset->req_pending = request;
+
+    MPID_DeviceCheck( MPID_NOTBLOCKING );
+    /* 
+     * If we couldn't complete it, decrement it's reference count
+     * and forget about it.  This requires that the device detect
+     * orphaned requests when they do complete, and process them
+     * independent of any wait/test.
+     */
+    /*if (MPID_devset->req_pending) {*/
+    if (rq) {
+	rq->chandle.ref_count--;
+/*	printf( "Setting ref count to %d for %x\n", 
+		rq->chandle.ref_count, (long)rq ); */
+	/* MPID_devset->req_pending = 0; */
+    }
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi.h,v 1.56 1997/02/18 23:10:41 gropp Exp $
+ *  $Id: mpi.h,v 1.12 1998/05/21 20:26:32 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -27,11 +27,8 @@
 extern "C" {
 #endif
 
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+/* We require that the C compiler support prototypes */
 #define MPIR_ARGS(a) a
-#else
-#define MPIR_ARGS(a) ()
-#endif
 
  /* Results of the compare operations */
 /* These should stay ordered */
@@ -45,6 +42,10 @@ extern "C" {
  * make the values here the number of bytes in the basic type, with
  * a simple test against a max limit (e.g., 16 for long double), and
  * non-contiguous structures with indices greater than that.
+ * 
+ * Note: Configure knows these values for providing the Fortran optional
+ * types (like MPI_REAL8).  Any changes here must be matched by changes
+ * in configure.in
  */
 typedef int MPI_Datatype;
 #define MPI_CHAR           ((MPI_Datatype)1)
@@ -171,22 +172,26 @@ typedef struct {
     int MPI_SOURCE;
     int MPI_TAG;
     int MPI_ERROR;
+    int private_count;
 } MPI_Status;
+/* MPI_STATUS_SIZE is not strictly required in C; however, it should match
+   the value for Fortran */
+#define MPI_STATUS_SIZE 5
 
 /* Must be able to hold any valid address.  64 bit machines may need
    to change this */
-#if (defined(_SX) && !defined(_LONG64))
+/* #if (defined(_SX) && !defined(_LONG64)) */
 /* NEC SX-4 in some modes needs this */
-typedef long long MPI_Aint;
-#else
-typedef long MPI_Aint;
-#endif
+/* typedef long long MPI_Aint; */
+/* #else */
+/* typedef long MPI_Aint; */
+/* #endif */
 
 /* MPI Error handlers.  Systems that don't support stdargs can't use
    this definition
  */
 #if defined(USE_STDARG) 
-typedef void (MPI_Handler_function) MPIR_ARGS(( MPI_Comm *, int *, ... ));
+typedef void (MPI_Handler_function) ( MPI_Comm *, int *, ... );
 #else
 typedef void (MPI_Handler_function) ();
 #endif
@@ -206,31 +211,69 @@ typedef int MPI_Errhandler;
 typedef union MPIR_HANDLE *MPI_Request;
 
 /* User combination function */
-typedef void (MPI_User_function) MPIR_ARGS(( void *, void *, int *, 
-					     MPI_Datatype *)); 
+typedef void (MPI_User_function) ( void *, void *, int *, MPI_Datatype * ); 
 
 /* MPI Attribute copy and delete functions */
-typedef int (MPI_Copy_function) MPIR_ARGS(( MPI_Comm, int, void *,
-					    void *, void *, int *));
-typedef int (MPI_Delete_function) MPIR_ARGS(( MPI_Comm, int, void *, void * ));
+typedef int (MPI_Copy_function) ( MPI_Comm, int, void *,
+					    void *, void *, int * );
+typedef int (MPI_Delete_function) ( MPI_Comm, int, void *, void * );
 
 #define MPI_VERSION 1
 #define MPI_SUBVERSION 1
+#define MPICH_NAME 1
 
 /********************** MPI-2 FEATURES BEGIN HERE ***************************/
-#define MPICH_HAS_HANDLE2INT
+#define MPICH_HAS_C2F
+
+/* for the datatype decoders */
+#define MPI_COMBINER_NAMED              2312
+#define MPI_COMBINER_CONTIGUOUS         2313
+#define MPI_COMBINER_VECTOR             2314
+#define MPI_COMBINER_HVECTOR            2315
+#define MPI_COMBINER_INDEXED            2316
+#define MPI_COMBINER_HINDEXED           2317
+#define MPI_COMBINER_STRUCT             2318
+
+/* for info */
+typedef struct MPIR_Info *MPI_Info;
+# define MPI_INFO_NULL         ((MPI_Info) 0)
+# define MPI_MAX_INFO_KEY       255
+# define MPI_MAX_INFO_VAL      1024
+
+/* for subarray and darray constructors */
+#define MPI_ORDER_C             56
+#define MPI_ORDER_FORTRAN       57
+#define MPI_DISTRIBUTE_BLOCK    121
+#define MPI_DISTRIBUTE_CYCLIC   122
+#define MPI_DISTRIBUTE_NONE     123
+#define MPI_DISTRIBUTE_DFLT_DARG -49767
+
+/* mpidefs.h includes configuration-specific information, such as the 
+   type of MPI_Aint or MPI_Fint, also mpio.h, if it was built */
+#include "mpidefs.h"
 
 /* Handle conversion types/functions */
-typedef void *MPI_Handle_type;
-/* Note: this may need to be typedef long MPI_Fint; instead */
-typedef int  MPI_Fint;
-typedef enum { MPI_DATATYPE_HANDLE, MPI_REQUEST_HANDLE, MPI_COMM_HANDLE, 
-	       MPI_GROUP_HANDLE, MPI_ERRHANDLE_HANDLE, MPI_OP_HANDLE } 
-MPI_Handle_enum;
 
-/* These routines have changed(!) */
-MPI_Handle_type MPI_Int2handle MPIR_ARGS(( MPI_Fint, MPI_Handle_enum ));
-MPI_Fint MPI_Handle2int MPIR_ARGS(( MPI_Handle_type, MPI_Handle_enum ));
+/* Programs that need to convert types used in MPICH should use these */
+#define MPI_Comm_c2f(comm) (MPI_Fint)(comm)
+#define MPI_Comm_f2c(comm) (MPI_Comm)(comm)
+#define MPI_Type_c2f(datatype) (MPI_Fint)(datatype)
+#define MPI_Type_f2c(datatype) (MPI_Datatype)(datatype)
+#define MPI_Group_c2f(group) (MPI_Fint)(group)
+#define MPI_Group_f2c(group) (MPI_Group)(group)
+/* MPI_Request_c2f is a routine in src/misc2 */
+#define MPI_Request_f2c(request) (MPI_Request)MPIR_ToPointer(request)
+#define MPI_Op_c2f(op) (MPI_Fint)(op)
+#define MPI_Op_f2c(op) (MPI_Op)(op)
+#define MPI_Errhandler_c2f(errhandler) (MPI_Fint)(errhandler)
+#define MPI_Errhandler_f2c(errhandler) (MPI_Errhandler)(errhandler)
+
+/* For new MPI-2 types */
+#define MPI_Win_c2f(win)   (MPI_Fint)(win)
+#define MPI_Win_f2c(win)   (MPI_Win)(win)
+
+#define MPI_STATUS_IGNORE (MPI_Status *)0
+#define MPI_STATUSES_IGNORE (MPI_Status *)0
 
 /********************** MPI-2 FEATURES END HERE ***************************/
 
@@ -245,3 +288,4 @@ MPI_Fint MPI_Handle2int MPIR_ARGS(( MPI_Handle_type, MPI_Handle_enum ));
 #endif
 
 #endif
+

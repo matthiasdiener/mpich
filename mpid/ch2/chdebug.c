@@ -1,5 +1,5 @@
 /*
- *  $Id: chdebug.c,v 1.6 1996/11/24 20:21:44 gropp Exp $
+ *  $Id: chdebug.c,v 1.1.1.1 1997/09/17 20:39:18 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

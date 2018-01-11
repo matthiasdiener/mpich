@@ -6,7 +6,7 @@
 
 
 /*
- *  $Id: chrecv.c,v 1.45 1995/12/21 22:24:25 gropp Exp gropp $
+ *  $Id: meikorecv.c,v 1.1.1.1 1997/09/17 20:40:44 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -14,7 +14,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chrecv.c,v 1.45 1995/12/21 22:24:25 gropp Exp gropp $";
+static char vcid[] = "$Id: meikorecv.c,v 1.1.1.1 1997/09/17 20:40:44 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"

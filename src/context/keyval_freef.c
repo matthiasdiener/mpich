@@ -23,11 +23,13 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_keyval_free_ ANSI_ARGS(( int *, int * ));
+void mpi_keyval_free_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_keyval_free_ ( keyval, __ierr )
-int *keyval;
-int *__ierr;
+MPI_Fint *keyval;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Keyval_free(keyval);
+    int l_keyval = (int)*keyval;
+    *__ierr = MPI_Keyval_free(&l_keyval);
+    *keyval = (MPI_Fint)l_keyval;
 }

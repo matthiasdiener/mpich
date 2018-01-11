@@ -3,6 +3,9 @@
  * a demon.
  */
 
+/* server.h includes the results of the configure test */
+#include "server.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>

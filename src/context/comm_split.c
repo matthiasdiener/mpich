@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_split.c,v 1.44 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: comm_split.c,v 1.3 1998/04/28 20:58:00 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,11 +7,7 @@
 
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /* Also used in comm_util.c */
 #define MPIR_Table_color(table,i) table[(i)]
@@ -23,9 +19,9 @@
 MPI_Comm_split - Creates new communicators based on colors and keys
 
 Input Parameters:
-. comm - communicator (handle) 
++ comm - communicator (handle) 
 . color - control of subset assignment (nonnegative integer) 
-. key - control of rank assigment (integer) 
+- key - control of rank assigment (integer) 
 
 Output Parameter:
 . newcomm - new communicator (handle) 
@@ -91,7 +87,7 @@ MPI_Comm *comm_out;
   (void) MPIR_Comm_size ( comm_ptr, &size );
   (void) MPIR_Comm_rank ( comm_ptr, &rank );
   MPIR_ALLOC(table,(int *) CALLOC ( 2 * 3 * size, sizeof(int) ),
-	     comm_ptr,MPI_ERR_EXHAUSTED,"Out of space in MPI_COMM_SPLIT" );
+	     comm_ptr,MPI_ERR_EXHAUSTED,"MPI_COMM_SPLIT" );
   
   table_in = table + (3 * size);
   MPIR_Table_color(table_in,rank) = color;
@@ -139,26 +135,20 @@ MPI_Comm *comm_out;
 
   /* Make communicator using contexts allocated */
   MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm_ptr, MPI_ERR_EXHAUSTED, 
-	     "Out of space in MPI_COMM_SPLIT" );
+	     "MPI_COMM_SPLIT" );
   MPIR_Comm_init( new_comm, comm_ptr, MPIR_INTRA );
   *comm_out = new_comm->self;
 
   new_comm->group         = group_ptr;
   MPIR_Group_dup ( group_ptr, &(new_comm->local_group) );
-#ifndef MPI_ADI2
-  if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm )) )
-      return MPIR_ERROR(comm_ptr, mpi_errno, myname );
-#endif  
   new_comm->local_rank	   = new_comm->local_group->local_rank;
   new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
   new_comm->np             = new_comm->group->np;
   new_comm->send_context   = new_comm->recv_context = context;
   new_comm->comm_name	   = 0;
-#ifdef MPI_ADI2
   /* CommInit may need lrank_to_grank, etc */
   if ((mpi_errno = MPID_CommInit( comm_ptr, new_comm )) )
       return MPIR_ERROR(comm_ptr,mpi_errno,myname);
-#endif  
   (void) MPIR_Attr_create_tree ( new_comm );
   (void) MPIR_Comm_make_coll( new_comm, MPIR_INTRA );
 

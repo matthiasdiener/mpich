@@ -23,16 +23,21 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_vector_ ANSI_ARGS(( int *, int *, int *, MPI_Datatype *,
-				  MPI_Datatype *, int * ));
+void mpi_type_vector_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                  MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_type_vector_( count, blocklen, stride, old_type, newtype, __ierr )
-int*count;
-int*blocklen;
-int*stride;
-MPI_Datatype *old_type;
-MPI_Datatype *newtype;
-int *__ierr;
+MPI_Fint *count;
+MPI_Fint *blocklen;
+MPI_Fint *stride;
+MPI_Fint *old_type;
+MPI_Fint *newtype;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Type_vector(*count,*blocklen,*stride,*old_type,newtype );
+    MPI_Datatype l_datatype;
+
+    *__ierr = MPI_Type_vector((int)*count, (int)*blocklen, (int)*stride,
+                              MPI_Type_f2c(*old_type), 
+                              &l_datatype);
+    *newtype = MPI_Type_c2f(l_datatype);
 }

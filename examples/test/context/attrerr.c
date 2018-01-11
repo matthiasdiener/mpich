@@ -26,6 +26,13 @@ char **argv;
     return 0;
 }
 
+/* 
+ * MPI 1.2 Clarification: Clarification of Error Behavior of 
+ *                        Attribute Callback Functions 
+ * Any return value other than MPI_SUCCESS is erroneous.  The specific value
+ * returned to the user is undefined (other than it can't be MPI_SUCCESS).
+ * Proposals to specify particular values (e.g., user's value) failed.
+ */
 /* Return an error as the value */
 int copybomb_fn(oldcomm, keyval, extra_state,
 		attribute_val_in, attribute_val_out, flag)
@@ -88,18 +95,18 @@ int test_communicators()
     }
 
     err = MPI_Attr_put( dup_comm_world, key_1, (void *)(2*world_rank) );
-    if (err != MPI_ERR_OTHER) {
-	printf( "delete function return code not used in put\n" );
+    if (err == MPI_SUCCESS) {
+	printf( "delete function return code was MPI_SUCCESS in put\n" );
     }
 
     err = MPI_Attr_delete( dup_comm_world, key_1 );
-    if (err != MPI_ERR_OTHER) {
-	printf( "delete function return code not used in delete\n" );
+    if (err == MPI_SUCCESS) {
+	printf( "delete function return code was MPI_SUCCESS in delete\n" );
     }
     
     err = MPI_Comm_dup( dup_comm_world, &d2 );
-    if (err != MPI_ERR_OTHER) {
-	printf( "copy function return code not used in dup\n" );
+    if (err == MPI_SUCCESS) {
+	printf( "copy function return code was MPI_SUCCESS in dup\n" );
     }
     if (d2 != MPI_COMM_NULL) {
 	printf( "dup did not return MPI_COMM_NULL on error\n" );

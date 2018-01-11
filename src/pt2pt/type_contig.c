@@ -1,27 +1,23 @@
 /*
- *  $Id: type_contig.c,v 1.24 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_contig.c,v 1.3 1998/04/28 21:47:23 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
 /* pt2pt for MPIR_Type_dup */
 #include "mpipt2pt.h"
-#else
-#include "mpisys.h"
-#endif
 
 
 /*@
     MPI_Type_contiguous - Creates a contiguous datatype
 
 Input Parameters:
-. count - replication count (nonnegative integer) 
-. oldtype - old datatype (handle) 
++ count - replication count (nonnegative integer) 
+- oldtype - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 

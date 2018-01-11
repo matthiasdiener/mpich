@@ -1,24 +1,20 @@
 /*
- *  $Id: comm_create.c,v 1.25 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: comm_create.c,v 1.3 1998/04/28 20:57:58 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
 MPI_Comm_create - Creates a new communicator
 
 Input Parameters:
-. comm - communicator (handle) 
-. group - group, which is a subset of the group of 'comm'  (handle) 
++ comm - communicator (handle) 
+- group - group, which is a subset of the group of 'comm'  (handle) 
 
 Output Parameter:
 . comm_out - new communicator (handle) 
@@ -74,25 +70,19 @@ MPI_Comm *comm_out;
   }
   else {
     MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm_ptr, MPI_ERR_EXHAUSTED,
-					"Out of space in MPI_COMM_CREATE" );
+					"MPI_COMM_CREATE" );
     (void) MPIR_Comm_init( new_comm, comm_ptr, MPIR_INTRA );
     *comm_out = new_comm->self;
     MPIR_Group_dup( group_ptr, &(new_comm->group) );
     MPIR_Group_dup( group_ptr, &(new_comm->local_group) );
     /* Initialize the communicator with the device */
-#ifndef MPI_ADI2
-    if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm_ptr, new_comm )))
-	return mpi_errno;
-#endif
     new_comm->local_rank     = new_comm->local_group->local_rank;
     new_comm->lrank_to_grank = new_comm->group->lrank_to_grank;
     new_comm->np             = new_comm->group->np;
     new_comm->comm_name      = 0;
 
-#ifdef MPI_ADI2
     if ((mpi_errno = MPID_CommInit( comm, new_comm )))
 	return mpi_errno;
-#endif
 
     (void) MPIR_Context_alloc( comm_ptr, 2, &(new_comm->send_context) );
     new_comm->recv_context = new_comm->send_context;

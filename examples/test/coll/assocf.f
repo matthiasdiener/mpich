@@ -20,7 +20,8 @@ C
       if (size.ne.4) then
          print *,"This test case must be run as a four-way job"
          call MPI_FINALIZE(ier)
-      end if
+         stop
+      end if   
       call MPI_TYPE_SIZE( MPI_REAL, tsize, ier )
       if (tsize .eq. 8) then
          dtype = MPI_REAL

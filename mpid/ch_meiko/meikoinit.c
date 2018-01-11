@@ -7,14 +7,14 @@ int __NUMNODES, __MYPROCID  ;extern double MPID_get_nsec_clock();
 
 
 /*
- *  $Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $
+ *  $Id: meikoinit.c,v 1.1.1.1 1997/09/17 20:40:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chinit.c,v 1.38 1995/12/21 22:24:16 gropp Exp gropp $";
+static char vcid[] = "$Id: meikoinit.c,v 1.1.1.1 1997/09/17 20:40:42 gropp Exp $";
 #endif
 
 /* 

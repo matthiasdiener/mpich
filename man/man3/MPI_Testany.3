@@ -1,4 +1,4 @@
-.TH MPI_Testany 3 "1/24/1997" " " "MPI"
+.TH MPI_Testany 3 "4/28/1998" " " "MPI"
 .SH NAME
 MPI_Testany \-  Tests for completion of any previdously initiated  communication 
 .SH SYNOPSIS
@@ -95,35 +95,5 @@ an error.
 .B MPI_SUCCESS 
 - No error; MPI routine completed successfully.
 .PD 1
-.PD 0
-.TP
-.B MPI_ERR_IN_STATUS 
-- The actual error value is in the 
-.I MPI_Status
-argument.
-This error class is returned only from the multiple-completion routines
-(
-.I MPI_Testall
-, 
-.I MPI_Testany
-, 
-.I MPI_Testsome
-, 
-.I MPI_Waitall
-, 
-.I MPI_Waitany
-,
-and 
-.I MPI_Waitsome
-).  The field 
-.I MPI_ERROR
-in the status argument
-contains the error value or 
-.I MPI_SUCCESS
-(no error and complete) or
-.I MPI_ERR_PENDING
-to indicate that the request has not completed.
-.PD 1
-
 .SH LOCATION
 testany.c

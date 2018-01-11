@@ -1,4 +1,4 @@
-.TH MPI_Buffer_detach 3 "1/6/1997" " " "MPI"
+.TH MPI_Buffer_detach 3 "4/28/1998" " " "MPI"
 .SH NAME
 MPI_Buffer_detach \-  Removes an existing buffer (for use in MPI_Bsend etc) 
 .SH SYNOPSIS
@@ -39,6 +39,7 @@ MPI_Buffer_detach( &dummy, &idummy );
 MPI_Buffer_attach( ptr, size );
 .fi
 
+
 This is much like the action of the Unix signal routine and has the same
 strengths (it is simple) and weaknesses (it only works for nested usages).
 
@@ -53,6 +54,7 @@ The statements made in this section describe the behavior of MPI for
 buffered-mode sends. When no buffer is currently associated, MPI behaves 
 as if a zero-sized buffer is associated with the process.
 .fi
+
 
 This could be read as applying only to the various Bsend routines.  This
 implementation takes the position that this applies to 

@@ -1,28 +1,24 @@
 /*
- *  $Id: testall.c,v 1.27 1997/01/24 21:55:18 gropp Exp $
+ *  $Id: testall.c,v 1.10 1998/07/01 19:56:16 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "reqalloc.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Testall - Tests for the completion of all previously initiated
     communications
 
 Input Parameters:
-. count - lists length (integer) 
-. array_of_requests - array of requests (array of handles) 
++ count - lists length (integer) 
+- array_of_requests - array of requests (array of handles) 
 
 Output Parameters:
-. flag - (logical) 
-. array_of_statuses - array of status objects (array of Status) 
++ flag - (logical) 
+- array_of_statuses - array of status objects (array of Status) 
 
 Notes:
   'flag' is true only if all requests have completed.  Otherwise, flag is
@@ -50,7 +46,7 @@ MPI_Status *array_of_statuses;
     static char myname[] = "MPI_TESTALL";
 
     TR_PUSH(myname);
-#ifdef MPI_ADI2
+
     MPID_DeviceCheck( MPID_NOTBLOCKING );
   /* It is a good thing that the receive requests contain the status object!
      We need this to save the status information in the case where not
@@ -101,17 +97,26 @@ MPI_Status *array_of_statuses;
 	    else nready++;
 	    break;
 	}
+	if (mpi_errno) {
+	    MPIR_Set_Status_error_array( array_of_requests, count, i, 
+					 mpi_errno, array_of_statuses );
+	    mpi_errno = MPI_ERR_IN_STATUS;
+	    TR_POP;
+	    MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
+	}
     }
     *flag = (nready == count);
+    /* Becausea request may have completed with an error (such as 
+       MPI_ERR_TRUNCATE), we need to check here as well */
     if (nready == count) {
 	for (i=0; i<count; i++) {
 	    request = array_of_requests[i];
 	    if (!request) {
 		/* See MPI Standard, 3.7 */
-		array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
-		array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
-		array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
-		array_of_statuses[i].count	    = 0;
+		array_of_statuses[i].MPI_TAG	= MPI_ANY_TAG;
+		array_of_statuses[i].MPI_SOURCE	= MPI_ANY_SOURCE;
+		array_of_statuses[i].MPI_ERROR	= MPI_SUCCESS;
+		array_of_statuses[i].count	= 0;
 		continue;
 	    }
 	    switch (request->handle_type) {
@@ -121,10 +126,21 @@ MPI_Status *array_of_statuses;
 		array_of_requests[i] = 0;
 		break;
 	    case MPIR_RECV:
-		array_of_statuses[i] = request->rhandle.s;
-		if (request->rhandle.s.MPI_ERROR) {
+		if (request->rhandle.s.MPI_ERROR) 
+		    mpi_errno = request->rhandle.s.MPI_ERROR;
+/*
+		if (request->rhandle.s.MPI_ERROR && mpi_errno == MPI_SUCCESS) {
+		    for (j=0; j<count; j++) {
+			if (!array_of_requests[i] || 
+			    array_of_requests[i].is_complete)
+			    array_of_statuses[j].MPI_ERROR = MPI_SUCCESS;
+			else
+			    array_of_statuses[j].MPI_ERROR = MPI_ERR_PENDING;
+		    }
 		    mpi_errno = MPI_ERR_IN_STATUS;
 		}
+ */
+		array_of_statuses[i] = request->rhandle.s;
 		MPID_RecvFree( array_of_requests[i] );
 		array_of_requests[i] = 0;
 		break;
@@ -135,151 +151,34 @@ MPI_Status *array_of_statuses;
 		if (request->persistent_rhandle.active) {
 		    array_of_statuses[i] = 
 			request->persistent_rhandle.rhandle.s;
+		    mpi_errno = request->persistent_rhandle.rhandle.s.MPI_ERROR;
 		    request->persistent_rhandle.active = 0;
 		}
 		else {
 		    /* See MPI Standard, 3.7 */
-		    array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
+		    /* Thanks to mechi@terra.co.il for this fix */
+#ifdef FOO
+		    if (request->persistent_rhandle.rhandle.s.MPI_TAG ==
+			MPIR_MSG_CANCELLED) 
+			array_of_statuses[i].MPI_TAG = MPIR_MSG_CANCELLED;
+		    else
+#endif
+			array_of_statuses[i].MPI_TAG = MPI_ANY_TAG;
 		    array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
 		    array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
 		    array_of_statuses[i].count	    = 0;
 		}
 		break;
 	    }
+	    if (mpi_errno) {
+		MPIR_Set_Status_error_array( array_of_requests, count, i, 
+					     mpi_errno, array_of_statuses );
+		mpi_errno = MPI_ERR_IN_STATUS;
+		TR_POP;
+		MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
+	    }
 	}
     }
-#else
-    int mpi_lerr;
-
-    MPID_Check_device( MPI_COMM_WORLD->ADIctx, 0 );
-
-    /* This test must go in two phases: First, see if all are ready.
-       If not, then exit with flag false.  Otherwise, process them
-       ALL and return with flag true. 
-     */
-    nready = 0;
-    for (i = 0; i < count; i++)	{
-	request = array_of_requests[i];
-
-	if ( !request || !request->chandle.active) {
-	    nready++;
-	    continue;
-	    }
-	if (!MPID_Test_request( MPID_Ctx( request ), request)) {
-	    /* Try to complete the send or receive */
-	    if (request->type == MPIR_SEND) {
-		if (MPID_Test_send( request->shandle.comm->ADIctx, 
-				   &request->shandle )) 
-		    nready++;
-		}
-	    else {
-		if (MPID_Test_recv( request->rhandle.comm->ADIctx, 
-				    &request->rhandle )) 
-		    nready++;
-		}
-	    }
-	else 
-	    nready++;
-	}
-    
-    /* If we exited early, then we're done (false return) */
-    if (nready != count) {
-	*flag = 0;
-	return MPI_SUCCESS;
-	}
-
-    *flag = 1;
-
-    /* Now gather information on the completed requests */
-    for (i = 0; i < count; i++)	{
-	request = array_of_requests[i];
-
-	if ( !request || !request->chandle.active) {
-	    /* See MPI Standard, 3.7 */
-	    array_of_statuses[i].MPI_TAG    = MPI_ANY_TAG;
-	    array_of_statuses[i].MPI_SOURCE = MPI_ANY_SOURCE;
-	    array_of_statuses[i].MPI_ERROR  = MPI_SUCCESS;
-	    array_of_statuses[i].count	    = 0;
-	    continue;
-	    }
-	/* We know that we can complete the operation. 
-           We don't need to use the Test_send/recv, but it doesn't hurt. */
-	if (!MPID_Test_request( MPID_Ctx( request ), request)) {
-	    /* Try to complete the send or receive */
-	    if (request->type == MPIR_SEND) {
-		if (MPID_Test_send( request->shandle.comm->ADIctx, 
-				   &request->shandle )) {
-		    MPID_Complete_send( request->shandle.comm->ADIctx, 
-				       &request->shandle );
-		    }
-		}
-	    else {
-		if (MPID_Test_recv( request->rhandle.comm->ADIctx, 
-				   &request->rhandle )) {
-		    mpi_lerr = MPID_Complete_recv( 
-					    request->rhandle.comm->ADIctx, 
-					    &request->rhandle );
-		    if (mpi_lerr) {
-			mpi_errno = MPI_ERR_IN_STATUS;
-			array_of_statuses[i].MPI_ERROR = mpi_lerr;
-			}
-		    }
-		}
-	    }
-	/* At this point, the request is complete */
-	if ( request->type == MPIR_RECV ) {
-	    if (request->rhandle.errval) {
-		array_of_statuses[i].MPI_ERROR  = 
-		    request->rhandle.errval;
-		mpi_errno = MPI_ERR_IN_STATUS;
-		}
-	    array_of_statuses[i].MPI_SOURCE = request->rhandle.source;
-	    array_of_statuses[i].MPI_TAG    = request->rhandle.tag;
-	    array_of_statuses[i].count      = 
-		request->rhandle.totallen;
-#ifdef MPID_RETURN_PACKED
-	    if (request->rhandle.bufpos) 
-		if ((mpi_lerr = MPIR_UnPackMessage( 
-						  request->rhandle.bufadd, 
-						  request->rhandle.count, 
-						  request->rhandle.datatype, 
-						  request->rhandle.source,
-						  request, 
-					      &array_of_statuses[i].count ))) {
-		    array_of_statuses[i].MPI_ERROR = mpi_lerr;
-		    mpi_errno = MPI_ERR_IN_STATUS;
-		    }
-#endif
-	    }
-	else {
-#if defined(MPID_PACK_IN_ADVANCE) || defined(MPID_HAS_HETERO)
-	    if (request->shandle.bufpos && 
-		(mpi_errno = MPIR_SendBufferFree( request ))){
-		MPIR_ERROR( MPI_COMM_NULL, mpi_errno, 
-		       "Could not free allocated send buffer in MPI_TESTALL" );
-		}
-#endif
-	    }
-
-	if (!request->chandle.persistent) {
-	    MPIR_Type_free( &request->chandle.datatype );
-/*	    if (--request->chandle.datatype->ref _count <= 0) {
-		MPIR_Type_free( &request->chandle.datatype );
-		}
-		*/
-	    MPI_Request_free( &array_of_requests[i] );
-	    /* Question: should we ALWAYS set to null? */
-	    array_of_requests[i]    = NULL;
-	    }
-	else {
-	    MPIR_RESET_PERSISTENT(request)
-	    }
-	}
-
-    if (mpi_errno) {
-	return MPIR_ERROR(MPI_COMM_WORLD, mpi_errno, myname );
-	}
-#endif
     TR_POP;
-    return mpi_errno;
+    MPIR_RETURN(MPIR_COMM_WORLD, mpi_errno, myname );
 }

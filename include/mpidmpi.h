@@ -9,7 +9,6 @@
 #endif
 #endif
 
-#ifdef MPI_ADI2
 void MPID_BSwap_N_inplace ANSI_ARGS(( unsigned char *, int, int ));
 void MPID_BSwap_short_inplace ANSI_ARGS(( unsigned char *, int ));
 void MPID_BSwap_int_inplace ANSI_ARGS(( unsigned char *, int ));
@@ -44,51 +43,9 @@ int MPID_Type_convert_copy ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *,
 				       int, void *, 
 				       struct MPIR_DATATYPE *, 
 				       int, int, int * ));
-#ifdef MPI_ADI2
 int MPID_Mem_convert_len ANSI_ARGS(( MPID_Msgrep_t, struct MPIR_DATATYPE *, 
 				     int ));
-#else
-int MPID_Mem_convert_len ANSI_ARGS(( int, struct MPIR_DATATYPE *, int ));
-#endif
 int MPID_Mem_XDR_Len ANSI_ARGS(( struct MPIR_DATATYPE *, int ));
-#else
-void MPIR_BSwap_N_inplace ANSI_ARGS(( unsigned char *, int, int ));
-void MPIR_BSwap_short_inplace ANSI_ARGS(( unsigned char *, int ));
-void MPIR_BSwap_int_inplace ANSI_ARGS(( unsigned char *, int ));
-void MPIR_BSwap_long_inplace ANSI_ARGS(( unsigned char *, int ));
-void MPIR_BSwap_float_inplace ANSI_ARGS(( unsigned char *, int ));
-void MPIR_BSwap_double_inplace ANSI_ARGS(( unsigned char *, int ));
-void MPIR_BSwap_long_double_inplace ANSI_ARGS(( unsigned char *, int ));
-void MPIR_BSwap_N_copy ANSI_ARGS(( unsigned char *, unsigned char *, 
-				   int, int ));
-void MPIR_BSwap_short_copy ANSI_ARGS(( unsigned char *, unsigned char *, 
-				       int ));
-void MPIR_BSwap_int_copy ANSI_ARGS(( unsigned char *, unsigned char *, int ));
-void MPIR_BSwap_long_copy ANSI_ARGS(( unsigned char *, unsigned char *, int ));
-void MPIR_BSwap_float_copy ANSI_ARGS(( unsigned char *, unsigned char *, 
-				       int ));
-void MPIR_BSwap_double_copy ANSI_ARGS(( unsigned char *, unsigned char *, 
-					int ));
-void MPIR_BSwap_long_double_copy ANSI_ARGS(( unsigned char *, 
-					     unsigned char *, int ));
-
-int MPIR_Type_swap_copy ANSI_ARGS(( unsigned char *, unsigned char *, 
-				    struct MPIR_DATATYPE*, int, void * ));
-void MPIR_Type_swap_inplace ANSI_ARGS(( unsigned char *, 
-					struct MPIR_DATATYPE *, int ));
-int MPIR_Type_XDR_encode ANSI_ARGS(( unsigned char *, unsigned char *, 
-				     struct MPIR_DATATYPE *, int, void * ));
-int MPIR_Type_XDR_decode ANSI_ARGS(( unsigned char *, int, 
-				     struct MPIR_DATATYPE*, int, 
-				     unsigned char *, int, int *, int *, 
-				     void * ));
-int MPIR_Type_convert_copy ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, 
-				       int, void *, 
-				       struct MPIR_DATATYPE *, int, int, 
-				       int * ));
-int MPIR_Mem_convert_len ANSI_ARGS(( int, struct MPIR_DATATYPE *, int ));
-int MPIR_Mem_XDR_Len ANSI_ARGS(( struct MPIR_DATATYPE *, int ));
-#endif
 
 int MPIR_Comm_needs_conversion ANSI_ARGS(( struct MPIR_COMMUNICATOR * ));
 int MPIR_Dest_needs_converstion ANSI_ARGS(( int ));
@@ -127,16 +84,10 @@ int MPIR_Unpack2 ANSI_ARGS(( char *, int, struct MPIR_DATATYPE*,
 		   int  (*)(unsigned char *, int, struct MPIR_DATATYPE*, int,
 			   unsigned char *, int, int *, int *, void *),
 		   void *, char *, int, int *, int * ));
-#ifdef MPI_ADI2
 int MPIR_Unpack ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, int, 
 			    struct MPIR_DATATYPE *,
 			    MPID_Msgrep_t, 
 			    void *, int *, int * ));
-#else
-int MPIR_Unpack ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, int, 
-			    struct MPIR_DATATYPE *, int, 
-			    void *, int *, int * ));
-#endif
 
 int MPIR_Printcontig ANSI_ARGS(( unsigned char *, unsigned char *, 
 				 struct MPIR_DATATYPE*, int, void *));

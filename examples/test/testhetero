@@ -20,7 +20,7 @@ mypwd=`echo $mypwd | sed s%/tmp_mnt%%g`
 # arch1 is local, arch2 is remote
 arch1=sun4
 arch2=freebsd
-name2=owl
+name2=dogbert
 #
 # Build local versions
 for pgm in $programs ; do
@@ -38,4 +38,23 @@ for pgm in $programs ; do
     $mpihome/lib/$arch1/$device/mpirun -echo \
 		-arch $arch1 -np 2 -arch $arch2 -np 2 $pgm.%a
 done
-
+#
+# Fortran versions
+programs="sendlogc"
+#
+# Build local versions
+for pgm in $programs ; do
+    $mpihome/lib/$arch1/$device/mpif77 -o $pgm.$arch1 $pgm.f
+done
+#
+# Build remote versions
+for pgm in $programs ; do 
+    $rshcmd -n $name2 "(cd $mypwd ; $mpihome/lib/$arch2/$device/mpif77 \
+	-o $pgm.$arch2 $pgm.f)"
+done
+#
+# Run the programs
+for pgm in $programs ; do
+    $mpihome/lib/$arch1/$device/mpirun -echo \
+		-arch $arch1 -np 2 -arch $arch2 -np 2 $pgm.%a
+done

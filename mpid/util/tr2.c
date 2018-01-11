@@ -12,6 +12,9 @@
 
 #include "tr2.h"
 
+/* If you change this, you must change the format spec (%lx) to match */
+typedef long PointerInt;
+
 /* Needed for MPI_Aint (int that is the size of void *) */
 #include "mpi.h"
 
@@ -192,7 +195,7 @@ char     *fname;
 
     if (TRlevel & TR_MALLOC) 
 	fprintf( stderr, "[%d] Allocating %d bytes at %lx in %s:%d\n", 
-		 world_rank, a, (MPI_Aint)new, fname, lineno );
+		 world_rank, a, (PointerInt)new, fname, lineno );
     return (void *)new;
 }
 
@@ -229,7 +232,7 @@ char *file;
 	/* Damaged header */
 	fprintf( stderr, "[%d] Block at address %lx is corrupted; cannot free;\n\
 may be block not allocated with MPID_trmalloc or MALLOC\n\
-called in %s at line %d\n", world_rank, (MPI_Aint)a, file, line );
+called in %s at line %d\n", world_rank, (PointerInt)a, file, line );
 	return;
     }
     nend = (unsigned long *)(ahead + head->size);
@@ -246,7 +249,7 @@ called in %s at line %d\n", world_rank, (long)a + sizeof(TrSPACE),
 	if (*nend == ALREADY_FREED) {
 	    fprintf( stderr, 
 		     "[%d] Block [id=%d(%lu)] at address %lx was already freed\n", 
-		     world_rank, head->id, head->size, (MPI_Aint)a + sizeof(TrSPACE) );
+		     world_rank, head->id, head->size, (PointerInt)a + sizeof(TrSPACE) );
 	    head->fname[TR_FNAME_LEN-1]	  = 0;  /* Just in case */
 	    head->freed_fname[TR_FNAME_LEN-1] = 0;  /* Just in case */
 	    fprintf( stderr, 
@@ -261,7 +264,7 @@ called in %s at line %d\n", world_rank, (long)a + sizeof(TrSPACE),
 	    /* Damaged tail */
 	    fprintf( stderr, 
 		     "[%d] Block [id=%d(%lu)] at address %lx is corrupted (probably write past end)\n", 
-		     world_rank, head->id, head->size, (MPI_Aint)a );
+		     world_rank, head->id, head->size, (PointerInt)a );
 	    head->fname[TR_FNAME_LEN-1]= 0;  /* Just in case */
 	    fprintf( stderr, 
 		     "[%d] Block allocated in %s[%d]\n", world_rank, 
@@ -285,7 +288,7 @@ called in %s at line %d\n", world_rank, (long)a + sizeof(TrSPACE),
 	head->next->prev = head->prev;
     if (TRlevel & TR_FREE)
 	fprintf( stderr, "[%d] Freeing %lu bytes at %lx in %s:%d\n", 
-		 world_rank, head->size, (MPI_Aint)a + sizeof(TrSPACE),
+		 world_rank, head->size, (PointerInt)a + sizeof(TrSPACE),
 		 file, line );
     
     /* 
@@ -339,7 +342,7 @@ while (head) {
 	if (!errs) fprintf( stderr, "%s\n", str );
 	errs++;
 	fprintf( stderr, "[%d] Block at address %lx is corrupted\n", 
-                 world_rank, (MPI_Aint)head );
+                 world_rank, (PointerInt)head );
 	/* Must stop because if head is invalid, then the data in the
 	   head is probably also invalid, and using could lead to SEGV or BUS
 	 */
@@ -353,7 +356,7 @@ while (head) {
 	head->fname[TR_FNAME_LEN-1]= 0;  /* Just in case */
 	fprintf( stderr, 
 "[%d] Block [id=%d(%lu)] at address %lx is corrupted (probably write past end)\n", 
-	     world_rank, head->id, head->size, (MPI_Aint)a );
+	     world_rank, head->id, head->size, (PointerInt)a );
 	fprintf( stderr, 
 		"[%d] Block allocated in %s[%d]\n", 
                 world_rank, head->fname, head->lineno );
@@ -396,7 +399,7 @@ FILE *fp;
     head = TRhead;
     while (head) {
 	fprintf( fp, "[%d] %lu at [%lx], id = ", 
-		 world_rank, head->size, (MPI_Aint)head + sizeof(TrSPACE) );
+		 world_rank, head->size, (PointerInt)head + sizeof(TrSPACE) );
 	if (head->id >= 0) {
 	    head->fname[TR_FNAME_LEN-1] = 0;
 	    fprintf( fp, "%d %s[%d]\n", 
@@ -637,7 +640,7 @@ char *fname;
 	/* Damaged header */
 	fprintf( stderr, "[%d] Block at address %lx is corrupted; cannot realloc;\n\
 may be block not allocated with MPID_trmalloc or MALLOC\n", 
-		 world_rank, (MPI_Aint)pa );
+		 world_rank, (PointerInt)pa );
 	return 0;
     }
 

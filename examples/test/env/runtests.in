@@ -9,16 +9,32 @@ args="-pg -mvhome"
 # Some people don't include "." in their path (! in case an ls trojan horse,
 # I guess - if someone does that to you, you have bigger problems).  This
 # code tests to see if you have a path to mpirun; if not, it tries ./mpirun.
-IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
-for dir in $PATH ; do 
-    if [ -x $dir/mpirun ] ; then
-        mpirun="mpirun"
-        break
-    fi
-done
-IFS="$saveifs"
+if [ -z "$MPICH_USE_LIB_MPIRUN" ] ; then
+    IFS="${IFS= 	}"; saveifs="$IFS"; IFS="${IFS}:"
+    for dir in $PATH ; do 
+        if [ -x $dir/mpirun ] ; then
+	    if [ -n "@MPICH_VERSION@" ] ; then
+		# Test that we've found the correct mpirun
+		if strings $dir/mpirun | grep "MPIRUN for MPICH" > /dev/null ; then
+		    :
+		else
+		    # echo "$dir/mpirun isn't for MPICH"
+		    continue
+		fi
+	    fi
+            mpirun="mpirun"
+            break
+        fi
+    done
+    IFS="$saveifs"
+fi
 if [ -z "$mpirun" -a -x "./mpirun" ] ; then
     mpirun=./mpirun
+fi
+#
+# Here is the location of the MPICH version of mpirun
+if [ -z "$mpirun" -a -x @LIB_DIR@/mpirun ] ; then 
+    mpirun="@LIB_DIR@/mpirun"
 fi
 if [ -z "$mpirun" ] ; then
     echo "No mpirun in path.  Testing can not proceed."
@@ -121,6 +137,16 @@ echo "*** Basic attributes ***" >> baseattr.out
 CleanExe baseattr
 
 OutTime
+testfiles="$testfiles gtime.out"
+/bin/rm -f gtime.out
+MakeExe gtime
+echo "*** WTIME_IS_GLOBAL ***"
+echo "*** WTIME_IS_GLOBAL ***" >> gtime.out
+$mpirun $args -np 1 gtime $* >> gtime.out 2>&1
+echo "*** WTIME_IS_GLOBAL ***" >> gtime.out
+CleanExe gtime
+
+OutTime
 testfiles="$testfiles errhand.out"
 /bin/rm -f errhand.out
 MakeExe errhand
@@ -139,6 +165,60 @@ echo "*** Tests of signals used ***" >> sigchk.out
 $mpirun $args -np 1 sigchk $* >> sigchk.out 2>&1
 echo "*** Tests of signals used ***" >> sigchk.out
 CleanExe sigchk
+
+#
+# If there was a Unix standard interface to ps, we could check for orphaned
+# processes...
+if ps -ef > /dev/null 2>&1 ; then
+   PSPGM="ps -ef"
+else
+   PSPGM="ps -auxww"
+fi
+OutTime
+testfiles="$testfiles aborttest.out"
+/bin/rm -f aborttest.out aborttest.p1 aborttest.p2
+MakeExe aborttest
+echo "*** Tests of MPI_Abort ***"
+echo "*** Tests of MPI_Abort ***" >> aborttest.out
+$PSPGM | grep $LOGNAME > aborttest.p1
+$mpirun $args -np 2 aborttest $* > /dev/null 2>&1
+$PSPGM | grep $LOGNAME > aborttest.p2
+# If there was a consistant format, we could process it ...
+ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
+ndiff=`expr $ndiff`
+if test "$ndiff" = 0 ; then
+    echo "All processes aborted" >> aborttest.out    
+else
+    echo "Suspicious processes remain" >> aborttest.out
+    echo "Processes before" >> aborttest.out
+    cat aborttest.p1 >> aborttest.out
+    echo "Processes after" >> aborttest.out
+    cat aborttest.p2 >> aborttest.out
+fi
+echo "*** Tests of MPI_Abort ***" >> aborttest.out
+CleanExe aborttest
+
+OutTime
+/bin/rm -f aborttest.p1 aborttest.p2
+echo "*** Tests of MPI_Abort (alt) ***"
+echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
+$PSPGM | grep $LOGNAME > aborttest.p1
+$mpirun $args -np 2 aborttest -altmaster $* > /dev/null 2>&1
+$PSPGM | grep $LOGNAME > aborttest.p2
+ndiff="`cat aborttest.p1 | wc -l` - `cat aborttest.p2 | wc -l`"
+ndiff=`expr $ndiff`
+if test "$ndiff" = 0 ; then
+    echo "All processes aborted" >> aborttest.out    
+else
+    echo "Suspicious processes remain" >> aborttest.out
+    echo "Processes before" >> aborttest.out
+    cat aborttest.p1 >> aborttest.out
+    echo "Processes after" >> aborttest.out
+    cat aborttest.p2 >> aborttest.out
+fi
+echo "*** Tests of MPI_Abort (alt) ***" >> aborttest.out
+/bin/rm -f aborttest.p1 aborttest.p2
+CleanExe aborttest
 
 #
 # Run Fortran tests ONLY if Fortran available

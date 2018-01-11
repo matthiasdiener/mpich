@@ -1,8 +1,0 @@
-
-#if defined(SUN_SOLARIS)
-
-#include <sys/mman.h>
-#include <sys/systeminfo.h>
-#include <sys/processor.h>
-#include <sys/procset.h>
-#include <synch.h>

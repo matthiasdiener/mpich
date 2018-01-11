@@ -1,5 +1,5 @@
 /*
- *  $Id: util_hbt.c,v 1.8 1997/01/07 01:47:07 gropp Exp $
+ *  $Id: util_hbt.c,v 1.2 1998/01/29 14:29:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,16 +12,12 @@
 */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "attr.h"
 #include "sbcnst2.h"
 #define MPIR_SBinit MPID_SBinit
 #define MPIR_SBfree MPID_SBfree
 #define MPIR_SBalloc MPID_SBalloc
 #define MPIR_SBdestroy MPID_SBdestroy
-#else
-#include "mpisys.h"
-#endif
 
 /*===========================================================================*
   Interface for height balanced trees

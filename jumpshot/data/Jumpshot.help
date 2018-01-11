@@ -1,0 +1,106 @@
+Jumpshot-Graphical Visualization Tool for clog files
+====================================================
+
+OPTIONS BUTTON
+	Clicking on this button will bring up the 'Canvas Options' window
+
+			      Canvas Options Window
+			      ---------------------
+Arrow Display			Turn off/on arrows (default is on) 
+Elapsed Time Line Display	Turn off/on Elapsed Time Bar (default is on) 
+Zoom Lock Line Display		Turn off/on Zoom Lock line (default is on) 
+Reset Elapsed Time		Clicking this will remove 'Elapsed Time' line 
+				from canvas object
+Change Nest Factor		Clicking this will change the Nest Factor 
+Calculate approp. Nest Factor 	Clicking this will cause the appropriate Nest 
+				Factor to be calculated 
+Close				Close the window - does not implement any 
+				changes
+
+PRINT BUTTON
+	Clicking on this button will bring up the 'Print Dialog' window where
+	you will be able to choose printer-related options, and print your
+	canvas object.
+
+STATES BUTTON
+	Clicking on this button will bring up the 'Process States' window
+	which will indicate the color of each possible state.
+
+			    Process States Window
+			    ---------------------
+All On		Turn on all possible states 
+All Off		Turn off all possible states
+OK		Implement any changes - does not close the window
+Close		Close the window - does not implement any changes
+[State]         Clicking on button for any state will show histogram
+                window for that state. 
+
+			    state histogram Window
+                            ----------------------
+This window contains information on the associated state. The histogram
+given is the plot of number of states (y-axis) versus duration in seconds
+(x-axis).
+
+Start state length            Used to control view with respect to x-axis
+End state length              Used to control view with respect to x-axis
+Number of bins                Used to increase or decrease accuracy
+
+REFRESH BUTTON
+	Clicking on this button will refresh the canvas object and bring it
+	back to it's current state.  This button is to be used if display
+	gets distorted due to the use of upper scrollbar.
+
+CLOSE BUTTON
+	Clicking on this button will close the canvas object only.  It will
+	not terminate Jumpshot.
+
+HORIZONTAL ZOOM: IN BUTTON
+	Clicking on this button will cause the canvas object to zoom in by the
+	zoom factor (default is 2.0)
+
+HORIZONTAL ZOOM: OUT BUTTON
+	Clicking on this button will cause the canvas object to zoom out by
+	the zoom factor (default is 2.0)
+
+CONFIGURE ZOOM BUTTON
+	Clicking on this button will bring up the 'Zoom Option' window
+
+			     Zoom Options Window
+			     -------------------
+Change Zoom Factor	After entering the zoom factor in the text box, click 
+			on this button to implement it
+Change Explicit Time	After entering the explicit time in the From/To text 
+			boxes, click on this button to implement it
+Close			Close the window - does not implement any changes
+
+RESET VIEW BUTTON
+	Clicking of this button will reset the canvas object to it's original
+	state
+
+MOUSE BUTTON
+	Clicking of any mouse button on a specific state on the canvas object 
+	will bring up the 'State Info' Window which displays the following:
+		- name of the state
+		- when the state occured 
+		- length of the state (seconds)
+		- process number
+
+UPPER SCROLL BAR
+	Never use upper scrollbar.  It is visible due to a bug in Java Version
+	1.1 JDK.   If display gets distored due to upper scrollbar you 
+	could:
+		1. Press 'Refresh'
+		2. Move lower scrollbar
+		3. Resize Frame
+		4. Zoom In or Out
+
+BOTTOM SCROLL BAR
+	Use scrollbar to move forward or backward in time
+ 
+COMMAND KEYS
+	CONTROL Z/SHIFT Z	Lock Zoom at point where mouse is positioned
+	CONTROL T/SHIFT T	Set a time marker at point where mouse is
+				positioned
+
+
+

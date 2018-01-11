@@ -2,6 +2,8 @@
 #include "mpiddev.h"
 #include "mpimem.h"
 #include "reqalloc.h"
+/* flow.h includs the optional flow control for eager delivery */
+#include "flow.h"
 
 /*
    Nonblocking, eager shared-memory send/recv.
@@ -21,9 +23,6 @@ void MPID_SHMEM_Eagern_delete ANSI_ARGS(( MPID_Protocol * ));
 int MPID_SHMEM_Eagern_recv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
 int MPID_SHMEM_Eagern_irecv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
 
-/* 
- * Blocking operations come from chbeager.c
- */
 extern int MPID_SHMEM_Eagerb_send ANSI_ARGS(( void *, int, int, int, int, 
 					   int, MPID_Msgrep_t ));
 extern int MPID_SHMEM_Eagerb_recv ANSI_ARGS(( MPIR_RHANDLE *, int, void * ));
@@ -43,9 +42,10 @@ MPID_Msgrep_t msgrep;
 MPIR_SHANDLE *shandle;
 {
     MPID_PKT_SEND_ADDRESS_T   *pkt;
+    int                       in_len;
     
     pkt = (MPID_PKT_SEND_ADDRESS_T *)MPID_SHMEM_GetSendPkt(0);
-    /* GetSendPkt hangs untill successful */
+    /* GetSendPkt hangs until successful */
 
     pkt->mode	    = MPID_PKT_SEND_ADDRESS;
     pkt->context_id = context_id;
@@ -56,7 +56,19 @@ MPIR_SHANDLE *shandle;
     DEBUG_PRINT_SEND_PKT("S Sending extra-long message",pkt);
 
     /* Place in shared memory */
+    /* Better if setup fails if full memory not available */
+    in_len = len;
     pkt->address = MPID_SetupGetAddress( buf, &len, dest );
+    /* If len changed (out of memory, we have to switch to rendezvous */
+    if (len != in_len) { 
+	/* printf( "Switching to rendezvous because not enough space available\n"); */
+	/* Return the resources that we allocated */
+	MPID_FreeGetAddress( pkt->address );
+	MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T*)pkt );
+	return MPID_SHMEM_Rndvn_isend( buf, in_len, src_lrank, tag, context_id,
+				       dest, msgrep, shandle );
+    }
+    
     MEMCPY( pkt->address, buf, len );
 
     /* Send as packet only */
@@ -80,6 +92,8 @@ MPID_Msgrep_t msgrep;
 
     DEBUG_INIT_STRUCT(&shandle,sizeof(shandle));
     MPIR_SET_COOKIE((&shandle),MPIR_REQUEST_COOKIE)
+    MPID_SendInit( &shandle );	
+    shandle.finish = 0;  /* Just in case (e.g., Eagern_isend -> Rndvn_isend) */
     MPID_SHMEM_Eagern_isend( buf, len, src_lrank, tag, context_id, dest,
 			     msgrep, &shandle );
     /* Note that isend is (probably) complete */
@@ -190,7 +204,23 @@ void         *in_pkt;
     rhandle->s.count      = pkt->len;
     rhandle->is_complete  = 0;
     /* Save the address */
+#ifdef LEAVE_IN_SHARED_MEM
     rhandle->start        = pkt->address;
+#else
+    if (pkt->len > 0) {
+	rhandle->start	  = (void *)MALLOC( pkt->len );
+	rhandle->is_complete  = 1;
+	if (!rhandle->start) {
+	    rhandle->s.MPI_ERROR = MPI_ERR_INTERN;
+	    /* This is really pretty fatal, because we haven't received
+	       the actual message, leaving it in the system */
+	    return 1;
+	}
+	MPID_FLOW_MEM_READ(pkt->len,from);
+	MEMCPY( rhandle->start, pkt->address, pkt->len );
+	MPID_FreeGetAddress( pkt->address );
+    }
+#endif
     MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T *)pkt );
     rhandle->push = MPID_SHMEM_Eagern_unxrecv_start;
     return 0;
@@ -211,7 +241,11 @@ void         *in_runex;
     /* Copy the data from the local area and free that area */
     if (runex->s.count > 0) {
 	MEMCPY( rhandle->buf, runex->start, msglen );
+#ifdef LEAVE_IN_SHARED_MEM
 	MPID_FreeGetAddress( runex->start );
+#else
+	FREE( runex->start );
+#endif	
     }
     rhandle->s		 = runex->s;
     rhandle->wait	 = 0;

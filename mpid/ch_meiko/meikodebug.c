@@ -6,7 +6,7 @@
 
 
 /*
- *  $Id: chdebug.c,v 1.5 1996/01/08 19:51:41 gropp Exp $
+ *  $Id: meikodebug.c,v 1.1.1.1 1997/09/17 20:40:43 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -14,7 +14,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: chdebug.c,v 1.5 1996/01/08 19:51:41 gropp Exp $";
+static char vcid[] = "$Id: meikodebug.c,v 1.1.1.1 1997/09/17 20:40:43 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"

@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: sbcnst2.c,v 1.2 1998/01/18 02:46:38 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -20,6 +20,9 @@
 #ifdef NEEDS_STDLIB_PROTOTYPES
 #include "protofix.h"
 #endif
+
+/* If you change this, you must change the format spec (%lx) to match */
+typedef long PointerInt;
 
 #define DEBUG
 #define DEBUG1
@@ -149,7 +152,7 @@ void          *ptr;
     MPID_THREAD_DS_LOCK(sb)
 #ifdef DEBUG1
     if ((MPI_Aint)ptr < 1024) {
-	printf( "Suspicious pointer %lx in MPID_SBfree\n", (MPI_Aint)ptr );
+	printf( "Suspicious pointer %lx in MPID_SBfree\n", (PointerInt)ptr );
 	/* MPID_ERROR( MPI_COMM_WORLD, MPI_ERR_OTHER,  
 		    "suspicious pointer in MPID_SBfree" ); */
     }
@@ -359,7 +362,7 @@ MPID_SBiAlloc *b = sb->blocks;
 
 while (b) {
     fprintf( fp, "Block %lx of %d bytes and %d chuncks in use\n", 
-	     (MPI_Aint)(char *)b, b->nbytes, b->nbinuse );
+	     (PointerInt)(char *)b, b->nbytes, b->nbinuse );
     b = b->next;
     }
 }

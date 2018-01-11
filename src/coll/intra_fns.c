@@ -1,18 +1,14 @@
 /*
- *  $Id: intra_fns.c,v 1.7 1997/02/18 23:06:32 gropp Exp $
+ *  $Id: intra_fns.c,v 1.4 1998/01/29 14:25:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
 /* pt2pt for MPIR_Type_get_limits */
 #include "mpipt2pt.h"
-#else
-#include "mpisys.h"
-#endif
 #include "coll.h"
 #include "mpiops.h"
 
@@ -209,19 +205,16 @@ struct MPIR_COMMUNICATOR *comm;
 }
 
 static int intra_Bcast ( buffer, count, datatype, root, comm )
-void             *buffer;
-int               count;
-struct MPIR_DATATYPE *      datatype;
-int               root;
-struct MPIR_COMMUNICATOR *         comm;
+void                     *buffer;
+int                       count;
+struct MPIR_DATATYPE     *datatype;
+int                       root;
+struct MPIR_COMMUNICATOR *comm;
 {
   MPI_Status status;
   int        rank, size, src, dst;
-  int        n, N, surfeit, N2_prev, N2_next, N_rank;
-  int        participants, my_block, my_offset;
+  int        relative_rank, mask;
   int        mpi_errno = MPI_SUCCESS;
-  int        bsize;
-  int        int_n;
 
   /* See the overview in Collection Operations for why this is ok */
   if (count == 0) return MPI_SUCCESS;
@@ -239,119 +232,95 @@ struct MPIR_COMMUNICATOR *         comm;
   MPIR_Comm_rank ( comm, &rank );
   comm = comm->comm_coll;
   
-  /* Determine number of blocks and previous power of 2 for number of blocks */
-  bsize = (size+MPIR_BCAST_BLOCK_SIZE-1)/MPIR_BCAST_BLOCK_SIZE;
-  MPIR_Powers_of_2 ( bsize, &N2_next, &N2_prev );
-  participants = MPIR_MIN(size, N2_prev * MPIR_BCAST_BLOCK_SIZE);
-  N = N2_prev;
+  /* Algorithm:
+     This uses a fairly basic recursive subdivision algorithm.
+     The root sends to the process size/2 away; the receiver becomes
+     a root for a subtree and applies the same process. 
 
-  /* Shift ranks, so root is at virtual node 0 */
-  if ( rank < root )
-    n = size - root + rank;
-  else
-    n = rank - root;
+     So that the new root can easily identify the size of its
+     subtree, the (subtree) roots are all powers of two (relative to the root)
+     If m = the first power of 2 such that 2^m >= the size of the
+     communicator, then the subtree at root at 2^(m-k) has size 2^k
+     (with special handling for subtrees that aren't a power of two in size).
+     
+     Optimizations:
+     
+     The original code attempted to switch to a linear broadcast when
+     the subtree size became too small.  As a further variation, the subtree
+     broadcast sent data to the center of the block, rather than to one end.
+     However, the original code did not properly compute the communications,
+     resulting in extraneous (though harmless) communication.    
 
-  /* How many "extra" nodes do we have? */
-  surfeit = size - participants;
+     For very small messages, using a linear algorithm (process 0 sends to
+     process 1, who sends to 2, etc.) can be better, since no one process
+     takes more than 1 send/recv time, and successive bcasts using the same
+     root can overlap.  
+
+     Another important technique for long messages is pipelining---sending
+     the messages in blocks so that the message can be pipelined through
+     the network without waiting for the subtree roots to receive the entire
+     message before forwarding it to other processors.  This is hard to
+     do if the datatype/count are not the same on each processor (note that
+     this is allowed - only the signatures must match).  Of course, this can
+     be accomplished at the byte transfer level, but it is awkward 
+     from the MPI point-to-point routines.
+
+     Nonblocking operations can be used to achieve some "horizontal"
+     pipelining (on some systems) by allowing multiple send/receives
+     to begin on the same processor.
+  */
+
+  relative_rank = (rank >= root) ? rank - root : rank - root + size;
 
   /* Lock for collective operation */
   MPID_THREAD_LOCK(comm->ADIctx,comm);
 
-  /* If I'm in a participating block */
-  if ( n < participants ) {
+  /* Do subdivision.  There are two phases:
+     1. Wait for arrival of data.  Because of the power of two nature
+        of the subtree roots, the source of this message is alwyas the
+        process whose relative rank has the least significant bit CLEARED.
+        That is, process 4 (100) receives from process 0, process 7 (111) 
+        from process 6 (110), etc.   
+     2. Forward to my subtree
 
-    /* Which block am I in? and where in the block am I */
-    my_block  = n / MPIR_BCAST_BLOCK_SIZE;
-    my_offset = n % MPIR_BCAST_BLOCK_SIZE;
-
-    /* If I'm the first node in a participating block, perform a bcast */
-    /* using an inter-block binary algorithm and then use a linear */
-    /* algorithm to bcast within the block */
-    if ( my_offset == 0 ) {
-      int num_in_block, i;
-	  MPI_Request      hd[MPIR_BCAST_BLOCK_SIZE];
-	  MPI_Status       statuses[MPIR_BCAST_BLOCK_SIZE];
-
-      /* Set number of nodes in my block */
-      if ((surfeit == 0) && ((my_block+1) == N2_prev) )
-		num_in_block = participants - n;
-      else
-		num_in_block = MPIR_BCAST_BLOCK_SIZE;
-
-	  int_n = n;
-
-      /* While there's someone to send to or someone to receive from ... */
-      /* The MPI_Send to the subtree should be non-blocking in order to
-	 allow several to happen simultaneously (and not to be
-	 blocked by a slow destination early in the delivery) 
-
-	 In addition, the sends should allow pipelining for large messages,
-	 so that the maximum bandwidth of the network can be used.
-	 */
-      while ( N > 1 ) {
-		
-		/* Determine the real rank of first node of middle block */
-		N    >>= 1;
-		N_rank = N * MPIR_BCAST_BLOCK_SIZE;
-		
-		/* If I'm the "root" of some processes, then send */
-		if ( int_n == 0 ) {
-		  dst = (rank + N_rank) % size;
-		  mpi_errno = MPI_Send (buffer,count,datatype->self,dst,
-					MPIR_BCAST_TAG,comm->self);
-		  if (mpi_errno) return mpi_errno;
-		}
-		/* If a root is sending me a message, then recv and become a 
-		   "root" */
-		else if ( int_n == N_rank ) {
-		  src = (rank - N_rank + size) % size;
-		  mpi_errno = MPI_Recv(buffer,count,datatype->self,src,
-				       MPIR_BCAST_TAG,comm->self,&status);
-		  if (mpi_errno) return mpi_errno;
-		  int_n   = 0;
-		}
-		/* I now have a new root to receive from */
-		else if ( int_n > N_rank ) {
-		  int_n -= N_rank;
-		}
-		/* else if ( n < N_rank ), do nothing, my root 
-		   stayed the same */
-	  }
-	  
-      /* Now linearly broadcast to the other members of my block */
-      if (num_in_block > 1) {
-	  for ( i = 1; i < num_in_block; i++ ) {
-	      dst = (rank + i) % size;
-	      mpi_errno = MPI_Isend(buffer,count,datatype->self,dst,
-				    MPIR_BCAST_TAG,comm->self, &hd[i]);
-	      if (mpi_errno) return mpi_errno;
-	      }
-	  mpi_errno = MPI_Waitall(num_in_block-1, &hd[1], &statuses[1]);
-	  if (mpi_errno) return mpi_errno;
-	  }
-    }
-    /* else I'm in a participating block, wait for a message from the first */
-    /* node in my block */
-    else {
-      src = (rank + size - my_offset) % size;
+     Note that the process that is the tree root is handled automatically
+     by this code, since it has no bits set.
+     
+   */
+  mask = 0x1;
+  while (mask < size) {
+    if (relative_rank & mask) {
+      src = rank - mask; 
+      if (src < 0) src += size;
       mpi_errno = MPI_Recv(buffer,count,datatype->self,src,
 			   MPIR_BCAST_TAG,comm->self,&status);
       if (mpi_errno) return mpi_errno;
+      break;
     }
-	
-    /* Now send to any "extra" nodes */
-    if ( n < surfeit ) {
-      dst = ( rank + participants ) % size;
-      mpi_errno = MPI_Send( buffer, count, datatype->self, dst, 
-			   MPIR_BCAST_TAG, comm->self );
+    mask <<= 1;
+  }
+
+  /* This process is responsible for all processes that have bits set from
+     the LSB upto (but not including) mask.  Because of the "not including",
+     we start by shifting mask back down one.
+
+     We can easily change to a different algorithm at any power of two
+     by changing the test (mask > 1) to (mask > block_size) 
+
+     One such version would use non-blocking operations for the last 2-4
+     steps (this also bounds the number of MPI_Requests that would
+     be needed).
+   */
+  mask >>= 1;
+  while (mask > 0) {
+    if (relative_rank + mask < size) {
+      dst = rank + mask;
+      if (dst >= size) dst -= size;
+      mpi_errno = MPI_Send (buffer,count,datatype->self,dst,
+			    MPIR_BCAST_TAG,comm->self);
       if (mpi_errno) return mpi_errno;
     }
-  }
-  /* else I'm not in a participating block, I'm an "extra" node */
-  else {
-    src = ( root + n - participants ) % size;
-    mpi_errno = MPI_Recv ( buffer, count, datatype->self, src, 
-			  MPIR_BCAST_TAG, comm->self, &status );
+    mask >>= 1;
   }
 
   /* Unlock for collective operation */
@@ -622,6 +591,22 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
+/* 
+   General comments on Allxxx operations
+   
+   It is hard (though not impossible) to avoid having each at least one process
+   doing a send to every other process.  In that case, the order of the
+   operations becomes important.
+   For example, in the alltoall case, you do NOT want all processes to send 
+   to process 1, then all to send to process 2, etc.  In addition, you
+   don't want the messages to compete for bandwidth in the network (remember,
+   most networks don't provide INDEPENDENT paths between every pair of nodes).
+   In that case, the topology of the underlying network becomes important.
+   This can further control the choice of ordering for the sends/receives.
+   Unfortunately, there is no interface to find this information (one was
+   considered by the MPI-1 Forum but not adopted).  Vendor-specific 
+   implementations of these routines can take advantage of such information.
+ */
 
 static int intra_Allgather ( sendbuf, sendcount, sendtype,
                     recvbuf, recvcount, recvtype, comm )
@@ -763,7 +748,7 @@ int               recvcnt;
 struct MPIR_DATATYPE *      recvtype;
 struct MPIR_COMMUNICATOR *         comm;
 {
-  int          size, rank, i;
+  int          size, rank, i, j;
   MPI_Aint     send_extent, recv_extent;
   int          mpi_errno = MPI_SUCCESS;
   MPI_Status  *starray;
@@ -791,6 +776,10 @@ struct MPIR_COMMUNICATOR *         comm;
 	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
 
   /* do the communication -- post *all* sends and receives: */
+  /* We could order these, for example, starting with rank+1, so that
+     the FIRST operations involve different nodes, rather than all to
+     node 0.
+   */
   for ( i=0; i<size; i++ ) { 
       /* We'd like to avoid sending and receiving to ourselves; 
 	 however, this is complicated by the presence of different
@@ -821,6 +810,12 @@ struct MPIR_COMMUNICATOR *         comm;
 
   /* ... then wait for *all* of them to finish: */
   mpi_errno = MPI_Waitall(2*size,reqarray,starray);
+  if (mpi_errno == MPI_ERR_IN_STATUS) {
+      for (j=0; j<2*size; j++) {
+	  if (starray[j].MPI_ERROR != MPI_SUCCESS) 
+	      mpi_errno = starray[j].MPI_ERROR;
+      }
+  }
   
   /* clean up */
   FREE(starray);
@@ -864,10 +859,10 @@ struct MPIR_COMMUNICATOR *         comm;
 
   /* 1st, get some storage from the heap to hold handles, etc. */
   MPIR_ALLOC(starray,(MPI_Status *)MALLOC(2*size*sizeof(MPI_Status)),
-	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
+	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALLV" );
 
   MPIR_ALLOC(reqarray,(MPI_Request *)MALLOC(2*size*sizeof(MPI_Request)),
-	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALL" );
+	     comm, MPI_ERR_EXHAUSTED, "MPI_ALLTOALLV" );
 
   /* do the communication -- post *all* sends and receives: */
   rcnt = 0;
@@ -906,6 +901,12 @@ struct MPIR_COMMUNICATOR *         comm;
   }
   else {
       mpi_errno = MPI_Waitall(2*size,reqarray,starray);
+      if (mpi_errno == MPI_ERR_IN_STATUS) {
+	  for (j=0; j<2*size; j++) {
+	      if (starray[j].MPI_ERROR != MPI_SUCCESS) 
+		  mpi_errno = starray[j].MPI_ERROR;
+	  }
+      }
   }
   
   /* clean up */
@@ -1007,15 +1008,14 @@ struct MPIR_COMMUNICATOR *         comm;
   m_extent = ub - lb;
   /* MPI_Type_extent ( datatype, &extent ); */
   MPIR_ALLOC(buffer,(void *)MALLOC(m_extent * count),comm, MPI_ERR_EXHAUSTED, 
-	     "Out of space in MPI_REDUCE" );
+	     "MPI_REDUCE" );
   buffer = (void *)((char*)buffer - lb);
 
   /* If I'm not the root, then my recvbuf may not be valid, therefore
      I have to allocate a temporary one */
   if (rank != root) {
       MPIR_ALLOC(recvbuf,(void *)MALLOC(m_extent * count),
-		 comm, MPI_ERR_EXHAUSTED, 
-                        "Out of space in MPI_REDUCE" );
+		 comm, MPI_ERR_EXHAUSTED, "MPI_REDUCE" );
       recvbuf = (void *)((char*)recvbuf - lb);
   }
 
@@ -1099,6 +1099,14 @@ struct MPIR_COMMUNICATOR *         comm;
   return (mpi_errno);
 }
 
+/* 
+ * There are alternatives to this algorithm, particular one in which
+ * the values are computed on all processors at the same time.  
+ * However, this routine should be used on heterogeneous systems, since
+ * the "same" value is required on all processors, and small changes
+ * in floating-point arithmetic (including choice of round-off mode and
+ * the infamous fused multiply-add) can lead to different results.
+ */
 static int intra_Allreduce ( sendbuf, recvbuf, count, datatype, op, comm )
 void             *sendbuf;
 void             *recvbuf;
@@ -1143,7 +1151,7 @@ struct MPIR_COMMUNICATOR *         comm;
 
   /* Allocate the displacements and initialize them */
   MPIR_ALLOC(displs,(int *)MALLOC(size*sizeof(int)),comm, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_REDUCE_SCATTER" );
+			 "MPI_REDUCE_SCATTER" );
   for (i=0;i<size;i++) {
     displs[i] = count;
     count += recvcnts[i];
@@ -1162,7 +1170,7 @@ struct MPIR_COMMUNICATOR *         comm;
       }
 
   MPIR_ALLOC(buffer,(void *)MALLOC(m_extent*count), comm, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_REDUCE_SCATTER" );
+			 "MPI_REDUCE_SCATTER" );
   buffer = (void *)((char*)buffer - lb);
 
   /* Reduce to 0, then scatter */
@@ -1241,7 +1249,7 @@ struct MPIR_COMMUNICATOR *         comm;
       if (rank > 0) {
           void *tmpbuf;
           MPIR_ALLOC(tmpbuf,(void *)MALLOC(m_extent * count),
-		     comm, MPI_ERR_EXHAUSTED, "Out of space in MPI_SCAN" );
+		     comm, MPI_ERR_EXHAUSTED, "MPI_SCAN" );
 	  tmpbuf = (void *)((char*)tmpbuf-lb);
 	  MPIR_COPYSELF( sendbuf, count, datatype->self, recvbuf, 
 			 MPIR_SCAN_TAG, rank, comm->self );

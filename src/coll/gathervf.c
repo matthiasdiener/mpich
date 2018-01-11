@@ -2,6 +2,8 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
+#include "mpimem.h"
+
 #ifdef _CRAY
 #include <fortran.h>
 #include <stdarg.h>
@@ -107,26 +109,58 @@ if (_isfcd(recvbuf)) {
 #else
 /* Prototype to suppress warnings about missing prototypes */
 
-void mpi_gatherv_ ANSI_ARGS(( void *, int *, MPI_Datatype *, 
-			      void *, int *, int *, MPI_Datatype *, 
-			      int *, MPI_Comm *, int * ));
+void mpi_gatherv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+                              MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                              MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_gatherv_ ( sendbuf, sendcnt,  sendtype, 
                   recvbuf, recvcnts, displs, recvtype, 
                   root, comm, __ierr )
-void             *sendbuf;
-int*sendcnt;
-MPI_Datatype     *sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *displs;
-MPI_Datatype     *recvtype;
-int*root;
-MPI_Comm          *comm;
-int *__ierr;
+void     *sendbuf;
+MPI_Fint *sendcnt;
+MPI_Fint *sendtype;
+void     *recvbuf;
+MPI_Fint *recvcnts;
+MPI_Fint *displs;
+MPI_Fint *recvtype;
+MPI_Fint *root;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Gatherv(MPIR_F_PTR(sendbuf),*sendcnt,*sendtype,
-			  MPIR_F_PTR(recvbuf),recvcnts,displs,*recvtype,
-			  *root,*comm);
+
+    if (sizeof(MPI_Fint) == sizeof(int)) 
+        *__ierr = MPI_Gatherv(MPIR_F_PTR(sendbuf), *sendcnt,
+                              MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                              recvcnts, displs, 
+                              MPI_Type_f2c(*recvtype), *root,
+                              MPI_Comm_f2c(*comm));
+    else {
+	int size;
+        int *l_recvcnts;
+        int *l_displs;
+	int i;
+
+	MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+ 
+	MPIR_FALLOC(l_recvcnts,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Gatherv");
+	MPIR_FALLOC(l_displs,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Gatherv");
+	for (i=0; i<size; i++) {
+	    l_recvcnts[i] = (int)recvcnts[i];
+	    l_displs[i] = (int)displs[i];
+	}    
+        *__ierr = MPI_Gatherv(MPIR_F_PTR(sendbuf), (int)*sendcnt,
+                              MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                              l_recvcnts, l_displs, 
+                              MPI_Type_f2c(*recvtype), (int)*root,
+                              MPI_Comm_f2c(*comm));
+	FREE( l_recvcnts );
+	FREE( l_displs );
+    }
+
 }
 #endif
+

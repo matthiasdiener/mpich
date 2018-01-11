@@ -14,6 +14,10 @@
 extern char *getenv();
 #endif
 
+#if defined(HAVE_STRING_H) || defined(STDC_HEADERS)
+#include <string.h>
+#endif
+
 #define MPE_INTERNAL
 #include "mpe.h"        /*I "mpe.h" I*/
 
@@ -88,7 +92,7 @@ void SetBackingStoreBitGrav ANSI_ARGS((MPE_XGraph));
     MPE_Open_graphics - (collectively) opens an X Windows display
 
     Input Parameters:
-.   comm - Communicator of participating processes
++   comm - Communicator of participating processes
 .   display - Name of X window display.  If null, display will be taken from
     the DISPLAY variable on the process with rank 0 in 'comm'.  If that is
     either undefined, or starts with w ":", then the value of display is
@@ -96,7 +100,7 @@ void SetBackingStoreBitGrav ANSI_ARGS((MPE_XGraph));
 .   x,y - position of the window.  If '(-1,-1)', then the user should be
     asked to position the window (this is a window manager issue).
 .   w,h - width and height of the window, in pixels.
-.   is_collective - true if the graphics operations are collective; this
+-   is_collective - true if the graphics operations are collective; this
     allows the MPE graphics operations to make fewer connections to the 
     display.  If false, then all processes in the communicator comm will 
     open the display; this could exceed the number of connections that your
@@ -313,9 +317,9 @@ MPE_XGraph graph;
   MPE_CaptureFile - Sets the base filename used to capture output from updates
 
   Input Parameters:
-. handle - MPE graphics handle
++ handle - MPE graphics handle
 . fname  - base file name (see below)
-. freq   - Frequency of updates
+- freq   - Frequency of updates
 
   Notes:
   The output is written in xwd format to 'fname%d', where '%d' is the number
@@ -349,10 +353,10 @@ int        freq;
     MPE_Draw_point - Draws a point on an X Windows display 
 
     Input Parameters:
-.   handle - MPE graphics handle 
++   handle - MPE graphics handle 
 .   x,y - pixel position to draw.  Coordinates are upper-left origin (standard
     X11)
-.   color - Color `index` value.  See 'MPE_MakeColorArray'.  
+-   color - Color `index` value.  See 'MPE_MakeColorArray'.  
     By default, the colors
     'MPE_WHITE', 'MPE_BLACK', 'MPE_RED', 'MPE_YELLOW', 'MPE_GREEN', 'MPE_CYAN',
     'MPE_BLUE',  'MPE_MAGENTA', 'MPE_AQUAMARINE', 
@@ -387,9 +391,9 @@ MPE_Color  color;
     MPE_Draw_points - Draws points on an X Windows display 
 
     Input Parameters:
-.   handle - MPE graphics handle 
++   handle - MPE graphics handle 
 .   points - list of points to draw
-.   npoints - number of points to draw
+-   npoints - number of points to draw
 
 @*/
 int MPE_Draw_points( handle, points, npoints )
@@ -557,12 +561,12 @@ int a, **boundaryPoints, *ncolors;
     MPE_Draw_line - Draws a line on an X11 display
 
     Input Parameters:
-.   handle - MPE graphics handle 
++   handle - MPE graphics handle 
 .   x1,y1 - pixel position of one end of the line to draw.  Coordinates are 
             upper-left origin (standard X11)
 .   x2,y2 - pixel position of the other end of the line to draw.  Coordinates 
             are upper-left origin (standard X11)
-.   color - Color `index` value.  See 'MPE_MakeColorArray'.  
+-   color - Color `index` value.  See 'MPE_MakeColorArray'.  
     By default, the colors
     'MPE_WHITE', 'MPE_BLACK', 'MPE_RED', 'MPE_YELLOW', 'MPE_GREEN', 'MPE_CYAN',
     'MPE_BLUE',  'MPE_MAGENTA', 'MPE_AQUAMARINE', 
@@ -596,11 +600,11 @@ MPE_Color  color;
     MPE_Fill_rectangle - Draws a filled rectangle on an X11 display 
 
     Input Parameters:
-.   handle - MPE graphics handle 
++   handle - MPE graphics handle 
 .   x,y - pixel position of the upper left (low coordinate) corner of the 
             rectangle to draw.
 .   w,h - width and height of the rectangle
-.   color - Color `index` value.  See 'MPE_MakeColorArray'.  
+-   color - Color `index` value.  See 'MPE_MakeColorArray'.  
     By default, the colors
     'MPE_WHITE', 'MPE_BLACK', 'MPE_RED', 'MPE_YELLOW', 'MPE_GREEN', 'MPE_CYAN',
     'MPE_BLUE',  'MPE_MAGENTA', 'MPE_AQUAMARINE', 
@@ -722,11 +726,11 @@ MPE_XGraph *handle;
     MPE_Make_color_array - Makes an array of color indices
 
     Input Parameters:
-.   handle - MPE graphics handle
++   handle - MPE graphics handle
 .   nc     - Number of colors
 
     Output Parameter:
-.   array - Array of color indices
+-   array - Array of color indices
 
     Notes:
     The new colors for a uniform distribution in hue space and replace the
@@ -799,11 +803,11 @@ int        *nc;
    MPE_Draw_circle - Draws a circle
 
   Input Parameters:
-. graph - MPE graphics handle
++ graph - MPE graphics handle
 . centerx - horizontal center point of the circle
 . centery - vertical center point of the circle
 . radius - radius of the circle
-. color - color of the circle
+- color - color of the circle
 @*/
 int MPE_Draw_circle( graph, centerx, centery, radius, color )
 MPE_XGraph graph;
@@ -831,11 +835,11 @@ MPE_Color color;
    MPE_Fill_circle - Fills a circle
 
   Input Parameters:
-. graph - MPE graphics handle
++ graph - MPE graphics handle
 . centerx - horizontal center point of the circle
 . centery - vertical center point of the circle
 . radius - radius of the circle
-. color - color of the circle
+- color - color of the circle
 @*/
 int MPE_Fill_circle( graph, centerx, centery, radius, color )
 MPE_XGraph graph;
@@ -861,11 +865,11 @@ MPE_Color color;
    MPE_Draw_string - 
 
   Input Parameters:
-. graph - MPE graphics handle
++ graph - MPE graphics handle
 . x - x-coordinate of the origin of the string
 . y - y-coordinate of the origin of the string
 . color - color of the text
-. string - text string to be drawn
+- string - text string to be drawn
 @*/
 int MPE_Draw_string( graph, x, y, color, string )
 MPE_XGraph graph;
@@ -897,8 +901,8 @@ char *string;
    MPE_Draw_logic - Sets logical operation for laying down new pixels
 
   Input Parameters:
-. graph - MPE graphics handle
-. function - integer specifying one of the following:
++ graph - MPE graphics handle
+- function - integer specifying one of the following:
 
             'MPE_LOGIC_COPY' - no logic, just copy the pixel
 $	     'MPE_LOGIC_XOR' - xor the new pixel with the existing one
@@ -927,8 +931,8 @@ int function;
    MPE_Line_thickness - Sets thickness of lines
 
   Input Parameters:
-. graph - MPE graphics handle
-. thickness - integer specifying how many pixels wide lines should be
++ graph - MPE graphics handle
+- thickness - integer specifying how many pixels wide lines should be
 
 @*/
 int MPE_Line_thickness( graph, thickness )
@@ -988,9 +992,9 @@ int offset;
    MPE_Add_RGB_color - Adds a color to the colormap given its RGB values
 
   Input Parameters:
-. graph - MPE graphics handle
++ graph - MPE graphics handle
 . red, green, blue - color levels from 0 to 65535
-. mapping - index of the new color
+- mapping - index of the new color
 
 @*/
 int MPE_Add_RGB_color( graph, red, green, blue, mapping )

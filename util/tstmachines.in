@@ -8,7 +8,7 @@
 # in the remote shell commands
 #
 verbose=0
-rsh="#RSH_COMMAND#"
+rsh="#RSHCOMMAND#"
 # Could use #DEFAULT_ARCH#
 # and #DEFAULT_DEVICE# to see if we should check....
 for arg in "$@" ; do
@@ -86,8 +86,11 @@ livelist=""
 printedheader=""
 for machine in $list ; do
     # Strip cluster size from machine name
+    # Some systems return empty for no match; others return 0.  Empty 
+    # is what they should use (0 is ambiguous), but we have to be prepared for
+    # either.
     ntest=`expr $machine : '.*:\([0-9]*\)'`
-    if [ -n "$ntest" ] ; then
+    if [ -n "$ntest" -a "$ntest" != "0" ] ; then
         machine=`expr $machine : '\(.*\):.*'`
     fi
     if [ $verbose = 1 ] ; then 
@@ -152,7 +155,7 @@ tstout=`/bin/ls $myprog`
 for machine in $list ; do
     # Strip cluster size from machine name
     ntest=`expr $machine : '.*:\([0-9]*\)'`
-    if [ -n "$ntest" ] ; then
+    if [ -n "$ntest" -a "$ntest" != "0" ] ; then
         machine=`expr $machine : '\(.*\):.*'`
     fi
     if [ $verbose = 1 ] ; then 

@@ -3,8 +3,8 @@
 
 ARCH        = @ARCH@
 COMM        = @COMM@
-CC          = @CC@
-CLINKER     = @CLINKER@
+CC          = @MPICC@
+CLINKER     = $(CC)
 MPIR_HOME   = @MPIR_HOME@
 OPTFLAGS    = -g
 #

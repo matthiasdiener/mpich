@@ -6,15 +6,28 @@
 
 #include "mpi.h"
 
+#ifndef ANSI_ARGS
+#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_PROTOTYPES)
+#define ANSI_ARGS(a) a
+#else
+#define ANSI_ARGS(a) ()
+#endif
+#endif
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include "protofix.h"
+#endif
+
 int main(argc, argv)
 int argc;
 char **argv;
 {
-  char * commName;
+  char commName [MPI_MAX_NAME_STRING+1];
+  int namelen;
 
   MPI_Init( &argc, &argv );
   
-  if (MPI_Comm_get_name(MPI_COMM_WORLD, &commName) != MPI_SUCCESS)
+  if (MPI_Comm_get_name(MPI_COMM_WORLD, commName, &namelen) != MPI_SUCCESS)
     {
       printf("Failed to get a name from COMM_WORLD\n");
       MPI_Abort(MPI_COMM_WORLD, -1);
@@ -25,6 +38,13 @@ char **argv;
       printf("Name on MPI_COMM_WORLD is \"%s\" should be \"MPI_COMM_WORLD\"\n", commName);
       MPI_Abort(MPI_COMM_WORLD, -1);
     }
+  
+  if (namelen != strlen (commName))
+    {
+      printf("Length of name on MPI_COMM_WORLD is %d should be %d\n", 
+	     namelen, (int) strlen(commName)); 
+      MPI_Abort(MPI_COMM_WORLD, -1);
+    }
 
   /* Check that we can replace it */
   if (MPI_Comm_set_name(MPI_COMM_WORLD,"foobar") != MPI_SUCCESS)
@@ -33,7 +53,7 @@ char **argv;
       MPI_Abort(MPI_COMM_WORLD, -1);
     }
 
-  if (MPI_Comm_get_name(MPI_COMM_WORLD, &commName) != MPI_SUCCESS)
+  if (MPI_Comm_get_name(MPI_COMM_WORLD, commName, &namelen) != MPI_SUCCESS)
     {
       printf("Failed to get a name from COMM_WORLD after changing it\n");
       MPI_Abort(MPI_COMM_WORLD, -1);

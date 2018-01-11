@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: handle2int.c,v 1.3 1998/04/28 21:09:01 swider Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,12 +7,12 @@
 
 #include "mpiimpl.h"
 
-/*@C
+/* @C
   MPI_Handle2int - Convert a C handle to an integer (Fortran) MPI handle
 
 Input Parameters:
-. c_handle - C handle
-. handle_kind - Type of handle 
++ c_handle - C handle
+- handle_kind - Type of handle 
 
 Return value:
 . f_handle - Fortran version of handle.
@@ -21,7 +21,7 @@ Notes for Fortran users:
 There is no Fortran version of this routine.
 
 .N MPI2
-@*/
+@ */
 MPI_Fint MPI_Handle2int( c_handle, handle_kind )
 MPI_Handle_type c_handle;
 MPI_Handle_enum handle_kind;

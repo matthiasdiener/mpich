@@ -22,13 +22,13 @@ FFLAGS = $(OPTFLAGS)
 LIBS = 
 # Use FLIBS to add any special libraries for Fortran programs
 FLIBS = 
-EXECS = timers baseattr errhand sigchk timertest init 
+EXECS = timers baseattr errhand sigchk timertest init gtime aborttest
 OTHEREXECS = baseattrf errstringsf
 default: $(EXECS)
 
 #
 # Note that runtests builds the executables as required
-testing: $(MPIR_HOME)/util/mpirun
+testing:
 	-./runtests $(TESTARGS)
 
 linktest: default clean
@@ -43,6 +43,8 @@ timertest: timertest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o timertest timertest.o test.o $(LIBS)
 baseattr: baseattr.o test.o
 	$(CLINKER) $(OPTFLAGS) -o baseattr baseattr.o test.o $(LIBS)
+gtime: gtime.o test.o
+	$(CLINKER) $(OPTFLAGS) -o gtime gtime.o test.o $(LIBS) -lm
 baseattrf: baseattrf.o
 	$(FLINKER) $(OPTFLAGS) -o baseattrf baseattrf.o $(LIBS)
 errstringsf: errstringsf.o
@@ -51,15 +53,13 @@ errhand: errhand.o test.o
 	$(CLINKER) $(OPTFLAGS) -o errhand errhand.o test.o $(LIBS)
 sigchk: sigchk.o test.o
 	$(CLINKER) $(OPTFLAGS) -o sigchk sigchk.o test.o $(LIBS)
+aborttest: aborttest.o
+	$(CLINKER) $(OPTFLAGS) -o aborttest aborttest.o $(LIBS)
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) core *.out *.orig env.diff \
+	@-/bin/rm -f *.o *~ PI* $(EXECS) core *.out *.orig env.diff \
 	argstest $(OTHEREXECS)
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
-
-# MPICH specific
-#$(MPIR_HOME)/util/mpirun:
-#	(cd $(MPIR_HOME) ; make mpirun )

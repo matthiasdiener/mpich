@@ -10,12 +10,18 @@ linkobjs=
 gettinglinkarg=0
 HasDashC=0
 UsesPmpi=0
+verbose=0
+proflib=-lp@MPILIBNAME@
+proflibfullname=@MPIR_HOME@/lib/@ARCH@/@COMM@/libp@MPILIBNAME@.a
+F77=${MPICH_F77-@F77@}
+F77LINKER=${MPICH_F77LINKER-@FLINKER@}
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
     if [ $gettinglinkarg = 1 ] ; then
 	linkargs="$linkargs $arg"
 	gettinglinkarg=0
+	outputfilename="$arg"
 	continue
     fi
     case "$arg" in 
@@ -23,6 +29,12 @@ for arg in "$@" ; do
 	# If -c is NOT specified, then we need to perform a link step.
 	allargs="$allargs $arg"
 	compileargs="$compileargs $arg"
+        # If -o was set, then we need to move the output file option
+        # to the compile line (note that this is non-standard, and should
+        # not be used in portable codes)
+        if [ $DoLink = 1 -a -n "$outputfilename" ] ; then
+	    compileargs="$compileargs -o $outputfilename"
+        fi
 	DoLink=0
 	HasDashC=1
 	;;
@@ -91,6 +103,11 @@ for arg in "$@" ; do
 	-show)
 	Show=echo
 	;;
+	-v)
+	verbose=1
+	compileargs="$compileargs -v"
+	linkargs="$linkargs -v"
+	;;
 	-help)
 	echo "This is a program to compile or link MPI programs"
 	echo "In addition, the following special options are supported"
@@ -121,10 +138,11 @@ for arg in "$@" ; do
         *) allargs="$allargs $arg"
 	if [ -s "$arg" ] ; then
 	    ext=`expr "$arg" : '.*\(\..*\)'`
-	    if [ "$ext" = ".f" ] ; then
+	    if [ "$ext" = ".f" -o "$ext" = ".F" -o \
+		 "$ext" = ".for" -o "$ext" = ".FOR" ] ; then
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
-	        fname=`basename $arg .f`
+	        fname=`basename $arg $ext`
 	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
 		if [ $HasDashC = 1 ] ; then
@@ -150,7 +168,7 @@ finc="@FINC@"
 if [ -z "$finc" ] ; then
     if [ ! -f mpif.h ] ; then
         echo "Adding a symbolic link for mpif.h"
-	$Show ln -s @MPIR_HOME@/include/mpif.h mpif.h
+	$Show ln -s @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif.h mpif.h
     fi
 fi
 status=0
@@ -158,17 +176,22 @@ if [ $DoCompile = 1 ] ; then
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
-    $Show @F77@ $finc @FFLAGS@ $compileargs
+    $Show $F77 $finc @ROMIO_TFFLAGS@ @FFLAGS@ $compileargs
     status=$?
     if [ $status != 0 ] ; then 
 	exit $status
     fi
 fi
 if [ $DoLink = 1 ] ; then
+    # If the profiling library doesn't exist, or MPICH_NO_PROF environment
+    # variable is set, skip the profiling library.
+    if [ -n "$MPICH_NO_PROF" -o ! -s "$proflibfullname" ] ; then
+        proflib=""
+    fi
     if [ -n "$MPILOG" ] ; then
-        $Show @FLINKER@ @FLIB_PATH@ $linkobjs $MPILOG $linkargs -lp@MPILIBNAME@ @LIB_LIST@
+        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FLIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@ @FLIB_LIST@ 
     else
-        $Show @FLINKER@ @FLIB_PATH@ $linkobjs $linkargs @LIB_LIST@
+        $Show $F77LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @FLIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@ @FLIB_LIST@ 
     fi
     status=$?
 fi

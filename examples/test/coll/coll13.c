@@ -62,6 +62,8 @@ char *argv[];
 
     /* fputs("Before MPI_Alltoall\n",stdout); */
 
+    /* This should really send MPI_CHAR, but since sb and rb were allocated
+       as chunk*size*sizeof(int), the buffers are large enough */
     status = MPI_Alltoall(sb,chunk,MPI_INT,rb,chunk,MPI_INT,
 			  MPI_COMM_WORLD);
 

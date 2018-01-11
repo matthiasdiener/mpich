@@ -1,27 +1,23 @@
 /*
- *  $Id: type_ind.c,v 1.24 1997/02/18 23:05:35 gropp Exp $
+ *  $Id: type_ind.c,v 1.3 1998/04/28 21:47:27 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
-#else
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Type_indexed - Creates an indexed datatype
 
 Input Parameters:
-. count - number of blocks -- also number of entries in indices and blocklens
++ count - number of blocks -- also number of entries in indices and blocklens
 . blocklens - number of elements in each block (array of nonnegative integers) 
 . indices - displacement of each block in multiples of old_type (array of 
   integers)
-. old_type - old datatype (handle) 
+- old_type - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 

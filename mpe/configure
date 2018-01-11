@@ -1,6 +1,8 @@
 
 
 
+
+
 #!/bin/sh
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf.
@@ -514,6 +516,13 @@ if test -n "$arch_cray" ; then
 fi
 # End of arch setup
 # 
+if test -z "$CC" ; then
+    CC=cc
+fi
+if test -z "$F77" -a $NOF77 = 0 ; then
+    F77=f77
+fi
+#
 # Should eventually use a file like $file.run to see if the program should
 # be run or just compiled.  And eventually, this should be run EARLY,
 # before checking for things like functions and include files.
@@ -763,7 +772,8 @@ fi
 # Check for header files
 # stdlib.h is used mostly for things like malloc and free, so it isn't
 # so important that stdlib.h be exactly "right".
-for ac_hdr in stdlib.h
+# string.h is for strchr etc.
+for ac_hdr in stdlib.h string.h
 do
 ac_safe=`echo "$ac_hdr" | tr '[a-z]./' '[A-Z]__'`
 if test -z "$ac_echo_n" ; then
@@ -947,8 +957,10 @@ fi
         print_error "Error in creating test program for ranlib test!"
     else
 	# Check that we can link the program
+	echo $CLINKER $CFLAGS $LDFLAGS conftest.o -o conftest foo.a $LIBS >> \
+		config.log
         if eval $CLINKER $CFLAGS $LDFLAGS conftest.o -o conftest foo.a $LIBS \
-		>/dev/null 2>&1 ; then
+		>>config.log 2>&1 ; then
 	    if test -z "$ac_echo_test" -a 1 = 1 ; then
 echo "$ac_t""yes"
 else
@@ -1443,7 +1455,7 @@ fi
            f_test=/usr/include/X11/Xlib.h
        fi
        if test ! -f $f_test ; then
-           no_x=yes
+           no_x=true
 	   print_error "X11 include files were not found in $f_test!"
        fi
    fi
@@ -1860,7 +1872,7 @@ getdomainname();
 ; return 0; }
 EOF
 if test -z "$ac_link" ; then
-ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&2'
+ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >/dev/null 2>&1'
 fi
 if eval $ac_link; then
   rm -rf conftest*
@@ -2488,7 +2500,7 @@ for file in .. ${CONFIG_FILES}; do if test "x$file" != x..; then
   echo creating $file
   rm -f $file
   echo "# Generated automatically from `echo $file|sed 's|.*/||'`.in by configure." > $file
-  sed -e "
+cat $top_srcdir/${file}.in | sed -e "
 $prsub
 $extrasub
 s%@RANLIB@%$RANLIB%g
@@ -2530,17 +2542,17 @@ s%@OPTFLAGSC@%$OPTFLAGSC%g
 s%@OPTFLAGSF@%$OPTFLAGSF%g
 s%@PREFIX@%$PREFIX%g
 s%@USER_CFLAGS@%$USER_CFLAGS%g
-s%@X_INC@%$X_INC%g
+s%@X_INC@%$X_INC%g" | sed -e "
 s%@X_LIB@%$X_LIB%g
 s%@LIBS@%$LIBS%g
 s%@srcdir@%$srcdir%g
 s%@DEFS@%$DEFS%
-" $top_srcdir/${file}.in >> $file
+" >> $file
 fi; done
 
 
 exit 0
 EOF
 chmod +x config.status
-${CONFIG_SHELL-/bin/sh} config.status
+${CONFIG_SHELL-/bin/sh} ./config.status
 

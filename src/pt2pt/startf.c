@@ -2,12 +2,6 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_start_ PMPI_START
@@ -29,12 +23,13 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_start_ ANSI_ARGS(( MPI_Request *, int * ));
+void mpi_start_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_start_( request, __ierr )
-MPI_Request *request;
-int *__ierr;
+MPI_Fint *request;
+MPI_Fint *__ierr;
 {
-    MPI_Request lrequest = (MPI_Request)MPIR_ToPointer(*(int*)request );
+    MPI_Request lrequest = MPI_Request_f2c(*request );
     *__ierr = MPI_Start( &lrequest );
+    *request = MPI_Request_c2f(lrequest);
 }

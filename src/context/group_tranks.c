@@ -1,5 +1,5 @@
 /*
- *  $Id: group_tranks.c,v 1.17 1997/02/18 23:06:13 gropp Exp $
+ *  $Id: group_tranks.c,v 1.2 1998/04/28 20:58:17 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,10 +13,10 @@ MPI_Group_translate_ranks - Translates the ranks of processes in one group to
                             those in another group
 
 Input Parameters:
-. group1 - group1 (handle) 
++ group1 - group1 (handle) 
 . n - number of ranks in  'ranks1' and 'ranks2'  arrays (integer) 
 . ranks1 - array of zero or more valid ranks in 'group1' 
-. group2 - group2 (handle) 
+- group2 - group2 (handle) 
 
 Output Parameter:
 . ranks2 - array of corresponding ranks in group2,  'MPI_UNDEFINED'  when no 

@@ -1,5 +1,5 @@
 /*
- *  $Id: initutil.c,v 1.20 1997/02/18 23:06:23 gropp Exp $
+ *  $Id: initutil.c,v 1.9 1998/07/01 19:56:11 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,14 +11,13 @@
    (perhaps because there is no Fortran compiler)
  */
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
 /* #include "cmnargs.h" */
 #include "sbcnst2.h"
 /* Error handlers in pt2pt */
 #include "mpipt2pt.h"
-#else
-#include "mpisys.h"
-#endif
 
 #if defined(MPID_HAS_PROC_INFO)
 /* This is needed to use select for a timeout */
@@ -42,6 +41,10 @@
 /* #define DEBUG(a) {a}  */
 #define DEBUG(a)
 
+/* need to change these later */
+MPI_Info *MPIR_Infotable = NULL;
+int MPIR_Infotable_ptr = 0, MPIR_Infotable_max = 0;
+
 #ifdef FORTRANCAPS
 #define mpir_init_fcm_   MPIR_INIT_FCM
 #define mpir_init_flog_  MPIR_INIT_FLOG
@@ -58,24 +61,14 @@
 
 /* Prototypes for Fortran interface functions */
 void mpir_init_fcm_ ANSI_ARGS(( void ));
-void mpir_init_flog_ ANSI_ARGS(( int *, int * ));
+void mpir_init_flog_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 void mpir_init_bottom_ ANSI_ARGS(( void * ));
 
 /* Global memory management variables for fixed-size blocks */
-#ifndef MPI_ADI2
-void *MPIR_shandles;        /* sbcnst MPIR_SHANDLES */
-void *MPIR_rhandles;        /* sbcnst MPIR_RHANDLES */
-#endif
 void *MPIR_errhandlers;  /* sbcnst Error handlers */
 void *MPIR_qels;      /* sbcnst queue elements */
 void *MPIR_fdtels; /* sbcnst flat datatype elements */
 void *MPIR_topo_els;/* sbcnst topology elements */
-
-/* Global queues */
-#ifndef MPI_ADI2
-MPIR_QHDR MPIR_posted_recvs;
-MPIR_QHDR MPIR_unexpected_recvs;
-#endif
 
 /* Global communicators.  Initialize as null in case we fail during startup */
 /* We need the structure that MPI_COMM_WORLD refers to so often, 
@@ -107,7 +100,7 @@ int MPIR_Dump_Mem = 1;
 #endif
 
 /* Fortran logical values */
-int MPIR_F_TRUE, MPIR_F_FALSE;
+MPI_Fint MPIR_F_TRUE, MPIR_F_FALSE;
 
 /* 
  Location of the Fortran marker for MPI_BOTTOM.  The Fortran wrappers
@@ -115,13 +108,16 @@ int MPIR_F_TRUE, MPIR_F_FALSE;
  This is done by the macro MPIR_F_PTR.
  */
 void *MPIR_F_MPI_BOTTOM = 0;
+/* Here are the special status ignore values in MPI-2 */
+void *MPIR_F_STATUS_IGNORE = 0;
+void *MPIR_F_STATUSES_IGNORE = 0;
 
-/*
+/*@
    MPIR_Init - Initialize the MPI execution environment
 
    Input Parameters:
-.  argc - Pointer to the number of arguments 
-.  argv - Pointer to the argument vector
++  argc - Pointer to the number of arguments 
+-  argv - Pointer to the argument vector
 
    See MPI_Init for the description of the input to this routine.
 
@@ -172,7 +168,7 @@ char ***argv;
     }
     }
 #endif
-#ifdef MPI_ADI2
+
     /* If we wanted to be able to check if we're being debugged,
      * (so that we could explicitly request that the other processes
      * come up stopped), this would be a good place to do it.
@@ -222,11 +218,6 @@ char ***argv;
 	}
     } 
 #endif
-#else
-    ADIctx = MPID_INIT( argc, argv );
-
-    DEBUG(MPID_Myrank( ADIctx, &MPIR_tid);)
-#endif
 
     /* Indicate that any pointer conversions are permanent */
     MPIR_PointerPerm( 1 );
@@ -237,15 +228,9 @@ char ***argv;
     MPIR_Topology_init();
 
     /* initialize memory allocation data structures */
-#ifdef MPI_ADI2
     MPIR_errhandlers= MPID_SBinit( sizeof( struct MPIR_Errhandler ), 10, 10 );
 
     MPIR_SENDQ_INIT();
-#else
-    MPIR_errhandlers= MPIR_SBinit( sizeof( struct MPIR_Errhandler ), 10, 10 );
-    MPIR_shandles   = MPIR_SBinit( sizeof( MPIR_SHANDLE ), 100, 100 );
-    MPIR_rhandles   = MPIR_SBinit( sizeof( MPIR_RHANDLE ), 100, 100 );
-#endif
 #ifdef FOO
     MPIR_fdtels     = MPIR_SBinit( sizeof( MPIR_FDTEL ), 100, 100 );
 #endif
@@ -254,19 +239,6 @@ char ***argv;
 
     /* This handles ALL datatype initialization */
     MPIR_Init_dtes();
-
-#ifndef MPI_ADI2
-    /* initialize queues */
-    MPIR_qels       = MPIR_SBinit( sizeof( MPIR_QEL ), 100, 100 );
-    DEBUG(PRINTF("[%d] About to setup message queues\n", MPIR_tid);)
-    MPIR_posted_recvs.first        = MPIR_posted_recvs.last        = NULL;
-    MPIR_posted_recvs.maxlen       = MPIR_posted_recvs.currlen     = 0; 
-    MPID_THREAD_DS_LOCK_INIT(&MPIR_posted_recvs)
-
-    MPIR_unexpected_recvs.first    = MPIR_unexpected_recvs.last    = NULL;
-    MPIR_unexpected_recvs.maxlen   = MPIR_unexpected_recvs.currlen = 0;
-    MPID_THREAD_DS_LOCK_INIT(&MPIR_unexpected_recvs)
-#endif
 
     /* Create Error handlers */
     /* Must create at preassigned values */
@@ -290,13 +262,8 @@ char ***argv;
 
     MPIR_COMM_WORLD->comm_type	   = MPIR_INTRA;
     MPIR_COMM_WORLD->ADIctx	   = ADIctx;
-#ifdef MPI_ADI2
     size     = MPID_MyWorldSize;
     MPIR_tid = MPID_MyWorldRank;
-#else
-    MPID_Mysize( ADIctx, &size );
-    MPID_Myrank( ADIctx, &MPIR_tid );
-#endif
     MPIR_COMM_WORLD->group	   = MPIR_CreateGroup( size );
     MPIR_COMM_WORLD->group->self   = 
 	(MPI_Group) MPIR_FromPointer( MPIR_COMM_WORLD->group );
@@ -307,10 +274,6 @@ char ***argv;
 #endif
     MPIR_Group_dup ( MPIR_COMM_WORLD->group, 
 			   &(MPIR_COMM_WORLD->local_group) );
-#ifndef MPI_ADI2
-    (void)MPID_Comm_init( ADIctx, (MPI_Comm)0, MPIR_COMM_WORLD );
-#endif
-
     MPIR_COMM_WORLD->local_rank	   = MPIR_COMM_WORLD->local_group->local_rank;
     MPIR_COMM_WORLD->lrank_to_grank = MPIR_COMM_WORLD->group->lrank_to_grank;
     MPIR_COMM_WORLD->np		   = MPIR_COMM_WORLD->group->np;
@@ -321,9 +284,7 @@ char ***argv;
     MPIR_Errhandler_mark( MPI_ERRORS_ARE_FATAL, 1 );
     MPIR_COMM_WORLD->ref_count	   = 1;
     MPIR_COMM_WORLD->permanent	   = 1;
-#ifdef MPI_ADI2
     MPID_CommInit( (struct MPIR_COMMUNICATOR *)0, MPIR_COMM_WORLD );
-#endif
 
     MPIR_Attr_create_tree ( MPIR_COMM_WORLD );
     MPIR_COMM_WORLD->comm_cache	   = 0;
@@ -422,9 +383,6 @@ char ***argv;
     MPIR_COMM_SELF->group->lrank_to_grank[0] = MPIR_tid;
     MPIR_Group_dup ( MPIR_COMM_SELF->group, 
 			    &(MPIR_COMM_SELF->local_group) );
-#ifndef MPI_ADI2
-    (void)MPID_Comm_init( ADIctx, (MPI_Comm)0, MPI_COMM_SELF );
-#endif
     MPIR_COMM_SELF->local_rank	      = 
 	MPIR_COMM_SELF->local_group->local_rank;
     MPIR_COMM_SELF->lrank_to_grank     = 
@@ -437,9 +395,7 @@ char ***argv;
     MPIR_Errhandler_mark( MPI_ERRORS_ARE_FATAL, 1 );
     MPIR_COMM_SELF->ref_count	      = 1;
     MPIR_COMM_SELF->permanent	      = 1;
-#ifdef MPI_ADI2
     MPID_CommInit( MPIR_COMM_WORLD, MPIR_COMM_SELF );
-#endif
     MPIR_Attr_create_tree ( MPIR_COMM_SELF );
     MPIR_COMM_SELF->comm_cache	      = 0;
     MPIR_Comm_make_coll ( MPIR_COMM_SELF, MPIR_INTRA );
@@ -480,41 +436,21 @@ char ***argv;
 	int i;
 	for (i=1; i<*argc; i++) {
 	    if ((*argv)[i]) {
-#ifndef MPI_ADI2		
 		if (strcmp( (*argv)[i], "-mpiqueue" ) == 0) {
 		    MPIR_Print_queues = 1;
 		    (*argv)[i] = 0;
 		    }
 		else 
-#endif
 		    if (strcmp((*argv)[i],"-mpiversion" ) == 0) {
 		    char ADIname[128];
-#ifdef MPI_ADI2
 		    MPID_Version_name( ADIname );
-#else
-		    MPID_Version_name( ADIctx, ADIname );
-#endif
-		    printf( "MPI model implementation %d.%d.%d., %s\n", 
-			    PATCHLEVEL, PATCHLEVEL_MINOR, PATCHLEVEL_SUBMINOR, 
+		    printf( "MPICH %3.1f.%d%s of %s., %s\n", 
+			    PATCHLEVEL, PATCHLEVEL_SUBMINOR, 
+			    PATCHLEVEL_RELEASE_KIND, PATCHLEVEL_RELEASE_DATE,
 			    ADIname );
 		    printf( "Configured with %s\n", CONFIGURE_ARGS_CLEAN );
 		    (*argv)[i] = 0;
 		    }
-#ifndef MPI_ADI2
-		else if (strcmp((*argv)[i],"-mpipktsize" ) == 0) {
-		    int len;
-		    (*argv)[i] = 0;
-		    i++;
-		    if (i <*argc) {
-			len = atoi( (*argv)[i] );
-			MPID_SetPktSize( len );
-			(*argv)[i] = 0;
-			}
-		    else {
-			printf( "Missing argument for -mpipktsize\n" );
-			}
-		    }
-#endif
 #ifdef HAVE_NICE
 		else if (strcmp((*argv)[i],"-mpinice" ) == 0) {
 		    int niceincr;
@@ -544,7 +480,6 @@ char ***argv;
 		    (*argv)[i] = 0;
 		    }
 #endif
-#ifdef MPI_ADI2 
 #ifdef MPID_HAS_PROC_INFO
 		else if (strcmp((*argv)[i],"-mpichtv" ) == 0) {
 		    (*argv)[i] = 0; /* Eat it up so the user doesn't see it */
@@ -580,63 +515,20 @@ char ***argv;
 	        }
 	      
 #endif
-#endif
-#ifndef MPI_ADI2
-#ifdef MPID_HAS_DEBUG
-		else if (strcmp((*argv)[i],"-mpichdebug") == 0) {
-		    MPID_SetDebugFlag( ADIctx, 1 );
-		    (*argv)[i] = 0;
-		    }
-		else if (strcmp((*argv)[i],"-mpidbfile" ) == 0) {
-		    MPID_SetDebugFlag( ADIctx, 1 );
-		    (*argv)[i] = 0;
-		    i++;
-		    if (i <*argc) {
-			MPID_SetDebugFile( (*argv)[i] );
-			(*argv)[i] = 0;
-			}
-		    else {
-			printf( "Missing filename for -mpdbfile\n" );
-			}
-		    }
-		else if (strcmp((*argv)[i],"-chmemdebug" ) == 0) {
-		    MPID_SetSpaceDebugFlag( 1 );
-		    (*argv)[i] = 0;
-		    }
-		else if (strcmp((*argv)[i],"-mpichmsg" ) == 0) {
-		    MPID_SetMsgDebugFlag( ADIctx, 1 );
-		    (*argv)[i] = 0;
-		    }
-		else if (strcmp((*argv)[i],"-mpitrace" ) == 0) {
-		    (*argv)[i] = 0;
-		    i++;
-		    if (i <*argc) {
-			MPID_Set_tracefile( (*argv)[i] );
-			(*argv)[i] = 0;
-			}
-		    else {
-			printf( "Missing filename for -mpitrace\n" );
-			}
-		    }
-#endif
+#ifdef MPIR_PTRDEBUG
+		else if (strcmp((*argv)[i],"-mpiptrs") == 0) {
+		    MPIR_Dump_Mem = 1;
+		}
 #endif
 #ifdef MPIR_MEMDEBUG
 		else if (strcmp((*argv)[i],"-mpimem" ) == 0) {
-#ifdef MPI_ADI2
 		    MPID_trDebugLevel( 1 );
-#else
-		    MPIR_trDebugLevel( 1 );
-#endif
 		    }
 #endif
 		}
 	    }
 	/* Remove the null arguments */
-#ifdef MPI_ADI2
 	MPID_ArgSqueeze( argc, *argv );
-#else
-	MPIR_ArgSqueeze( argc, *argv );
-#endif
 	}
 
     /* barrier */
@@ -656,7 +548,9 @@ char ***argv;
 void mpir_init_bottom_( p )
 void *p;
 {
-MPIR_F_MPI_BOTTOM = p;
+    MPIR_F_MPI_BOTTOM	   = p;
+    MPIR_F_STATUS_IGNORE   = ((MPI_Fint*)p) + 1;
+    MPIR_F_STATUSES_IGNORE = ((MPI_Fint*)p) + 2;
 }
 
 #endif /* MPID_NO_FORTRAN */
@@ -670,9 +564,7 @@ MPIR_F_MPI_BOTTOM = p;
 /****************************************************************************/
 /* Utility code for Errhandlers                                             */
 /****************************************************************************/
-#ifdef MPI_ADI2
 #define MPIR_SBalloc MPID_SBalloc
-#endif
 int MPIR_Errhandler_create( function, errhandler )
 MPI_Handler_function *function;
 MPI_Errhandler       errhandler;

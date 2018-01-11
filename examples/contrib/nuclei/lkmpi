@@ -1,2 +1,0 @@
-#!/bin/ksh
-xlf -v $* -lnuc -lutil -lgen -L.  -lblas -L/usr/lib  nucleimpi.o

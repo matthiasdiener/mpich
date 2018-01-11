@@ -2,6 +2,8 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
+#include "mpimem.h"
+
 #ifdef _CRAY
 #include <fortran.h>
 #include <stdarg.h>
@@ -98,21 +100,44 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_reduce_scatter_ ANSI_ARGS(( void *, void *, int *, MPI_Datatype *, 
-				     MPI_Op *, MPI_Comm *, int * ));
+void mpi_reduce_scatter_ ANSI_ARGS(( void *, void *, MPI_Fint *, MPI_Fint *, 
+				     MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_reduce_scatter_ ( sendbuf, recvbuf, recvcnts, datatype, op, comm, 
 			   __ierr )
-void             *sendbuf;
-void             *recvbuf;
-int              *recvcnts;
-MPI_Datatype     *datatype;
-MPI_Op            *op;
-MPI_Comm         * comm;
-int              *__ierr;
+void     *sendbuf;
+void     *recvbuf;
+MPI_Fint *recvcnts;
+MPI_Fint *datatype;
+MPI_Fint *op;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Reduce_scatter(MPIR_F_PTR(sendbuf),
-				 MPIR_F_PTR(recvbuf),recvcnts,*datatype,
-				 *op,*comm);
+
+    if (sizeof(MPI_Fint) == sizeof(int))
+        *__ierr = MPI_Reduce_scatter(MPIR_F_PTR(sendbuf),
+				     MPIR_F_PTR(recvbuf), recvcnts,
+                                     MPI_Type_f2c(*datatype), MPI_Op_f2c(*op),
+                                     MPI_Comm_f2c(*comm));
+    else {
+        int size;
+        int *l_recvcnts;
+	int i;
+
+	MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+ 
+	MPIR_FALLOC(l_recvcnts,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Reduce_scatter");
+	for (i=0; i<size; i++) 
+	    l_recvcnts[i] = (int)recvcnts[i];
+
+        *__ierr = MPI_Reduce_scatter(MPIR_F_PTR(sendbuf),
+				     MPIR_F_PTR(recvbuf), l_recvcnts,
+                                     MPI_Type_f2c(*datatype), MPI_Op_f2c(*op),
+                                     MPI_Comm_f2c(*comm));
+	FREE( l_recvcnts);
+    }
+
 }
 #endif

@@ -6,6 +6,14 @@
 #include "protofix.h"
 #endif
 
+#if defined(HAVE_UNISTD_H)
+#include <unistd.h>
+#endif
+
+#if defined(HAVE_STRING_H) || defined(STDC_HEADERS)
+#include <string.h>
+#endif
+
 /* 
    This file contains routines to open an X window display and window
    This consists of a number of routines that set the various

@@ -10,8 +10,8 @@ static int MPE_Seq_keyval = MPI_KEYVAL_INVALID;
    MPE_Seq_begin - Begins a sequential section of code.  
 
    Input Parameters:
-.  comm - Communicator to sequentialize.  
-.  ng   - Number in group.  This many processes are allowed to execute
++  comm - Communicator to sequentialize.  
+-  ng   - Number in group.  This many processes are allowed to execute
    at the same time.  Usually one.  
 
    Notes:
@@ -64,8 +64,8 @@ if ( (lidx % ng) < ng - 1 && lidx != np - 1) {
    MPE_Seq_end - Ends a sequential section of code.
 
    Input Parameters:
-.  comm - Communicator to sequentialize.  
-.  ng   - Number in group.  This many processes are allowed to execute
++  comm - Communicator to sequentialize.  
+-  ng   - Number in group.  This many processes are allowed to execute
    at the same time.  Usually one.  
 
    Notes:

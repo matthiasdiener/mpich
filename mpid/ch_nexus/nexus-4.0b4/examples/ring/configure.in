@@ -1,5 +1,0 @@
-dnl
-dnl rcsid = $Header: /nfs/globus1/src/master/nexus_examples/ring/configure.in,v 1.2 1996/02/06 19:40:03 geisler Exp $
-dnl
-AC_INIT(ring.c)
-AC_OUTPUT(Makefile)

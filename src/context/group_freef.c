@@ -23,11 +23,15 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_group_free_ ANSI_ARGS(( MPI_Group *, int * ));
+void mpi_group_free_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_group_free_ ( group, __ierr )
-MPI_Group *group;
-int *__ierr;
+MPI_Fint *group;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Group_free(group);
+    MPI_Group l_group = MPI_Group_f2c(*group);
+    *__ierr = MPI_Group_free(&l_group);
+    *group = MPI_Group_c2f(l_group);
 }
+
+

@@ -6,10 +6,14 @@
 
 #include "clog.h"
 #include "clog_merge.h"
-#include "mpi.h"		/* why? */
+#include "mpi.h"		/* Needed for MPI routines */
 #include "mpe.h"		/* why? */
 #include "mpe_log.h"
 
+#ifdef HAVE_STDLIB_H
+/* Needed for getenv */
+#include <stdlib.h>
+#endif
 
 /* why this? */
 #ifdef USE_PMPI
@@ -99,8 +103,8 @@ char *name, *color;
     MPE_Describe_event - Create log record describing an event type
     
     Input Parameters:
-.   event - Event number
-.   name  - String describing the event. 
++   event - Event number
+-   name  - String describing the event. 
 
 .seealso: MPE_Log_get_event_number 
 @*/
@@ -161,9 +165,9 @@ int otherParty, tag, size;
     MPE_Log_event - Logs an event
 
     Input Parameters:
-.   event - Event number
++   event - Event number
 .   data  - Integer data value
-.   string - Optional string describing event
+-   string - Optional string describing event
 @*/
 int MPE_Log_event(event,data,string)
 int event, data;
@@ -177,12 +181,16 @@ char *string;
     MPE_Finish_log - Send log to master, who writes it out
 
     Notes:
-    This routine dumps a logfile in clog format
+    This routine dumps a logfile in clog format.
+
 @*/
 int MPE_Finish_log( filename )
 char *filename;
 {
-    int shift;
+/*  The environment variable MPE_LOG_FORMAT may be set to CLOG to generate
+    CLOG format log files (ALOG is the default). */
+    char *env_log_format;
+    int shift, log_format;
     int *is_globalp, flag;
 
     CLOG_Finalize();
@@ -192,7 +200,14 @@ char *filename;
 	shift = CMERGE_SHIFT;
     else
         shift = CMERGE_NOSHIFT;
-    CLOG_mergelogs(shift, filename, ALOG_LOG ); /* for time being always alog*/
+
+    log_format = ALOG_LOG;
+    env_log_format = getenv("MPE_LOG_FORMAT");
+ 
+    if ((env_log_format) && (strcmp(env_log_format,"CLOG") == 0)) 
+	log_format = CLOG_LOG;
+
+    CLOG_mergelogs(shift, filename, log_format); 
     return MPE_Log_OK;
 }
 

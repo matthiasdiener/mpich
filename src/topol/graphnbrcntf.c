@@ -23,13 +23,18 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_graph_neighbors_count_ ANSI_ARGS(( MPI_Comm *, int *, int *, int * ));
+void mpi_graph_neighbors_count_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, 
+                                            MPI_Fint *, MPI_Fint * ));
 
 void mpi_graph_neighbors_count_ ( comm, rank, nneighbors, __ierr )
-MPI_Comm *comm;
-int      *rank;
-int      *nneighbors;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *rank;
+MPI_Fint *nneighbors;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Graph_neighbors_count(*comm, *rank,nneighbors);
+    int lnneighbors;
+
+    *__ierr = MPI_Graph_neighbors_count(MPI_Comm_f2c(*comm), (int)*rank,
+                                        &lnneighbors);
+    *nneighbors = (MPI_Fint)lnneighbors;
 }

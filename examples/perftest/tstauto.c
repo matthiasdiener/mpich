@@ -3,7 +3,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: tstauto.c,v 1.1 1994/03/18 00:22:11 gropp Exp $";
+static char vcid[] = "$Id: tstauto.c,v 1.2 1998/04/29 15:15:49 swider Exp $";
 #endif
 
 /*
@@ -20,7 +20,7 @@ static char vcid[] = "$Id: tstauto.c,v 1.1 1994/03/18 00:22:11 gropp Exp $";
     TSTAuto1d - Generates data for piecewise linear model
 
     Input Parameters:
-.   xmin,xmax - limits of domain
++   xmin,xmax - limits of domain
 .   dxmin     - minimum delta x
 .   dxmax     - maximum delta x
 .   rtol      - relative error tolerance
@@ -30,7 +30,7 @@ static char vcid[] = "$Id: tstauto.c,v 1.1 1994/03/18 00:22:11 gropp Exp $";
 .   rmax      - rmax*rsize = allocated size of result
 .   fcn       - user-defined function, returns a (double) value used
                 in estimating error.
-.   fcnctx    - user-defined context passed to fcn.
+-   fcnctx    - user-defined context passed to fcn.
 
     Returns:
     Number of function evaluations performed.
@@ -144,9 +144,9 @@ return 0;
     TSTRSort - Sort a user-defined result array
 
     Input Parameters:
-.   results   - pointer to user- structure (see fcn)
++   results   - pointer to user- structure (see fcn)
 .   rsize     - user-defined size of a single result
-.   rcnt      - number of elements in array
+-   rcnt      - number of elements in array
 
     Notes:
     This assumes that the "x" value is the first value, and that it is

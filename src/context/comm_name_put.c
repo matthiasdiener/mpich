@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_name_put.c,v 1.3 1997/02/18 23:06:13 gropp Exp $
+ *  $Id: comm_name_put.c,v 1.2 1998/01/29 14:26:22 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -10,11 +10,7 @@
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 static int MPIR_Name_put ANSI_ARGS((struct MPIR_COMMUNICATOR *, char *));
 
@@ -51,7 +47,7 @@ char * name;
       char * new_string;
 
       MPIR_ALLOC(new_string,(char *)MALLOC(strlen(name)+1),comm,MPI_ERR_EXHAUSTED,
-		 "Error setting communicator name" );
+		 "MPI_COMM_SET_NAME" );
       strcpy(new_string, name);
       comm->comm_name = new_string;
     }

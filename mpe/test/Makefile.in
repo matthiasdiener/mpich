@@ -14,6 +14,7 @@ LIB_PATH    = -L@LIB_DIR@
 FLIB_PATH   = @FLIB_PATH_LEADER@@LIB_DIR@
 LIB_LIST    = @LIB_LIST@
 MPE_LIBS    = @MPE_LIBS@
+PMPILIB     = -lp@MPILIBNAME@
 #
 INCLUDE_DIR = @INCLUDE_PATH@ -I$(INSTALL_DIR)/include
 
@@ -35,7 +36,7 @@ pttest: pttest.o
 
 fpilog: fpi.o 
 	$(FLINKER) $(OPTFLAGS) -o fpilog fpi.o $(FLIB_PATH) \
-	-lfmpi -llmpi -lpmpi -lm $(MPE_LIBS) $(LIB_LIST)
+	-lfmpi -llmpi $(PMPILIB) -lm $(MPE_LIBS) $(LIB_LIST)
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS)
 

@@ -1,5 +1,7 @@
 #include "mpid.h"
-
+/*
+ * Need prototypes for MPID_SetMsgDebugFlag, MPIR_Ref_init
+ */
 #include <stdio.h>
 #include "cmnargs.h"
 #ifdef MPIR_MEMDEBUG
@@ -8,6 +10,16 @@
 #ifdef MPID_FLOW_CONTROL
 void MPID_FlowDebug ANSI_ARGS(( int ));
 #endif
+/* 
+   Includes for control options
+ */
+#include "ptrcvt.h"
+
+#ifdef HAVE_STDLIB_H
+/* prototype for getenv */
+#include <stdlib.h>
+#endif
+
 #ifdef HAVE_UNISTD_H
 /* 
    Need to undefine SEEK_SET, SEEK_CUR, and SEEK_END on some Paragon
@@ -22,8 +34,26 @@ void MPID_FlowDebug ANSI_ARGS(( int ));
 
 /*
  * This file contains common argument handling routines for MPI ADIs
+ * It is being augmented to use the environment to provide values;
+ * this is particularly useful for initialization options.
  * 
  */
+
+/*
+   Get an integer from the environment; otherwise, return defval.
+ */
+int MPID_GetIntParameter( name, defval )
+char *name;
+int  defval;
+{
+    extern char *getenv();
+    char *p = getenv( name );
+
+    if (p) 
+	return atoi(p);
+    return defval;
+}
+
 /*
    MPID_ArgSqueeze - Remove all null arguments from an arg vector; 
    update the number of arguments.
@@ -33,7 +63,7 @@ int  *Argc;
 char **argv;
 {
     int argc, i, j;
-    
+
     /* Compress out the eliminated args */
     argc = *Argc;
     j    = 0;
@@ -150,6 +180,7 @@ if (argv && *argv) {
 #ifdef MPIR_MEMDEBUG
 			extern int MPIR_Dump_Mem;
 			MPIR_Dump_Mem = 1;
+			*str = 0;
 #else
 			printf( "-mpidb memdump not available\n" );
 #endif
@@ -158,6 +189,7 @@ if (argv && *argv) {
 #ifdef MPIR_MEMDEBUG
 			extern int MPIR_Dump_Mem;
 			MPIR_Dump_Mem = 0;
+			*str = 0;
 #endif
 		    }
 		    else if (strcmp( *str, "memall" ) == 0) {

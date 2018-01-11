@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.6 1997/01/24 21:57:06 gropp Exp $
+ *  $Id: chinit.c,v 1.2 1998/03/13 22:32:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -155,6 +155,7 @@ MPID_Device *dev;
 
     /* We should really generate an error or warning message if there 
        are uncompleted operations... */
+    
     PIiFinish();
     return 0;
 }

@@ -1,17 +1,13 @@
 /*
- *  $Id: errfree.c,v 1.12 1997/01/07 01:46:11 gropp Exp $
+ *  $Id: errfree.c,v 1.2 1998/01/29 14:27:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBfree MPID_SBfree
-#else
-#include "mpisys.h"
-#endif
 
 /*@
   MPI_Errhandler_free - Frees an MPI-style errorhandler

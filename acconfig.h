@@ -82,7 +82,23 @@
 /* Define if object debugging should be enabled */
 #undef MPIR_OBJDEBUG
 
+/* Define if ptr conversion debugging should be enabled */
+#undef MPIR_PTRDEBUG
+
 /* Define if ADI is ADI-2 (required!) */
 #undef MPI_ADI2
 
+/* Define if mmap does not work correctly for anonymous memory */
+#undef HAVE_NO_ANON_MMAP
 
+/* Define if signals reset to the default when used (SYSV vs BSD semantics).
+   Such signals are essentially un-usable, because of the resulting race
+   condition.  The fix is to use the sigaction etc. routines instead (they're
+   usually available, since without them signals are entirely useless) */
+#undef SIGNALS_RESET_WHEN_USED
+
+/* Define if MPI Structs should align on the largest basic element */
+#undef USE_BASIC_ALIGNMENT
+
+/* The number of processors expected on an SMP.  Usually undefined */
+#undef PROCESSOR_COUNT

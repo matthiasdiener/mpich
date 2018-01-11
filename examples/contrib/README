@@ -1,3 +1,0 @@
-This directory contain contributed software that is not part of
-the official distribution. The C++ directory requires that MPI has 
-been compiled with the C++ option.

@@ -1,5 +1,5 @@
 /*
- *  $Id: sendrecv.c,v 1.15 1997/02/18 23:05:35 gropp Exp $
+ *  $Id: sendrecv.c,v 1.2 1998/04/28 21:47:09 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,7 +11,7 @@
     MPI_Sendrecv - Sends and receives a message
 
 Input Parameters:
-. sendbuf - initial address of send buffer (choice) 
++ sendbuf - initial address of send buffer (choice) 
 . sendcount - number of elements in send buffer (integer) 
 . sendtype - type of elements in send buffer (handle) 
 . dest - rank of destination (integer) 
@@ -20,11 +20,11 @@ Input Parameters:
 . recvtype - type of elements in receive buffer (handle) 
 . source - rank of source (integer) 
 . recvtag - receive tag (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameters:
-. recvbuf - initial address of receive buffer (choice) 
-. status - status object (Status).  This refers to the receive operation.
++ recvbuf - initial address of receive buffer (choice) 
+- status - status object (Status).  This refers to the receive operation.
   
 .N fortran
 

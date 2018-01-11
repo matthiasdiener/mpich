@@ -23,12 +23,14 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_comm_rank_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
+void mpi_comm_rank_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_comm_rank_ ( comm, rank, __ierr )
-MPI_Comm  *comm;
-int      *rank;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *rank;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Comm_rank( *comm, rank);
+    int l_rank;
+    *__ierr = MPI_Comm_rank( MPI_Comm_f2c(*comm), &l_rank);
+    *rank = (MPI_Fint)l_rank;
 }

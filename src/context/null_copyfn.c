@@ -1,5 +1,5 @@
 /*
- *  $Id: null_copyfn.c,v 1.4 1996/01/08 19:48:52 gropp Exp $
+ *  $Id: null_copyfn.c,v 1.1.1.1 1997/09/17 20:41:49 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

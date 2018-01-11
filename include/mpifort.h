@@ -5,7 +5,7 @@
 
 /* Fortran logical values */
 #ifndef _CRAY
-extern int MPIR_F_TRUE, MPIR_F_FALSE;
+extern MPI_Fint MPIR_F_TRUE, MPIR_F_FALSE;
 #define MPIR_TO_FLOG(a) ((a) ? MPIR_F_TRUE : MPIR_F_FALSE)
 /* 
    Note on true and false.  This code is only an approximation.

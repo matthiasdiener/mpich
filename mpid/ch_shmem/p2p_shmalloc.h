@@ -38,8 +38,11 @@
 #    endif
 #endif
 
-/* If there is nothing special then we will use mmap if we have it. */
-#if !defined(SHMEM_PICKED) && defined(HAVE_MMAP)
+/* If there is nothing special then we will use mmap if we have it. 
+   But it will have to support some kind of anonymous mapping (/dev/zero,
+   fd of -1, etc.)
+ */
+#if !defined(SHMEM_PICKED) && defined(HAVE_MMAP) && !defined(HAVE_NO_ANON_MMAP)
 #    define USE_MMAP
 #    define SHMEM_PICKED
 #endif

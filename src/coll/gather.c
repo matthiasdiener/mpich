@@ -1,5 +1,5 @@
 /*
- *  $Id: gather.c,v 1.27 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: gather.c,v 1.3 1998/04/28 18:50:51 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,7 +13,7 @@
 MPI_Gather - Gathers together values from a group of processes
  
 Input Parameters:
-. sendbuf - starting address of send buffer (choice) 
++ sendbuf - starting address of send buffer (choice) 
 . sendcount - number of elements in send buffer (integer) 
 . sendtype - data type of send buffer elements (handle) 
 . recvcount - number of elements for any single receive (integer, 
@@ -21,7 +21,7 @@ significant only at root)
 . recvtype - data type of recv buffer elements 
 (significant only at root) (handle) 
 . root - rank of receiving process (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice, significant only at 'root') 
@@ -62,6 +62,10 @@ MPI_Comm          comm;
 
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+
+  /* Check for mismatched receive/send types - Debbie Swider 11/20/97 */
+  if (recvtype != sendtype)
+      return MPIR_ERROR(comm_ptr, MPI_ERR_TYPE, myname);
 
   if ( MPIR_TEST_COUNT(comm,sendcnt) ) 
     return MPIR_ERROR(comm_ptr, mpi_errno, myname );

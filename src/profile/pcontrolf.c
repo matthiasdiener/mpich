@@ -23,11 +23,11 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_pcontrol_ ANSI_ARGS(( int *, int * ));
+void mpi_pcontrol_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_pcontrol_( level, __ierr )
-int *level;
-int *__ierr;
+MPI_Fint *level;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Pcontrol(*level);
+    *__ierr = MPI_Pcontrol((int)*level);
 }

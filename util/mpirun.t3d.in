@@ -1,4 +1,5 @@
 #! /bin/sh
+exitstatus=1
 if [ "$MPIR_HOME" = "" ] ; then 
     MPIR_HOME=#MPIR_HOME#
 fi
@@ -21,3 +22,5 @@ while [ $npes -lt $np ] ; do
     npes=`expr $npes \* 2`
 done
 $Show $progname -npes $npes -np $np $cmdLineArgs
+exitstatus=$?
+exit $exitstatus

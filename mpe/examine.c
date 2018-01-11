@@ -12,10 +12,10 @@
   unpack of a datatype
 
   Input Parameters:
-. fp  - FILE pointer for output
++ fp  - FILE pointer for output
 . count - Count of datatype
 . type - MPI Datatype
-. in_offset,out_offset - offsets for input and output buffer.  Should be
+- in_offset,out_offset - offsets for input and output buffer.  Should be
   0 for most uses.
 
   Notes:
@@ -36,10 +36,10 @@ return MPIR_PrintDatatypeUnpack( fp, count, type, in_offset, out_offset );
   pack of a datatype
 
   Input Parameters:
-. fp  - FILE pointer for output
++ fp  - FILE pointer for output
 . count - Count of datatype
 . type - MPI Datatype
-. in_offset,out_offset - offsets for input and output buffer.  Should be
+- in_offset,out_offset - offsets for input and output buffer.  Should be
   0 for most uses.
 
   Notes:
@@ -57,16 +57,6 @@ return MPIR_PrintDatatypePack ( fp, count, type, in_offset, out_offset );
 
 
 /* Fortran interfaces to these */
-
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
 
 #ifdef FORTRANCAPS
 #define mpe_print_datatype_unpack_action_ MPE_PRINT_DATATYPE_UNPACK_ACTION

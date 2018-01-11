@@ -23,13 +23,18 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_comm_compare_ ANSI_ARGS(( MPI_Comm *, MPI_Comm *, int *, int * ));
+void mpi_comm_compare_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                   MPI_Fint * ));
 
 void mpi_comm_compare_ ( comm1, comm2, result, __ierr )
-MPI_Comm  *comm1;
-MPI_Comm  *comm2;
-int       *result;
-int *__ierr;
+MPI_Fint *comm1;
+MPI_Fint *comm2;
+MPI_Fint *result;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Comm_compare( *comm1, *comm2, result);
+    int l_result;
+
+    *__ierr = MPI_Comm_compare( MPI_Comm_f2c(*comm1), 
+                                MPI_Comm_f2c(*comm2), &l_result);
+    *result = l_result;
 }

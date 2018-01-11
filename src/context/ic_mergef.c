@@ -23,13 +23,18 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_intercomm_merge_ ANSI_ARGS(( MPI_Comm *, int *, MPI_Comm *, int * ));
+void mpi_intercomm_merge_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                      MPI_Fint * ));
 
 void mpi_intercomm_merge_ ( comm, high, comm_out, __ierr )
-MPI_Comm  *comm;
-int*high;
-MPI_Comm *comm_out;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *high;
+MPI_Fint *comm_out;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Intercomm_merge( *comm, *high, comm_out );
+    MPI_Comm l_comm_out;
+
+    *__ierr = MPI_Intercomm_merge( MPI_Comm_f2c(*comm), (int)*high, 
+                                   &l_comm_out);
+    *comm_out = MPI_Comm_c2f(l_comm_out);
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id: mpirutil.c,v 1.23 1997/01/07 01:47:07 gropp Exp $
+ *  $Id: mpirutil.c,v 1.4 1998/01/29 14:29:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -10,37 +10,10 @@
 */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
-
 
 int MPIR_Tab ANSI_ARGS(( int ));
 
-#ifndef MPI_ADI2
-void MPIR_dump_rhandle(handle)
-MPIR_RHANDLE handle;
-{
-    PRINTF("  handle type = %d\n", handle.handle_type);
-    PRINTF("  source      = %d\n", handle.source);
-    PRINTF("  tag         = %d\n", handle.tag);
-    PRINTF("  completed   = %d\n", handle.completer);
-    PRINTF("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
-}
-
-void MPIR_dump_shandle(handle)
-MPIR_SHANDLE handle;
-{
-    PRINTF("  handle type = %d\n", handle.handle_type);
-    PRINTF("  dest =        %d\n", handle.dest);
-    PRINTF("  tag =         %d\n", handle.tag);
-    PRINTF("  mode =        %d\n", handle.mode);
-    PRINTF("  completed   = %d\n", handle.completer);
-    PRINTF("  datatype    = "); MPIR_dump_dte(handle.datatype,0);
-}
-#endif
-
-#ifndef MPI_ADI2
+/* Old comments on queueing messages ... */
 /*
    Queueing unexpected messages and searching for them requires particular
    care because of the three cases:
@@ -76,250 +49,6 @@ MPIR_SHANDLE handle;
    There are no longer any send queues, and hence only receive queues
    are of interest.  We'll leave this in in case we need it for cancel (!)
  */
-void MPIR_dump_queue(header)
-MPIR_QHDR *header;
-{
-    MPIR_QEL *p;
-
-    if (!header) return;
-    PRINTF("first = 0x%x, last = 0x%x, maxlen = %d, currlen = %d\n",
-	   (long)header->first, (long)header->last, 
-	   header->maxlen, header->currlen );
-    p = header->first;
-    while ( p )
-    {
-	switch ( p->qel_type )
-	{
-	  case MPIR_QSHANDLE:
-	    PRINTF("queued send handle:\n");
-	    MPIR_dump_shandle( *((MPIR_SHANDLE *) p->ptr) );
-	    break;
-	  case MPIR_QRHANDLE:
-	    PRINTF("queued recv handle:\n");
-	    MPIR_dump_rhandle( *((MPIR_RHANDLE *) p->ptr) );
-	    break;
-	}
-	p = p->next;
-    }
-}
-
-/* Made specific to MPI */
-
-int MPIR_enqueue(header, object, object_type)
-MPIR_QHDR     *header;
-MPIR_COMMON   *object;
-MPIR_QEL_TYPE object_type;
-{
-    MPIR_QEL *p;
-
-    header->currlen++;
-    if (header->currlen > header->maxlen)
-	header->maxlen++;
-
-    p           = (MPIR_QEL *) MPIR_SBalloc( MPIR_qels );
-    if (!p) {
-	MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_EXHAUSTED,
-		   "Allocating message queue");
-	MPI_Abort( MPI_COMM_WORLD, 1 );
-    }
-    p->ptr      = (void *)object;
-    /* Store the selection criteria is an easy-to-get place */
-    p->context_id = object->contextid;
-    if (object->tag == MPI_ANY_TAG) {
-	p->tag     = 0; 
-	p->tagmask = 0;
-	}
-    else {
-	p->tag     = object->tag; 
-	p->tagmask = ~0;
-	}
-    if (object->partner == MPI_ANY_SOURCE) {
-	p->lsrc    = 0; 
-	p->srcmask = 0;
-	}
-    else {
-	p->lsrc    = object->partner; 
-	p->srcmask = ~0;
-	}
-    p->qel_type = object_type;
-
-    if (header->first == NULL)
-    {
-	header->first	    = header->last = p;
-/* 	header->deliv_first = header->deliv_last = p; */
-	p->prev		    = p->next      = NULL;
-    }
-    else
-    {
-	p->prev            = header->last;
-	p->next            = NULL;
-	header->last->next = p;
-	header->last       = p;
-    }
-return MPI_SUCCESS;
-}
-
-int MPIR_dequeue(header, object)
-MPIR_QHDR *header;
-void      *object;
-{
-    MPIR_QEL *p;
-
-    p = header->first;
-    while ( p != NULL )
-    {
-	if ( p->ptr == object )
-	    break;
-	else
-	    p = p->next;
-    }
-    if ( p == NULL )
-	return MPIR_ERROR((MPI_Comm)0, 
-			  MPI_ERR_INTERN,"MPIR_dequeue: not found");
-    else
-    {
-	if ( p->next != NULL )
-	    p->next->prev = p->prev;
-	else
-	    header->last  = p->prev;
-
-	if ( p->prev != NULL )
-	    p->prev->next = p->next;
-	else
-	    header->first = p->next;
-	header->currlen--;
-	MPIR_SBfree( MPIR_qels, p );	/* free queue element */
-    }	    
-return MPI_SUCCESS;
-}
-
-/* search posted_receive queue for message matching criteria */
-/* CHANGE TO ALLOW SEARCH AND DELETE.  NEED TO INSURE THAT ONCE MATCHED,
-   A POSTED MESSAGE DOESN'T MATCH AGAIN.  Note that we need to match without
-   deleting so that we can implement probe 
-
-   A flag of 1 causes a successful search to delete the element found 
- */
-int MPIR_search_posted_queue( src, tag, context_id, found, flag, handleptr )
-register int          src, tag;
-register MPIR_CONTEXT context_id;
-int                   *found;
-MPIR_RHANDLE          **handleptr;
-int                   flag;
-{
-    MPIR_QHDR    *queue = &MPIR_posted_recvs;
-    MPIR_QEL     *p;
-
-    p      = queue->first;
-    *found = 0;
-    /* Eventually, we'll want to separate this into the three cases
-       described above.  We may also want different queues for each
-       context_id 
-       The tests may become
-
-       if (tag == MPI_ANY_TAG) 
-         if (tag == MPI_ANY_SOURCE) 
-	    take first message with matching context
-         else
-            search for context_id, source
-       else if (SOURCE == MPI_ANY_SOURCE)
-         search for context_id, tag
-       else
-         search for context_id, tag, source
-     */
-    while (p)
-    {
-	if ( context_id         == p->context_id &&
-	     (tag & p->tagmask) == p->tag       &&
-	     (src & p->srcmask) == p->lsrc )
-	{
-	    *found = 1;
-	    *handleptr = ( MPIR_RHANDLE * ) p->ptr;
-	    if (flag)
-	    {
-		if ( p->next != NULL )
-		    p->next->prev = p->prev;
-		else
-		    queue->last  = p->prev;
-
-		if ( p->prev != NULL )
-		    p->prev->next = p->next;
-		else
-		    queue->first = p->next;
-		queue->currlen--;
-		MPIR_SBfree( MPIR_qels, p);	/* free queue element */
-	    }
-	    break;
-	}
-	p   = p->next;
-    }
-return MPI_SUCCESS;
-}
-
-
-/* search unexpected_recv queue for message matching criteria */
-/* CHANGE TO ALLOW SEARCH AND DELETE.  NEED TO INSURE THAT ONCE MATCHED,
-   A POSTED MESSAGE DOESN'T MATCH AGAIN.  Note that we need to match without
-   deleting so that we can implement probe 
-
-   A flag of 1 causes a successful search to delete the element found 
- */
-int MPIR_search_unexpected_queue( src, tag, context_id, found, flag,
-				  handleptr )
-register int   	      src, tag;
-register MPIR_CONTEXT context_id;
-int                   *found;
-MPIR_RHANDLE          **handleptr;
-int                   flag;
-{
-    MPIR_QHDR    *queue = &MPIR_unexpected_recvs;
-    MPIR_QEL     *p;
-    int          tagmask, srcmask;
-
-    if (tag == MPI_ANY_TAG) {
-	tag     = 0;
-	tagmask = 0;
-	}
-    else
-	tagmask = ~0;
-    if (src == MPI_ANY_SOURCE) {
-	src     = 0;
-	srcmask = 0;
-	}
-    else
-	srcmask = ~0;
-
-    p      = queue->first;
-    *found = 0;
-    while (p)
-    {
-	if ( context_id == p->context_id      &&
-	     tag        == (p->tag  & tagmask) &&
-	     src        == (p->lsrc & srcmask) )
-	{
-	    *found = 1;
-	    *handleptr = ( MPIR_RHANDLE * ) p->ptr;
-	    if (flag)
-	    {
-		if ( p->next != NULL )
-		    p->next->prev = p->prev;
-		else
-		    queue->last  = p->prev;
-
-		if ( p->prev != NULL )
-		    p->prev->next = p->next;
-		else
-		    queue->first = p->next;
-		queue->currlen--;
-		MPIR_SBfree( MPIR_qels, p);	/* free queue element */
-	    }
-	    break;
-	}
-	p   = p->next;
-    }
-return MPI_SUCCESS;
-}
-#endif
 
 int MPIR_dump_dte( dte, indent )
 MPI_Datatype  dte;
@@ -388,13 +117,15 @@ int           indent;
     case MPIR_VECTOR:
 	MPIR_Tab( indent );
 	PRINTF( "vector, count = %d, stride = %ld, blocklen = %d\n",
-	       dtype_ptr->count, (long)dtype_ptr->stride, dtype_ptr->blocklen );
+		dtype_ptr->count, (unsigned long)dtype_ptr->stride, 
+		dtype_ptr->blocklen );
 	MPIR_dump_dte( dtype_ptr->old_type->self, indent + 2 );
 	break;
     case MPIR_HVECTOR:
 	MPIR_Tab( indent );
 	PRINTF( "hvector, count = %d, stride = %ld, blocklen = %d\n",
-	       dtype_ptr->count, (long)dtype_ptr->stride, dtype_ptr->blocklen );
+		dtype_ptr->count, (unsigned long)dtype_ptr->stride, 
+		dtype_ptr->blocklen );
 	MPIR_dump_dte( dtype_ptr->old_type->self, indent + 2 );
 	break;
     case MPIR_INDEXED:
@@ -405,7 +136,8 @@ int           indent;
 	{
 	    MPIR_Tab( indent + 4 );
 	    PRINTF("index = %ld, blocklen = %d\n",
-		   dtype_ptr->indices[i], dtype_ptr->blocklens[i] );
+		   (unsigned long)dtype_ptr->indices[i],
+		   dtype_ptr->blocklens[i] );
 	}
 	break;
     case MPIR_HINDEXED:
@@ -416,7 +148,8 @@ int           indent;
 	{
 	    MPIR_Tab( indent + 4 );
 	    PRINTF("index = %ld, blocklen = %d\n",
-		   dtype_ptr->indices[i], dtype_ptr->blocklens[i] );
+		   (unsigned long)dtype_ptr->indices[i], 
+		   dtype_ptr->blocklens[i] );
 	}
 	break;
     case MPIR_STRUCT:
@@ -426,7 +159,8 @@ int           indent;
 	{
 	    MPIR_Tab( indent + 2 );
 	    PRINTF("index = %ld, blocklen = %d\n",
-		   dtype_ptr->indices[i], dtype_ptr->blocklens[i] );
+		   (unsigned long)dtype_ptr->indices[i], 
+		   dtype_ptr->blocklens[i] );
 	    MPIR_dump_dte( dtype_ptr->old_types[i]->self, indent + 2 );
 	}
 	break;
@@ -444,11 +178,11 @@ int           indent;
 	break;
     case MPIR_LONGLONGINT:
 	MPIR_Tab( indent );
-	PRINTF( "long long int\n" );
+	PRINTF( "long long\n" );
 	break;
     case MPIR_LOGICAL:
 	MPIR_Tab( indent );
-	PRINTF( "logical (Fortran)\n" );
+	PRINTF( "LOGICAL (Fortran)\n" );
 	break;
     case MPIR_FORT_INT:
 	MPIR_Tab( indent );
@@ -553,27 +287,3 @@ int n;
     return MPI_SUCCESS;
 }
 
-#ifndef MPI_ADI2
-/*
-   MPIR_ArgSqueeze - Remove all null arguments from an arg vector; 
-   update the number of arguments.
- */
-void MPIR_ArgSqueeze( Argc, argv )
-int  *Argc;
-char **argv;
-{
-int argc, i, j;
-    
-/* Compress out the eliminated args */
-argc = *Argc;
-j    = 0;
-i    = 0;
-while (j < argc) {
-    while (argv[j] == 0 && j < argc) j++;
-    if (j < argc) argv[i++] = argv[j++];
-    }
-/* Back off the last value if it is null */
-if (!argv[i-1]) i--;
-*Argc = i;
-}
-#endif

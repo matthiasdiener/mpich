@@ -1,5 +1,5 @@
 /*
- *  $Id: groupcompare.c,v 1.6 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: groupcompare.c,v 1.2 1998/04/28 20:58:21 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,8 +12,8 @@
 MPI_Group_compare - Compares two groups
 
 Input Parameters:
-. group1 - group1 (handle) 
-. group2 - group2 (handle) 
++ group1 - group1 (handle) 
+- group2 - group2 (handle) 
 
 Output Parameter:
 . result - integer which is 'MPI_IDENT' if the order and members of

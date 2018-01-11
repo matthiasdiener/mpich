@@ -1,30 +1,26 @@
 /*
- *  $Id: type_struct.c,v 1.33 1997/02/18 23:05:35 gropp Exp $
+ *  $Id: type_struct.c,v 1.7 1998/06/22 14:28:25 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
 /* pt2pt for MPIR_Type_dup */
 #include "mpipt2pt.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Type_struct - Creates a struct datatype
 
 Input Parameters:
-. count - number of blocks (integer) -- also number of 
++ count - number of blocks (integer) -- also number of 
 entries in arrays array_of_types ,
 array_of_displacements  and array_of_blocklengths  
 . blocklens - number of elements in each block (array)
 . indices - byte displacement of each block (array)
-. old_types - type of elements in each block (array 
+- old_types - type of elements in each block (array 
 of handles to datatype objects) 
 
 Output Parameter:
@@ -44,9 +40,20 @@ may have 'sizeof(foo) > sizeof(int) + sizeof(char)'; for example,
 'sizeof(foo) == 2*sizeof(int)'.  The initial version of the MPI standard
 defined the extent of a datatype as including an `epsilon` that would have 
 allowed an implementation to make the extent an MPI datatype
-for this structure equal to '2*sizeof(int)'.  However, since different systems 
-might define different paddings, a clarification to the standard made epsilon 
-zero.  Thus, if you define a structure datatype and wish to send or receive
+for this structure equal to '2*sizeof(int)'.  
+However, since different systems might define different paddings, there was 
+much discussion by the MPI Forum about what was the correct value of
+epsilon, and one suggestion was to define epsilon as zero.
+This would have been the best thing to do in MPI 1.0, particularly since 
+the 'MPI_UB' type allows the user to easily set the end of the structure.
+Unfortunately, this change did not make it into the final document.  
+Currently, this routine does not add any padding, since the amount of 
+padding needed is determined by the compiler that the user is using to
+build their code, not the compiler used to construct the MPI library.
+A later version of MPICH may provide for some natural choices of padding
+(e.g., multiple of the size of the largest basic member), but users are
+advised to never depend on this, even with vendor MPI implementations.
+Instead, if you define a structure datatype and wish to send or receive
 multiple items, you should explicitly include an 'MPI_UB' entry as the
 last member of the structure.  For example, the following code can be used
 for the structure foo
@@ -106,7 +113,7 @@ MPI_Datatype *newtype;
 
   /* Create and fill in the datatype */
   MPIR_ALLOC(dteptr,(struct MPIR_DATATYPE *) MPIR_SBalloc( MPIR_dtes ),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_TYPE_STRUCT" );
+	     MPI_ERR_EXHAUSTED, "MPI_TYPE_STRUCT" );
   *newtype = (MPI_Datatype) MPIR_FromPointer( dteptr );
   dteptr->self = *newtype;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)
@@ -131,7 +138,7 @@ MPI_Datatype *newtype;
        ( struct MPIR_DATATYPE ** )MALLOC(count*sizeof(struct MPIR_DATATYPE *));
   if (!dteptr->indices || !dteptr->blocklens || !dteptr->old_types) 
       return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-			 "Out of space in MPI_TYPE_STRUCT" );
+			 "MPI_TYPE_STRUCT" );
   high = low = ub = lb = 0;
   real_ub   = real_lb = 0;
   real_init = 0;
@@ -144,6 +151,8 @@ MPI_Datatype *newtype;
       dteptr->old_types[i]  = MPIR_Type_dup (old_dtype_ptr);
       dteptr->indices[i]    = indices[i];
       dteptr->blocklens[i]  = blocklens[i];
+
+      /* Keep track of maximal alignment requirement */
       if (dteptr->align < old_dtype_ptr->align)
 	  dteptr->align       = old_dtype_ptr->align;
       if ( old_dtype_ptr->dte_type == MPIR_UB ) {
@@ -157,10 +166,11 @@ MPI_Datatype *newtype;
 	      }
 	  }
       else if ( old_dtype_ptr->dte_type == MPIR_LB ) {
-	  if (lb_found) {
-	      if ( indices[i] < lb_marker )
+	   if (lb_found) { 
+	      if ( indices[i] < lb_marker ) {
 		  lb_marker = indices[i];
 	      }
+	  }
 	  else {
 	      lb_marker = indices[i];
 	      lb_found  = 1;
@@ -192,8 +202,8 @@ MPI_Datatype *newtype;
 	      ub_found = 1;
 	      }
 	  if (old_dtype_ptr->has_lb) {
-	      if (!lb_found || lb_marker > old_dtype_ptr->lb) 
-		  lb_marker = old_dtype_ptr->lb;
+	      if (!lb_found || lb_marker > (old_dtype_ptr->lb) + indices[i] ) 
+		  lb_marker = old_dtype_ptr->lb + indices[i];
 	      lb_found  = 1;
 	      }
 	  /* Get the ub/lb from the datatype (if a MPI_UB or MPI_LB was
@@ -213,7 +223,7 @@ MPI_Datatype *newtype;
 	      if ( low  > ub ) low  = ub;
 	      }
 	  dteptr->elements += (blocklens[i] * old_dtype_ptr->elements);
-	  }
+	  } /* end else */
       if (i < count - 1) {
 	  size = old_dtype_ptr->size * blocklens[i];
 	  dteptr->size   += size; 
@@ -221,7 +231,7 @@ MPI_Datatype *newtype;
       else {
 	  dteptr->size     += (blocklens[i] * old_dtype_ptr->size);
       }
-      }
+      } /* end for loop */
   
   /* Set the upper/lower bounds and the extent and size */
   if (lb_found) {
@@ -240,7 +250,20 @@ MPI_Datatype *newtype;
   dteptr->real_ub     = real_ub;
   dteptr->real_lb     = real_lb;
 
-  /* Extent has NO padding */
+  /* If there is no explicit ub/lb marker, make the extent/ub fit the
+     alignment of the largest basic item, if that structure alignment is
+     chosen */
+#if defined(USE_BASIC_ALIGNMENT)
+  if (!lb_found && !ub_found) {
+      MPI_Aint eps_offset;
+      eps_offset = dteptr->ub % dteptr->align;
+      if (eps_offset > 0) {
+	  dteptr->ub += (dteptr->align - eps_offset);
+	  dteptr->extent = dteptr->ub - dteptr->lb;
+      }
+  }
+#endif
+  
 
   return (mpi_errno);
 }

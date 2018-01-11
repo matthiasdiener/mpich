@@ -23,15 +23,15 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_extent_ ANSI_ARGS(( MPI_Datatype *, int *, int * ));
+void mpi_type_extent_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_type_extent_( datatype, extent, __ierr )
-MPI_Datatype  *datatype;
-int *extent;
-int *__ierr;
+MPI_Fint *datatype;
+MPI_Fint *extent;
+MPI_Fint *__ierr;
 {
     MPI_Aint c_extent;
-    *__ierr = MPI_Type_extent(*datatype,&c_extent);
+    *__ierr = MPI_Type_extent(MPI_Type_f2c(*datatype), &c_extent);
     /* Really should check for truncation, ala mpi_address_ */
-    *extent = (int)c_extent;
+    *extent = (MPI_Fint)c_extent;
 }

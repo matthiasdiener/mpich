@@ -26,18 +26,21 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_dup_fn_ ANSI_ARGS(( MPI_Comm, int *, void *, void **, void **, 
-			     int * ));
+void mpi_dup_fn_ ANSI_ARGS(( MPI_Fint, MPI_Fint *, void *, void **, void **, 
+			     MPI_Fint * ));
 
 /* Fortran functions aren't quite the same */
 void mpi_dup_fn_ ( comm, keyval, extra_state, attr_in, attr_out, flag )
-MPI_Comm  comm;
-int       *keyval;
-void      *extra_state;
+MPI_Fint comm;
+MPI_Fint *keyval;
+void     *extra_state;
 void     **attr_in;
 void     **attr_out;
-int       *flag;
+MPI_Fint *flag;
 {
-    MPIR_dup_fn(comm,*keyval,extra_state,*attr_in,attr_out,flag);
-    *flag = MPIR_TO_FLOG(*flag);
+    int l_flag;
+
+    MPIR_dup_fn(MPI_Comm_f2c(comm), (int)*keyval, extra_state, *attr_in,
+                attr_out, &l_flag);
+    *flag = MPIR_TO_FLOG(l_flag);
 }

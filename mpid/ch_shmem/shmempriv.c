@@ -16,6 +16,10 @@ MPID_PKT_T          *MPID_local = 0;
 VOLATILE MPID_PKT_T **MPID_incoming = 0;
 static int	    MPID_pktflush;
 
+static int          MPID_op = 0;
+static int          MPID_readcnt = 0;
+static int          MPID_freecnt = 0;
+
 #if defined (MPI_cspp)
 /* These are special fields for the Convex SPP NUMA */
 unsigned int			procNode[MPID_MAX_PROCS];
@@ -32,23 +36,6 @@ void				MPID_SHMEM_lbarrier  ANSI_ARGS((void));
 void                            MPID_SHMEM_FreeSetup ANSI_ARGS((void));
 
 void MPID_SHMEM_FlushPkts ANSI_ARGS((void));
-
-int MPID_GetIntParameter ANSI_ARGS(( char *, int ));
-
-/*
-   Get an integer from the environment; otherwise, return defval.
- */
-int MPID_GetIntParameter( name, defval )
-char *name;
-int  defval;
-{
-    extern char *getenv();
-    char *p = getenv( name );
-
-    if (p) 
-	return atoi(p);
-    return defval;
-}
 
 void MPID_SHMEM_init( argc, argv )
 int  *argc;
@@ -80,9 +67,10 @@ char **argv;
 
 #endif
 
-/* Make one process the default */
+/* Make one process the default, but allow the environment variable
+   to make a different choice */
 
-    numprocs = 1;
+    numprocs = MPID_GetIntParameter( "MPICH_NP", 1 );
     for (i=1; i<*argc; i++) {
 	if (strcmp( argv[i], "-np" ) == 0) {
 	    /* Need to remove both args and check for missing value for -np */
@@ -166,7 +154,10 @@ char **argv;
 /* The following is rough if numprocs doesn't divide the MAX_PKTS */
     pkts_per_proc = MPID_SHMEM_MAX_PKTS / numprocs;
 
-    pkts_per_proc = 4;
+/* If this is too small, then if there aren't enough processors, the
+   code will take forever as it each process gets stuck in a loop
+   until the time-slice ends.  */
+/*     pkts_per_proc = 4; */
 /*
  * Determine the packet flush count at runtime.
  * (delay the harsh reality of resource management :-) )
@@ -316,6 +307,9 @@ void MPID_SHMEM_finalize()
     MPID_SHMEM_lbarrier();
     p2p_clear_signal();
 
+    /* Once the signals are clear (including SIGCHLD), we should be
+       able to exit safely */
+
 /* Wait for everyone to finish 
    We can NOT simply use MPID_shmem->globid here because there is always the 
    possibility that some process is already exiting before another process
@@ -359,6 +353,9 @@ int        size, *from;
     int        backoff, cnt;
     VOLATILE   MPID_PKT_T **ready;
 
+#ifdef MPID_DEBUG_SPECIAL
+    MPID_op = 1;
+#endif
     if (MPID_local) {
 	inpkt      = (MPID_PKT_T *)MPID_local;
 	MPID_local = MPID_local->head.next;
@@ -377,6 +374,12 @@ int        size, *from;
 
 	       This code should be tuned with vendor help, since it depends
 	       on fine details of the hardware and system.
+
+	       An alternate version of this should consider using the
+	       SYSV semop to effect a yield until data has arrived.
+	       For example, this process could set a lock when it has
+	       read data and other processes could clear it when data is 
+	       added.  
 	       */
 #if defined(MPI_cspp)
 	    if (cnx_yield) {
@@ -418,6 +421,10 @@ int        size, *from;
 
     MPID_TRACE_CODE_PKT("Readpkt",*from,(*inpkt).head.mode);
 
+#ifdef MPID_DEBUG_SPECIAL
+    MPID_op = 0;
+    MPID_readcnt++;
+#endif
     return MPI_SUCCESS;
 }
 
@@ -439,7 +446,10 @@ static int to_free = 0;
 void MPID_SHMEM_FreeSetup()
 {
     int i;
-    for (i=0; i<MPID_numids; i++) FreePkts[i] = 0;
+    for (i=0; i<MPID_numids; i++) { 
+	FreePkts[i] = 0;
+	FreePktsTail[i] = 0;
+    }
 }
 
 void MPID_SHMEM_FlushPkts()
@@ -458,6 +468,7 @@ void MPID_SHMEM_FlushPkts()
 	    MPID_lshmem.availPtr[i]->head = pkt;
 	    p2p_unlock( MPID_lshmem.availlockPtr[i] );
 	    FreePkts[i] = 0;
+	    FreePktsTail[i] = 0;
 	}
     }
     to_free = 0;
@@ -514,19 +525,26 @@ int nonblock;
     static MPID_PKT_T *localavail = 0;
     int   freecnt=0;
 
+#ifdef MPID_DEBUG_SPECIAL
+    MPID_op = 2;
+    MPID_freecnt = 0;
+#endif
     if (localavail) {
 	inpkt      = localavail;
     }
     else {
 	/* If there are no available packets, this code does a yield */
 	while (1) {
-	    p2p_lock( MPID_lshmem.availlockPtr[MPID_myid] );
-	    inpkt			     = 
-		(MPID_PKT_T *)MPID_lshmem.availPtr[MPID_myid]->head;
-	    MPID_lshmem.availPtr[MPID_myid]->head = 0;
-	    p2p_unlock( MPID_lshmem.availlockPtr[MPID_myid] );
-	    /* If we found one, exit the loop */
-	    if (inpkt) break;
+	    if (MPID_lshmem.availPtr[MPID_myid]->head) {
+		/* Only lock if there is some hope */
+		p2p_lock( MPID_lshmem.availlockPtr[MPID_myid] );
+		inpkt			     = 
+		    (MPID_PKT_T *)MPID_lshmem.availPtr[MPID_myid]->head;
+		MPID_lshmem.availPtr[MPID_myid]->head = 0;
+		p2p_unlock( MPID_lshmem.availlockPtr[MPID_myid] );
+		/* If we found one, exit the loop */
+		if (inpkt) break;
+	    }
 
 	    /* No packet.  Wait a while (if possible).  If we do this
 	       several times without reading a packet, try to drain the
@@ -547,13 +565,18 @@ int nonblock;
 		/* Return the packets that we have */
 		MPID_SHMEM_FlushPkts();
 	    }
-
+#ifdef MPID_DEBUG_SPECIAL
+	    MPID_freecnt = freecnt;
+#endif
         }
     }
     localavail	 = inpkt->head.next;
     inpkt->head.next = 0;
 
     MPID_TRACE_CODE_PKT("Allocsendpkt",-1,inpkt->head.mode);
+#ifdef MPID_DEBUG_SPECIAL
+    MPID_op = 2;
+#endif
 
     return inpkt;
 }
@@ -563,6 +586,10 @@ MPID_PKT_T *pkt;
 int        size, dest;
 {
     MPID_PKT_T *tail;
+
+#ifdef MPID_DEBUG_SPECIAL
+    MPID_op = 3;
+#endif
 
 /* Place the actual length into the packet */
     MPID_TRACE_CODE_PKT("Sendpkt",dest,pkt->head.mode);
@@ -580,6 +607,9 @@ int        size, dest;
     MPID_lshmem.incomingPtr[dest]->tail = pkt;
     p2p_unlock( MPID_lshmem.incominglockPtr[dest] );
 
+#ifdef MPID_DEBUG_SPECIAL
+    MPID_op = 0;
+#endif
     return MPI_SUCCESS;
 }
 
@@ -598,19 +628,35 @@ int  *len, dest;
 
     MPID_TRACE_CODE("Allocating shared space",len);
 /* To test, just comment out the first line and set new to null */
+    /* tlen = tlen/2; */
     new = p2p_shmalloc( tlen );
 /* new = 0; */
-    if (!new) {
+    while (!new) {
+	DEBUG_PRINT_MSG("Allocating partial space");
 	tlen = tlen / 2; 
 	while(tlen > 0 && !(new = p2p_shmalloc(tlen))) 
 	    tlen = tlen / 2;
 	if (tlen == 0) {
-	    fprintf( stderr, "Could not get any shared memory for long message!" );
-	    exit(1);
+	    /* This failure means that memory has been consumed without
+	       being returned.  Since all of this memory is acquired
+	       temporarily by the ADI, it will come back as soon as the
+	       receiving end catches up with us.  Wait for some packets
+	       to be returned ... */
+	    /* This won't work, since we DO leave the data in shared
+	       memory when the message is unexpected.  We shouldn't do that...*/
+	    DEBUG_PRINT_MSG("Waiting for memory to be available");
+	    MPID_DeviceCheck( MPID_NOTBLOCKING );
+	    tlen = *len;
+/*
+	    p2p_error( "Could not get any shared memory for long message!",  
+		       *len);
+ */
 	}
-	/* fprintf( stderr, "Message too long; sending partial data\n" ); */
-	*len = tlen;
     }
+    /* fprintf( stderr, "Message too long; sending partial data\n" ); */
+    *len = tlen;
+    DEBUG_PRINT_MSG2("Allocated %d bytes for long msg", tlen );
+    /* printf( "Allocated %d bytes at %x in get\n", tlen, (long)new );*/
 #ifdef FOO
 /* If this mapped the address space, we wouldn't need to copy anywhere */
 /*
@@ -635,5 +681,62 @@ void *addr;
 {
     MPID_TRACE_CODE("Freeing space at",(long)addr );
     p2p_shfree( addr );
+    /* printf( "Freeing %x in free_get\n", (long)addr ); */
 }
 
+/*
+ * Debugging support
+ */
+void MPID_SHMEM_Print_internals( fp )
+FILE *fp;
+{
+    int i;
+    char *state;
+    MPID_PKT_T *pkt;
+
+    /* Print state */
+    state = "Not in device";
+    switch (MPID_op) {
+    case 0: break;
+    case 1: state = "MPID_ReadControl"; break;
+    case 2: state = "MPID_GetSendPkt" ; break;
+    case 3: state = "MPID_SendControl"; break;
+    }
+    fprintf( fp, "[%d] State is %s\n", MPID_myid, state );
+
+    /* Print the MPID_lshmem */
+    for (i=0; i<MPID_numids; i++) {
+	fprintf( fp, "[%d] Availlock ptr[%d] = %lx\n", MPID_myid, i, 
+		 MPID_lshmem.availlockPtr[i] );
+	fprintf( fp, "[%d] Incominglock ptr[%d] = %lx\n", MPID_myid, i, 
+		 MPID_lshmem.incominglockPtr[i] );
+	fprintf( fp, "[%d] Incomingpointer contents[%d] = %lx\n", 
+		 MPID_myid, i, 
+		 MPID_lshmem.incomingPtr[i]->head );
+	fprintf( fp, "[%d] Incoming packet ptr[%d] = %lx\n", MPID_myid, i, 
+		 MPID_lshmem.incomingPtr[i] );
+	fprintf( fp, "[%d] Avail packet ptr[%d] = %lx\n", MPID_myid, i, 
+		 MPID_lshmem.availPtr[i] );
+	fprintf( fp, "[%d] Avail packet ptr head[%d] = %lx\n", MPID_myid, i, 
+		 MPID_lshmem.availPtr[i]->head );
+	fprintf( fp, "[%d] Free packets ptr[%d] = %lx\n", MPID_myid, i, 
+		 FreePkts[i] );
+	fprintf( fp, "[%d] Free packets tail[%d] = %lx\n", MPID_myid, i, 
+		 FreePktsTail[i] );
+	
+    }
+    fprintf( fp, "[%d] Read %d packets\n", MPID_myid, MPID_readcnt );
+    fprintf( fp, "[%d] to free = %d\n", MPID_myid, to_free );
+    fprintf( fp, "[%d] loopcnt in GetSendPkt = %d\n", MPID_myid, 
+	     MPID_freecnt );
+    fprintf( fp, "[%d] MPID_Local = %lx\n", MPID_myid, MPID_local );
+    fprintf( fp, "[%d] *MPID_incoming = %lx\n", MPID_myid, *MPID_incoming );
+
+    pkt = (MPID_PKT_T *) MPID_lshmem.availPtr[MPID_myid]->head;
+    i   = 0;
+    while (pkt && i < 10000) {
+	i++;
+	pkt = pkt->head.next;
+    }
+    fprintf( fp, "[%d] Avail packets are %d\n", MPID_myid, i );
+}

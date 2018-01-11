@@ -30,10 +30,10 @@
   MPE_IO_Stdout_to_file - Re-direct stdout to a file
  
   Parameters:
-.  name - Name of file.  If it contains '%d', this value will be replaced with
++  name - Name of file.  If it contains '%d', this value will be replaced with
   the rank of the process in 'MPI_COMM_WORLD'.
 
-.  mode - Mode to open the file in (see the man page for 'open').  A common
+-  mode - Mode to open the file in (see the man page for 'open').  A common
   value is '0644' (Read/Write for owner, Read for everyone else).  
   Note that this
   value is `anded` with your current 'umask' value.

@@ -24,3 +24,12 @@ for arg in "$@" ; do
 done
 #
 $ipccmd `ipcs | awk '{if ((($1 == "m") || ($1 == "s")) && ($5 == "'$LOGNAME'")) print sprintf("-%s %s",$1,$2) }'`
+#
+# For LINUX, we need this instead:
+# ipcs -m | gawk '{if ($2 == name) system(comm $1)}' name=$LOGNAME comm="ipcrm shm " > /dev/null
+# ipcs -s | gawk '{if ($2 == name) system(comm $1)}' name=$LOGNAME comm="ipcrm sem " > /dev/null
+#
+# mpirun could call this for systems that use SYSV shared memory features,
+# just to keep them friendly.
+
+

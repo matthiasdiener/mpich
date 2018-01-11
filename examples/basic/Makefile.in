@@ -5,15 +5,15 @@ SHELL       = /bin/sh
 ARCH        = @ARCH@
 COMM        = @COMM@
 MPIR_HOME   = @MPIR_HOME@
-CC          = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpicc
+CC          = @MPICC@
 CLINKER     = $(CC)
-F77         = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif77
+F77         = @MPIF77@
 FLINKER     = $(F77)
-CCC         = @MPIR_HOME@/lib/@ARCH@/@COMM@/mpiCC
+CCC         = @MPICPLUSPLUS@
 CCLINKER    = $(CCC)
 AR          = @AR@
 RANLIB      = @RANLIB@
-PROFILING   = $(PMPILIB)
+PMPILIB     = -lp@MPILIBNAME@
 OPTFLAGS    = @OPTFLAGS@
 MPE_LIBS    = @MPE_LIBS@
 MPE_DIR     = @MPE_DIR@
@@ -27,7 +27,7 @@ CFLAGSMPE = $(CFLAGS) -I$(MPE_DIR) $(MPE_GRAPH)
 CCFLAGS	  = $(CFLAGS)
 #FFLAGS	  = '-qdpc=e' 
 FFLAGS	  = $(OPTFLAGS)
-EXECS	  = cpi systest fpi cpilog srtest
+EXECS	  = cpi systest fpi cpilog srtest hello++ iotest
 
 default: $(EXECS)
 
@@ -36,18 +36,26 @@ all: default
 fpi: fpi.o $(MPIR_HOME)/include/mpif.h
 	$(FLINKER) $(OPTFLAGS) -o fpi fpi.o
 
-cpi: cpi.o $(MPIR_HOME)/include/mpir.h
+cpi: cpi.o
 	$(CLINKER) $(OPTFLAGS) -o cpi cpi.o -lm
 
-cpilog: cpilog.o $(MPIR_HOME)/include/mpir.h
-	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o -lmpe -lpmpi -lm
+cpilog: cpilog.o
+	$(CLINKER) $(OPTFLAGS) -o cpilog cpilog.o -lmpe $(PMPILIB) -lm
 
-srtest: srtest.o $(MPIR_HOME)/include/mpir.h
+srtest: srtest.o
 	$(CLINKER) $(OPTFLAGS) -o srtest srtest.o -lm
 
-systest: systest.o $(MPIR_HOME)/include/mpir.h
+systest: systest.o
 	$(CLINKER) $(OPTFLAGS) -o systest systest.o -lm
 
+iotest: iotest.o
+	$(CLINKER) $(OPTFLAGS) -o iotest iotest.o -lm
+
+hello++: hello++.o
+	$(CCLINKER) hello++.o -o hello++
+
+unsafe: unsafe.o
+	$(CLINKER) $(OPTFLAGS) -o unsafe unsafe.o 
 clean:
 	/bin/rm -f *.o *~ PI* $(EXECS) rdb.* startup.*
 
@@ -62,4 +70,5 @@ cpilog.o: cpilog.c
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
-
+.cc.o:
+	$(CCC) -c $*.cc

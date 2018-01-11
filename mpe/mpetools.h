@@ -1,4 +1,4 @@
-/* $Id: mpetools.h,v 1.1 1996/01/11 19:13:43 gropp Exp $ */
+/* $Id: mpetools.h,v 1.1.1.1 1997/09/17 20:38:20 gropp Exp $ */
 
 /*
     This file contains some basic definitions that the tools routines

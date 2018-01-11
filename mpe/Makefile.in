@@ -17,7 +17,7 @@ RANLIB      = @RANLIB@
 INCLUDE_DIR = @X_INC@ -I@MPIR_HOME@/mpid/ch2
 OPTFLAGS    = @OPTFLAGS@
 MPE_GRAPH   = @MPE_GRAPHICS@
-LIB_PATH    = @X_LIB@
+LIB_PATH    = @X_LIB@ -lmpe -lp@MPILIBNAME@
 LIB_LIST    = 
 LIB_DIR     = @LIB_DIR@
 
@@ -33,16 +33,16 @@ EXECS = dbxtest dbxtest2 printlog ctoalog testlog srtest
 # GETNAME_DEFS are needed by mpehname.c
 CFLAGS = @MPE_CFLAGS@ @GETNAME_DEFS@ \
 	$(OPTFLAGS) $(INCLUDE_DIR) $(MPIPROFILE) \
-	-DMPI_$(ARCH) $(MPE_GRAPH)
+	$(MPE_GRAPH)
 
-MPE_CSOURCES = timers.c  $(MPEGRAPHICS_SOURCE) mpe_log.c clog.c clog_merge.c \
-		clog_time.c clog_util.c clog2alog.c decomp.c \
-	       mpe_seq.c examine.c privtags.c getgrank.c mpehname.c mpe_io.c
-MPE_TSOURCES = decomp.c mpe_seq.c dbxerr.c getgrank.c
-MPE_COBJECTS = timers.o  $(MPEGRAPHICS_OBJS) mpe_log.o clog.o clog_merge.o \
-		clog_time.o clog_util.o clog2alog.o decomp.o \
-		mpe_seq.o \
-		dbxerr.o examine.o privtags.o getgrank.o mpehname.o mpe_io.o
+MPE_CSOURCES =  timers.c  $(MPEGRAPHICS_SOURCE) clog_sysio.c mpe_log.c clog.c \
+		clog_merge.c clog_time.c clog_util.c clog2alog.c decomp.c \
+	       	mpe_seq.c examine.c privtags.c getgrank.c mpehname.c mpe_io.c
+MPE_TSOURCES =  decomp.c mpe_seq.c dbxerr.c getgrank.c
+MPE_COBJECTS =  timers.o  $(MPEGRAPHICS_OBJS) clog_sysio.o mpe_log.o clog.o \
+		clog_merge.o clog_time.o clog_util.o clog2alog.o decomp.o \
+		mpe_seq.o dbxerr.o examine.o privtags.o getgrank.o mpehname.o \
+		mpe_io.o
 MPE_WSOURCES = $(MPEGRAPHICS_FSOURCE) mpe_logf.c decompf.c mpe_seqf.c \
 	       getgrankf.c
 MPE_WOBJECTS = timersf.o $(MPEGRAPHICS_FOBJS) mpe_logf.o decompf.o mpe_seqf.o \
@@ -117,7 +117,7 @@ printlog.o: clog.h clogimpl.h
 mpe_plog.o: mpe_log.h mpe_log.c mpe_log_genproc.c mpe_log_genproc.h \
 	  mpe_log_merge.c mpe_log_adjusttime.c
 	$(CC) $(CFLAGS) -c -DUSE_PMPI mpe_log.c
-	/bin/mv mpe_log.o mpe_plog.o
+	@/bin/mv mpe_log.o mpe_plog.o
 
 $(LIB_DIR)/libtmpi.a: trc_wrappers.o
 	$(AR) $@ $?
@@ -145,38 +145,38 @@ $(LIB_DIR)/libampi.a: visual_mess.c
 
 $(LIB_DIR)/mpe_prof.o: mpe_prof.c
 	$(CC) $(CFLAGS) -c mpe_prof.c
-	-if [ $(LIB_DIR) != "." ] ; then /bin/cp mpe_prof.o $(LIB_DIR) ; fi
+	@-if [ $(LIB_DIR) != "." ] ; then /bin/cp mpe_prof.o $(LIB_DIR) ; fi
 
 $(LIB_DIR)/mpe_proff.o: mpe_proff.c
 	$(CC) $(CFLAGS) -c mpe_proff.c
-	-if [ $(LIB_DIR) != "." ] ; then /bin/cp mpe_proff.o $(LIB_DIR) ; fi
+	@-if [ $(LIB_DIR) != "." ] ; then /bin/cp mpe_proff.o $(LIB_DIR) ; fi
 
 dbxtest: dbxtest.o $(LIB_DIR)/libmpe.a
 	$(CLINKER) -o dbxtest dbxtest.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/libmpi.a \
+		$(LIB_DIR)/lib@MPILIBNAME@.a \
 		$(LIB_PATH) $(LIB_LIST)
 dbxtest2: dbxtest2.o $(LIB_DIR)/libmpe.a
 	$(CLINKER) -o dbxtest2 dbxtest2.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/libmpi.a \
+		$(LIB_DIR)/lib@MPILIBNAME@.a \
 		$(LIB_PATH) $(LIB_LIST)
 printlog: printlog.o clog.o clog_time.o clog_util.o clog_merge.o
 	$(CLINKER) $(LDFLAGS) -o printlog printlog.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/libmpi.a \
+		$(LIB_DIR)/lib@MPILIBNAME@.a \
 		$(LIB_PATH) $(LIB_LIST)
 ctoalog: ctoalog.o clog2alog.o clog.o clog_time.o clog_merge.o
 	$(CLINKER) $(LDFLAGS) -o ctoalog ctoalog.o clog2alog.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/libmpi.a \
+		$(LIB_DIR)/lib@MPILIBNAME@.a \
 		$(LIB_PATH) $(LIB_LIST)
 testlog.o: testlog.c clog.h clog_merge.h clog_time.h
 	$(CC) $(CFLAGS) -c testlog.c
 testlog: testlog.o clog.o clog_time.o clog_merge.o clog_util.o
 	$(CLINKER) $(LDFLAGS) -o testlog testlog.o \
 		$(LIB_DIR)/libmpe.a \
-		$(LIB_DIR)/libmpi.a \
+		$(LIB_DIR)/lib@MPILIBNAME@.a \
 		$(LIB_PATH) $(LIB_LIST)
 clean:
 	-/bin/rm -f *.o *~ $(EXECS) PI*

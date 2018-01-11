@@ -23,12 +23,16 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_comm_remote_size_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
+void mpi_comm_remote_size_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, 
+                                       MPI_Fint * ));
 
 void mpi_comm_remote_size_ ( comm, size, __ierr )
-MPI_Comm  *comm;
-int      *size;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *size;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Comm_remote_size( *comm, size);
+    int l_size;
+
+    *__ierr = MPI_Comm_remote_size( MPI_Comm_f2c(*comm), &l_size);
+    *size = l_size;
 }

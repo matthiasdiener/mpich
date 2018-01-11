@@ -28,12 +28,14 @@ extern int prof_recv( int receiver, int sender, int tag, int size,
 /* static vector SubPoints_0( point, point ); */
 void DrawScreen_0( int, int );
 static void MPE_Prof_DrawArrow_0( int, int );
+void ProcessWaitTest_1 ( MPI_Request, MPI_Status *, char * );
 #else
 extern int prof_send();
 extern int prof_recv();
 /* static vector SubPoints_0(); */
 void DrawScreen_0();
 static void MPE_Prof_DrawArrow_0();
+void ProcessWaitTest_1 ();
 #endif
 
 #define DEBUG_0 0

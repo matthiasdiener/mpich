@@ -29,7 +29,7 @@ double *tick;
 		MPID_Wtime( &t2 );
 		if (t2 > t1) break;
 		}
-	    if (cnt && t2 - t1 < tickval)
+	    if (cnt && t2 > t1 && t2 - t1 < tickval)
 		tickval = t2 - t1;
 	}
     }

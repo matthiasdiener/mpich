@@ -50,9 +50,11 @@ va_list         ap;
 va_start(ap, unknown);
 sendbuf = unknown;
 if (_numargs() == NUMPARAMS+1) {
-    /* Note that we can't set __ierr because we don't know where it is! */
+    /* Note that we can't set __ierr because we don't know where it is!, and
+       we can't reliably find it because we don't know what is wrong with the
+       arg list */
     (void) MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_ONE_CHAR, 
-			  "Error in MPI_SENDRECV" );
+			  "MPI_SENDRECV" );
     return;
 }
 if (_numargs() == NUMPARAMS+2) {
@@ -113,28 +115,36 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_sendrecv_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *,
-			       void *, int *, MPI_Datatype *, int *, int *,
-			       MPI_Comm *, MPI_Status *, int * ));
+void mpi_sendrecv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                               MPI_Fint *, void *, MPI_Fint *, MPI_Fint *, 
+                               MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                               MPI_Fint *, MPI_Fint * ));
 
 void mpi_sendrecv_( sendbuf, sendcount, sendtype, dest, sendtag, 
                   recvbuf, recvcount, recvtype, source, recvtag, 
                   comm, status, __ierr )
-void          *sendbuf;
-int           *sendcount;
-MPI_Datatype  *sendtype;
-int           *dest,*sendtag;
-void          *recvbuf;
-int           *recvcount;
-MPI_Datatype  *recvtype;
-int           *source,*recvtag;
-MPI_Comm      *comm;
-MPI_Status   *status;
-int *__ierr;
+void     *sendbuf;
+MPI_Fint *sendcount;
+MPI_Fint *sendtype;
+MPI_Fint *dest;
+MPI_Fint *sendtag;
+void     *recvbuf;
+MPI_Fint *recvcount;
+MPI_Fint *recvtype;
+MPI_Fint *source;
+MPI_Fint *recvtag;
+MPI_Fint *comm;
+MPI_Fint *status;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Sendrecv(MPIR_F_PTR(sendbuf),*sendcount,*sendtype,
-			   *dest,*sendtag,
-			   MPIR_F_PTR(recvbuf),*recvcount,*recvtype,
-			   *source,*recvtag,*comm,status);
+    MPI_Status c_status;
+
+    *__ierr = MPI_Sendrecv(MPIR_F_PTR(sendbuf), (int)*sendcount, 
+                           MPI_Type_f2c(*sendtype), (int)*dest, 
+                           (int)*sendtag, MPIR_F_PTR(recvbuf), 
+                           (int)*recvcount, MPI_Type_f2c(*recvtype),
+			   (int)*source, (int)*recvtag,
+                           MPI_Comm_f2c(*comm), &c_status);
+    MPI_Status_c2f(&c_status, status);
 }
 #endif

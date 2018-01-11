@@ -1,4 +1,4 @@
-/* 	$Id: grouptest.c,v 1.12 1996/11/24 20:17:45 gropp Exp $	 */
+/* 	$Id: grouptest.c,v 1.1.1.1 1997/09/17 20:37:21 gropp Exp $	 */
 
 #include "mpi.h"
 #include <stdio.h>

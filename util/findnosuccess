@@ -1,0 +1,33 @@
+#! /bin/sh
+#
+sed -e '/^Making testing/,/\*\*\* Checking for diff/d' $1 | \
+sed -e '/^--->/,/^---</d' | \
+sed -e '/^\*# --->/,/^\*# ---</d' | \
+egrep -v '^[ 	]*\(cd .* clean\)' | \
+egrep -v 'if \[ .* \] ; then ln -s .* fi' |\
+egrep -v '^checking|^rm |^/bin/rm|^creating|^cleaning|^Creating|^cp ' | \
+egrep -v '^[ 	]rm -rf |^[ 	]rm -f ' | \
+egrep -v '^cc |^gcc |^Copying |^chmod |^cat |^U |^Making |^for file' | \
+egrep -v '^[ 	]*cc|^[ 	] *gcc|^Configuring |^setting |^ar |^ranlib |^ *if \[' |
+egrep -v '^[ 	]*xlc |^[ 	] *xlC |^[ 	]*f77 ' |
+egrep -v '^[ 	]*mpcc |^[ 	] *mpCC ' |
+egrep -v '^[- 	a-zA-Z0-9/_\.]*mpicc |^making|^ *$|^[	 ]*ln -s|^ *done$' | \
+egrep -v '^[- 	a-zA-Z0-9/_\.]*mpif77 |^[	 ]ar |^a - |^s - ' | \
+egrep -v '^[- 	a-zA-Z0-9/_\.]*mpiCC |^building pro|^compiling ROMIO|^make ' | \
+egrep -v '/X11R5/.*/Xlib.h:.*function declaration.*a prototype' | \
+egrep -v '/X11/Xlib.h:.*function declaration.*a prototype' | \
+egrep -v '^ar: creating|^ar: writing|^true |^Setting |^C integer' | \
+egrep -v 'Warning .*declared EXTERNAL but never used' | \
+egrep -v '/usr/local/gcc-2\.7\.2.*termios.h.* warning: .* redefined' | \
+egrep -v '/usr/include/sys/ioctl.h.*this is the location' | \
+egrep -v '^[ 	]*ranlib [- 	a-zA-Z0-9/_\.]*' | \
+egrep -v '^[ 	]*true [- 	a-zA-Z0-9/_\.]*' | \
+egrep -v '^Fortran linker needs|^Fortran externals ' | \
+egrep -v '^About to|^Finished |^Generating message' |\
+egrep -v '^[ 	]*mpir_[ig][a-z_]*:$' |\
+egrep -v '^[a-z]*\.f:$' |\
+egrep -v 'libsun\.a is not used for ' |\
+egrep -v 'libpmpich\.a is not used for resolving' |\
+egrep -v 'libmpich\.a is not used for resolving' |\
+egrep -v '^\+ /bin/rm|^[	 ]*/bin/rm |^[	 ]*for file|.*make clean\)' 
+

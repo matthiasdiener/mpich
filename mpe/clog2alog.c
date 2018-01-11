@@ -17,22 +17,22 @@
  * of the alogfile, and write it out later.
 */
 
-CLOG_STATE statedefs[150];	/* state definitions */
-CLOG_EVENT eventdefs[300];	/* event definitions */
-int currsdef      = 0;		/* next empty state definition */
-int curredef      = 0;		/* next empty event definition */
-int numevents	  = 0;		/* alog event count */
-int procsfound[256];		/* process ids found in logfile */
-int numprocs	  = 0;	        /* number of processes found so far */
-int typesfound[256];		/* event types found in logfile */
-int numtypes	  = 0;	        /* number of types found so far */
-int numtasks	  = 0;		/* alog task field unused? */
-unsigned long firsttime = 0;	/* place to remember the first timestamp */
-unsigned long lasttime;		/* place to remember the last timestamp */
+static CLOG_STATE statedefs[400];	/* state definitions */
+static CLOG_EVENT eventdefs[1000];	/* event definitions */
+static int currsdef      = 0;		/* next empty state definition */
+static int curredef      = 0;		/* next empty event definition */
+static int numevents	  = 0;		/* alog event count */
+static int procsfound[256];		/* process ids found in logfile */
+static int numprocs	  = 0;	        /* number of processes found so far */
+static int typesfound[256];		/* event types found in logfile */
+static int numtypes	  = 0;	        /* number of types found so far */
+/* static int numtasks	  = 0;	*/	/* alog task field unused? */
+static unsigned long firsttime = 0;	/* remember the first timestamp */
+static unsigned long lasttime;		/* remember the last timestamp */
 
-int   clogfd;			/* intput clogfile */
-FILE *alogfile;			/* output alogfile */
-FILE *atmpfile;			/* temp file for first pass */
+static int  clogfd;			/* intput clogfile */
+static FILE *alogfile;			/* output alogfile */
+static FILE *atmpfile;			/* temp file for first pass */
 
 int  clog2alog ANSI_ARGS(( char * ));
 void alog_dumpblock ANSI_ARGS(( double *));
@@ -142,8 +142,14 @@ double *p;
 	h	 = (CLOG_HEADER *) p;
 	rtype	 = h->rectype;
 	procid	 = h->procid;
-	alogtime = (unsigned long) (1000000 * h->timestamp);
-	alogtime = alogtime - firsttime;        /* shift timestamps to start at 0 */
+	if (h->timestamp == CLOG_MAXTIME) {
+	    /* Unset time.  Change to zero? */
+	    alogtime = 0;
+	}
+	else {
+	    alogtime = (unsigned long) (1000000 * h->timestamp);
+	    alogtime = alogtime - firsttime;        /* shift timestamps to start at 0 */
+	}
 	p	 = (double *) (h->rest);	/* skip to end of header */
 	switch (rtype) {
 	case CLOG_MSGEVENT:

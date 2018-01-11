@@ -1,27 +1,23 @@
 /*
- *  $Id: create_recv.c,v 1.22 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: create_recv.c,v 1.3 1998/04/28 21:46:44 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "reqalloc.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Recv_init - Builds a handle for a receive
 
 Input Parameters:
-. buf - initial address of receive buffer (choice) 
++ buf - initial address of receive buffer (choice) 
 . count - number of elements received (integer) 
 . datatype - type of each element (handle) 
 . source - rank of source or 'MPI_ANY_SOURCE' (integer) 
 . tag - message tag or 'MPI_ANY_TAG' (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . request - communication request (handle) 
@@ -52,11 +48,7 @@ MPI_Comm     comm;
     struct MPIR_DATATYPE *dtype_ptr;
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_RECV_INIT";
-#ifdef MPI_ADI2
     MPIR_PRHANDLE *rhandle;
-#else
-    MPI_Request handleptr;
-#endif
 
     TR_PUSH(myname);
 
@@ -70,10 +62,9 @@ MPI_Comm     comm;
 	MPIR_TEST_RECV_RANK(comm_ptr,source)) 
 	return MPIR_ERROR(comm_ptr, mpi_errno, myname );
 
-#ifdef MPI_ADI2
-    MPIR_ALLOC(*request,(MPI_Request)MPID_PRecvAlloc(),
+    MPIR_ALLOCFN(rhandle,MPID_PRecvAlloc,
 	       comm_ptr,MPI_ERR_EXHAUSTED,myname );
-    rhandle = &(*request)->persistent_rhandle;
+    *request = (MPI_Request)rhandle;
     MPID_Request_init( &(rhandle->rhandle), MPIR_PERSISTENT_RECV );
     /* Save the information about the operation, being careful with
        ref-counted items */
@@ -87,45 +78,7 @@ MPI_Comm     comm;
     rhandle->perm_comm	   = comm_ptr;
     rhandle->active	   = 0;
     /* dest of MPI_PROC_NULL handled in start */
-#else
-    /* See MPI_TYPE_FREE.  A free can not happen while the datatype may
-       be in use.  Thus, a nonblocking operation increments the
-       reference count */
-    MPIR_REF_INCR(dtype_ptr);
-    MPIR_ALLOC(handleptr,(MPI_Request) MPIR_SBalloc( MPIR_rhandles ),
-	       comm_ptr,MPI_ERR_EXHAUSTED,myname);
-    *request			   = handleptr;
-    MPIR_SET_COOKIE(&handleptr->rhandle,MPIR_REQUEST_COOKIE)
-    handleptr->type		   = MPIR_RECV;
-#ifdef MPID_NEEDS_WORLD_SRC_INDICES
-    handleptr->rhandle.source	   = 
-	(source >= 0) ? (comm_ptr->lrank_to_grank[source]) : source;
-#else
-    handleptr->rhandle.source	   = source;
-#endif
-    handleptr->rhandle.tag	   = tag;
-    handleptr->rhandle.errval	   = MPI_SUCCESS;
-    handleptr->rhandle.contextid   = comm_ptr->recv_context;
-    handleptr->rhandle.comm	   = comm;
-    handleptr->rhandle.datatype	   = datatype;
-    handleptr->rhandle.bufadd	   = buf;
-    handleptr->rhandle.count	   = count;
-    handleptr->rhandle.persistent  = 1;
-    handleptr->rhandle.active	   = 0;
-    handleptr->rhandle.perm_source = source;
-    handleptr->rhandle.perm_tag	   = tag;
-    
 
-    if (source == MPI_PROC_NULL) {
-	MPID_Set_completed(  comm_ptr->ADIctx, handleptr );
-	handleptr->rhandle.bufpos = 0;
-	}
-    else {
-	MPID_Clr_completed(  comm_ptr->ADIctx, handleptr );
-	}
-    MPID_Alloc_recv_handle(handleptr->rhandle.comm_ptr->ADIctx,
-			   &((handleptr)->rhandle.dev_rhandle));
-#endif
     TR_POP;
     return MPI_SUCCESS;
 }

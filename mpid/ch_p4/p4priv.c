@@ -10,7 +10,12 @@
 int __P4FROM, __P4LEN, __P4TYPE, __P4GLOBALTYPE;
 
 static char **P4Args = 0;
+static char *P4Argstr = 0;
 
+/*
+ * This routine must be careful NOT to update argv[0], the name of the
+ * program.  It does handle propagating the args to all of the processes.
+ */
 void MPID_P4_Init( argc, argv )
 int *argc;
 char ***argv;
@@ -60,6 +65,8 @@ or program started without mpirun.\n" );
     argstr = (char *)MALLOC( nlen );
     if (nlen>0 && !argstr) { 
 	p4_error( "Could not allocate memory for commandline args",nlen);}
+    P4Argstr = argstr;
+
     if (PImytid==0) {
 	p = argstr;
 	for (i=0; i<narg; i++) {
@@ -73,30 +80,44 @@ or program started without mpirun.\n" );
 	PIbrecv(__P4GLOBALTYPE,argstr,nlen,P4NOX);
         }
     if (PImytid!=0) {
+	/* save the program name */
+	char *argv0;
+	/* Note that in some cases, argv or *argv may be null */
+	if (argv && *argv) argv0 = (*argv)[0];
+	else               argv0 = 0;
+	/* Replace argv with a new array of arguments */
 	*(argv) = (char **) MALLOC( (nlen + 1) * sizeof(char *) );
 	if (nlen > 0 && !*(argv)) { 
 	    p4_error( "Could not allocate memory for commandline argv",nlen);}
+	/* Save this so that it can be freed on exit */
+	P4Args = *argv;
+	
 	p = argstr;
-	(*(argv))[0] = argstr;
-	for (i=0; i<narg; i++) {
+	/* (*(argv))[0] = argstr; */
+	(*(argv))[0] = argv0;
+	/* Skip over the program name */
+	p += arglen[0];
+	for (i=1; i<narg; i++) {
 	    (*(argv))[i] = p;
 	    p += arglen[i];
 	}
 	/* Some systems expect a null terminated argument string */
 	(*(argv))[narg] = 0;
-	P4Args = *argv;
     }
     else {
 	FREE(argstr);
+	P4Argstr = 0;
     }
     FREE(arglen);
 }
 
 void MPID_P4_End()
 {
+    /* String containing the values */
+    if (P4Argstr) {
+	FREE( P4Argstr );
+    }
     if (P4Args) {
-	/* *P4Args should be the argstr that was allocated for the arguments */
-	FREE( *P4Args );
 	/* P4Args is the argv vector */
 	FREE( P4Args );
     }

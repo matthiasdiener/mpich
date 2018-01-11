@@ -92,7 +92,7 @@ int           len, tag, context_id, src_lrank, dest;
 MPID_Msgrep_t msgrep;
 MPIR_SHANDLE *shandle;
 {
-    int                       pkt_len;
+    int                       pkt_len, in_len;
     MPID_PKT_SEND_ADDRESS_T   *pkt, spkt;
     
     pkt = &spkt;
@@ -106,7 +106,13 @@ MPIR_SHANDLE *shandle;
     DEBUG_PRINT_SEND_PKT("S Sending extra-long message",pkt);
 
     /* Place in shared memory */
+    in_len = len;
     pkt->address = MPID_SetupGetAddress( buf, &len, dest );
+    if (in_len != len) {
+	MPID_FreeGetAddress( pkt->address );
+	return MPID_SHMEM_Rndvn_isend( buf, in_len, src_lrank, tag, context_id,
+				       dest, msgrep, shandle );
+    }
     MEMCPY( pkt->address, buf, len );
 
     /* Send as packet only */
@@ -129,6 +135,8 @@ MPID_Msgrep_t msgrep;
 
     DEBUG_INIT_STRUCT(&shandle,sizeof(shandle));
     MPIR_SET_COOKIE((&shandle),MPIR_REQUEST_COOKIE)
+    MPID_SendInit( &shandle );	
+    shandle.finish = 0;  /* Just in case (e.g., Eagern_isend -> Rndvn_isend) */
     MPID_SHMEM_Eagern_isend( buf, len, src_lrank, tag, context_id, dest,
 			     msgrep, &shandle );
     /* Note that isend is (probably) complete */

@@ -1,14 +1,11 @@
 /*
- *  $Id: testcancel.c,v 1.9 1996/06/07 15:07:30 gropp Exp $
+ *  $Id: testcancel.c,v 1.2 1998/01/29 14:28:36 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 /*@
   MPI_Test_cancelled - Tests to see if a request was cancelled

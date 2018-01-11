@@ -8,6 +8,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #if defined(NEEDS_STDLIB_PROTOTYPES) 
 #include "protofix.h"
@@ -17,16 +18,20 @@
 #include "clogimpl.h"
 #include "mpi.h"
 
+#if defined(HAVE_STRING_H) || defined(STDC_HEADERS)
+#include <string.h>
+#endif
+
 /*********************** global variables for merge functions ***************/
 
-int    me, nprocs, parent, lchild, rchild;	/* tree info */
-double *mybuf, *lbuf, *rbuf, *outbuf; /* buffers for log records */
-double *myptr, *lptr, *rptr, *outptr; /* pointers into each buffer */
-double *outend;			/* end of output buffer */
-int    inputs;			/* number of inputs to the merge */
-double timediffs[CMERGE_MAXPROCS];    /* array of time shifts, averaged  */
-double newdiffs[CMERGE_MAXPROCS];     /* array of time shifts, once  */
-int    logfd;			/* the log file */
+static int    me, nprocs, parent, lchild, rchild;	/* tree info */
+static double *mybuf, *lbuf, *rbuf, *outbuf; /* buffers for log records */
+static double *myptr, *lptr, *rptr, *outptr; /* pointers into each buffer */
+static double *outend;			     /* end of output buffer */
+static int    inputs;			    /* number of inputs to the merge */
+static double timediffs[CMERGE_MAXPROCS];  /* array of time shifts, averaged */
+/*static double newdiffs[CMERGE_MAXPROCS]; */ /* array of time shifts, once  */
+static int    logfd;			   /* the log file */
 
 /*@
     CLOG_mergelogs - merge individual logfiles into one via messages
@@ -143,14 +148,14 @@ int logtype;
 
 Input parameters
 
-.  self - calling process''s id
-.  np   - total number of processes in tree
++  self - calling process''s id
+-  np   - total number of processes in tree
 
 Output parameters
 
-.  parent - parent in binary tree (or -1 if root)
++  parent - parent in binary tree (or -1 if root)
 .  lchild - left child in binary tree (or -1 if none)
-.  rchild - right child in binary tree (or -1 if none)
+-  rchild - right child in binary tree (or -1 if none)
 
 @*/
 void CLOG_treesetup( self, nprocs, parent, lchild, rchild)
@@ -225,13 +230,71 @@ void CLOG_mergend()
 }
 
 /*@
-    CLOG_Output - output a block of the log
+    CLOG_Output - output a block of the log.
+    The byte ordering, if needed, will be performed in this
+    function using the conversion routines got from Petsc.
 @*/
 void CLOG_output( buf )
 double *buf;
 {
+#if !(defined(WORDS_BIGENDIAN))
+  double *p = buf;
+  int         rtype;
+  CLOG_HEADER *h;
+  int rc;   
+  rtype = CLOG_UNDEF;
+
+  printf ("%s", "SWAPPING THE BYTES");
+  while (rtype != CLOG_ENDBLOCK && rtype != CLOG_ENDLOG) {
+    h	 = (CLOG_HEADER *) p;
+    rtype = h->rectype;
+    adjust_CLOG_HEADER (h); /* adjust the header record if needed */
+    p	 = (double *) (h->rest);	/* skip to end of header */
+    switch (rtype) {
+    case CLOG_MSGEVENT:
+      adjust_CLOG_MSG ((CLOG_MSG *)p);
+      p = (double *) (((CLOG_MSG *) p)->end);
+      break;
+    case CLOG_COLLEVENT:
+      adjust_CLOG_COLL ((CLOG_COLL *)p);
+      p = (double *) (((CLOG_COLL *) p)->end);
+      break;
+    case CLOG_RAWEVENT:
+      adjust_CLOG_RAW ((CLOG_RAW *)p);
+      p = (double *) (((CLOG_RAW *) p)->end);
+      break;
+    case CLOG_SRCLOC:
+      adjust_CLOG_SRC ((CLOG_SRC *)p);
+      p = (double *) (((CLOG_SRC *) p)->end);
+      break;
+    case CLOG_COMMEVENT:
+      adjust_CLOG_COMM ((CLOG_COMM *)p);
+      p = (double *) (((CLOG_COMM *) p)->end);
+      break;
+    case CLOG_STATEDEF:
+      adjust_CLOG_STATE ((CLOG_STATE *)p);
+      p = (double *) (((CLOG_STATE *) p)->end);
+      break;
+    case CLOG_EVENTDEF:
+      adjust_CLOG_EVENT ((CLOG_EVENT *)p);
+      p = (double *) (((CLOG_EVENT *) p)->end);
+      break;
+    case CLOG_ENDBLOCK:
+      break;
+    case CLOG_ENDLOG:
+      break;
+    default:
+      printf("unrecognized record type\n");
+    }
+  }
+#endif
+
     /* CLOG_dumpblock(buf);	 temporary print for debugging*/
-    write(logfd, buf, CLOG_BLOCK_SIZE );	/* write block to file */
+    rc = write( logfd, buf, CLOG_BLOCK_SIZE );	/* write block to file */
+    if ( rc != CLOG_BLOCK_SIZE ) {
+	fprintf( stderr, "write failed for clog logging, rc = %d\n", rc );
+	exit (-1);
+    }
 }
 
 /*@
@@ -337,8 +400,8 @@ processes.
 
 Inout Parameters:
 
-. root      - process to serve as master
-. timediffs - array of doubles to be filled in
++ root      - process to serve as master
+- timediffs - array of doubles to be filled in
 
 @*/
 

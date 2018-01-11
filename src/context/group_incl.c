@@ -1,16 +1,12 @@
 /*
- *  $Id: group_incl.c,v 1.21 1997/01/17 22:59:30 gropp Exp $
+ *  $Id: group_incl.c,v 1.4 1998/04/28 20:58:09 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
@@ -18,9 +14,9 @@ MPI_Group_incl - Produces a group by reordering an existing group and taking
         only listed members
 
 Input Parameters:
-. group - group (handle) 
++ group - group (handle) 
 . n - number of elements in array 'ranks' (and size of newgroup ) (integer) 
-. ranks - ranks of processes in 'group' to appear in 'newgroup' (array of 
+- ranks - ranks of processes in 'group' to appear in 'newgroup' (array of 
 integers) 
 
 Output Parameter:
@@ -46,7 +42,7 @@ int MPI_Group_incl ( group, n, ranks, group_out )
 MPI_Group group, *group_out;
 int       n, *ranks;
 {
-  int       i, rank;
+  int       i, j, rank;
   struct MPIR_GROUP *group_ptr, *new_group_ptr;
   int       mpi_errno = MPI_SUCCESS;
   static char myname[] = "MPI_GROUP_INCL";
@@ -77,11 +73,20 @@ int       n, *ranks;
 	  MPIR_ERROR_PUSH_ARG(&ranks[i]);
 	  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
 	  }
+  /*** Check for duplicate ranks - Debbie Swider 11/18/97 ***/
+      else {
+          for (j=i+1; j<n; j++) {
+	      if (ranks[i] == ranks[j]) {
+		  MPIR_ERROR_PUSH_ARG(&ranks[j]);
+		  return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_RANK, myname );
+	      }
+	  }
       }
+  }
 
   /* Create the new group */
   MPIR_ALLOC(new_group_ptr,NEW(struct MPIR_GROUP),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_INCL" );
+	     MPI_ERR_EXHAUSTED, "MPI_GROUP_INCL" );
   *group_out = (MPI_Group) MPIR_FromPointer( new_group_ptr );
   new_group_ptr->self = *group_out;
   MPIR_SET_COOKIE(new_group_ptr,MPIR_GROUP_COOKIE)
@@ -91,8 +96,7 @@ int       n, *ranks;
   new_group_ptr->set_mark       = (int *)0;
   new_group_ptr->np             = n;
   MPIR_ALLOC(new_group_ptr->lrank_to_grank,(int *) MALLOC( n * sizeof(int) ),
-	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-	     "Out of space in MPI_GROUP_INCL" );
+	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, "MPI_GROUP_INCL" );
 
   /* Fill in the lrank_to_grank list */
   for (i=0; i<n; i++) {

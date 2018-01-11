@@ -28,6 +28,10 @@
 #include "p2p.h"
 #include <stdio.h>
 
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
+
 #define p2p_dprintf printf
 
 #if defined(USE_MMAP)
@@ -112,7 +116,12 @@ int memsize;
     static int p2p_shared_map_fd;
 #if defined(USE_MMAP) 
 
-#if !defined(MAP_ANONYMOUS) || !defined(MAP_VARIABLE)
+#if !defined(MAP_ANONYMOUS) && !defined(MAP_VARIABLE)
+    /* In LINUX, we should try to open a large enough file of zeros.
+       We can create a temp file, open it, write 0-filled blocks to 
+       it, and mark it delete on close.  If you can create a
+       /dev/zero.mpi file, try that.
+     */
     p2p_shared_map_fd = open("/dev/zero", O_RDWR);
     if (p2p_shared_map_fd < 0) {
 	perror( "Open of /dev/zero failed" );
@@ -125,7 +134,7 @@ protections on /dev/zero\n", 0 );
 			p2p_shared_map_fd, (off_t) 0);
 
 #elif defined(MAP_ANONYMOUS) && !defined(MAP_VARIABLE)
-    /* This is for LINUX, I think */
+    /* This might work for LINUX eventually */
     p2p_start_shared_area = (char *) mmap((caddr_t) 0, memsize,
 			PROT_READ|PROT_WRITE|PROT_EXEC,
 			MAP_SHARED|MAP_ANONYMOUS,
@@ -220,6 +229,8 @@ char *ptr;
 #endif
 static int sysv_num_shmids = 0;
 static int sysv_shmid[P2_MAX_SYSV_SHMIDS];
+/* We save the addresses so that we can free them */
+static void *sysv_shmat[P2_MAX_SYSV_SHMIDS];
 
 void *MD_init_shmem(memsize)
 int *memsize;
@@ -242,6 +253,9 @@ int *memsize;
     {
 	p2p_error("OOPS: shmat failed\n",0);
     }
+    /* There are rumors that under LINUX, we can free these things 
+       right away, and they then last until process exits. */
+    sysv_shmat[0] = mem;
     sysv_num_shmids++;
     nsegs--;
     pmem = mem;
@@ -262,6 +276,7 @@ int *memsize;
 		mem = tmem;
 	    }
         }
+	sysv_shmat[i] = tmem;
 	sysv_num_shmids++;
 	pmem = tmem;
     }
@@ -279,8 +294,12 @@ void MD_remove_sysv_mipc()
 
     if (sysv_shmid[0] == -1)
 	return;
-    for (i=0; i < sysv_num_shmids; i++)
+    for (i=0; i < sysv_num_shmids; i++) {
+	/* Unmap the addresses */
+	shmdt( sysv_shmat[i] );
+	/* Remove the ids */
         shmctl(sysv_shmid[i],IPC_RMID,0);
+    }
     /*
     if (sysv_semid0 != -1)
 	semctl(g->sysv_semid[0],0,IPC_RMID,0); 
@@ -377,7 +396,7 @@ int value;
 	/* We are no longer interested in signals from the children */
 	p2p_clear_signal();
 	/* numprocs - 1 because the parent is not in the list */
-	for (i=0; i<MPID_numprocs-1; i++) {
+	for (i=0; i<MPID_numprocs; i++) {
 	    if (MPID_child_pid[i] > 0) 
 		kill( MPID_child_pid[i], SIGINT );
 	    }
@@ -458,6 +477,8 @@ return (toc_read() * ((double) 0.000001));
 /*
    Yield to other processes (rather than spinning in place)
  */
+#if defined(USE_SELECT_YIELD)
+#endif
 void p2p_yield()
 {
 
@@ -466,13 +487,20 @@ void p2p_yield()
    latency */
 sginap(0);
 
+#elif defined(USE_SCHED_YIELD)
+/* This is a proposed Solaris function; not currently available */
+sched_yield();
 #elif defined(USE_SELECT_YIELD)
 /* Use a short select as a way to suggest to the OS to deschedule the 
-   process */
+   process.  Solaris select hangs if count is zero, so we check fd 1  
+   This may not accomplish a process yield, depending on the OS.  
+ */
 struct timeval tp;
+fd_set readmask;
 tp.tv_sec  = 0;
-tp.tv_usec = 10;
-select( 0, (void *)0, (void *)0, (void *)0, &tp );
+tp.tv_usec = 100;
+FD_SET(1,&readmask);
+select( 1, (void *)&readmask, (void *)0, (void *)0, &tp );
 #endif
 }
 

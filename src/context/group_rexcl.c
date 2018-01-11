@@ -1,16 +1,12 @@
 /*
- *  $Id: group_rexcl.c,v 1.21 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: group_rexcl.c,v 1.3 1998/04/28 20:58:12 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
@@ -18,9 +14,9 @@ MPI_Group_range_excl - Produces a group by excluding ranges of processes from
        an existing group
 
 Input Parameters:
-. group - group (handle) 
++ group - group (handle) 
 . n - number of elements in array 'ranks' (integer) 
-. ranges - a one-dimensional 
+- ranges - a one-dimensional 
 array of integer triplets of the
 form (first rank, last rank, stride), indicating the ranks in
 'group'  of processes to be excluded

@@ -23,12 +23,12 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_attr_delete_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
+void mpi_attr_delete_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_attr_delete_ ( comm, keyval, __ierr )
-MPI_Comm *comm;
-int*keyval;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *keyval;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Attr_delete( *comm, *keyval);
+    *__ierr = MPI_Attr_delete( MPI_Comm_f2c(*comm), (int)*keyval);
 }

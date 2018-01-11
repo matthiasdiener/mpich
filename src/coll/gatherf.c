@@ -102,23 +102,25 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_gather_ ANSI_ARGS(( void *, int *, MPI_Datatype *, void *, int *, 
-			     MPI_Datatype *, int *, MPI_Comm *, int * ));
+void mpi_gather_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+                             MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                             MPI_Fint *, MPI_Fint * ));
 
 void mpi_gather_ ( sendbuf, sendcnt, sendtype, recvbuf, recvcount, recvtype, 
    root, comm, __ierr )
-void             *sendbuf;
-int*sendcnt;
-MPI_Datatype     *sendtype;
-void             *recvbuf;
-int*recvcount;
-MPI_Datatype     *recvtype;
-int*root;
-MPI_Comm          *comm;
-int *__ierr;
+void     *sendbuf;
+MPI_Fint *sendcnt;
+MPI_Fint *sendtype;
+void     *recvbuf;
+MPI_Fint *recvcount;
+MPI_Fint *recvtype;
+MPI_Fint *root;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Gather(MPIR_F_PTR(sendbuf),*sendcnt,*sendtype,
-			 MPIR_F_PTR(recvbuf),*recvcount,*recvtype,*root,
-			 *comm);
+    *__ierr = MPI_Gather(MPIR_F_PTR(sendbuf), (int)*sendcnt,
+                         MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                         (int)*recvcount, MPI_Type_f2c(*recvtype),
+                         (int)*root, MPI_Comm_f2c(*comm));
 }
 #endif

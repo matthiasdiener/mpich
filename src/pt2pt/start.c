@@ -1,14 +1,11 @@
 /*
- *  $Id: start.c,v 1.24 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: start.c,v 1.2 1998/01/29 14:28:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 /* NOTES 
    We mark all sends and receives as non-blocking because that is safe here;
@@ -34,21 +31,14 @@ MPI_Request *request;
 {
     int mpi_errno = MPI_SUCCESS;
     static char myname[] = "MPI_START";
-#ifdef MPI_ADI2
     MPIR_PSHANDLE *pshandle;
     MPIR_PRHANDLE *prhandle;
-#else
-    int req_type;
-    MPIR_SHANDLE *shandle;
-    MPIR_RHANDLE *rhandle;
-#endif
     
     TR_PUSH(myname);
 
     if (MPIR_TEST_REQUEST(MPI_COMM_WORLD,*request))
 	return MPIR_ERROR(MPIR_COMM_WORLD, mpi_errno, myname );
 
-#ifdef MPI_ADI2
     switch ((*request)->handle_type) {
     case MPIR_PERSISTENT_SEND:
 	pshandle = &(*request)->persistent_shandle;
@@ -101,54 +91,6 @@ MPI_Request *request;
     default:
 	return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_REQUEST,myname );
     }
-#else
-    req_type = (*request)->type;
-
-    if (req_type == MPIR_SEND) {
-	/* I really should allow MPIR_SEND_SETUP_BUFFER here ... */
-	/* Buffered send has special buffer setup requirements... */
-	shandle = &(*request)->shandle;
-	/* device will post the send */
-	switch (shandle->mode) {
-	    case MPIR_MODE_STANDARD:
-	    MPIR_CALL(MPIR_Send_setup(request),MPI_COMM_WORLD,myname);
-	    MPIR_CALL(MPID_Post_send( shandle->comm->ADIctx, shandle ),
-		      MPI_COMM_WORLD, myname );
-	    break;
-	    case MPIR_MODE_SYNCHRONOUS:
-	    MPIR_CALL(MPIR_Send_setup(request),MPI_COMM_WORLD, myname ); 
-	    MPIR_CALL(MPID_Post_send_sync( shandle->comm->ADIctx, shandle ),
-		      MPI_COMM_WORLD,myname );
-	    break;
-	    case MPIR_MODE_READY:
-	    MPIR_CALL(MPIR_Send_setup(request),MPI_COMM_WORLD,myname);
-	    MPIR_CALL(MPID_Post_send_ready( shandle->comm->ADIctx, shandle ),
-		      MPI_COMM_WORLD,myname);
-	    break;
-	    case MPIR_MODE_BUFFERED:
-	    MPIR_CALL(MPIR_DoBufferSend( shandle ),MPI_COMM_WORLD,myname);
-	    break;
-	    default:
-	    return 
-	       MPIR_ERROR( shandle->comm, MPI_ERR_INTERN,"Unknown send mode" );
-	    }
-	}
-    else if (req_type == MPIR_RECV) {
-	/* I really should allow MPIR_RECV_SETUP_BUFFER here ... */
-	MPIR_CALL(MPIR_Receive_setup(request),MPI_COMM_WORLD,myname);
-	/* device will handle queueing of MPIR recv handle in posted-recv 
-	   queue         
-	   */
-	rhandle = &(*request)->rhandle;
-	MPID_Set_recv_is_nonblocking( rhandle->comm->ADIctx, 
-				     &(rhandle->dev_rhandle), 1 );
-	MPIR_CALL(MPID_Post_recv( rhandle->comm->ADIctx, rhandle ),
-		  MPI_COMM_WORLD,myname);
-	}
-    else
-	mpi_errno = MPIR_ERROR(MPI_COMM_WORLD,MPI_ERR_INTERN,
-		   "Bad request type in MPI_START");
-#endif
     TR_POP;
     return mpi_errno;
 }

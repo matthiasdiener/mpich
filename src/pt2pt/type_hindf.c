@@ -1,11 +1,7 @@
 /* type_hind.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
@@ -28,40 +24,62 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_hindexed_ ANSI_ARGS(( int *, int [], int [], MPI_Datatype *,
-				    MPI_Datatype *, int * ));
+void mpi_type_hindexed_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint [], 
+                                    MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_type_hindexed_( count, blocklens, indices, old_type, newtype, __ierr )
-int*count;
-int           blocklens[];
-int           indices[];
-MPI_Datatype  *old_type;
-MPI_Datatype *newtype;
-int *__ierr;
+MPI_Fint *count;
+MPI_Fint blocklens[];
+MPI_Fint indices[];
+MPI_Fint *old_type;
+MPI_Fint *newtype;
+MPI_Fint *__ierr;
 {
     MPI_Aint     *c_indices;
+    MPI_Aint     local_c_indices[MPIR_USE_LOCAL_ARRAY];
     int          i;
+    int          *l_blocklens; 
+    int          local_l_blocklens[MPIR_USE_LOCAL_ARRAY];
+    MPI_Datatype ldatatype;
 
-    if (*count > 0) {
+    if ((int)*count > 0) {
+	if ((int)*count > MPIR_USE_LOCAL_ARRAY) {
 	/* We really only need to do this when 
 	   sizeof(MPI_Aint) != sizeof(INTEGER) */
-	MPIR_FALLOC(c_indices,(MPI_Aint *) MALLOC( *count * sizeof(MPI_Aint) ),
-		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-		    "Out of space in MPI_TYPE_HINDEXED" );
+	    MPIR_FALLOC(c_indices,(MPI_Aint *) MALLOC( *count * sizeof(MPI_Aint) ),
+		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+		        "MPI_TYPE_HINDEXED" );
 
-	for (i=0; i<*count; i++) {
-	    c_indices[i] = (MPI_Aint) indices[i];
+	    MPIR_FALLOC(l_blocklens,(int *) MALLOC( *count * sizeof(int) ),
+		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+		        "MPI_TYPE_HINDEXED" );
 	}
-	*__ierr = MPI_Type_hindexed(*count,blocklens,c_indices,*old_type,
-				    newtype);
-	FREE( c_indices );
+	else {
+	    c_indices = local_c_indices;
+	    l_blocklens = local_l_blocklens;
+	}
+
+	for (i=0; i<(int)*count; i++) {
+	    c_indices[i] = (MPI_Aint) indices[i];
+            l_blocklens[i] = (int) blocklens[i];
+	}
+	*__ierr = MPI_Type_hindexed((int)*count,l_blocklens,c_indices,
+                                    MPI_Type_f2c(*old_type),
+				    &ldatatype);
+	if ((int)*count > MPIR_USE_LOCAL_ARRAY) {
+	    FREE( c_indices );
+            FREE( l_blocklens );
+	}
+        *newtype = MPI_Type_c2f(ldatatype);
     }
-    else if (*count == 0) {
+    else if ((int)*count == 0) {
 	*__ierr = MPI_SUCCESS;
-	*newtype = 0;
+        *newtype = 0;
     }
     else {
 	*__ierr = MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_COUNT,
 			      "Negative count in MPI_TYPE_HINDEXED" );
     }
 }
+
+

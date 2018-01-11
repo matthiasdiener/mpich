@@ -72,6 +72,7 @@ int      n;
 {
 int i;
 for (i=1; i<n; i++) {
-    MPI_Comm_free( comms + i );
+    if (comms[i] != MPI_COMM_NULL) 
+	MPI_Comm_free( comms + i );
     }
 }

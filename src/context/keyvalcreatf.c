@@ -25,12 +25,12 @@
 /* Prototype to suppress warnings about missing prototypes */
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
 void mpi_keyval_create_ ANSI_ARGS(( MPI_Copy_function **, 
-				    MPI_Delete_function **, int *, void *,
-				    int * ));
+				    MPI_Delete_function **, MPI_Fint *, 
+                                    void *, MPI_Fint * ));
 #else
 void mpi_keyval_create_ ANSI_ARGS(( MPI_Copy_function *, 
-				    MPI_Delete_function *, int *, void *,
-				    int * ));
+				    MPI_Delete_function *, MPI_Fint *, 
+                                    void *, MPI_Fint * ));
 #endif
 
 void mpi_keyval_create_ ( copy_fn, delete_fn, keyval, extra_state, __ierr )
@@ -41,15 +41,17 @@ MPI_Delete_function **delete_fn;
 MPI_Copy_function   *copy_fn;
 MPI_Delete_function *delete_fn;
 #endif
-int                 *keyval;
+MPI_Fint            *keyval;
 void                *extra_state;
-int                 *__ierr;
+MPI_Fint            *__ierr;
 {
-    *keyval = 0;
+    int l_keyval = 0;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-    *__ierr = MPIR_Keyval_create( *copy_fn, *delete_fn, keyval, 
+    *__ierr = MPIR_Keyval_create( *copy_fn, *delete_fn, &l_keyval, 
 				  extra_state, 1 );
 #else
-    *__ierr = MPIR_Keyval_create( copy_fn, delete_fn, keyval, extra_state, 1 );
+    *__ierr = MPIR_Keyval_create( copy_fn, delete_fn, &l_keyval, 
+                                  extra_state, 1 );
 #endif
+    *keyval = (MPI_Fint)l_keyval;
 }

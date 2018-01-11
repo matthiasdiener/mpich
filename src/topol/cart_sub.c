@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_sub.c,v 1.22 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: cart_sub.c,v 1.3 1998/04/29 14:28:39 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,12 +7,8 @@
 
 #include "mpiimpl.h"
 #include "mpitopo.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
@@ -20,8 +16,8 @@ MPI_Cart_sub - Partitions a communicator into subgroups which
                form lower-dimensional cartesian subgrids
 
 Input Parameters:
-. comm - communicator with cartesian structure (handle) 
-. remain_dims - the  'i'th entry of remain_dims specifies whether the 'i'th 
++ comm - communicator with cartesian structure (handle) 
+- remain_dims - the  'i'th entry of remain_dims specifies whether the 'i'th 
 dimension is kept in the subgrid (true) or is dropped (false) (logical 
 vector) 
 

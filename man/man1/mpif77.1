@@ -1,4 +1,4 @@
-.TH mpif77 1 "4/14/1997" " " "MPI Commands"
+.TH mpif77 1 "6/5/1998" " " "MPI Commands"
 .SH NAME
 mpif77 \-  Compiles and links MPI programs written in Fortran 77 
 .SH DESCRIPTION
@@ -71,6 +71,17 @@ executable given the name
 .
 .PD 1
 
+.SH ENVIRONMENT VARIABLES
+The environment variables 
+.I MPICH_F77
+and 
+.I MPICH_F77LINKER
+may be used
+to select different Fortran 77 compiler and linker.  Note that since
+MPICH is built with a particular C and Fortran compiler, change the
+compilers used can cause problems.  Use this only if you could intermix
+code compiled with the different compilers.
+
 .SH EXAMPLES
 
 To compile a single file 
@@ -80,18 +91,21 @@ To compile a single file
 mpif77 -c foo.f
 .fi
 
+
 To link the output and make an executable, use
 .nf
 mpif77 -o foo foo.o
 .fi
+
 Combining compilation and linking in a single command
 .nf
 mpif77 -o foo foo.f
 .fi
+
 is a convenient way to build simple programs.
 
 .SH SEE ALSO
 mpicc, mpireconfig
 .br
 .SH LOCATION
-util/README
+/home/MPI/mansrc/commands

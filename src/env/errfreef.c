@@ -23,11 +23,12 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_errhandler_free_ ANSI_ARGS(( MPI_Errhandler *, int * ));
+void mpi_errhandler_free_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_errhandler_free_( errhandler, __ierr )
-MPI_Errhandler *errhandler;
-int *__ierr;
+MPI_Fint *errhandler;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Errhandler_free( errhandler );
+    MPI_Errhandler l_errhandler = MPI_Errhandler_c2f(*errhandler);
+    *__ierr = MPI_Errhandler_free( &l_errhandler );
 }

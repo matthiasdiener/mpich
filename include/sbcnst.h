@@ -1,5 +1,5 @@
 /*
- *  $Id: sbcnst.h,v 1.13 1996/11/24 20:22:15 gropp Exp $
+ *  $Id: sbcnst.h,v 1.1.1.1 1997/09/17 20:38:06 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

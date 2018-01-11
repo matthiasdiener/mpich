@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_map.c,v 1.10 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: graph_map.c,v 1.2 1998/04/29 14:28:45 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,10 +12,10 @@
 MPI_Graph_map - Maps process to graph topology information
 
 Input Parameters:
-. comm - input communicator (handle) 
++ comm - input communicator (handle) 
 . nnodes - number of graph nodes (integer) 
 . index - integer array specifying the graph structure, see 'MPI_GRAPH_CREATE' 
-. edges - integer array specifying the graph structure 
+- edges - integer array specifying the graph structure 
 
 Output Parameter:
 . newrank - reordered rank of the calling process; 'MPI_UNDEFINED' if the 

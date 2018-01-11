@@ -32,6 +32,10 @@
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
 
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+#undef WORDS_BIGENDIAN
+
 /* Define if Fortran functions are pointers to pointers */
 #undef FORTRAN_SPECIAL_FUNCTION_PTR
 
@@ -113,8 +117,26 @@
 /* Define if object debugging should be enabled */
 #undef MPIR_OBJDEBUG
 
+/* Define if ptr conversion debugging should be enabled */
+#undef MPIR_PTRDEBUG
+
 /* Define if ADI is ADI-2 (required!) */
 #undef MPI_ADI2
+
+/* Define if mmap does not work correctly for anonymous memory */
+#undef HAVE_NO_ANON_MMAP
+
+/* Define if signals reset to the default when used (SYSV vs BSD semantics).
+   Such signals are essentially un-usable, because of the resulting race
+   condition.  The fix is to use the sigaction etc. routines instead (they're
+   usually available, since without them signals are entirely useless) */
+#undef SIGNALS_RESET_WHEN_USED
+
+/* Define if MPI Structs should align on the largest basic element */
+#undef USE_BASIC_ALIGNMENT
+
+/* The number of processors expected on an SMP.  Usually undefined */
+#undef PROCESSOR_COUNT
 
 /* Define if you have BSDgettimeofday.  */
 #undef HAVE_BSDGETTIMEOFDAY
@@ -152,8 +174,14 @@
 /* Define if you have sigaction.  */
 #undef HAVE_SIGACTION
 
+/* Define if you have sigmask.  */
+#undef HAVE_SIGMASK
+
 /* Define if you have signal.  */
 #undef HAVE_SIGNAL
+
+/* Define if you have sigprocmask.  */
+#undef HAVE_SIGPROCMASK
 
 /* Define if you have sigset.  */
 #undef HAVE_SIGSET
@@ -170,8 +198,14 @@
 /* Define if you have the <mpproto.h> header file.  */
 #undef HAVE_MPPROTO_H
 
+/* Define if you have the <netdb.h> header file.  */
+#undef HAVE_NETDB_H
+
 /* Define if you have the <nl_types.h> header file.  */
 #undef HAVE_NL_TYPES_H
+
+/* Define if you have the <signal.h> header file.  */
+#undef HAVE_SIGNAL_H
 
 /* Define if you have the <stdarg.h> header file.  */
 #undef HAVE_STDARG_H

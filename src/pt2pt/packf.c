@@ -102,20 +102,25 @@ if (_isfcd(outbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_pack_ ANSI_ARGS(( void *, int *, MPI_Datatype *, void *, int *, 
-			   int *, MPI_Comm *, int * ));
+void mpi_pack_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+                           MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 void mpi_pack_ ( inbuf, incount, type, outbuf, outcount, position, comm, 
 		 __ierr )
-void         *inbuf;
-int*incount;
-MPI_Datatype  *type;
-void         *outbuf;
-int*outcount;
-int          *position;
-MPI_Comm      *comm;
-int *__ierr;
+void     *inbuf;
+MPI_Fint *incount;
+MPI_Fint *type;
+void     *outbuf;
+MPI_Fint *outcount;
+MPI_Fint *position;
+MPI_Comm *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Pack(MPIR_F_PTR(inbuf),*incount,*type,
-		       outbuf,*outcount,position,*comm);
+    int lposition;
+
+    lposition = (int)*position;
+    *__ierr = MPI_Pack(MPIR_F_PTR(inbuf), (int)*incount, MPI_Type_f2c(*type),
+		       outbuf, (int)*outcount, &lposition,
+                       MPI_Comm_f2c(*comm));
+    *position = (MPI_Fint)lposition;
 }
 #endif

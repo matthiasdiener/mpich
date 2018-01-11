@@ -21,3 +21,4 @@ fi
 # A similiar script could be used on Intel i860 systems
 # UNTESTED
 $Show '$rshcmd delta1 mexec -t"'"$np"'" -f ' $progname $cmdLineArgs
+exitstatus=0

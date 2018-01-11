@@ -98,21 +98,27 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_alltoall_ ANSI_ARGS(( void *, int *, MPI_Datatype *, void *, int *,
-			       MPI_Datatype *, MPI_Comm *, int * ));
+void mpi_alltoall_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, void *, 
+                               MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                               MPI_Fint * ));
 
 void mpi_alltoall_( sendbuf, sendcount, sendtype, 
                   recvbuf, recvcnt, recvtype, comm, __ierr )
-void             *sendbuf;
-int*sendcount;
-MPI_Datatype     *sendtype;
-void             *recvbuf;
-int*recvcnt;
-MPI_Datatype     *recvtype;
-MPI_Comm         * comm;
-int *__ierr;
+void     *sendbuf;
+MPI_Fint *sendcount;
+MPI_Fint *sendtype;
+void     *recvbuf;
+MPI_Fint *recvcnt;
+MPI_Fint *recvtype;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Alltoall(MPIR_F_PTR(sendbuf),*sendcount,*sendtype,
-			   MPIR_F_PTR(recvbuf),*recvcnt,*recvtype,*comm );
+    *__ierr = MPI_Alltoall(MPIR_F_PTR(sendbuf), (int)*sendcount,
+                           MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                           (int)*recvcnt, MPI_Type_f2c(*recvtype),
+                           MPI_Comm_f2c(*comm) );
 }
 #endif
+
+
+

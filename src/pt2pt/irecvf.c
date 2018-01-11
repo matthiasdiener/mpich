@@ -7,16 +7,6 @@
 #include <stdarg.h>
 #endif
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_irecv_ PMPI_IRECV
@@ -98,22 +88,23 @@ if (_isfcd(buf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_irecv_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *, 
-			    MPI_Comm *, MPI_Request *, int * ));
+void mpi_irecv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                            MPI_Fint *, MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_irecv_( buf, count, datatype, source, tag, comm, request, __ierr )
-void             *buf;
-int              *count;
-MPI_Datatype     *datatype;
-int              *source;
-int              *tag;
-MPI_Comm         *comm;
-MPI_Request      *request;
-int *__ierr;
+void     *buf;
+MPI_Fint *count;
+MPI_Fint *datatype;
+MPI_Fint *source;
+MPI_Fint *tag;
+MPI_Fint *comm;
+MPI_Fint *request;
+MPI_Fint *__ierr;
 {
     MPI_Request lrequest;
-    *__ierr = MPI_Irecv(MPIR_F_PTR(buf),*count,*datatype,
-			*source,*tag,*comm,&lrequest);
-    *(int*)request = MPIR_FromPointer(lrequest);
+    *__ierr = MPI_Irecv(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
+			(int)*source,(int)*tag,
+                        MPI_Comm_f2c(*comm),&lrequest);
+    *request = MPI_Request_c2f(lrequest);
 }
 #endif

@@ -24,13 +24,15 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_attr_put_ ANSI_ARGS(( MPI_Comm *, int *, int *, int * ));
+void mpi_attr_put_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                               MPI_Fint * ));
 
 void mpi_attr_put_ ( comm, keyval, attr_value, __ierr )
-MPI_Comm *comm;
-int *keyval;
-int *attr_value;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *keyval;
+MPI_Fint *attr_value;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Attr_put( *comm, *keyval,(void *)(MPI_Aint)(*attr_value));
+    *__ierr = MPI_Attr_put( MPI_Comm_f2c(*comm), (int)*keyval,
+                            (void *)(MPI_Aint)((int)*attr_value));
 }

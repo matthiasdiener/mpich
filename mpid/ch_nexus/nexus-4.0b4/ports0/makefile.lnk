@@ -1,3 +1,0 @@
-$(SHARED_LIB): build_dir_lib $(OBJS)
-	$(RM) -f $(SHARED_LIB)
-	$(CC) -o $(SHARED_LIB) $(SHARED_LDFLAGS) $(OBJS)

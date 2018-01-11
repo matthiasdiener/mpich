@@ -1,0 +1,28 @@
+.TH MPI_Type_count 3 "9/17/1997" " " "MPI"
+.SH NAME
+MPI_Type_count \-  Returns the number of "top-level" entries in  the datatype 
+.SH SYNOPSIS
+.nf
+#include "mpi.h"
+int MPI_Type_count ( datatype, count )
+MPI_Datatype  datatype;
+int          *count;
+.fi
+.SH INPUT PARAMETERS
+.PD 0
+.TP
+.B datatype 
+- datatype (handle) 
+.PD 1
+
+.SH OUTPUT PARAMETER
+.PD 0
+.TP
+.B count 
+- datatype count (integer) 
+.PD 1
+
+.SH NOTE
+This routine has been removed from MPI.
+.SH LOCATION
+type_count.c

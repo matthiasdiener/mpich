@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2mpack.c,v 1.4 1996/12/01 23:34:41 gropp Exp $
+ *  $Id: adi2mpack.c,v 1.2 1997/10/06 18:30:46 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -16,7 +16,8 @@
  * datatypes by providing routines to pack and unpack messages 
  */
 
-void MPID_PackMessage( src, count, dtype_ptr, comm_ptr, dest_grank, msgrep, msgact, 
+void MPID_PackMessage( src, count, dtype_ptr, comm_ptr, dest_grank, 
+		       msgrep, msgact, 
 		       mybuf, mylen, error_code )
 void            *src, **mybuf;
 struct MPIR_COMMUNICATOR *       comm_ptr;

@@ -23,12 +23,14 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_group_rank_ ANSI_ARGS(( MPI_Group *, int *, int * ));
+void mpi_group_rank_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_group_rank_ ( group, rank, __ierr )
-MPI_Group *group;
-int *rank;
-int *__ierr;
+MPI_Fint *group;
+MPI_Fint *rank;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Group_rank( *group, rank );
+    int l_rank;
+    *__ierr = MPI_Group_rank( MPI_Group_f2c(*group), &l_rank );
+    *rank = l_rank;
 }

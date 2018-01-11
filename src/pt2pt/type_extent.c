@@ -1,14 +1,11 @@
 /*
- *  $Id: type_extent.c,v 1.11 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_extent.c,v 1.3 1998/06/22 14:28:23 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 
 /*@
@@ -40,3 +37,10 @@ MPI_Aint     *extent;
   (*extent) = dtype_ptr->extent;
   return (MPI_SUCCESS);
 }
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 /*
- *  $Id: global_ops.c,v 1.39 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: global_ops.c,v 1.5 1998/05/12 21:39:12 lusk Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -58,6 +58,14 @@ MPI_Datatype *type;
       a[i] = MPIR_MAX(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_MAX(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -149,6 +157,14 @@ MPI_Datatype *type;
       a[i] = MPIR_MIN(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_MIN(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -214,6 +230,7 @@ MPI_Datatype *type;
 #ifndef MPIR_SUM
 #define MPIR_LSUM(a,b) ((a)+(b))
 #endif
+
 void MPIR_SUM ( invec, inoutvec, Len, type )
 void *invec, *inoutvec;
 int  *Len;
@@ -241,6 +258,15 @@ MPI_Datatype *type;
       a[i] = MPIR_LSUM(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LSUM(a[i],b[i]);
+    break;
+  }
+#endif
+
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -349,6 +375,14 @@ MPI_Datatype *type;
       a[i] = MPIR_LPROD(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LPROD(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -463,6 +497,14 @@ MPI_Datatype *type;
       a[i] = MPIR_LLAND(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLAND(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -573,6 +615,14 @@ MPI_Datatype *type;
       a[i] = MPIR_LBAND(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBAND(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -653,6 +703,14 @@ MPI_Datatype *type;
       a[i] = MPIR_LLOR(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLOR(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -762,6 +820,14 @@ MPI_Datatype *type;
       a[i] = MPIR_LBOR(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBOR(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -842,6 +908,14 @@ MPI_Datatype *type;
       a[i] = MPIR_LLXOR(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LLXOR(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -953,6 +1027,14 @@ MPI_Datatype *type;
       a[i] = MPIR_LBXOR(a[i],b[i]);
     break;
   }
+#if defined(HAVE_LONG_LONG_INT)
+  case MPIR_LONGLONGINT: {
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = MPIR_LBXOR(a[i],b[i]);
+    break;
+  }
+#endif
   case MPIR_ULONG: {
     unsigned long *a = (unsigned long *)inoutvec; 
     unsigned long *b = (unsigned long *)invec;
@@ -1018,6 +1100,13 @@ typedef struct {
   long  value;
   int    loc;
 } MPIR_longint_loctype;
+
+#if defined(HAVE_LONG_LONG_INT)
+typedef struct {
+  long long  value;
+  int        loc;
+} MPIR_longlongint_loctype;
+#endif
 
 typedef struct {
   short  value;
@@ -1088,6 +1177,21 @@ MPI_Datatype *type;
       }
       break;
     }
+#if defined(HAVE_LONG_LONG_INT)
+    case MPIR_LONGLONGINT: {
+      MPIR_longlongint_loctype *a = (MPIR_longlongint_loctype *)inoutvec;
+      MPIR_longlongint_loctype *b = (MPIR_longlongint_loctype *)invec;
+      for (i=0; i<len; i++) {
+        if (a[i].value == b[i].value)
+          a[i].loc = MPIR_MIN(a[i].loc,b[i].loc);
+        else if (a[i].value < b[i].value) {
+          a[i].value = b[i].value;
+          a[i].loc   = b[i].loc;
+        }
+      }
+      break;
+    }
+#endif
     case MPIR_SHORT: {
       MPIR_shortint_loctype *as = (MPIR_shortint_loctype *)inoutvec;
       MPIR_shortint_loctype *bs = (MPIR_shortint_loctype *)invec;
@@ -1171,6 +1275,20 @@ MPI_Datatype *type;
       }
       break;
     }
+#if defined(HAVE_LONG_LONG_INT)
+    case MPIR_LONGLONGINT: {
+      long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+      for ( i=0; i<len; i+=2 ) {
+        if (a[i] == b[i])
+          a[i+1] = MPIR_MIN(a[i+1],b[i+1]);
+        else if (a[i] < b[i]) {
+          a[i]   = b[i];
+          a[i+1] = b[i+1];
+        }
+      }
+      break;
+    }
+#endif
     case MPIR_SHORT: {
       short *a = (short *)inoutvec; short *b = (short *)invec;
       for ( i=0; i<len; i+=2 ) {
@@ -1300,6 +1418,21 @@ MPI_Datatype *type;
       }
       break;
     }
+#if defined(HAVE_LONG_LONG_INT)
+    case MPIR_LONGLONGINT: {
+      MPIR_longlongint_loctype *a = (MPIR_longlongint_loctype *)inoutvec;
+      MPIR_longlongint_loctype *b = (MPIR_longlongint_loctype *)invec;
+      for (i=0; i<len; i++) {
+        if (a[i].value == b[i].value)
+          a[i].loc = MPIR_MIN(a[i].loc,b[i].loc);
+        else if (a[i].value > b[i].value) {
+          a[i].value = b[i].value;
+          a[i].loc   = b[i].loc;
+        }
+      }
+      break;
+    }
+#endif
     case MPIR_SHORT: {
       MPIR_shortint_loctype *a = (MPIR_shortint_loctype *)inoutvec;
       MPIR_shortint_loctype *b = (MPIR_shortint_loctype *)invec;
@@ -1381,6 +1514,20 @@ MPI_Datatype *type;
       }
       break;
     }
+#if defined(HAVE_LONG_LONG_INT)
+    case MPIR_LONGLONGINT: {
+      long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+      for ( i=0; i<len; i+=2 ) {
+        if (a[i] == b[i])
+          a[i+1] = MPIR_MIN(a[i+1],b[i+1]);
+        else if (a[i] > b[i]) {
+          a[i]   = b[i];
+          a[i+1] = b[i+1];
+        }
+      }
+      break;
+    }
+#endif
     case MPIR_SHORT: {
       short *a = (short *)inoutvec; short *b = (short *)invec;
       for ( i=0; i<len; i+=2 ) {

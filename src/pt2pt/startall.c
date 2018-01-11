@@ -1,22 +1,18 @@
 /*
- *  $Id: startall.c,v 1.9 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: startall.c,v 1.3 1998/04/28 21:47:15 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
-#else
-#include "mpisys.h"
-#endif
 
 /*@
   MPI_Startall - Starts a collection of requests 
 
 Input Parameters:
-. count - list length (integer) 
-. array_of_requests - array of requests (array of handle) 
++ count - list length (integer) 
+- array_of_requests - array of requests (array of handle) 
 
 .N fortran
 @*/

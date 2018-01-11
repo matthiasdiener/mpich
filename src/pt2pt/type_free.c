@@ -1,15 +1,13 @@
 /*
- *  $Id: type_free.c,v 1.19 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_free.c,v 1.2 1998/01/29 14:28:47 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 /* pt2pt for MPIR_Type_free */
 #include "mpipt2pt.h"
-#endif
 
 #ifndef MPIR_TRUE
 #define MPIR_TRUE  1

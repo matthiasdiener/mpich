@@ -1,5 +1,5 @@
 /*
- *  $Id: fstrutils.c,v 1.3 1997/02/18 23:06:23 gropp Exp $
+ *  $Id: fstrutils.c,v 1.4 1998/07/01 19:56:10 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,6 +13,9 @@
  */
 
 #include "mpiimpl.h"
+#if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
+#include <string.h>
+#endif
 
 #ifndef MPID_NO_FORTRAN
 
@@ -21,10 +24,10 @@
 
    Input Parameters: 
    
-.  res     - Pointer to the result space
++  res     - Pointer to the result space
 .  resLen  - Length of result space
 .  src     - The Fortran string
-.  srcLen  - Length of the Fortran string
+-  srcLen  - Length of the Fortran string
 
    The result is 1 if the assignment was possible without truncation,
    zero otherwise.
@@ -44,6 +47,12 @@ long srclen;
     ;
 
   /* Assign the actual source length after trailing blanks are stripped */
+  if (p == src && *p == ' ') {
+      /* Special case of an all blank string */
+      if (reslen == 0) return 0;
+      res[0] = 0;
+      return 1;
+  }
   srclen = p-src+1;
 
   /* Check for overflow in the output string */

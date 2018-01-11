@@ -25,10 +25,10 @@
 /* Prototype to suppress warnings about missing prototypes */
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
 void mpi_errhandler_create_ ANSI_ARGS(( MPI_Handler_function **, 
-					MPI_Errhandler *, int * ));
+					MPI_Fint *, MPI_Fint * ));
 #else
 void mpi_errhandler_create_ ANSI_ARGS(( MPI_Handler_function *, 
-					MPI_Errhandler *, int * ));
+					MPI_Fint *, MPI_Fint * ));
 #endif
 
 void mpi_errhandler_create_( function, errhandler, __ierr )
@@ -37,12 +37,15 @@ MPI_Handler_function **function;
 #else
 MPI_Handler_function *function;
 #endif
-MPI_Errhandler       *errhandler;
-int *__ierr;
+MPI_Fint             *errhandler;
+MPI_Fint             *__ierr;
 {
+
+    MPI_Errhandler l_errhandler;
 #ifdef FORTRAN_SPECIAL_FUNCTION_PTR
-    *__ierr = MPI_Errhandler_create( *function, errhandler );
+    *__ierr = MPI_Errhandler_create( *function, &l_errhandler );
 #else
-    *__ierr = MPI_Errhandler_create( function, errhandler );
+    *__ierr = MPI_Errhandler_create( function, &l_errhandler );
 #endif
+    *errhandler = MPI_Errhandler_c2f(l_errhandler);
 }

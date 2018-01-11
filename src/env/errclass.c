@@ -1,5 +1,5 @@
 /*
- *  $Id: errclass.c,v 1.5 1996/04/11 20:27:49 gropp Exp $
+ *  $Id: errclass.c,v 1.1.1.1 1997/09/17 20:41:53 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

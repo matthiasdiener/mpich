@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML3.2 EN">
+<HTML>
+<HEAD>
+<META NAME="GENERATOR" CONTENT="DOCTEXT">
+<TITLE>MPE_Errors_call_debugger</TITLE>
+</HEAD>
+<BODY BGCOLOR="FFFFFF">
+<A NAME="MPE_Errors_call_debugger"><H1>MPE_Errors_call_debugger</H1></A>
+On an error, print a message and (attempt) to start the specified debugger on the program 
+<H2>Synopsis</H2>
+<PRE>
+#include &lt;stdio.h&gt;
+#include "mpe.h"
+void MPE_Errors_call_debugger( pgm, dbg, args )
+char *pgm, *dbg, **args;
+</PRE>
+<H2>Input Parameters</H2>
+<TABLE BORDER=0>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>pgm </B></TD><TD VALIGN=TOP>Name of the program.
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>dbg </B></TD><TD VALIGN=TOP>Name of the debugger.  If null, use a default (usually dbx)
+<BR></TD></TR>
+<TR><TD WIDTH=20></TD><TD ALIGN=LEFT VALIGN=TOP><B>args </B></TD><TD VALIGN=TOP>arguments to use in generating the debugger.
+This allows things like "<TT>xterm -e dbx pgm pid</TT>", or 
+"<TT>xdbx -geometry +%d+%d pgm pid</TT>".  The list should be null terminated.
+(The <TT>%d %d</TT> format is not yet supported).
+<BR></TD></TR></TABLE>
+<P>
+<H2>Notes</H2>
+You may need to ignore some signals, depending on the signals 
+thatthe MPICH and underlying communications code is using.  You 
+cando this in dbx by adding "ignore signal-name" to your .dbxinit file.
+For example, to ignore <TT>SIGUSR1</TT>, use "<TT>ignore USR1</TT>".
+<P>
+Currently, there is no Fortran interface for this routine.
+<P><B>Location:</B>dbxerr.c<P>
+</BODY></HTML>

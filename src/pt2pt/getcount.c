@@ -1,5 +1,5 @@
 /*
- *  $Id: getcount.c,v 1.15 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: getcount.c,v 1.3 1998/04/28 21:46:47 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,8 +11,8 @@
   MPI_Get_count - Gets the number of "top level" elements
 
 Input Parameters:
-. status - return status of receive operation (Status) 
-. datatype - datatype of each receive buffer element (handle) 
++ status - return status of receive operation (Status) 
+- datatype - datatype of each receive buffer element (handle) 
 
 Output Parameter:
 . count - number of received elements (integer) 
@@ -36,9 +36,13 @@ int          *count;
 {
   struct MPIR_DATATYPE *dtype_ptr;
   static char myname[] = "MPI_GET_COUNT";
+  int         mpi_errno = MPI_SUCCESS;
 
   TR_PUSH(myname);
 
+#ifdef MPID_HAS_GET_COUNT
+    mpi_errno = MPID_Get_count( status, datatype, count );
+#else
   dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
   MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
 
@@ -56,9 +60,9 @@ int          *count;
       else
 	  (*count) = status->count / (dtype_ptr->size);
       }
-
+#endif
   TR_POP;
-  return (MPI_SUCCESS);
+  MPIR_RETURN( MPIR_COMM_WORLD, mpi_errno, myname );
 }
 
 

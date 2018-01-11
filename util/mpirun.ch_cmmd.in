@@ -1,4 +1,5 @@
 #! /bin/sh
+exitstatus=0
 if [ "$MPIR_HOME" = "" ] ; then 
     MPIR_HOME=#MPIR_HOME#
 fi
@@ -23,5 +24,6 @@ fi
 #      $Show $debugger $progname $commandfile $PWD_TRIAL/PId$$
 #else
       $Show $progname $cmdLineArgs -np $np
+      exitstatus=$?
 #fi
 exit 1

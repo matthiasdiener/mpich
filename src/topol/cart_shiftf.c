@@ -29,14 +29,22 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_cart_shift_ ANSI_ARGS(( MPI_Comm *, int *, int *, int *, 
-				 int *, int * ));
+void mpi_cart_shift_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                 MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_cart_shift_( comm, direction, shift, source, dest, ierr )
-MPI_Comm         *comm;
-int              *direction; 
-int              *shift;
-int              *source, *dest, *ierr;
+MPI_Fint *comm;
+MPI_Fint *direction; 
+MPI_Fint *shift;
+MPI_Fint *ierr;
+MPI_Fint *source; 
+MPI_Fint *dest;
 {
-    *ierr =     MPI_Cart_shift( *comm, *direction, *shift, source, dest );
+    int lsource;
+    int ldest;
+
+    *ierr =     MPI_Cart_shift( MPI_Comm_f2c(*comm), (int)*direction, 
+                                (int)*shift, &lsource, &ldest );
+    *source = (MPI_Fint)lsource;
+    *dest = (MPI_Fint)ldest;
 }

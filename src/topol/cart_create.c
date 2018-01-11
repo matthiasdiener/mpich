@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_create.c,v 1.20 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: cart_create.c,v 1.3 1998/04/29 14:28:31 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,12 +7,8 @@
 
 #include "mpiimpl.h"
 #include "mpitopo.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
-#else
-#include "mpisys.h"
-#endif
 
 /*ARGSUSED*/
 
@@ -22,13 +18,13 @@ MPI_Cart_create - Makes a new communicator to which topology information
                   has been attached
 
 Input Parameters:
-. comm_old - input communicator (handle) 
++ comm_old - input communicator (handle) 
 . ndims - number of dimensions of cartesian grid (integer) 
 . dims - integer array of size ndims specifying the number of processes in 
   each dimension 
 . periods - logical array of size ndims specifying whether the grid is 
   periodic (true) or not (false) in each dimension 
-. reorder - ranking may be reordered (true) or not (false ) (logical) 
+- reorder - ranking may be reordered (true) or not (false ) (logical) 
 
 Output Parameter:
 . comm_cart - communicator with new cartesian topology (handle) 

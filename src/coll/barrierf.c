@@ -23,11 +23,11 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_barrier_ ANSI_ARGS(( MPI_Comm *, int * ));
+void mpi_barrier_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_barrier_ ( comm, __ierr )
-MPI_Comm *comm;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Barrier( *comm );
+    *__ierr = MPI_Barrier( MPI_Comm_f2c(*comm) );
 }

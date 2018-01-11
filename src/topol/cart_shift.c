@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_shift.c,v 1.19 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: cart_shift.c,v 1.3 1998/04/29 14:28:37 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,13 +14,13 @@ MPI_Cart_shift - Returns the shifted source and destination ranks, given a
                  shift direction and amount
 
 Input Parameters:
-. comm - communicator with cartesian structure (handle) 
++ comm - communicator with cartesian structure (handle) 
 . direction - coordinate dimension of shift (integer) 
-. disp - displacement (> 0: upwards shift, < 0: downwards shift) (integer) 
+- disp - displacement (> 0: upwards shift, < 0: downwards shift) (integer) 
 
 Output Parameters:
-. rank_source - rank of source process (integer) 
-. rank_dest - rank of destination process (integer) 
++ rank_source - rank of source process (integer) 
+- rank_dest - rank of destination process (integer) 
 
 Notes:
 The 'direction' argument is in the range '[0,n-1]' for an n-dimensional 
@@ -56,6 +56,10 @@ int      *dest;
   if ( ((direction <  0) && (mpi_errno = MPI_ERR_ARG))   ||
        MPIR_TEST_ARG(dest) || MPIR_TEST_ARG(source)) 
     return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+
+  /*** Check to see if displacement = 0 - Debbie Swider 11/19/97 ***/
+  if ( (displ == 0) && (mpi_errno = MPI_ERR_TOPOLOGY) )
+      return MPIR_ERROR( comm_ptr, mpi_errno, myname) ;
 
   /* Get topology information from the communicator */
   MPI_Attr_get ( comm, MPIR_TOPOLOGY_KEYVAL, (void **)&topo, &flag );

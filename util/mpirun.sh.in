@@ -1,6 +1,9 @@
-#!/bin/sh 
+#! /bin/sh 
 
-# MPIRUN
+# MPIRUN for MPICH
+# (Don't change the above line - we use it to identify MPICH mpirun as
+# opposed to others (e.g., SGI's mpirun)
+#
 # This script tries to start jobs on whatever kind of machine you're on.
 # Strategy - This program is built with a default device it uses in
 # certain ways. The user can override this default from the command line.
@@ -102,8 +105,8 @@ case $machine in
     ch_tcp|tcp)
 	mpirun_version=$MPIRUN_HOME/mpirun.ch_tcp
 	;;
-    ch_nexus|nexus)
-	mpirun_version=$MPIRUN_HOME/mpirun.nexus
+    globus)
+	mpirun_version=$MPIRUN_HOME/mpirun.globus
 	;;
     chameleon)
 	mpirun_version=$MPIRUN_HOME/mpirun.ch
@@ -130,6 +133,7 @@ case $machine in
 	fi
   	;;
 esac
+exitstat=1
 if [ -n "$mpirun_version" ] ; then
     if [ -x $mpirun_version ] ; then
         . $mpirun_version
@@ -141,5 +145,5 @@ else
     echo "No mpirun script for this configuration!"
     exit 1
 fi
-exit 0
+exit $exitstat
 

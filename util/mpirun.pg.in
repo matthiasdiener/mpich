@@ -14,6 +14,10 @@
 #    machinename:n
 # where n is the number of available processors.
 # We use : separators instead of spaces to simplify parsing of the file
+#
+# I have a note to make mpirun handle hostnames with and without domainnames
+# This may have been fixed below; I'm leaving this marker here in case it
+# comes up again.
 # 
 #
 if [ "$argsset" = "" ] ; then
@@ -49,17 +53,20 @@ archlocal=$arch1
 #
 # The first time through the loop, we use the default machinefile, unless
 # one has been specified.
+# 
+# We use \$ instead of $ since some systems seem to require \$ and that
+# appears to be correct.
 #
 while [ $curarch -le $narch ] ; do
-    eval arch=$"arch$curarch"
-    eval archlist=$"archlist$curarch"
+    eval arch=\$"arch$curarch"
+    eval archlist=\$"archlist$curarch"
     if [ -z "$archlist" ] ; then archlist=$arch ; fi
-    eval np=$"np$curarch"
+    eval np=\$"np$curarch"
     if [ -z "$np" ] ; then 
 	echo "Warning: unspecified -np value for $arch.  Assuming -np 1."
 	np=1
     fi
-    eval mFile=$"machineFile$curarch"
+    eval mFile=\$"machineFile$curarch"
     if [ -n "$mFile" -a -r "$mFile" ] ; then machineFile=$mFile ; fi
     #
     # Get default machine file
@@ -128,8 +135,11 @@ while [ $curarch -le $narch ] ; do
         for machineName in $machineavail ; do
 	    # Split off the number of processors, if present
 	    nprocmachine=1
+	    # Some systems return empty for no match; others return 0.  Empty 
+	    # is what they should use (0 is ambiguous), but we have to be 
+	    # prepared for either.
 	    ntest=`expr $machineName : '.*:\([0-9]*\)'`
-	    if [ -n "$ntest" ] ; then
+	    if [ -n "$ntest" -a "$ntest" != "0" ] ; then
 		nprocmachine=$ntest
 	        machineName=`expr $machineName : '\(.*\):.*'`
 	    fi
@@ -157,7 +167,7 @@ while [ $curarch -le $narch ] ; do
 		nleft=`expr $nleft - $nprocmachine`
             fi
             if [ $procFound = $np ] ; then break ; fi
-	    if [ $machineName = $MPI_HOST ] ; then KeepHost=1 ; fi
+	    if [ $machineName = "$MPI_HOST" ] ; then KeepHost=1 ; fi
         done
         loopcnt=`expr $loopcnt + 1`
         # After the first time, we may have found no hosts BUT now

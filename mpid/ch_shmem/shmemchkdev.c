@@ -1,5 +1,5 @@
 /*
- *  $Id: shmemchkdev.c,v 1.1 1996/04/12 20:19:25 gropp Exp $
+ *  $Id: shmemchkdev.c,v 1.2 1998/03/13 22:32:55 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -8,6 +8,7 @@
 
 #include "mpid.h"
 #include "mpiddev.h"
+#include "flow.h"
 #include "../util/queue.h"
 
 /***************************************************************************/
@@ -30,9 +31,6 @@
     This routine makes use of a single dispatch routine to handle all
     incoming messages.  This makes the code a little lengthy, but each
     piece is relatively simple.
-
-    This is the message-passing version.  The shared-memory version is
-    in chchkshdev.c .
  */    
 int MPID_SHMEM_Check_incoming( dev, is_blocking )
 MPID_Device        *dev;
@@ -128,6 +126,12 @@ MPID_BLOCKING_TYPE is_blocking;
 	    DEBUG_TEST_FCN(dev->rndv->do_ack,"dev->rndv->do_ack");
 	    err = (*dev->rndv->do_ack)( pkt, from_grank );
 	    break;
+
+#ifdef MPID_FLOW_CONTROL
+	case MPID_PKT_FLOW:
+	    MPID_RecvFlowPacket( &pkt, from_grank );
+	    break;
+#endif
 
 	default:
 	    fprintf( stdout, "[%d] Mode %d is unknown (internal error) %s:%d!\n", 

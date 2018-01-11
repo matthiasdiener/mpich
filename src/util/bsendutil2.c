@@ -1,5 +1,5 @@
 /*
- *  $Id: bsendutil2.c,v 1.5 1997/03/29 16:07:32 gropp Exp $
+ *  $Id: bsendutil2.c,v 1.5 1998/02/12 19:48:34 gropp Exp $
  *
  *  (C) 1993, 1996 by Argonne National Laboratory and 
  *      Mississipi State University.
@@ -55,7 +55,6 @@
 
 #include "mpiimpl.h"
 
-#ifdef MPI_ADI2
 /* #define DEBUG_BSEND */
 
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */ 
@@ -322,6 +321,7 @@ void         **bufp;
 		b = MPIR_MergeBlock( b );
 	    }
 	    if (b->req == MPI_REQUEST_NULL && b->len >= size) {
+		MPIR_SHANDLE *shandle;
 		/* Split the block if there is enough room */
 		if (b->len > size + sizeof(BSendData) + 8) {
 #ifdef DEBUG_BSEND     /* #DEBUG_BSEND_START# */
@@ -351,9 +351,10 @@ void         **bufp;
 		*bufp			 = (void *)(b+1);
 		/* Create a local request to use */
 		/* BUG - This should be allocated in place */
-		b->req = (MPI_Request) MPID_SendAlloc();
-		if (!b->req) return MPI_ERR_EXHAUSTED;
-		MPID_Request_init( &b->req->shandle, MPIR_SEND );
+		MPID_SendAlloc(shandle);
+		if (!shandle) return MPI_ERR_EXHAUSTED;
+		b->req = (MPI_Request)shandle;
+		MPID_Request_init( shandle, MPIR_SEND );
 /*
   MEMCPY( b->req, rq, sizeof(MPIR_SHANDLE) );
   */
@@ -557,4 +558,3 @@ MPI_Request  request;
     }
     request->shandle.is_complete = 1;
 }
-#endif

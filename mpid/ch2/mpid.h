@@ -16,6 +16,7 @@
 #endif
 
 #include "mpi.h"
+#define MPIR_HAS_COOKIES
 #include "cookie.h"
 
 #ifndef ANSI_ARGS
@@ -161,6 +162,14 @@ extern struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD;
 
 #define MPID_TAG_UB (1<<30)-1
 #define MPID_MAX_CONTEXT_ID (1<<16)-1
+
+/* 
+ * A device may need to set the count and private_count fields of status
+ * for things like communication with MPI_PROC_NULL.  This macro provides
+ * a way to do that (some devices may have special needs and will need to
+ * change this)
+ */
+#define MPID_ZERO_STATUS_COUNT(status) (status)->count = 0
 
 /*
  * Thread definitions.  We show an example of pthreads, as well as

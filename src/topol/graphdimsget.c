@@ -1,5 +1,5 @@
 /*
- *  $Id: graphdimsget.c,v 1.5 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: graphdimsget.c,v 1.2 1998/04/29 14:28:51 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -17,8 +17,8 @@ Input Parameters:
 . comm - communicator for group with graph structure (handle) 
 
 Output Parameter:
-. nnodes - number of nodes in graph (integer) 
-. nedges - number of edges in graph (integer) 
++ nnodes - number of nodes in graph (integer) 
+- nedges - number of edges in graph (integer) 
 
 .N fortran
 

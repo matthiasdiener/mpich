@@ -3,16 +3,6 @@
 #include <stdio.h>
 #include "mpe.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #include "mpetools.h"
 #include "basex11.h"
 #include "mpe.h"

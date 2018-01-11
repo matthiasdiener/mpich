@@ -1,34 +1,30 @@
 /*
- *  $Id: sendrecv_rep.c,v 1.15 1997/03/29 16:06:38 gropp Exp $
+ *  $Id: sendrecv_rep.c,v 1.7 1998/04/28 21:47:11 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
 /* pt2pt for MPIR_Unpack */
 #include "mpipt2pt.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Sendrecv_replace - Sends and receives using a single buffer
 
 Input Parameters:
-. count - number of elements in send and receive buffer (integer) 
++ count - number of elements in send and receive buffer (integer) 
 . datatype - type of elements in send and receive buffer (handle) 
 . dest - rank of destination (integer) 
 . sendtag - send message tag (integer) 
 . source - rank of source (integer) 
 . recvtag - receive message tag (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameters:
-. buf - initial address of send and receive buffer (choice) 
-. status - status object (Status) 
++ buf - initial address of send and receive buffer (choice) 
+- status - status object (Status) 
 
 .N fortran
 
@@ -69,6 +65,7 @@ MPI_Status   *status;
     /* Check for invalid arguments */
     if ( MPIR_TEST_COUNT(comm,count) )
       return MPIR_ERROR( comm_ptr, mpi_errno, myname );
+
     /* Let the other send/recv routines find the remaining errors. */
 
     /* Allocate a temporary buffer that is long enough to receive the 
@@ -94,13 +91,20 @@ MPI_Status   *status;
 	
 	MPIR_CALL_POP(MPI_Irecv ( rbuf, count, datatype, source, 
 			    recvtag, comm, &req[1] ),comm_ptr,myname);
-	MPIR_CALL_POP(MPI_Waitall ( 2, req, status_array ),comm_ptr,myname);
+	mpi_errno = MPI_Waitall ( 2, req, status_array );
+	MPIR_ERROR_POP(comm_ptr);
 	if (rbuf) {
 	    memcpy( buf, rbuf, buflen );
 	    FREE( rbuf );
 	    }
-	(*status) = status_array[1];
+	if (mpi_errno == MPI_ERR_IN_STATUS) {
+	    if (status_array[0].MPI_ERROR) 
+		mpi_errno = status_array[0].MPI_ERROR;
+	    if (status_array[1].MPI_ERROR) 
+		mpi_errno = status_array[1].MPI_ERROR;
 	}
+	(*status) = status_array[1];
+    }
     else {
 	int dest_len, act_len, position;
 	/* non-contiguous data will be packed and unpacked */
@@ -130,15 +134,11 @@ MPI_Status   *status;
 	   length */
 	act_len	 = 0;
 	dest_len = 0;
-#ifdef MPI_ADI2
 	position = 0;
+	/* BUG: This isn't correct for devices that manage status->count */
         MPID_Unpack( rbuf, status->count, MPID_Msgrep_from_comm(comm_ptr),
                      &position, buf, count, dtype_ptr, &dest_len,
                      comm_ptr, MPI_ANY_SOURCE, &mpi_errno);
-#else
-	MPIR_Unpack( comm, rbuf, buflen, count, datatype, comm_ptr->msgrep, 
-		     buf, &act_len, &dest_len );
-#endif
 	if (rbuf) {
 	    FREE( rbuf );
 	    }
@@ -147,5 +147,5 @@ MPI_Status   *status;
 	status->count = dest_len;
 	}
     TR_POP;
-    return MPI_SUCCESS;
+    MPIR_RETURN( comm_ptr, mpi_errno, myname );
 }

@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: gdtype.c,v 1.1.1.1 1997/09/17 20:39:34 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: gdtype.c,v 1.1.1.1 1997/09/17 20:39:34 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"

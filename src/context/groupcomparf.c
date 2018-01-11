@@ -23,13 +23,17 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_group_compare_ ANSI_ARGS(( MPI_Group *, MPI_Group *, int *, int * ));
+void mpi_group_compare_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                    MPI_Fint * ));
 
 void mpi_group_compare_ ( group1, group2, result, __ierr )
-MPI_Group  *group1;
-MPI_Group  *group2;
-int       *result;
-int *__ierr;
+MPI_Fint *group1;
+MPI_Fint *group2;
+MPI_Fint *result;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Group_compare( *group1, *group2, result );
+    int l_result;
+    *__ierr = MPI_Group_compare( MPI_Group_f2c(*group1), 
+                                 MPI_Group_f2c(*group2), &l_result );
+    *result = l_result;
 }

@@ -10,6 +10,9 @@
 #if defined (MPI_cspp)
 #   include <sys/cnx_types.h>
 #   include "p2pcnx.c"
+#ifdef MPID_FLUSH_CACHE
+#undef MPID_FLUSH_CACHE
+#endif
 #   define MPID_FLUSH_CACHE(addr,size) dcache_flush_region(addr, size);
 #endif
 

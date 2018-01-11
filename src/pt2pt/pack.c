@@ -1,25 +1,22 @@
 /*
- *  $Id: pack.c,v 1.19 1997/01/17 22:59:08 gropp Exp $
+ *  $Id: pack.c,v 1.5 1998/04/28 21:46:59 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Pack - Packs a datatype into contiguous memory
 
 Input Parameters:
-. inbuf - input buffer start (choice) 
++ inbuf - input buffer start (choice) 
 . incount - number of input data items (integer) 
 . datatype - datatype of each input data item (handle) 
 . outcount - output buffer size, in bytes (integer) 
 . position - current position in buffer, in bytes (integer) 
-. comm - communicator for packed message (handle) 
+- comm - communicator for packed message (handle) 
 
 Output Parameter:
 . outbuf - output buffer start (choice) 
@@ -49,9 +46,6 @@ MPI_Comm      comm;
   struct MPIR_COMMUNICATOR *comm_ptr;
   struct MPIR_DATATYPE     *dtype_ptr;
   static char myname[] = "MPI_PACK";
-#ifndef MPI_ADI2
-  int size;
-#endif
 
   TR_PUSH(myname);
 
@@ -66,40 +60,43 @@ MPI_Comm      comm;
       ( (*position < 0 ) && (mpi_errno = MPI_ERR_ARG) ) ) 
       return MPIR_ERROR(comm_ptr,mpi_errno,myname );
 
+  /***************************************************************
+   ** Debbie Swider put these error checks in on 11/17/97 ********
+   ***************************************************************/
+
+  /*** Check to see that output buffer size is not < 0 ******/
+  if (MPIR_TEST_OUTSIZE(comm,outcount)) {
+     return MPIR_ERROR(comm_ptr,mpi_errno,myname);
+  }
+
+  /*** Check to see that output buffer size is not less than ***
+       number of input data items ***/
+  if (MPIR_TEST_OUT_LT_IN(comm,outcount,incount)) {
+     return MPIR_ERROR(comm_ptr,mpi_errno,myname);
+  }
+
+  /*****************************************************************
+   *****************************************************************/
+     
   if (!dtype_ptr->committed) {
       return MPIR_ERROR( comm_ptr, MPI_ERR_UNCOMMITTED, myname );
   }
 
-#ifdef MPI_ADI2
   /* Msgform is the form for ALL messages; we need to convert it into
      a Msgrep which may be different for each system.  Eventually, 
      Msgform should just be one of the Msgrep cases.
      In addition, this should probably not refer to XDR explicitly.
+
+     Note that we pass the buffer to MPID_Pack in the same way that
+     MPI_Pack gets it - buffer/position, not current buffer position.
+     This is a change from MPICH 1.1.0 (needed by Nexus).
    */
   MPID_Pack( inbuf, incount, dtype_ptr, 
-	     ((char *)outbuf) + *position, outcount-*position, position,
+	     /*((char *)outbuf) + *position, outcount-*position, position,*/
+	     outbuf,outcount,position,
 	     comm_ptr, MPI_ANY_SOURCE, -1, comm_ptr->msgform, 
 /*	     (comm_ptr->msgform == MPID_MSGFORM_OK) ? MPID_MSG_OK : 
 		  MPID_MSG_XDR, */ &mpi_errno );
   TR_POP;
   MPIR_RETURN(comm_ptr,mpi_errno,myname);
-#else  
-  /* What kind of padding is necessary? */
-  /* pad = (datatype->align - 
-     ((*position) % datatype->align)) % datatype->align; */
-
-  /* Is there enough room to finish packing the type? */
-  MPIR_Pack_size ( incount, datatype, comm, comm_ptr->msgrep, &size );
-  if (((*position) /* + pad */ + size) > outcount)
-	return MPIR_ERROR(comm_ptr, MPI_ERR_ARG, "Buffer too small in MPI_PACK");
-
-  /* Figure the pad and adjust position */
-  /* (*position) += pad; */
-  mpi_errno = MPIR_Pack(comm, comm_ptr->msgrep, inbuf, incount, datatype, 
-			(char *)outbuf + (*position), outcount - *position, 
-			 &size );
-  if (mpi_errno) MPIR_ERROR(comm_ptr,mpi_errno,myname );
-  (*position) += size;
-  return (mpi_errno);
-#endif
 }

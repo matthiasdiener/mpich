@@ -1,16 +1,12 @@
 /*
- *  $Id: group_inter.c,v 1.22 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: group_inter.c,v 1.3 1998/04/28 20:58:10 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
@@ -18,8 +14,8 @@ MPI_Group_intersection - Produces a group as the intersection of two existing
                          groups
 
 Input Parameters:
-. group1 - first group (handle) 
-. group2 - second group (handle) 
++ group1 - first group (handle) 
+- group2 - second group (handle) 
 
 Output Parameter:
 . newgroup - intersection group (handle) 
@@ -110,11 +106,7 @@ MPI_Group group1, group2, *group_out;
       new_group_ptr->lrank_to_grank[n++] = group1_ptr->lrank_to_grank[i];
 
   /* Find the local rank */
-#ifdef MPI_ADI2
   global_rank = MPID_MyWorldRank;
-#else
-  MPID_Myrank(MPIR_COMM_WORLD->ADIctx, &global_rank);
-#endif
   for( i=0; i<new_group_ptr->np; i++ )
     if ( global_rank == new_group_ptr->lrank_to_grank[i] ) {
       new_group_ptr->local_rank = i;

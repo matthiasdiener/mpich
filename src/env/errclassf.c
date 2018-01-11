@@ -23,11 +23,15 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_error_class_ ANSI_ARGS(( int *, int *, int * ));
+void mpi_error_class_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_error_class_( errorcode, errorclass, __ierr )
-int*errorcode, *errorclass;
-int *__ierr;
+MPI_Fint *errorcode; 
+MPI_Fint *errorclass;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Error_class(*errorcode,errorclass);
+    int l_errorclass;
+
+    *__ierr = MPI_Error_class((int)*errorcode, &l_errorclass);
+    *errorclass = l_errorclass;
 }

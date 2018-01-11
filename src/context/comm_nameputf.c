@@ -1,5 +1,5 @@
 /*
- *  $Id: comm_nameputf.c,v 1.3 1997/02/23 19:22:15 gropp Exp $
+ *  $Id: comm_nameputf.c,v 1.2 1998/01/16 16:24:37 swider Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -53,18 +53,18 @@ int *__ierr;
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_comm_set_name_ ANSI_ARGS(( MPI_Comm *, char *, int *, long ));
+void mpi_comm_set_name_ ANSI_ARGS(( MPI_Fint *, char *, MPI_Fint *, 
+                                    MPI_Fint ));
 void mpi_comm_set_name_( comm, string, __ierr, d )
-MPI_Comm * comm;
-char *string;
-int *__ierr;
-long d;
+MPI_Fint *comm;
+char     *string;
+MPI_Fint *__ierr;
+MPI_Fint d;
 {
   char cres[MPI_MAX_ERROR_STRING];
 
   /* Assign the result to the Fortran string doing blank padding as required */
-  MPIR_fstr2cstr(cres, MPI_MAX_ERROR_STRING, string, d);
-  
-  *__ierr = MPI_Comm_set_name(*comm, cres);
+  MPIR_fstr2cstr(cres, MPI_MAX_ERROR_STRING, string, (long)d);
+  *__ierr = MPI_Comm_set_name(MPI_Comm_f2c(*comm), cres);
 }
 #endif

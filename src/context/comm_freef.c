@@ -23,11 +23,13 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_comm_free_ ANSI_ARGS(( MPI_Comm *, int * ));
+void mpi_comm_free_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_comm_free_ ( comm, __ierr )
-MPI_Comm *comm;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Comm_free( comm );
+    MPI_Comm l_comm = MPI_Comm_f2c(*comm);
+    *__ierr = MPI_Comm_free(&l_comm);
+    *comm = MPI_Comm_c2f(l_comm);
 }

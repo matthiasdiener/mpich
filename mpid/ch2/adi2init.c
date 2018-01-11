@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2init.c,v 1.6 1997/03/08 22:04:20 gropp Exp $
+ *  $Id: adi2init.c,v 1.1.1.1 1997/09/17 20:39:25 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

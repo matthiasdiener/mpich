@@ -14,19 +14,13 @@ extern char *malloc();
 extern void free();
 #endif
 
+#if defined(HAVE_STRING_H) || defined(STDC_HEADERS)
+#include <string.h>
+#endif
+
 /* This is needed to process Cray - style character data */
 #ifdef _CRAY
 #include <fortran.h>
-#endif
-
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
 #endif
 
 #ifdef FORTRANCAPS

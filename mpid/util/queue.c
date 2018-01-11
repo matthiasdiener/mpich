@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: queue.c,v 1.2 1998/01/29 14:25:46 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -90,7 +90,7 @@ MPID_QHDR *header;
 	if (DebugFlag) {
 	    fprintf( stdout, 
 		 "[%d] %lx context_id = %d, tag = %d(%x), src = %d(%x)\n",
-		 MPID_MyWorldRank, (MPI_Aint)p, 
+		 MPID_MyWorldRank, (long)p, 
 		 p->context_id, p->tag, p->tagmask, p->lsrc, p->srcmask );
 	}
 	else {
@@ -109,7 +109,7 @@ MPID_QHDR *header;
 	if (DebugFlag) {
 	    fprintf( stdout, 
 		 "[%d] %lx context_id = %d, tag = %d(%x), src = %d(%x)\n",
-		 MPID_MyWorldRank, (MPI_Aint)p,
+		 MPID_MyWorldRank, (long)p,
 		 p->context_id, p->tag, p->tagmask, p->lsrc, p->srcmask );
 	}
 	else {
@@ -411,7 +411,7 @@ MPIR_RHANDLE **dmpi_recv_handle;
     else
     {
 	/* allocate handle and put in unexpected queue */
-	*dmpi_recv_handle       = MPID_RecvAlloc();
+	MPID_RecvAlloc( *dmpi_recv_handle );
 	/* Note that we don't initialize the request here, because 
 	   we're storing just the basic information on the request,
 	   and all other fields will be set when the message is found.
@@ -424,6 +424,7 @@ MPIR_RHANDLE **dmpi_recv_handle;
 	    }
 #ifdef MPID_DEBUG_ALL
 	memset( handleptr,0xfa, sizeof(MPIR_RHANDLE) );
+	MPID_RecvInit( *dmpi_recv_handle );
 #endif
 	handleptr->s.MPI_SOURCE	= src;
 	handleptr->s.MPI_TAG  	= tag;

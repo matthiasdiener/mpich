@@ -3,6 +3,12 @@
 #include <stdio.h>
 #include <signal.h>
 #include "test.h"
+#include "mpi.h"
+
+/* In order to quiet noisy C compilers, we provide ANSI-style prototypes
+   where possible */
+int SYiCheckSig ANSI_ARGS(( FILE *, int, char * ));
+int SYCheckSignals ANSI_ARGS(( FILE * ));
 
 int SYiCheckSig( fp, sig, signame )
 FILE *fp;
@@ -164,10 +170,10 @@ int main( argc, argv )
 int argc;
 char **argv;
 {
-int err;
-MPI_Init( &argc, &argv );
-err = SYCheckSignals( stdout );
-Test_Waitforall( );
-MPI_Finalize();
-return err;
+    int err;
+    MPI_Init( &argc, &argv );
+    err = SYCheckSignals( stdout );
+    Test_Waitforall( );
+    MPI_Finalize();
+    return err;
 }

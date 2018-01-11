@@ -1,5 +1,5 @@
 /*
- *  $Id: dims_create.c,v 1.17 1997/04/09 15:42:16 gropp Exp $
+ *  $Id: dims_create.c,v 1.4 1998/04/29 14:28:40 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,11 +13,7 @@
 #include "mpiimpl.h"
 #include <stdio.h>
 #include <math.h>
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /* Guess at the 1/bth root of a */
 /*#define MPIR_guess(a,b)  ((a)/(b))*/
@@ -705,8 +701,8 @@ int *factors;
     MPI_Dims_create - Creates a division of processors in a cartesian grid
 
 Input Parameters:
-. nnodes - number of nodes in a grid (integer) 
-. ndims - number of cartesian dimensions (integer) 
++ nnodes - number of nodes in a grid (integer) 
+- ndims - number of cartesian dimensions (integer) 
 
 In/Out Parameter:   
 . dims - integer array of size  'ndims' specifying the number of nodes in each 
@@ -729,9 +725,11 @@ int *dims;
 
   newNdims = 0;                        /* number of zero values in dims[] */
   for (i=0; i<ndims; i++) {
-	if (dims[i]<0)
+      if (dims[i]<0) {
+	  MPIR_ERROR_PUSH_ARG(&dims[i]);
 	  return MPIR_ERROR(MPIR_COMM_WORLD,MPI_ERR_DIMS,
 			    "Invalid args to MPI_DIMS_CREATE");
+      }
 	if (dims[i]==0)
 	  newNdims++;
   }

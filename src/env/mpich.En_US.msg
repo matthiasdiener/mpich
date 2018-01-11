@@ -32,6 +32,7 @@ $set 5 MPI_ERR_COMM
 5 Communicator argument is not a valid communicator\n\
 Special bit pattern %x in communicator is incorrect.  May indicate an \n\
 out-of-order argument or a freed communicator
+6 Error setting communicator name
 $set 6 MPI_ERR_RANK
 1 Invalid rank %d
 $set 7 MPI_ERR_ROOT
@@ -49,7 +50,7 @@ $set 9 MPI_ERR_OP
 $set 10 MPI_ERR_TOPOLOGY
 1 Invalid topology
 $set 11 MPI_ERR_DIMS
-1 Illegal dimension argument
+1 Illegal dimension argument %d
 $set 12 MPI_ERR_ARG
 1 Invalid argument
 2 Invalid error code
@@ -62,6 +63,7 @@ $set 12 MPI_ERR_ARG
 11 MPI_Errhandler argument is not a valid errorhandler\n\
 Special bit pattern %x in errhandler is incorrect.  May indicate an \n\
 out-of-order argument or a deleted error handler
+12 Illegal use of MPI_STATUS_IGNORE or MPI_STATUSES_IGNORE
 $set 13 MPI_ERR_UNKNOWN
 1 Unknown error
 $set 14 MPI_ERR_TRUNCATE

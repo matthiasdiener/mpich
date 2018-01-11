@@ -35,6 +35,7 @@ MakeComms( comms, 20, &ncomm, 0 );
 /* Test over a wide range of datatypes and communicators */
 err = 0;
 for (i=0; i<ncomm; i++) {
+    if (comms[i] == MPI_COMM_NULL) continue;
     MPI_Comm_rank( comms[i], &rank );
     MPI_Comm_size( comms[i], &np );
     if (np < 2) continue;

@@ -1,5 +1,5 @@
 /*
- *  $Id: scan.c,v 1.33 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: scan.c,v 1.2 1998/04/28 18:51:05 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,11 +15,11 @@ MPI_Scan - Computes the scan (partial reductions) of data on a collection of
            processes
 
 Input Parameters:
-. sendbuf - starting address of send buffer (choice) 
++ sendbuf - starting address of send buffer (choice) 
 . count - number of elements in input buffer (integer) 
 . datatype - data type of elements of input buffer (handle) 
 . op - operation (handle) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - starting address of receive buffer (choice) 

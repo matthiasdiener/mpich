@@ -1,0 +1,30 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML3.2 EN">
+<HTML>
+<HEAD>
+<META NAME="GENERATOR" CONTENT="DOCTEXT">
+<TITLE>CLOG_mergelogs</TITLE>
+</HEAD>
+<BODY BGCOLOR="FFFFFF">
+<A NAME="CLOG_mergelogs"><H1>CLOG_mergelogs</H1></A>
+merge individual logfiles into one via messages 
+<H2>Synopsis</H2>
+<PRE>
+#include &lt;stdio.h&gt;
+#include "mpe.h"
+void CLOG_mergelogs( shift, execfilename, logtype )
+int shift;
+char *execfilename;
+int logtype;
+</PRE>
+first argument says whether to do time-shifiting or 
+notsecond arg is 
+filename
+<P>
+On process 0 in MPI_COMM_WORLD, collect logs from other processes and 
+mergethem with own log.  Timestamps are assumed to be already adjusted on 
+bothincoming logs and the master's.  On the other processes, fill in length 
+andprocess id's and send them, a block at a time, to the master.  The 
+masterwrites out the merged log.
+<P>
+<P><B>Location:</B>clog_merge.c<P>
+</BODY></HTML>

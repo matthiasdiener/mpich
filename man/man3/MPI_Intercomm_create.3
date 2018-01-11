@@ -1,4 +1,4 @@
-.TH MPI_Intercomm_create 3 "1/6/1997" " " "MPI"
+.TH MPI_Intercomm_create 3 "4/28/1998" " " "MPI"
 .SH NAME
 MPI_Intercomm_create \-  Creates an intercommuncator from two intracommunicators 
 .SH SYNOPSIS
@@ -128,11 +128,13 @@ be used to allocate new contexts during the merge and dup operations.
 For the resulting inter-communicator, 
 .I comm_out
 
+
 .nf
 comm_out                       = inter-communicator
 comm_out->comm_coll            = "collective" inter-communicator
 comm_out->comm_coll->comm_coll = safe collective intra-communicator
 .fi
+
 
 .SH ERRORS
 

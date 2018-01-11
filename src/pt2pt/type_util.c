@@ -1,19 +1,15 @@
 /*
- *  $Id: type_util.c,v 1.20 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_util.c,v 1.3 1998/04/10 17:36:20 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBfree MPID_SBfree
 /* pt2pt for MPIR_Type_xxx */
 #include "mpipt2pt.h"
-#else
-#include "mpisys.h"
-#endif
 
 #ifndef MPIR_TRUE
 #define MPIR_TRUE  1
@@ -227,4 +223,14 @@ struct MPIR_DATATYPE *dtype_ptr;
     
     /* Free the malloc'd memory */
     FREE ( dtype_ptr->old_types );
+}
+
+/*
+ * Routine to return whether a datatype is contiguous
+ */
+void MPIR_Datatype_iscontig( dtype, flag )
+MPI_Datatype dtype;
+int          *flag;
+{
+    MPIR_DATATYPE_ISCONTIG(dtype,flag);
 }

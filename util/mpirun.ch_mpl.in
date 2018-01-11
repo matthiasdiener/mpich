@@ -1,4 +1,5 @@
 #! /bin/sh
+exitstatus=1
 if [ "$MPIR_HOME" = "" ] ; then 
     MPIR_HOME=#MPIR_HOME#
 fi
@@ -56,7 +57,10 @@ if [ -z "$MP_EUILIB" ] ; then
         MP_EUILIB=us
     fi
 fi
-
+# Set default machinefile
+if [ -z "$machineFile" -a -n "$MP_HOSTFILE" ] ; then
+    machineFile="$MP_HOSTFILE"
+fi
 # Handle Totalview debugging
 if [ "$debugger" = "totalview" ] ; then
     if [ "$TOTALVIEW" = "" ] ; then
@@ -121,5 +125,6 @@ else
 	export MP_CSS_INTERRUPT
     fi
     $startpgm $progname $cmdLineArgs $debugargs
+    exitstatus=$?
 fi
 

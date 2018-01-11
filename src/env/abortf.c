@@ -22,12 +22,12 @@
 #endif
 #endif
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_abort_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
+void mpi_abort_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_abort_( comm, errorcode, __ierr )
-MPI_Comm         *comm;
-int*errorcode;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *errorcode;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Abort( *comm, *errorcode);
+    *__ierr = MPI_Abort( MPI_Comm_f2c(*comm), (int)*errorcode);
 }

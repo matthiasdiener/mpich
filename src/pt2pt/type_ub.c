@@ -1,15 +1,11 @@
 /*
- *  $Id: type_ub.c,v 1.13 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_ub.c,v 1.2 1998/01/29 14:29:02 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
-
 
 /*@
     MPI_Type_ub - Returns the upper bound of a datatype

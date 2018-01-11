@@ -72,7 +72,7 @@ mpif.h: $(MPIR_HOME)/include/mpif.h
 	fi
 
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) $(OTHEREXECS) $(MPI2EXECS) \
+	@-/bin/rm -f *.o *~ PI* $(EXECS) $(OTHEREXECS) $(MPI2EXECS) \
 		core *.out *.diff *.trace
 
 .c.o:

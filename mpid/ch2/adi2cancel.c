@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2cancel.c,v 1.2 1996/12/03 02:51:46 gropp Exp $
+ *  $Id: adi2cancel.c,v 1.2 1998/04/10 17:44:13 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -39,12 +39,14 @@ int         *error_code;
 	rhandle->is_complete = 1;
 	/* Should we call finish to free any space?  cancel? */
 
-	/* If request is a persistent one, we need to mark it as inactive
-	   as well */
+	/* Note that the request is still active until we complete it with
+	   a wait/test operation */
+#ifdef FOO
 	if (rhandle->handle_type == MPIR_PERSISTENT_RECV) {
 	    MPIR_PRHANDLE *prhandle = (MPIR_PRHANDLE *)request;
 	    prhandle->active = 0;
 	}
+#endif
     }
     else {
 	/* Mark the request as not cancelled */

@@ -1,5 +1,5 @@
 /*
- *  $Id: mpi_errno.h,v 1.16 1996/01/29 21:24:00 gropp Exp $
+ *  $Id: mpi_errno.h,v 1.1.1.1 1997/09/17 20:38:07 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

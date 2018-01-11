@@ -20,9 +20,7 @@ OPTFLAGS    = @OPTFLAGS@
 
 SHELL = /bin/sh
 
-MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
-                 ../../include/mpir.h ../../include/mpi_ad.h \
-		 ../../include/mpisys.h 
+MPI_INCLUDE    = ../../include/mpi.h
 DEVICE_LIB = 
 CFLAGS = @CFLAGS@ $(OPTFLAGS) $(INCLUDE_DIR) -DMPI_$(ARCH) $(MPIPROFILE)
 FFLAGS = $(OPTFLAGS)

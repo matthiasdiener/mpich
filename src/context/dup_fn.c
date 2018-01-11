@@ -1,5 +1,5 @@
 /*
- *  $Id: dup_fn.c,v 1.9 1997/02/18 23:06:13 gropp Exp $
+ *  $Id: dup_fn.c,v 1.1.1.1 1997/09/17 20:41:41 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

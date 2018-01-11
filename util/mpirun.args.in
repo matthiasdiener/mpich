@@ -32,15 +32,16 @@ nolocal=0
 leavePGFile=0
 p4pgfile=
 tcppgfile=
-nexuspgfile=
-nexusdbfile=
+globuspgfile=
+globusdbfile=
+globusargs=
 p4ssport=
 just_testing=0
 machineFile=
 debugger=""
 commandfile=""
 rmcommandfile=""
-rshcmd=#RSH_COMMAND#
+rshcmd=#RSHCOMMAND#
 mvhome=0
 mvback=
 narch=0
@@ -48,6 +49,7 @@ stdinfile=
 stdoutfile=
 stderrfile=
 batch=
+p4wd=""
 easy_jid=
 keepsendQ=
 Show=eval
@@ -108,6 +110,7 @@ cat <<EOF
     -gdb    Start the first process under gdb where possible
              (on the Meiko, selecting either -dbx or -gdb starts prun
              under totalview instead)
+    -ddd    Start the first process under the ddd debugger (untested)
     -xxgdb  Start the first process under xxgdb where possible (-xdbx
             does not work)
     -tv     Start under totalview
@@ -124,7 +127,6 @@ cat <<EOF
             Use filename as the standard output for the program.
     -stderr filename
             Use filename as the standard error  for the program.
-
     -jid    Jobid from Job-Scheduler EASY.
             If this option is specified, mpirun directly executes
             the parallel program using this jobid.
@@ -136,14 +138,17 @@ cat <<EOF
                        releases the processors.
 	          
 	          
-      Special Options for Nexus device:
+      Special Options for Globus device:
   
-    -nexuspg filename
-	    Use the given Nexus startup file instead of creating one.
+    -globusrsl filename
+	    Use the given Globus startup file instead of creating one.
 	    Overrides -np and -nolocal, selects -leave_pg.
     
-    -nexusdb filename
-	    Use the given Nexus resource database.
+    -globusdb filename
+	    Use the given Globus resource database.
+
+    -globusargs args
+            Special arguments for Globus
 
     Special Options for Workstation Clusters:
 
@@ -156,6 +161,8 @@ cat <<EOF
     -p4pg filename
             Use the given p4 procgroup file instead of creating one.
             Overrides -np and -nolocal, selects -leave_pg.
+    -p4wd pathname
+            Use pathname as the working directory for the program (ch_p4 device)
     -tcppg filename
             Use the given tcp procgroup file instead of creating one.
             Overrides -np and -nolocal, selects -leave_pg.
@@ -315,17 +322,21 @@ while [ 1 -le $# ] ; do
         easy_jid="$1"
         shift
         ;;
-    -nexuspg)
+    -globusrsl)
 	if [ $np -gt 1 ] ; then
-	    echo "-nexuspg and -np are mutally exlusive; -np $np being ignored."
+	    echo "-globusrsl and -np are mutally exlusive; -np $np being ignored."
 	    np=1
 	fi
-	nexuspgfile="$1"
+	globuspgfile="$1"
 	shift
 	leavePGFile=1
 	;;
-    -nexusdb)
-	nexusdbfile="$1"
+    -globusdb)
+	globusdbfile="$1"
+	shift
+	;;
+    -globusargs)
+	globusargs="$1"
 	shift
 	;;
     -p4pg)
@@ -336,6 +347,10 @@ while [ 1 -le $# ] ; do
 	p4pgfile="$1"
 	shift
       	leavePGFile=1
+	;;
+    -p4wd)
+	p4workdir="$1"
+	shift
 	;;
     -tcppg)
       	if [ $np -gt  1 ] ; then
@@ -392,6 +407,10 @@ while [ 1 -le $# ] ; do
     -xxgdb)
       	debugger="xxgdb"
       	commandfile="--command=%f"
+	;;
+    -ddd)
+	debugger="ddd"
+        commandfile="--command=%f"
 	;;
     -pedb)
 	# For IBM SP
@@ -481,7 +500,7 @@ fi
 
 # We need at least the program name
 
-if [ "$progname" = "" ] ; then
+if [ "$globuspgfile" = "" -a "$progname" = "" ] ; then
   echo "Missing: program name"
   if [ "$fake_progname" != "" ] ; then
       echo "Program $fake_progname either does not exist, is not "
@@ -623,8 +642,8 @@ if [ "$machine" = "" ] ; then
 	machine="p4"
       elif [ "$default_device" = "ch_tcp" -a $use_execer = 0 ] ; then
 	machine="ch_tcp"
-      elif [ "$default_device" = "ch_nexus" ] ; then
-	machine="nexus"
+      elif [ "$default_device" = "globus" ] ; then
+	machine="globus"
       else
         machine="execer"
       fi
@@ -637,11 +656,11 @@ if [ "$machine" = "" ] ; then
       if [ $? = 0 ] ; then
         # This is the correct version to use once we're on a node
 	machine="ibmspx"
-      elif [ "$default_device" = "ch_nexus" ] ; then
-        # We need this before the anlspx check, because the Nexus device
+      elif [ "$default_device" = "globus" ] ; then
+        # We need this before the anlspx check, because the Globus device
         # can be used on the ANL SP, as well, but the mpirun script for
-        # it does not use Nexus by default.
-	machine="nexus"
+        # it does not use Globus by default.
+	machine="globus"
       elif [ -d /etc/FRAMES -a -d /mcs ] ; then
         machine="anlspx"
       elif [ "$default_device" = "chameleon" ] ; then
@@ -675,8 +694,8 @@ if [ "$machine" = "" ] ; then
 	machine="p4"
       elif [ "$default_device" = "ch_tcp" -a $use_execer = 0 ] ; then
 	machine="ch_tcp"
-      elif [ "$default_device" = "ch_nexus" ] ; then
-	machine="nexus"
+      elif [ "$default_device" = "globus" ] ; then
+	machine="globus"
       else
         machine="execer"
       fi
@@ -689,14 +708,14 @@ fi
 # Get value of host if necessary
 if [ "$machine" = p4 -o "$machine" = execer -o "$machine" = ch_tcp -o \
 	"$machine" = sgi_mp -o "$machine" = ch_p4 -o \
-	"$machine" = ch_p4-2 -o "$machine" = ch_nexus -o \
-        "$machine" = nexus ] ; then
+	"$machine" = ch_p4-2 -o "$machine" = globus -o \
+        "$machine" = globus ] ; then
   if [ "$MPI_HOST" = "" ] ;  then
     MPI_HOST=""
     if [ "$arch" = "ipsc860" ] ; then
 	MPI_HOST=`hostname`
     else
-        # Which is not supported in many sh's
+        # Which is not supported in many sh's.  head isn't on some as well.
 #	HOSTNAMEPGM="`which hostname | head -1`"
 #        if [ -x "$HOSTNAMEPGM" ] ; then MPI_HOST="`hostname`" ; fi
 	MPI_HOST=`hostname`
@@ -723,8 +742,8 @@ if [ $mpirun_verbose = 1 ] ; then
   cnt=1
   if [ $narch -gt 1 ] ; then
       while [ $cnt -le $narch ] ; do
-        eval mp=$"np$cnt"
-        eval archm=$"arch$cnt"
+        eval mp=\$"np$cnt"
+        eval archm=\$"arch$cnt"
 	proginstance=`echo $progname | sed "s/%a/$archm/"`
 	echo "running $proginstance on $mp $archm $machine processors"
 	cnt=`expr $cnt + 1`

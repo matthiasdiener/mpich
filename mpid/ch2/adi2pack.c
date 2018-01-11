@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2pack.c,v 1.9 1997/01/17 23:00:04 gropp Exp $
+ *  $Id: adi2pack.c,v 1.2 1997/10/06 18:30:50 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -133,6 +133,13 @@ MPID_Msg_pack_t msgact;
     }
 }
 
+/*
+ * The meaning of the arguments here is very similar to MPI_Pack.
+ * In particular, the destination buffer is specified as
+ * (dest/position) with total size maxcount bytes.  The next byte
+ * to write is offset by position into dest.  This is a change from
+ * MPICH 1.1.0 .
+ */
 void MPID_Pack( src, count, dtype_ptr, dest, maxcount, position, 
            comm_ptr, partner, msgrep, msgact, error_code )
 void            *src, *dest;
@@ -152,6 +159,16 @@ MPID_Msg_pack_t msgact;
     XDR xdr_ctx;    
 #endif
 
+    /* Update the dest address.  This relies on char * being bytes. */
+    if (*position) {
+	dest = (void *)( (char *)dest + *position );
+	maxcount -= *position;
+    }
+    /* 
+       dest and maxcount now specify the REMAINING space in the buffer.
+       Position is left unchanged because this code increments it 
+       relatively (i.e., it adds the number of bytes written to dest).
+     */
 #ifdef MPID_HAS_HETERO
     switch (msgact) {
 #ifdef HAS_XDR

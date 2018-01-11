@@ -222,7 +222,9 @@ CheckBuffer(bufferspace, buffertype, bufferlen)
 void 
 SetupBasicTypes()
 {
+#if defined (HAVE_LONG_DOUBLE)
     int l;
+#endif
     BasicTypes[0] = MPI_CHAR;        BasicNames[0] = "MPI_CHAR" ;
     BasicTypes[1] = MPI_SHORT;       BasicNames[1] = "MPI_SHORT";
     BasicTypes[2] = MPI_INT;         BasicNames[2] = "MPI_INT"  ;

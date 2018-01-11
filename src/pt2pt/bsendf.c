@@ -1,6 +1,7 @@
 /* bsend.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
+
 #ifdef _CRAY
 #include <fortran.h>
 #include <stdarg.h>
@@ -75,16 +76,19 @@ if (_isfcd(buf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_bsend_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *, 
-			    MPI_Comm *, int * ));
+void mpi_bsend_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                            MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_bsend_( buf, count, datatype, dest, tag, comm, __ierr )
-void             *buf;
-int*count,*dest,*tag;
-MPI_Datatype     *datatype;
-MPI_Comm         *comm;
-int *__ierr;
+void     *buf;
+MPI_Fint *count;
+MPI_Fint *dest;
+MPI_Fint *tag;
+MPI_Fint *datatype;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-*__ierr = MPI_Bsend(MPIR_F_PTR(buf),*count,*datatype,*dest,*tag,*comm );
+*__ierr = MPI_Bsend(MPIR_F_PTR(buf),(int)*count,MPI_Type_f2c(*datatype),
+                    (int)*dest,(int)*tag,MPI_Comm_f2c(*comm) );
 }
 #endif

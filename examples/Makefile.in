@@ -3,9 +3,6 @@ ALL: default
 
 ARCH        = @ARCH@
 COMM        = @COMM@
-BOPT        = @BOPT@
-P4_DIR      = @P4_DIR@
-TOOLS_DIR   = @TOOLS_DIR@
 MPIR_HOME   = @MPIR_HOME@
 CC          = @CC@
 CLINKER     = $(CC)
@@ -19,8 +16,8 @@ PROFILING   = $(PMPILIB)
 OPTFLAGS    = @OPTFLAGS@
 MPE_GRAPH   = @MPE_GRAPHICS@
 #
-INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include 
 DEVICE      = @DEVICE@
+INCLUDE_DIR = @USER_INCLUDE_PATH@ -I$(MPIR_HOME)/include -I$(MPIR_HOME)/lib/$ARCH/$COMM
 
 ### End User configurable options ###
 SHELL = /bin/sh

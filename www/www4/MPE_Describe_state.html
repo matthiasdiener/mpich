@@ -1,0 +1,25 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML3.2 EN">
+<HTML>
+<HEAD>
+<META NAME="GENERATOR" CONTENT="DOCTEXT">
+<TITLE>MPE_Describe_state</TITLE>
+</HEAD>
+<BODY BGCOLOR="FFFFFF">
+<A NAME="MPE_Describe_state"><H1>MPE_Describe_state</H1></A>
+Create log record describing a state 
+<H2>Synopsis</H2>
+<PRE>
+#include &lt;stdio.h&gt;
+#include "mpe.h"
+int MPE_Describe_state( start, end, name, color )
+int start, end;
+char *name, *color;
+</PRE>
+<H2>Notes</H2>
+Adds string containing a state def to the logfile.  The format of 
+thedef is (LOG_STATE_DEF) 0 sevent eevent 0 0 "color" "name".
+<P>
+<H2>See Also</H2>
+ MPE_Log_get_event_number 
+<BR><P><B>Location:</B>mpe_log.c<P>
+</BODY></HTML>

@@ -3,7 +3,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: rate.c,v 1.1 1994/03/18 00:29:19 gropp Exp $";
+static char vcid[] = "$Id: rate.c,v 1.2 1998/04/29 15:15:47 swider Exp $";
 #endif
 
 /*
@@ -25,16 +25,16 @@ static char vcid[] = "$Id: rate.c,v 1.1 1994/03/18 00:29:19 gropp Exp $";
     PIComputeRate - Computes the communication rate given timing information
  
     Input Parameters:
-.   sumlen - Sum of the lengths of the messages sent
++   sumlen - Sum of the lengths of the messages sent
 .   sumtime - Sum of the time to send the messages
 .   sumlentime - Sum of the product of the message lengths and the times
                  to send those messages
 .   sumlen2 - Sum of the squares of the lengths of the messages
-.   ntest   - Number of messages sent
+-   ntest   - Number of messages sent
 
     Output Parameters:
-.   s - latency
-.   r - transfer rate
++   s - latency
+-   r - transfer rate
 
     Notes:
     This code computes a fit to the model (s + r n) for communications

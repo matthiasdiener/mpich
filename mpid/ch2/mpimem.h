@@ -19,10 +19,13 @@
 #endif
 #else
 /* We'd like to have a definition for memset etc.  If we can find it ... */
-#if defined(HAVE_MEMORY_H)
-#include <memory.h>
+#ifdef STDC_HEADERS
+/* Prototype for memset() */
+#include <string.h>
 #elif defined(HAVE_STRING_H)
 #include <string.h>
+#elif defines(HAVE_MEMORY_H)
+#include <memory.h>
 #endif
 
 /* Need to determine how to declare malloc for all systems, some of which

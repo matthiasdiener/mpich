@@ -1,16 +1,12 @@
 /*
- *  $Id: keyval_free.c,v 1.19 1997/02/18 23:06:13 gropp Exp $
+ *  $Id: keyval_free.c,v 1.2 1998/01/29 14:26:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 #include "attr.h"
 
 /*@

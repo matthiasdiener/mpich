@@ -1,5 +1,5 @@
 /*
- *  $Id: sendutil.c,v 1.3 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: sendutil.c,v 1.2 1998/01/29 14:28:23 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -8,7 +8,6 @@
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #ifdef MPI_KEEP_SEND_QUEUE
 #include "../util/queue.h"
 #include "reqalloc.h"
@@ -114,5 +113,4 @@ MPIR_SHANDLE *sh;
   MPID_THREAD_DS_UNLOCK(&MPIR_Sendq)  
 }
 #endif	/* KEEP_SEND_QUEUE */
-#endif	/* ADI2 */
 

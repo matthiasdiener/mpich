@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2mpass.c,v 1.1 1996/04/12 20:16:47 gropp Exp $
+ *  $Id: adi2mpass.c,v 1.1.1.1 1997/09/17 20:39:24 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,7 +7,7 @@
 
 
 #ifndef lint
-static char vcid[] = "$Id: adi2mpass.c,v 1.1 1996/04/12 20:16:47 gropp Exp $";
+static char vcid[] = "$Id: adi2mpass.c,v 1.1.1.1 1997/09/17 20:39:24 gropp Exp $";
 #endif /* lint */
 
 #include "mpid.h"

@@ -23,11 +23,14 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_cancel_ ANSI_ARGS(( MPI_Request *, int * ));
+void mpi_cancel_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_cancel_( request, __ierr )
-MPI_Request *request;
-int *__ierr;
+MPI_Fint *request;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Cancel(request);
+    MPI_Request lrequest;
+
+    lrequest = MPI_Request_f2c(*request);  
+    *__ierr = MPI_Cancel(&lrequest); 
 }

@@ -37,30 +37,9 @@ extern void MPIR_RmPointer();
 #endif
 
 /* In order to suppress warnings about prototypes, each routine is prototyped 
-   here */
+   right before the definition */
 void mpe_open_graphics_ ANSI_ARGS(( MPE_XGraph *, MPI_Comm *, char *, int *, 
 				    int *, int *, int *, int *, int * ));
-void mpe_capturefile_ ANSI_ARGS(( MPE_XGraph *, char *, int *, int * ));
-void mpe_draw_point_ ANSI_ARGS(( MPE_XGraph *, int *, int *, MPE_Color *, 
-				 int * ));
-void mpe_draw_points_ ANSI_ARGS(( MPE_XGraph *, MPE_Point *, int *, int * ));
-void mpe_draw_line_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, int *, 
-				MPE_Color *, int * ));
-void mpe_fill_rectangle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, int *,
-				     MPE_Color *, int * ));
-void mpe_update_ ANSI_ARGS(( MPE_XGraph *, int * ));
-void mpe_close_graphics_ ANSI_ARGS(( MPE_XGraph *, int * ));
-void mpe_make_color_array_ ANSI_ARGS(( MPE_XGraph *, int *, MPE_Color [], 
-				       int * ));
-void mpe_num_colors_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
-void mpe_draw_circle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
-				  MPE_Color *, int * ));
-void mpe_fill_circle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
-				  MPE_Color *, int * ));
-void mpe_draw_logic_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
-void mpe_line_thickness_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
-void mpe_add_rgb_color_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
-				    MPE_Color *, int * ));
 
 void mpe_open_graphics_( handle, comm, display, x, y, w, h, is_collective, __ierr )
 MPE_XGraph *handle;
@@ -76,6 +55,7 @@ MPE_XGraph lhandle;
 			    *is_collective);
 *(int*)handle = MPIR_FromPointer(lhandle);
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_capturefile_ PMPE_CAPTUREFILE
@@ -96,7 +76,8 @@ MPE_XGraph lhandle;
 #endif
 #endif
 
- void mpe_capturefile_( handle, fname, freq, __ierr )
+void mpe_capturefile_ ANSI_ARGS(( MPE_XGraph *, char *, int *, int * ));
+void mpe_capturefile_( handle, fname, freq, __ierr )
 MPE_XGraph*handle;
 char       *fname;
 int*freq;
@@ -104,6 +85,7 @@ int *__ierr;
 {
 *__ierr = MPE_CaptureFile(*handle,fname,*freq);
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_draw_point_ PMPE_DRAW_POINT
@@ -124,7 +106,9 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_draw_point_( handle, x, y, color, __ierr )
+void mpe_draw_point_ ANSI_ARGS(( MPE_XGraph *, int *, int *, MPE_Color *, 
+				 int * ));
+void mpe_draw_point_( handle, x, y, color, __ierr )
 MPE_XGraph*handle;
 int*x,*y;
 MPE_Color*color;
@@ -132,6 +116,7 @@ int *__ierr;
 {
 *__ierr = MPE_Draw_point(*handle,*x,*y,*color);
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_draw_points_ PMPE_DRAW_POINTS
@@ -152,7 +137,8 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_draw_points_( handle, points, npoints, __ierr )
+void mpe_draw_points_ ANSI_ARGS(( MPE_XGraph *, MPE_Point *, int *, int * ));
+void mpe_draw_points_( handle, points, npoints, __ierr )
 MPE_XGraph*handle;
 MPE_Point *points;
 int*npoints;
@@ -161,6 +147,7 @@ int *__ierr;
 *__ierr = MPE_Draw_points(*handle,
 	(MPE_Point* )MPIR_ToPointer( *(int*)(points) ),*npoints);
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_draw_line_ PMPE_DRAW_LINE
@@ -181,7 +168,9 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_draw_line_( handle, x1, y1, x2, y2, color, __ierr )
+void mpe_draw_line_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, int *, 
+				MPE_Color *, int * ));
+void mpe_draw_line_( handle, x1, y1, x2, y2, color, __ierr )
 MPE_XGraph*handle;
 int*x1,*y1,*x2,*y2;
 MPE_Color*color;
@@ -209,7 +198,9 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_fill_rectangle_( handle, x, y, w, h, color, __ierr )
+void mpe_fill_rectangle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, int *,
+				     MPE_Color *, int * ));
+void mpe_fill_rectangle_( handle, x, y, w, h, color, __ierr )
 MPE_XGraph*handle;
 int*x,*y,*w,*h;
 MPE_Color*color;
@@ -237,7 +228,8 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_update_( handle, __ierr )
+void mpe_update_ ANSI_ARGS(( MPE_XGraph *, int * ));
+void mpe_update_( handle, __ierr )
 MPE_XGraph*handle;
 int *__ierr;
 {
@@ -263,6 +255,7 @@ int *__ierr;
 #endif
 #endif
 
+void mpe_close_graphics_ ANSI_ARGS(( MPE_XGraph *, int * ));
 void mpe_close_graphics_( handle, __ierr )
 MPE_XGraph *handle;
 int *__ierr;
@@ -296,7 +289,9 @@ if (!lhandle) {
 #endif
 #endif
 
- void mpe_make_color_array_( handle, ncolors, array, __ierr )
+void mpe_make_color_array_ ANSI_ARGS(( MPE_XGraph *, int *, MPE_Color [], 
+				       int * ));
+void mpe_make_color_array_( handle, ncolors, array, __ierr )
 MPE_XGraph*handle;
 int*ncolors;
 MPE_Color  array[];
@@ -325,7 +320,8 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_num_colors_( handle, nc, __ierr )
+void mpe_num_colors_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
+void mpe_num_colors_( handle, nc, __ierr )
 MPE_XGraph*handle;
 int        *nc;
 int *__ierr;
@@ -352,7 +348,9 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_draw_circle_( graph, centerx, centery, radius, color, __ierr )
+void mpe_draw_circle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
+				  MPE_Color *, int * ));
+void mpe_draw_circle_( graph, centerx, centery, radius, color, __ierr )
 MPE_XGraph*graph;
 int*centerx,*centery,*radius;
 MPE_Color*color;
@@ -360,6 +358,7 @@ int *__ierr;
 {
 *__ierr = MPE_Draw_circle(*graph,*centerx,*centery,*radius,*color);
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_fill_circle_ PMPE_FILL_CIRCLE
@@ -380,7 +379,9 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_fill_circle_( graph, centerx, centery, radius, color, __ierr )
+void mpe_fill_circle_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
+				  MPE_Color *, int * ));
+void mpe_fill_circle_( graph, centerx, centery, radius, color, __ierr )
 MPE_XGraph*graph;
 int*centerx,*centery,*radius;
 MPE_Color*color;
@@ -388,6 +389,7 @@ int *__ierr;
 {
 *__ierr = MPE_Fill_circle(*graph,*centerx,*centery,*radius,*color);
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_draw_logic_ PMPE_DRAW_LOGIC
@@ -408,7 +410,8 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_draw_logic_( graph, function, __ierr )
+void mpe_draw_logic_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
+void mpe_draw_logic_( graph, function, __ierr )
 MPE_XGraph*graph;
 int*function;
 int *__ierr;
@@ -435,13 +438,15 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_line_thickness_( graph, thickness, __ierr )
+void mpe_line_thickness_ ANSI_ARGS(( MPE_XGraph *, int *, int * ));
+void mpe_line_thickness_( graph, thickness, __ierr )
 MPE_XGraph*graph;
 int*thickness;
 int *__ierr;
 {
 *__ierr = MPE_Line_thickness(*graph,*thickness);
 }
+
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpe_add_rgb_color_ PMPE_ADD_RGB_COLOR
@@ -462,7 +467,9 @@ int *__ierr;
 #endif
 #endif
 
- void mpe_add_rgb_color_( graph, red, green, blue, mapping, __ierr )
+void mpe_add_rgb_color_ ANSI_ARGS(( MPE_XGraph *, int *, int *, int *, 
+				    MPE_Color *, int * ));
+void mpe_add_rgb_color_( graph, red, green, blue, mapping, __ierr )
 MPE_XGraph*graph;
 int*red,*green,*blue;
 MPE_Color *mapping;

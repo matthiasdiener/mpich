@@ -19,6 +19,8 @@ fi
 # which nodes have disks, vector boards, etc).
 if [ "$debugger" != "" ] ;  then
     $Show "totalview prun -a -n$np $progname $cmdLineArgs"
+    exitstatus=$?
 else
     $Show ${MEIKO_RUN} -n $np $progname $cmdLineArgs  
+    exitstatus=$?
 fi

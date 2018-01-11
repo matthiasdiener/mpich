@@ -15,9 +15,16 @@
  * NOT rely on system type to choose options; rather, it should use
  * HAVE_xxxx, with a configure script creating the HAVE_xxxx defines.
  */
-static char *rcsid = "$Header: /home/MPI/servers/master/server/serv_p4.c,v 1.13 1996/12/04 16:51:02 gropp Exp $";
+static char *rcsid = "$Header: /home/MPI/cvsMaster/mpich/mpid/server/serv_p4.c,v 1.12 1998/07/01 19:56:05 gropp Exp $";
 
 #include "server.h"
+
+/* 
+ * old defines for compatibility with the Nexus secure server.  These
+ * can be removed when v3.0 is stopped being supported.
+ */
+#define SERVER_CD_NOTIFIER "\0"
+#define SERVER_ENV_NOTIFIER "\1"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -83,6 +90,10 @@ static char *rcsid = "$Header: /home/MPI/servers/master/server/serv_p4.c,v 1.13 
  * machine, but I assume it should be easy enough to find out if we
  * need to.
  */
+#if defined(HAVE_KERBEROS)
+#undef HAVE_KERBEROS
+#endif
+
 #endif
 
 /* 
@@ -266,7 +277,7 @@ char **argv;
     }
     else
     {
-	sprintf(logfile, "Secure_Server.Log.%d", getpid());
+	sprintf(logfile, "Secure_Server.Log.%d", (int)getpid());
 	daemon_port = 0;
 	debug = 1;
     }
@@ -280,7 +291,7 @@ char **argv;
     /* Initialize SSL layer if available */
     Init_ssl();
 
-    while ((c = getopt(argc, argv, "DdoPuhnp:l:s:f:a:")) != EOF)
+    while ((c = getopt(argc, argv, "DdoPuhnp:l:s:f:a:w:")) != EOF)
     {
 	switch (c)
 	{
@@ -323,8 +334,16 @@ char **argv;
 	    break;
 
 	case 's':
-	    if (Set_ssl_paths( optarg, argv[optind++], argv[optind++] )) {
+	    if (Set_ssl_paths( optarg, argv[optind], argv[optind+1] )) {
 		fprintf(stderr, "This server does not support SSL\n");
+	    }
+	    optind += 2;
+	    break;
+
+	case 'w':
+	    if (chdir(optarg)) {
+		fprintf( stderr, "Could not change directory to %s\n", 
+			 optarg );
 	    }
 	    break;
 
@@ -346,7 +365,7 @@ char **argv;
 	case 'h':
 	default:
 	    fprintf(stderr, "\
-Usage: %s [-d] [-D] [-p port] [-l logfile] [-o] [-s cert_file key_file key_password] [-P] [-f fileport] [-a appsfile]\n",argv[0]);
+Usage: %s [-d] [-D] [-p port] [-l logfile] [-o] [-s cert_file key_file key_password] [-P] [-f fileport] [-a appsfile] [-w server_dir]\n",argv[0]);
 	    exit(1);
 	}
     }
@@ -390,7 +409,7 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o] [-s cert_file key_file key_passw
      */
     
     fprintf( logfile_fp, "%s pid=%d starting at %s, logfile fd is %d\n",
-	    argv[0], getpid(), timestamp(), logfile_fd );
+	    argv[0], (int)getpid(), timestamp(), logfile_fd );
 	     
     fflush( logfile_fp );
 
@@ -453,7 +472,7 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o] [-s cert_file key_file key_passw
 	    char tmp[1024];
 
 	    sprintf(tmp, "%s ss_port= %d ss_token=%s ss_pid=%d\n",
-		ss_hostname, daemon_port, token, getpid());
+		ss_hostname, daemon_port, token, (int)getpid());
 	    sendline(tmp);
 	} else {
 	    char tmp[1024];
@@ -499,7 +518,9 @@ Usage: %s [-d] [-D] [-p port] [-l logfile] [-o] [-s cert_file key_file key_passw
 	    (void) dup2(STDIN_FILENO, STDOUT_FILENO);
 	    (void) dup2(STDIN_FILENO, STDERR_FILENO);
 #    endif
+#if defined(P4SYSV) && defined(SETPGRP_VOID)
 	    (void) setpgrp();
+#endif
 #else
 	    (void) open("/", 0);
 	    (void) dup2(0, 1);
@@ -908,12 +929,14 @@ struct hostent *hp;
 
     if (this_uid == 0)
     {
-#if defined(HP) && !defined(SUN_SOLARIS)
+#if defined(HAVE_SETEUID) 
+	if (seteuid(uid) != 0)
+	    failure2("seteuid failed: %s", strerror(errno));
+#elif defined(HAVE_SETRESUID)
 	if (setresuid(-1, uid, -1) != 0)
 	    failure2("setresuid failed: %s", strerror(errno));
 #else
-	if (seteuid(uid) != 0)
-	    failure2("seteuid failed: %s", strerror(errno));
+        failure("No way to set euid!");
 #endif
     }
     
@@ -1000,7 +1023,7 @@ struct hostent *hp;
     {
 	args[nargs] = s;
 
-	if (*s == '\"')
+	if (*s == '\"')         /* " */
 	{
 	    args[nargs] = ++s;
 	    quote = !quote;
@@ -1008,7 +1031,7 @@ struct hostent *hp;
 
 	while (*s && (!isspace(*s) || quote))
 	{
-	    if (*s == '\"')
+	    if (*s == '\"')      /* " */
 	    {
 		quote = !quote;
 	    }
@@ -1016,7 +1039,7 @@ struct hostent *hp;
 	}
 
 	end = s;
-	if (*(end-1) == '\"')
+	if (*(end-1) == '\"')     /* " */
 	{
 	    end--;
 	}
@@ -1134,7 +1157,7 @@ struct hostent *hp;
 	
 	failure2("child failed: %s", buf);
     }
-    sprintf(tempbuf, "Success: Child %d started\n", pid);
+    sprintf(tempbuf, "Success: Child %d started\n", (int)pid);
     sendline(tempbuf);
     notice2("Child %d started", pid);
 }
@@ -1572,9 +1595,15 @@ int lfd, fd, *o_fd;
 #endif
 	fprintf( logfile_fp, 
 		 "Started subprocess for connection at %s with pid %d\n", 
-		 timestamp(), getpid() );
+		 timestamp(), (int)getpid() );
 #if HAVE_SETPGRP
+	/* This is correct ONLY for the SYSV setpgrp */
+#if defined(P4SYSV) || defined(SETPGRP_VOID)
 	(void) setpgrp();
+#else
+	/* We could try setsid() instead ... */
+	(void) setpgrp(0,0);
+#endif /* P4SYSV */
 #else
 	ttyfd = open("/dev/tty",O_RDWR);
 	if (ttyfd >= 0)
@@ -1691,6 +1720,8 @@ char *pgm, *user_home, *dir;
 	}
 	    
 	notice2("Trying to find program %s\n", fullpgm);
+    restart_read:
+	errno = 0; /* ensure that it isn't EINTR from some previous event */
 	while (fgets(progline, sizeof(progline), fp) != NULL)
 	{
 	    s1 = progline;
@@ -1726,6 +1757,9 @@ char *pgm, *user_home, *dir;
 		    valid = 1;
 	    }
 	}
+	/* Fix for fgets fails because of interrupted system call */
+	if ((errno == EINTR) || (errno == EAGAIN))
+	    goto restart_read;
 	fclose(fp);
     }
 

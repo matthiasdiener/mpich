@@ -24,7 +24,7 @@ C
       character buf(bufsize)
       character name*(10)
       integer status(MPI_STATUS_SIZE)
-      integer i
+      integer i, size
       double precision x
       integer src, dest
 
@@ -33,6 +33,11 @@ C     Enroll in MPI
 
 C     get my rank
       call mpi_comm_rank(MPI_COMM_WORLD, me, ierr)
+      call mpi_comm_size(MPI_COMM_WORLD, size, ierr )
+      if (size .lt. 2) then
+         print *, "Must have at least 2 processes"
+         call MPI_Abort( 1, MPI_COMM_WORLD, ierr )
+      endif
 
       comm = MPI_COMM_WORLD
       src = 0
@@ -57,21 +62,24 @@ C     get my rank
           call mpi_send(MPI_BOTTOM,1,newtype,dest,1,comm,ierr)
           call mpi_type_free(newtype,ierr)
 C         write(*,*) "Sent ",name(1:5),x
-      else if (me.eq.dest) then
+      else 
+C         Everyone calls barrier incase size > 2
           call mpi_barrier( MPI_COMM_WORLD, ierr )
-          position=0
+          if (me.eq.dest) then
+             position=0
 
-          name = " "
-          x    = 0.0d0
-          call mpi_recv(buf,bufsize,MPI_PACKED, src,
-     .    1, comm, status, ierr)
-
-          call mpi_unpack(buf,bufsize,position,
-     .        name,5,MPI_CHARACTER, comm,ierr)
-          call mpi_unpack(buf,bufsize,position,
-     .        x,1,MPI_DOUBLE_PRECISION, comm,ierr)
-          print 1, name, x
- 1        format( " Received ", a, f7.4 )
+             name = " "
+             x    = 0.0d0
+             call mpi_recv(buf,bufsize,MPI_PACKED, src,
+     .            1, comm, status, ierr)
+             
+             call mpi_unpack(buf,bufsize,position,
+     .            name,5,MPI_CHARACTER, comm,ierr)
+             call mpi_unpack(buf,bufsize,position,
+     .            x,1,MPI_DOUBLE_PRECISION, comm,ierr)
+             print 1, name, x
+ 1           format( " Received ", a, f7.4 )
+          endif
       endif
 
       call mpi_finalize(ierr)

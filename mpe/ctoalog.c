@@ -15,6 +15,6 @@ char *argv[];
     
     rc = clog2alog( argv[1] );
     if (rc)
-	fprintf(stderr,"unsuccesful conversion from clog to alog format\n");
+	fprintf(stderr,"unsuccessful conversion from clog to alog format\n");
     return(rc);
 }

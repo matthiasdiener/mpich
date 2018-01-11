@@ -1,5 +1,5 @@
 /*
- *  $Id: graph_nbr.c,v 1.18 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: graph_nbr.c,v 1.2 1998/04/29 14:28:47 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -18,9 +18,9 @@ MPI_Graph_neighbors - Returns the neighbors of a node associated
                       with a graph topology
 
 Input Parameters:
-. comm - communicator with graph topology (handle) 
++ comm - communicator with graph topology (handle) 
 . rank - rank of process in group of comm (integer) 
-. maxneighbors - size of array neighbors (integer) 
+- maxneighbors - size of array neighbors (integer) 
 
 Output Parameters:
 . neighbors - ranks of processes that are neighbors to specified process

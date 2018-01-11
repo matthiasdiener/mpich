@@ -1,16 +1,12 @@
 /*
- *  $Id: group_diff.c,v 1.22 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: group_diff.c,v 1.3 1998/04/28 20:58:04 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 
 /*@
@@ -18,8 +14,8 @@
 MPI_Group_difference - Makes a group from the difference of two groups
 
 Input Parameters:
-. group1 - first group (handle) 
-. group2 - second group (handle) 
++ group1 - first group (handle) 
+- group2 - second group (handle) 
 
 Output Parameter:
 . newgroup - difference group (handle) 
@@ -64,7 +60,7 @@ MPI_Group group1, group2, *group_out;
   
   /* Create the new group */
   MPIR_ALLOC(new_group_ptr,NEW(struct MPIR_GROUP),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_DIFF" );
+	     MPI_ERR_EXHAUSTED, "MPI_GROUP_DIFF" );
   *group_out = (MPI_Group) MPIR_FromPointer( new_group_ptr );
   new_group_ptr->self = *group_out;
   
@@ -81,7 +77,7 @@ MPI_Group group1, group2, *group_out;
   if (group1_ptr->set_mark == NULL) {
       MPIR_ALLOC(group1_ptr->set_mark,(int *) MALLOC( group1_ptr->np * sizeof(int) ),
 		 MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-		 "Out of space in MPI_GROUP_DIFFERENCE" );
+		 "MPI_GROUP_DIFFERENCE" );
   }
 
   /* Mark the difference */
@@ -107,7 +103,7 @@ MPI_Group group1, group2, *group_out;
   new_group_ptr->np             = n;
   MPIR_ALLOC(new_group_ptr->lrank_to_grank,(int *) MALLOC( n * sizeof(int) ),
 	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-	     "Out of space in MPI_GROUP_DIFFERENCE" );
+	     "MPI_GROUP_DIFFERENCE" );
     
   /* Fill in the space */
   for ( n=0, i=0; i<group1_ptr->np; i++ ) 
@@ -115,11 +111,7 @@ MPI_Group group1, group2, *group_out;
       new_group_ptr->lrank_to_grank[n++] = group1_ptr->lrank_to_grank[i];
 
   /* Find the local rank */
-#ifdef MPI_ADI2
   global_rank = MPID_MyWorldRank;
-#else
-  MPID_Myrank ( MPIR_COMM_WORLD->ADIctx, &global_rank );
-#endif
   for( i=0; i<new_group_ptr->np; i++ )
     if ( global_rank == new_group_ptr->lrank_to_grank[i] ) {
       new_group_ptr->local_rank = i;

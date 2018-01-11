@@ -1,5 +1,5 @@
 /*
- *  $Id: chbrndv.c,v 1.5 1997/02/18 23:09:04 gropp Exp $
+ *  $Id: chbrndv.c,v 1.2 1998/01/29 14:25:30 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -105,7 +105,8 @@ MPID_Msgrep_t msgrep;
     MPIR_SHANDLE shandle;
 
     DEBUG_INIT_STRUCT(&shandle,sizeof(shandle));
-    MPIR_SET_COOKIE((&shandle),MPIR_REQUEST_COOKIE)
+    MPIR_SET_COOKIE((&shandle),MPIR_REQUEST_COOKIE);
+    MPID_SendInit( &shandle );
     MPID_CH_Rndvb_isend( buf, len, src_lrank, tag, context_id, dest,
 			 msgrep, &shandle );
     DEBUG_TEST_FCN(shandle.wait,"req->wait");

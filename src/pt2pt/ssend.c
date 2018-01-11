@@ -1,5 +1,5 @@
 /*
- *  $Id: ssend.c,v 1.8 1996/12/01 23:30:59 gropp Exp $
+ *  $Id: ssend.c,v 1.3 1998/04/28 21:47:12 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,12 +12,12 @@
     MPI_Ssend - Basic synchronous send
 
 Input Parameters:
-. buf - initial address of send buffer (choice) 
++ buf - initial address of send buffer (choice) 
 . count - number of elements in send buffer (nonnegative integer) 
 . datatype - datatype of each send buffer element (handle) 
 . dest - rank of destination (integer) 
 . tag - message tag (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 .N fortran
 
@@ -41,7 +41,7 @@ MPI_Comm         comm;
     MPIR_ERROR_DECL;
     struct MPIR_COMMUNICATOR *comm_ptr;
     static char myname[] = "MPI_SSEND";
-
+    
     if (dest != MPI_PROC_NULL)
     {
 	comm_ptr = MPIR_GET_COMM_PTR(comm);
@@ -50,6 +50,7 @@ MPI_Comm         comm;
 	MPIR_ERROR_PUSH(comm_ptr);
 	MPIR_CALL_POP(MPI_Issend( buf, count, datatype, dest, tag, comm, 
 			        &handle ),comm_ptr,myname);
+
 	MPIR_CALL_POP(MPI_Wait( &handle, &status ),comm_ptr,myname);
     }
     return mpi_errno;

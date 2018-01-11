@@ -1,4 +1,4 @@
-#ifndef MPIR_ERROR
+#ifndef MPIR__ERROR
 
 /* 
  * Macros to simplify error handling
@@ -58,6 +58,9 @@ int MPIR_Error ANSI_ARGS(( struct MPIR_COMMUNICATOR *, int, char *, char *, int 
  */
 #define MPIR_ALLOC(ptr,fcn,comm,code,msg) \
    {if (!((ptr) = fcn)) {return MPIR_ERROR(comm,code,msg);}}
+/* This is a version for macros that take the pointer as arg */
+#define MPIR_ALLOCFN(ptr,fcn,comm,code,msg) \
+   {fcn(ptr);if (!(ptr)) {return MPIR_ERROR(comm,code,msg);}}
 /* MPIR_FALLOC is for Fortran */
 #define MPIR_FALLOC(ptr,fcn,comm,code,msg) \
    {if (!((ptr) = fcn)) {*__ierr = MPIR_ERROR(comm,code,msg);return;}}
@@ -107,6 +110,9 @@ extern int    MPIR_errargcnt;
 				       in function */
 #define MPIR_ERR_COMM_CORRUPT (4 << MPIR_ERR_CLASS_BITS)
 #define MPI_ERR_COMM_CORRUPT  (MPIR_ERR_COMM_CORRUPT | MPI_ERR_COMM)
+
+#define MPIR_ERR_COMM_NAME    (5 << MPIR_ERR_CLASS_BITS)
+#define MPI_ERR_COMM_NAME     (MPIR_ERR_COMM_NAME | MPI_ERR_COMM)
 
 /* MPI_ERR_GROUP */
 #define MPIR_ERR_GROUP_NULL   (1 << MPIR_ERR_CLASS_BITS)
@@ -168,6 +174,9 @@ extern int    MPIR_errargcnt;
 
 #define MPIR_ERR_ERRHANDLER_CORRUPT  (11 << MPIR_ERR_CLASS_BITS)
 #define MPI_ERR_ERRHANDLER_CORRUPT (MPIR_ERR_ERRHANDLER_CORRUPT | MPI_ERR_ARG)
+
+#define MPIR_ERR_STATUS_IGNORE      (12 << MPIR_ERR_CLASS_BITS)
+#define MPI_ERR_STATUS_IGNORE      (MPIR_ERR_STATUS_IGNORE | MPI_ERR_ARG)
 
 /* MPI_ERR_BUFFER */
 #define MPIR_ERR_BUFFER_EXISTS (1 << MPIR_ERR_CLASS_BITS)
@@ -271,6 +280,9 @@ extern int    MPIR_errargcnt;
 #define MPIR_TEST_ERRHANDLER(comm,errhandler) 0
 #define MPIR_TEST_ALIAS(b1,b2)            0
 #define MPIR_TEST_ARG(arg)                0
+#define MPIR_TEST_OUTSIZE(comm,count)    0
+#define MPIR_TEST_OUT_LT_IN(comm,outcount,incount) 0
+#define MPIR_TEST_OUTCOUNT(comm,outcount) 0
 
 #else
 #ifdef MPIR_HAS_COOKIES
@@ -310,7 +322,20 @@ extern int    MPIR_errargcnt;
     (((rank) < -2 || (rank) >= (comm)->np) && \
      (MPIR_ERROR_PUSH_ARG(&rank),mpi_errno = MPI_ERR_RANK))
 #define MPIR_TEST_COUNT(comm,count) ( ((count) < 0) && \
-				     (mpi_errno = MPI_ERR_COUNT))
+				     (mpi_errno = MPI_ERR_COUNT)) 
+
+/*********************************************************************
+ *** Debbie Swider put these in on 11/17/97 - for pack.c & unpack.c **/
+
+#define MPIR_TEST_OUTSIZE(comm,count) ( ((count) < 0) && \
+                                       (mpi_errno = MPI_ERR_ARG))
+#define MPIR_TEST_OUT_LT_IN(comm,outcount,incount) ( (outcount < incount) \
+                                       && (mpi_errno = MPI_ERR_COUNT) )
+#define MPIR_TEST_OUTCOUNT(comm,outcount) ( ((outcount) < 0) && \
+                                           (mpi_errno = MPI_ERR_COUNT))
+
+/**********************************************************************
+ **********************************************************************/
 #ifdef NEW_POINTERS
 #define MPIR_TEST_OP(comm,op) 'fixme'
 #else
@@ -380,3 +405,5 @@ extern int    MPIR_errargcnt;
 #include "mpi_errno.h"
 
 #endif
+
+

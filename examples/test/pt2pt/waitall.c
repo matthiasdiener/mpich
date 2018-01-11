@@ -1,10 +1,7 @@
 /*
- * This code test waitall; in one version of MPICH, it uncovered some
- * problems with the ADI Test calls.
+ * This code tests waitall; in particular, the that ordering requirement
+ * on nonblocking communication is observed.
  */
-/* #define i_ntotin 256  */ /* ok    */
-/* #define i_ntotin 257  */ /* fails */
-#define i_ntotin 256  /* fails */
 
 #include <stdio.h>
 #include "mpi.h"
@@ -13,93 +10,92 @@
 #include "protofix.h"
 #endif
 
-#define DAR 32  /* ``Data: ARray''  */
-
+#define MAX_REQ 32
 
 int main(argc, argv)
 int argc;
 char** argv;
- {
-  int locId ;
-  int data [i_ntotin] ;
+{
+    int rank, size;
+    int i, j, count, err = 0, toterr;
+    MPI_Request r[MAX_REQ];
+    MPI_Status  s[MAX_REQ];
+    int         buf[MAX_REQ][MAX_REQ];
 
-  MPI_Init(&argc, &argv) ;
-  MPI_Comm_rank(MPI_COMM_WORLD, &locId) ;
+    MPI_Init( &argc, &argv );
+    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+    MPI_Comm_size( MPI_COMM_WORLD, &size );
 
-  if(locId == 0) {
+    if (size < 2) {
+	fprintf( stderr, "This test requires at least 2 processes\n" );
+	MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
+    /* First, cause the wait all to happen AFTER the Sends */
+    if (rank == 0) {
+	for (i=0; i<MAX_REQ; i++) {
+	    MPI_Irecv( buf[i], i+1, MPI_INT, 1, 99, MPI_COMM_WORLD, 
+		       &r[MAX_REQ-1-i] ); 
+	}
+	MPI_Waitall( MAX_REQ, r, s );
+	/* Check that we've received the correct data */
+	for (i=0; i<MAX_REQ; i++) {
+	    MPI_Get_count( &s[MAX_REQ-1-i], MPI_INT, &count );
+	    if (count != i) {
+		err++;
+		fprintf( stderr, "Wrong count (%d) for request %d\n", 
+			 count, MAX_REQ-1-i );
+	    }
+	}
+    }
+    else if (rank == 1) {
+	for (i=0; i<MAX_REQ; i++) {
+	    for (j=0; j<=i; j++)
+		buf[i][j] = i * MAX_REQ + j;
+	    MPI_Send( buf[i], i, MPI_INT, 0, 99, MPI_COMM_WORLD );
+	}
+    }
 
-    /* The server... */
+    /* Second, cause the waitall to start BEFORE the Sends */
+    if (rank == 0) {
+	for (i=0; i<MAX_REQ; i++) {
+	    MPI_Irecv( buf[i], i+1, MPI_INT, 1, 99, MPI_COMM_WORLD, 
+		       &r[MAX_REQ-1-i] ); 
+	}
+	MPI_Send( MPI_BOTTOM, 0, MPI_INT, 1, 0, MPI_COMM_WORLD );
+	MPI_Waitall( MAX_REQ, r, s );
+	/* Check that we've received the correct data */
+	for (i=0; i<MAX_REQ; i++) {
+	    MPI_Get_count( &s[MAX_REQ-1-i], MPI_INT, &count );
+	    if (count != i) {
+		err++;
+		fprintf( stderr, 
+			 "Wrong count (%d) for request %d (waitall posted)\n", 
+			 count, MAX_REQ-1-i );
+	    }
+	}
+    }
+    else if (rank == 1) {
+	MPI_Recv( MPI_BOTTOM, 0, MPI_INT, 0, 0, MPI_COMM_WORLD, &s[0] );
+	sleep( 2 );
+	for (i=0; i<MAX_REQ; i++) {
+	    for (j=0; j<=i; j++)
+		buf[i][j] = i * MAX_REQ + j;
+	    MPI_Send( buf[i], i, MPI_INT, 0, 99, MPI_COMM_WORLD );
+	}
+    }
 
-    MPI_Status status[2] ;
-    MPI_Request events [2] ;
 
-    int eventId ;
-
-    int dstId = 1 ;
-
-    int i ;
-
-    for(i = 0 ; i < i_ntotin ; i++)
-      data [i] = i + 1 ;
-
-    events [0] = MPI_REQUEST_NULL ;
-    events [1] = MPI_REQUEST_NULL ;
-
-    MPI_Isend(data, i_ntotin, MPI_INT, dstId, DAR,
-              MPI_COMM_WORLD, events + 1) ;
-        /* enable send of data */
-
-    /*_begin_trace_code  */
-    /* printf("locId = %d: MPI_Isend(%x, %d, %x, %d, %d, %x, %x)\n",
-      locId, data, i_ntotin, MPI_INT, dstId, DAR, MPI_COMM_WORLD, events [1]); 
-      */
-    /*_end_trace_code  */
-
-    /*_begin_trace_code  */
-    /* printf("locId = %d: MPI_Waitany(%d, [%x, %x], %x %x)...",
-      locId, 2, events [0], events [1], &eventId, &status) ; */
-    /*_end_trace_code  */
-
-    MPI_Waitany(2, events, &eventId, status) ;
-
-    /*_begin_trace_code  */
-    printf("done.  eventId = %x\n", eventId) ;
-    /*_end_trace_code  */
-  }
-
-  if(locId == 1) {
-
-    /* The Client...  */
-
-    MPI_Status status ;
-
-    int srcId = MPI_ANY_SOURCE ;
-
-    /*_begin_trace_code  */
-    /*
-    printf("locId = %d: MPI_Recv(%x, %d, %x, %d, %d, %x, %x)...",
-      locId, data, i_ntotin, MPI_INT, srcId, DAR, MPI_COMM_WORLD, &status) ;
-      */
-    /*_end_trace_code  */
-
-    MPI_Recv(data, i_ntotin, MPI_INT, srcId, DAR,
-             MPI_COMM_WORLD, &status) ;
-
-    /*_begin_trace_code  */
-    /*printf("done.\n") ;*/
-    /*_end_trace_code  */
-
-    /*
-    printf("locId = %d: data [0] = %d, data [%d] = %d\n",
-      locId, data [0], i_ntotin - 1, data [i_ntotin - 1]) ;
-       */
-  }
-
-  MPI_Barrier( MPI_COMM_WORLD );
-  if (locId == 0)
-      printf( "Test complete\n" );
-  MPI_Finalize() ;
-  return 0;
+    MPI_Barrier( MPI_COMM_WORLD );
+    if (rank == 0) {
+	toterr = err;
+	if (toterr == 0) 
+	    printf( "Test complete\n" );
+	else
+	    printf( "Found %d errors in test!\n", toterr );
+    }
+    
+    MPI_Finalize();
+    return 0;
 }
 
 

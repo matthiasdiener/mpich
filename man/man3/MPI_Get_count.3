@@ -1,4 +1,4 @@
-.TH MPI_Get_count 3 "1/6/1997" " " "MPI"
+.TH MPI_Get_count 3 "4/28/1998" " " "MPI"
 .SH NAME
 MPI_Get_count \-  Gets the number of "top level" elements 
 .SH SYNOPSIS
@@ -26,13 +26,11 @@ int          *count;
 .TP
 .B count 
 - number of received elements (integer) 
-.PD 1
-
-.SH NOTES
+Notes:
 If the size of the datatype is zero, this routine will return a count of
 zero.  If the amount of data in 
 .I status
-is not an exact multiple of the
+is not an exact multiple of the 
 size of 
 .I datatype
 (so that 
@@ -42,6 +40,7 @@ would not be integral), a
 of
 .I MPI_UNDEFINED
 is returned instead.
+.PD 1
 
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 
@@ -95,9 +94,9 @@ an error.
 .TP
 .B MPI_ERR_TYPE 
 - Invalid datatype argument.  May be an uncommitted 
-.PD 1
 MPI_Datatype (see 
 .I MPI_Type_commit
 ).
+.PD 1
 .SH LOCATION
 getcount.c

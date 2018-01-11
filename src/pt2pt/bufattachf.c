@@ -66,13 +66,16 @@ if (_isfcd(buffer)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_buffer_attach_ ANSI_ARGS(( void *, int *, int * ));
+void mpi_buffer_attach_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_buffer_attach_( buffer, size, __ierr )
-void *buffer;
-int*size;
-int *__ierr;
+void     *buffer;
+MPI_Fint *size;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Buffer_attach(buffer,*size);
+    *__ierr = MPI_Buffer_attach(buffer,(int)*size);
 }
 #endif
+
+
+

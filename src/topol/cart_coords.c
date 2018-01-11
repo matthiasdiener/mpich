@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_coords.c,v 1.17 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: cart_coords.c,v 1.2 1998/04/29 14:28:29 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,9 +14,9 @@ MPI_Cart_coords - Determines process coords in cartesian topology given
                   rank in group
 
 Input Parameters:
-. comm - communicator with cartesian structure (handle) 
++ comm - communicator with cartesian structure (handle) 
 . rank - rank of a process within group of 'comm' (integer) 
-. maxdims - length of vector 'coords' in the calling program (integer) 
+- maxdims - length of vector 'coords' in the calling program (integer) 
 
 Output Parameter:
 . coords - integer array (of size 'ndims') containing the cartesian coordinates of specified process (integer) 

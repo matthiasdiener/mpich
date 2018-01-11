@@ -9,9 +9,9 @@
   MPE_Decomp1d - Compute a balanced decomposition of a 1-D array
 
   Input Parameters:
-. n  - Length of the array
++ n  - Length of the array
 . size - Number of processors in decomposition
-. rank - Rank of this processor in the decomposition (0 <= rank < size)
+- rank - Rank of this processor in the decomposition (0 <= rank < size)
 
   Output Parameters:
 . s,e - Array indices are s:e, with the original array considered as 1:n.  

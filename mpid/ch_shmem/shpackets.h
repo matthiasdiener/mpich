@@ -54,7 +54,8 @@
 #define MPID_PKT_LAST_MSG MPID_PKT_REQUEST_SEND_GET
 typedef enum { MPID_PKT_SHORT=0, MPID_PKT_SEND_ADDRESS = 1, 
 	       MPID_PKT_REQUEST_SEND_GET=2, 
-               MPID_PKT_OK_TO_SEND_GET = 3, MPID_PKT_CONT_GET = 4
+               MPID_PKT_OK_TO_SEND_GET = 3, MPID_PKT_CONT_GET = 4,
+	       MPID_PKT_FLOW = 9
                }
     MPID_Pkt_t;
 
@@ -67,6 +68,19 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_SEND_ADDRESS = 1,
 #define MPID_PKT_PRIVATE
 #endif
 
+/* 
+   Flow control.  When flow control is enabled, EVERY packet includes
+   a flow word (int:32).  This word will (usually) contain two fields
+   that indicate how much channel/buffer memory has be used since the 
+   last message
+ */
+#ifdef MPID_FLOW_CONTROL
+#define MPID_PKT_FLOW_DECL int flow_info:32;
+#else
+#define MPID_PKT_FLOW_DECL
+#endif
+
+
 /* Note that context_id and lrank may be unused; they are present in 
    case they are needed to fill out the word */
 #define MPID_PKT_MODE  \
@@ -76,7 +90,8 @@ typedef enum { MPID_PKT_SHORT=0, MPID_PKT_SEND_ADDRESS = 1,
     unsigned lrank:11;           /* Local rank in sending context */   \
     union _MPID_PKT_T *next;     /* link to 'next' packet    */        \
     int owner;                   /* Owner of packet */                 \
-    int src:32;                  /* Source of packet in COMM_WORLD system */ 
+    int src:32;                  /* Source of packet in COMM_WORLD system */ \
+    MPID_PKT_FLOW_DECL           /* Flow control info */
 #define MPID_PKT_BASIC \
     MPID_PKT_MODE      \
     int      tag:32;             /* tag is full sizeof(int) */         \
@@ -140,6 +155,11 @@ typedef struct {
     } MPID_PKT_GET_T;
 /* Get done is the same type with a different mode */
 
+typedef struct {
+    MPID_PKT_BASIC
+} MPID_PKT_FLOW_T;
+
+
 /* We may want to make all of the packets an exact size (e.g., memory/cache
    page.  This is done by defining a pad */
 #ifndef MPID_PKT_PAD
@@ -151,6 +171,7 @@ typedef union _MPID_PKT_T {
     MPID_PKT_SHORT_T         short_pkt;
     MPID_PKT_SEND_ADDRESS_T  sendadd_pkt;
     MPID_PKT_GET_T           get_pkt;
+    MPID_PKT_FLOW_T          flow_pkt;
     char                     pad[MPID_PKT_PAD];
     } MPID_PKT_T;
 

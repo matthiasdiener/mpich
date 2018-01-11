@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "mpid.h"
 #include "mpidmpi.h"
+/* mpifort.h is needed for conversions to/from Logical data */
+#include "mpifort.h"
 
 #ifdef MPID_HAS_HETERO
 #if defined(HAS_XDR) && !defined(INCLUDED_RPC_RPC_H)
@@ -94,7 +96,7 @@ void          *ctx;
       MPID_BSwap_N_copy( d, s, (int)sizeof(long double), N );
       break;
 #endif
-      /* Does not handle Fortran int/float/double */
+      /* Does not handle Fortran int/float/double/logical */
       default:
       MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 	       "Tried to swap unsupported type"); 
@@ -145,7 +147,7 @@ int N;
       MPID_BSwap_N_inplace( b, (int)sizeof(long double), N );
       break;
 #endif
-      /* Does not handle Fortran int/float/double */
+      /* Does not handle Fortran int/float/double/logical */
       default:
       MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_INTERN, 
 	       "Tried to convert unsupported type"); 
@@ -275,6 +277,34 @@ XDR           *xdr_ctx;
     total = xdr_getpos( xdr_ctx ) - total;
     return total;
 }
+/* Special version for Fortran LOGICAL data */
+int MPID_Mem_XDR_Encode_Logical(d, s, t, N, xdr_ctx) 
+unsigned char *d, *s;    /* dest, source */
+xdrproc_t     t;         /* type */
+int           N;         /* count and element size */
+XDR           *xdr_ctx;
+{ 
+    int   rval;
+    int   total; 
+    int   i;
+    int   tmpval;
+    MPI_Fint *s1 = (MPI_Fint *)s;
+
+    if (!xdr_ctx) {
+	fprintf( stderr, "NULL XDR CONTEXT!\n" );
+	return -1;
+	}
+    total = xdr_getpos( xdr_ctx );
+    for (i=0; i<N; i++) {
+	/* Convert Fortran logical value into C logical value */
+	tmpval = MPIR_FROM_FLOG(*s1);
+	rval = t( xdr_ctx, (unsigned char *)&tmpval );
+	if (!rval) return MPI_ERR_INTERN;
+	s1 ++;
+	}
+    total = xdr_getpos( xdr_ctx ) - total;
+    return total;
+}
 
 /* 
  * We need to return two different lengths:
@@ -345,6 +375,43 @@ XDR           *xdr_ctx;
     if (!rval) return MPI_ERR_INTERN;
     return MPI_SUCCESS;
 }
+int MPID_Mem_XDR_Decode_Logical(d, s, t, N, size, act_bytes, srclen, destlen, 
+			xdr_ctx ) 
+unsigned char *d, *s;    /* dest and source */
+xdrproc_t     t;         /* type */
+int           N, size;   /* count and element size */
+int           act_bytes; /* Number of bytes in message */
+int           *srclen, *destlen;
+XDR           *xdr_ctx;
+{ 
+    int rval = 1;
+    int total; 
+    int i;
+    MPI_Fint tmpval;
+    MPI_Fint *d1 = (MPI_Fint *)d;
+    
+    if (!xdr_ctx) {
+	fprintf( stderr, "NULL XDR CONTEXT!\n" );
+	return MPI_ERR_INTERN;
+	}
+    if (N > 0 && d == 0) {
+	return MPI_ERR_BUFFER;
+    }
+    total = 0;
+    *srclen  = xdr_getpos(xdr_ctx);
+    for (i=0; i<N; i++) {
+	rval = t( xdr_ctx, (unsigned char *)&tmpval );
+	/* Break if at end of buffer or error */
+	if (!rval) break;
+	(*d1) = MPIR_TO_FLOG(tmpval);
+	total += size;
+	d1    ++;
+	}
+    *destlen = total;
+    *srclen  = xdr_getpos(xdr_ctx) - *srclen;
+    /* if (!rval) error; */
+    return MPI_SUCCESS;
+}
 
 
 int MPID_Type_XDR_encode(d, s, t, N, ctx) 
@@ -360,10 +427,10 @@ void          *ctx;
 
   switch (t->dte_type) {
       case MPIR_CHAR:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_char, N, (int)sizeof(char), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_char, N, (int)sizeof(char), xdr_ctx);
       break;
       case MPIR_UCHAR:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_u_char, N, (int)sizeof(unsigned char), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_u_char, N, (int)sizeof(unsigned char), xdr_ctx);
       break;
 
       /* Packed data is already encoded in XDR, so just copy it.  This needs
@@ -377,46 +444,43 @@ void          *ctx;
       len = MPID_Mem_XDR_ByteEncode(d, s, N, xdr_ctx);
       break;
       case MPIR_SHORT:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_short, N, (int)sizeof(short), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_short, N, (int)sizeof(short), xdr_ctx);
       break;
       case MPIR_USHORT:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_u_short, N, (int)sizeof(unsigned short), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_u_short, N, (int)sizeof(unsigned short), xdr_ctx);
       break;
       case MPIR_INT:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_int, N, (int)sizeof(int), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_int, N, (int)sizeof(int), xdr_ctx);
       break;
       case MPIR_UINT:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_u_int, N, (int)sizeof(unsigned int), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_u_int, N, (int)sizeof(unsigned int), xdr_ctx);
       break;
       case MPIR_LONG:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_long, N, (int)sizeof(long), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_long, N, (int)sizeof(long), xdr_ctx);
       break;
       case MPIR_ULONG:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_u_long, N, (int)sizeof(unsigned long), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_u_long, N, (int)sizeof(unsigned long), xdr_ctx);
       break;
       case MPIR_FLOAT:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_float, N, (int)sizeof(float), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_float, N, (int)sizeof(float), xdr_ctx);
       break;
       case MPIR_COMPLEX:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_float, 2*N, (int)sizeof(float), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_float, 2*N, (int)sizeof(float), xdr_ctx);
       break;
       case MPIR_DOUBLE:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_double, N, (int)sizeof(double), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_double, N, (int)sizeof(double), xdr_ctx);
       break;
       case MPIR_DOUBLE_COMPLEX:
-      len = MPID_Mem_XDR_Encode(d, s, xdr_double, 2*N, (int)sizeof(double), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_double, 2*N, (int)sizeof(double), xdr_ctx);
       break;
-#ifdef FOO
       /* Fortran logicals */
       case MPIR_LOGICAL:
-      len = MPID_Mem_XDR_Encode_Logical(d, s, xdr_int, N, (int)sizeof(int), 
-					xdr_ctx );
+      len = MPID_Mem_XDR_Encode_Logical(d, s, (xdrproc_t)xdr_int, N, xdr_ctx );
       break;
-#endif
       case MPIR_LONGDOUBLE:
       MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_TYPE, 
           "Unfortuantely, XDR does not support the long double type. Sorry.");
-      len = MPID_Mem_XDR_Encode(d, s, xdr_char, N, (int)sizeof(char), xdr_ctx);
+      len = MPID_Mem_XDR_Encode(d, s, (xdrproc_t)xdr_char, N, (int)sizeof(char), xdr_ctx);
       break;
       default:
 	  len = 0;
@@ -463,11 +527,11 @@ void                  *ctx;
   act_size = 12 * (N + 1);
   switch (t->dte_type) {
       case MPIR_CHAR:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_char, N, (int)sizeof(char), 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_char, N, (int)sizeof(char), 
 				    act_size, srcreadlen, destlen, xdr_ctx );
       break;
       case MPIR_UCHAR:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_u_char, N, 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_u_char, N, 
 				      (int)sizeof(unsigned char), act_size, 
 				      srcreadlen, destlen, xdr_ctx  );    
       break;
@@ -478,57 +542,63 @@ void                  *ctx;
 					  xdr_ctx  );
       break;
       case MPIR_SHORT:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_short, N, (int)sizeof(short), 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_short, N, (int)sizeof(short), 
 				      act_size, srcreadlen, destlen, xdr_ctx  );
       break;
       case MPIR_USHORT:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_u_short, N, 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_u_short, N, 
 				      (int)sizeof(unsigned short), act_size, 
 				      srcreadlen, destlen, xdr_ctx  );
       break;
       case MPIR_INT:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_int, N, (int)sizeof(int), act_size,
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_int, N, (int)sizeof(int), act_size,
 				      srcreadlen, destlen, xdr_ctx  );
       break;
       case MPIR_UINT:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_u_int, N, 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_u_int, N, 
 				      (int)sizeof(unsigned int), act_size, 
 				      srcreadlen, destlen, xdr_ctx  );
       break;
       case MPIR_LONG:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_long, N, (int)sizeof(long), 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_long, N, (int)sizeof(long), 
 				      act_size, srcreadlen, 
 				      destlen, xdr_ctx  );
       break;
       case MPIR_ULONG:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_u_long, N, 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_u_long, N, 
 				      (int)sizeof(unsigned long), act_size, 
 				      srcreadlen, destlen, xdr_ctx  );
       break;
       case MPIR_FLOAT:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_float, N, (int)sizeof(float), 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_float, N, (int)sizeof(float), 
 				      act_size, srcreadlen, 
 				      destlen, xdr_ctx  );
       break;
       case MPIR_COMPLEX:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_float, 2*N, 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_float, 2*N, 
 				      (int)sizeof(float), 
 				      act_size, srcreadlen, 
 				      destlen, xdr_ctx  );
       break;
       case MPIR_DOUBLE:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_double, N, (int)sizeof(double), 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_double, N, (int)sizeof(double), 
 				    act_size, srcreadlen, destlen, xdr_ctx  );
       break;
       case MPIR_DOUBLE_COMPLEX:
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_double, 2*N, 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_double, 2*N, 
 				      (int)sizeof(double), 
 				    act_size, srcreadlen, destlen, xdr_ctx  );
+      break;
+      /* Fortran logicals */
+      case MPIR_LOGICAL:
+      mpi_errno = MPID_Mem_XDR_Decode_Logical(d, s, (xdrproc_t)xdr_int, N, 
+					      (int)sizeof(int), 
+				     act_size, srcreadlen, destlen, xdr_ctx );
       break;
       case MPIR_LONGDOUBLE:
       MPIR_ERROR(MPIR_COMM_WORLD, MPI_ERR_TYPE, 
           "Unfortuantely, XDR does not support the long double type. Sorry.");
-      mpi_errno = MPID_Mem_XDR_Decode(d, s, xdr_char, N, (int)sizeof(char), 
+      mpi_errno = MPID_Mem_XDR_Decode(d, s, (xdrproc_t)xdr_char, N, (int)sizeof(char), 
 				      act_size, srcreadlen, 
 				      destlen, xdr_ctx  );
       break;

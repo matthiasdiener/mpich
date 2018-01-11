@@ -1,4 +1,4 @@
-.TH MPI_Waitall 3 "1/24/1997" " " "MPI"
+.TH MPI_Waitall 3 "4/28/1998" " " "MPI"
 .SH NAME
 MPI_Waitall \-  Waits for all given communications to complete 
 .SH SYNOPSIS
@@ -99,6 +99,62 @@ or
 identified by a specific error class (e.g., 
 .I MPI_ERR_RANK
 ).
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_IN_STATUS 
+- The actual error value is in the 
+.I MPI_Status
+argument.
+This error class is returned only from the multiple-completion routines
+(
+.I MPI_Testall
+, 
+.I MPI_Testany
+, 
+.I MPI_Testsome
+, 
+.I MPI_Waitall
+, 
+.I MPI_Waitany
+,
+and 
+.I MPI_Waitsome
+).  The field 
+.I MPI_ERROR
+in the status argument
+contains the error value or 
+.I MPI_SUCCESS
+(no error and complete) or
+.I MPI_ERR_PENDING
+to indicate that the request has not completed.
+The MPI Standard does not specify what the result of the multiple 
+completion routines is when an error occurs.  For example, in an 
+.I MPI_WAITALL
+, does the routine wait for all requests to either fail or
+complete, or does it return immediately (with the MPI definition of 
+immediately, which means independent of actions of other MPI processes)?
+MPICH has chosen to make the return immediate (alternately, local in MPI 
+terms), and to use the error class 
+.I MPI_ERR_PENDING
+(introduced in MPI 1.1)
+to indicate which requests have not completed.  In most cases, only
+one request with an error will be detected in each call to an MPI routine
+that tests multiple requests.  The requests that have not been processed
+(because an error occured in one of the requests) will have their
+.I MPI_ERROR
+field marked with 
+.I MPI_ERR_PENDING
+.
+.PD 1
+.PD 0
+.TP
+.B MPI_ERR_PENDING 
+- Pending request (not an error).  See 
+.I MPI_ERR_IN_STATUS
+. 
+This value indicates that the request is not complete nor has a encountered
+a detected error.  
 .PD 1
 .SH LOCATION
 waitall.c

@@ -1,5 +1,5 @@
 /*
- *  $Id: chget.c,v 1.2 1996/06/13 14:52:49 gropp Exp $
+ *  $Id: chget.c,v 1.1.1.1 1997/09/17 20:39:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

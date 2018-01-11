@@ -1,5 +1,5 @@
 /*
- *  $Id: topo_util.c,v 1.7 1996/12/09 20:44:15 gropp Exp $
+ *  $Id: topo_util.c,v 1.2 1998/01/29 14:29:39 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,15 +7,11 @@
 
 #include "mpiimpl.h"
 #include "mpitopo.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBinit MPID_SBinit
 #define MPIR_SBfree MPID_SBfree
 #define MPIR_SBalloc MPID_SBalloc
 #define MPIR_SBdestroy MPID_SBdestroy
-#else
-#include "mpisys.h"
-#endif
 /* 
    Keyval for topologies.
  */

@@ -1,23 +1,20 @@
 /*
- *  $Id: getelements.c,v 1.10 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: getelements.c,v 1.5 1998/04/28 21:46:48 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpidmpi.h"
-#else
-#include "mpisys.h"
-#endif
+
 /*@
   MPI_Get_elements - Returns the number of basic elements
                      in a datatype
 
 Input Parameters:
-. status - return status of receive operation (Status) 
-. datatype - datatype used by receive operation (handle) 
++ status - return status of receive operation (Status) 
+- datatype - datatype used by receive operation (handle) 
 
 Output Parameter:
 . count - number of received basic elements (integer) 
@@ -35,12 +32,23 @@ MPI_Datatype  datatype;
 int          *elements;
 {
     int count;
+    int mpi_errno = MPI_SUCCESS;
     struct MPIR_DATATYPE *dtype_ptr;
     static char myname[] = "MPI_GET_ELEMENTS";
 
     dtype_ptr   = MPIR_GET_DTYPE_PTR(datatype);
     MPIR_TEST_DTYPE(datatype,dtype_ptr,MPIR_COMM_WORLD,myname);
 
+    /*********** Check to see if datatype is committed ********
+     *********** Debbie Swider - 11/17/97 *********************/
+    if (!dtype_ptr->committed) {
+        return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_UNCOMMITTED,
+                           myname );
+    }
+
+#ifdef MPID_HAS_GET_ELEMENTS
+    mpi_errno = MPID_Get_elements( status, datatype, elements );
+#else
     /* Find the number of elements */
     MPI_Get_count (status, datatype, &count);
     if (count == MPI_UNDEFINED) {
@@ -50,8 +58,7 @@ int          *elements;
 	   of datatype will fit, and make use of the datatype->elements
 	   field.  If there isn't an EXACT fit, we need to look into
 	   the datatype for more details about the exact mapping to
-	   elements.  We might be able to do this with a version of
-	   MPIR_Unpack2.
+	   elements.  We do this with MPIR_Unpack2.
        */
 #ifdef FOO
 	*elements = count;
@@ -91,7 +98,6 @@ int          *elements;
     }
     else
 	(*elements) = count * dtype_ptr->elements;
-
-    return (MPI_SUCCESS);
+#endif
+    MPIR_RETURN( MPIR_COMM_WORLD, mpi_errno, myname );
 }
-

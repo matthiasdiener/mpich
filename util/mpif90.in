@@ -1,0 +1,200 @@
+#! /bin/sh
+DoLink=1
+DoCompile=0
+MPILOG=
+Show=eval
+allargs=
+compileargs=
+linkargs=
+linkobjs=
+gettinglinkarg=0
+HasDashC=0
+UsesPmpi=0
+proflib=-lp@MPILIBNAME@
+proflibfullname=@MPIR_HOME@/lib/@ARCH@/@COMM@/libp@MPILIBNAME@.a
+F90=${MPICH_F90-@F90@}
+F90LINKER=${MPICH_F90LINKER-@F90LINKER@}
+for arg in "$@" ; do
+#    echo procssing arg $arg
+    # Special processing for -o name
+    if [ $gettinglinkarg = 1 ] ; then
+	linkargs="$linkargs $arg"
+	gettinglinkarg=0
+	outputfilename="$arg"
+	continue
+    fi
+    case "$arg" in 
+	-c)
+	# If -c is NOT specified, then we need to perform a link step.
+	allargs="$allargs $arg"
+	compileargs="$compileargs $arg"
+        # If -o was set, then we need to move the output file option
+        # to the compile line (note that this is non-standard, and should
+        # not be used in portable codes)
+        if [ $DoLink = 1 -a -n "$outputfilename" ] ; then
+	    compileargs="$compileargs -o $outputfilename"
+        fi
+	DoLink=0
+	HasDashC=1
+	;;
+        -o)
+	# Need to link
+	allargs="$allargs $arg"
+        if [ $HasDashC = 1 ] ; then
+            # Some BUT NOT ALL compilers support -o with -c.  Allow
+            # the user to make use of the feature, IF IT EXISTS.
+            compileargs="$compileargs $arg"	
+        else
+	    linkargs="$linkargs $arg"
+	    compileargs="$compileargs -c"
+	    # Still need to add the target of the -o
+	    gettinglinkarg=1
+	    DoLink=1
+        fi
+	;;
+	-l*)
+	# This SHOULD be the -l<lib> argument.  Only for the linker
+	linkargs="$linkargs $arg"
+	allargs="$allargs $arg"
+	;;
+	-mpilog)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
+	if [ -n "@MPE_LIBS@" ] ; then
+		MPILOG="-lf@MPILIBNAME@ -llmpi"
+	else
+	    echo "-mpilog requires the MPE libraries"
+	fi
+	;;
+	-mpitrace)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
+	if [ -n "@MPE_LIBS@" ] ; then
+   	    MPILOG="-lf@MPILIBNAME@ -ltmpi"
+	else
+	    echo "-mpitrace requires the MPE libraries"
+	fi
+	;;
+	-mpianim)
+	if [ $UsesPmpi = 1 ] ; then
+	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
+	    exit 1
+	else
+	    UsesPmpi=1
+        fi
+	if [ -n "@MPE_LIBS@" ] ; then
+	    MPILOG="-lf@MPILIBNAME@ -lampi @MPE_LIBS@ @X_LIB@"
+	else
+	    echo "-mpianim requires the MPE libraries"
+	fi
+	;;
+	-echo)
+	set -x
+	;;
+	-show)
+	Show=echo
+	;;
+	-v)
+	verbose=1
+	compileargs="$compileargs -v"
+	linkargs="$linkargs -v"
+	;;
+	-help)
+	echo "This is a program to compile or link MPI programs"
+	echo "In addition, the following special options are supported"
+	echo "    -mpilog    - Build version that generate MPE log files"
+	echo "    -mpitrace  - Build version that generates traces"
+	echo "    -mpianim   - Build version that generates real-time"
+	echo "                 animation"
+	echo "    -show      - Show the commands that would be used without"
+	echo "                 runnning them"
+	echo "    -help      - Give this help"
+	echo "    -echo      - Show exactly what this program is doing."
+	echo "                 This option should normally not be used."
+	echo "This should be used just like the usual Fortran compiler"
+	echo "For example,"
+	echo "   $0 -c foo.f "
+	echo "and"
+	echo "   $0 -o foo foo.o"
+	echo "Combining compilation and linking in a single command"
+	echo "   $0 -o foo foo.f"
+	echo "may not work on some systems, and is not recommended."
+	exit 1
+	;;
+        *\"*) 
+	allargs="$allargs `echo $arg | sed 's/\"/\\\"/g'`"
+	compileargs="$compileargs `echo $arg | sed 's/\"/\\\"/g'`"
+	linkargs="$linkargs `echo $arg | sed 's/\"/\\\"/g'`"
+	;;
+        *) allargs="$allargs $arg"
+	if [ -s "$arg" ] ; then
+	    ext=`expr "$arg" : '.*\(\..*\)'`
+	    if [ "$ext" = ".f" -o "$ext" = ".F" -o "$ext" = ".f90" -o \
+		 "$ext" = ".for" -o "$ext" = ".FOR" ] ; then
+	        DoCompile=1
+	        compileargs="$compileargs $arg"
+	        fname=`basename $arg $ext`
+	        linkobjs="$linkobjs $fname.o"
+	    elif [ "$ext" = ".o" ] ; then
+		if [ $HasDashC = 1 ] ; then
+	            compileargs="$compileargs $arg"
+                else
+	            DoLink=1
+	            linkobjs="$linkobjs $arg"
+                fi
+	    else
+	        compileargs="$compileargs $arg"
+	        linkargs="$linkargs $arg"
+	    fi
+	else
+            compileargs="$compileargs $arg"
+	    linkargs="$linkargs $arg"
+	fi
+	;;
+    esac
+done
+#
+# Take care of mpif.h; try to add the link if necessary
+# We'll need to edit mpif.h to remove comments if we use mpif.h instead
+# of an MPI module
+#
+finc="@F90INC@"
+if [ -z "$finc" ] ; then
+    if [ ! -f mpif.h ] ; then
+        echo "Adding a symbolic link for mpif.h"
+	$Show ln -s @MPIR_HOME@/lib/@ARCH@/@COMM@/mpif.h mpif.h
+    fi
+fi
+status=0
+if [ $DoCompile = 1 ] ; then 
+    if [ $HasDashC != 1 ] ; then
+        compileargs="-c $compileargs"
+    fi
+    $Show $F90 @ROMIO_TFFLAGS@ $finc @F90FLAGS@ $compileargs
+    status=$?
+    if [ $status != 0 ] ; then 
+	exit $status
+    fi
+fi
+if [ $DoLink = 1 ] ; then
+    # If the profiling library doesn't exist, or MPICH_NO_PROF environment
+    # variable is set, skip the profiling library.
+    if [ -n "$MPICH_NO_PROF" -o ! -s "$proflibfullname" ] ; then
+        proflib=""
+    fi
+    if [ -n "$MPILOG" ] ; then
+        $Show $F90LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @F90LIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@ @FLIB_LIST@
+    else
+        $Show $F90LINKER @ROMIO_LFLAGS@ @ROMIO_TFFLAGS@ @F90LIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@ @FLIB_LIST@
+    fi
+    status=$?
+fi
+exit $status

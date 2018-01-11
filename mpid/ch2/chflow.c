@@ -1,5 +1,5 @@
 /*
- *  $Id: chflow.c,v 1.2 1996/12/01 23:34:41 gropp Exp $
+ *  $Id: chflow.c,v 1.2 1998/03/13 22:32:25 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -60,6 +60,11 @@ int buf_thresh, mem_thresh;
 	MPID_flow_info[i].mem_thresh = mem_thresh;
 	MPID_flow_info[i].buf_thresh = buf_thresh;
     }
+    if (MPID_DebugFlow) {
+	fprintf( stdout, "Setup flow control with thresholds mem %d buf %d\n",
+		 mem_thresh, buf_thresh );
+    }
+
 }
 
 void MPID_FlowDelete()

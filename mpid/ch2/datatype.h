@@ -66,6 +66,8 @@ extern void *MPIR_ToPointer ANSI_ARGS(( int ));
    if ((ptr)->cookie != MPIR_DATATYPE_COOKIE){\
     MPIR_ERROR_PUSH_ARG(&(ptr)->cookie);\
    RETURNV(MPIR_ERROR(comm,MPI_ERR_TYPE_CORRUPT,routine_name));}}
+#define MPIR_DATATYPE_ISCONTIG(idx,flag) \
+{struct MPIR_DATATYPE *_pp=MPIR_GET_DTYPE_PTR(idx);*(flag)=(_pp)->is_contig;}
 
  /* Used to allocate elements */
 extern void *MPIR_dtes;   /* sbcnst datatype elements */

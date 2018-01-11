@@ -23,11 +23,15 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_comm_dup_ ANSI_ARGS(( MPI_Comm *, MPI_Comm *, int * ));
+void mpi_comm_dup_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_comm_dup_ ( comm, comm_out, __ierr )
-MPI_Comm *comm, *comm_out;
-int *__ierr;
+MPI_Fint *comm; 
+MPI_Fint *comm_out;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Comm_dup( *comm, comm_out );
+    MPI_Comm l_comm_out;
+
+    *__ierr = MPI_Comm_dup( MPI_Comm_f2c(*comm), &l_comm_out );
+    *comm_out = MPI_Comm_c2f(l_comm_out);
 }

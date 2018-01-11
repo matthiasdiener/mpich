@@ -1,5 +1,5 @@
 /*
- *  $Id: commcompare.c,v 1.5 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: commcompare.c,v 1.2 1998/04/28 20:58:02 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,8 +12,8 @@
 MPI_Comm_compare - Compares two communicators
 
 Input Parameters:
-. comm1 - comm1 (handle) 
-. comm2 - comm2 (handle) 
++ comm1 - comm1 (handle) 
+- comm2 - comm2 (handle) 
 
 Output Parameter:
 . result - integer which is 'MPI_IDENT' if the contexts and groups are the

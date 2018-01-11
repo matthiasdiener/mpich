@@ -3,6 +3,21 @@
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
+
+#if defined(NEEDS_STDLIB_PROTOTYPES)
+#include <stdio.h>
+/* 
+   Some gcc installations have out-of-date include files and need these
+   definitions to handle the "missing" prototypes.  This is NOT
+   autodetected, but is provided and can be selected by using a switch
+   on the options line.
+
+   These are from stdlib.h, stdio.h, and unistd.h
+ */
+extern int fprintf(FILE*,const char*,...);
+extern int fflush(FILE *);
+#endif
+
 #include "calltrace.h"
 
 /* Declarations */

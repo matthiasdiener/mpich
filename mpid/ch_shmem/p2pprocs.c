@@ -101,6 +101,11 @@
 
    SIGNAL_HAND_DECL(sigf)
    It will use arguments sig [,code, scp] .  Depend ONLY on sig.
+
+   Finally, it is sometimes necessary to block signals.  This is done
+   with SIGNAL_BLOCK(signal) and SIGNAL_UNBLOCK (which restores the 
+   previous signal state).
+   
  */
 #if defined(HAVE_SIGACTION)
 /*
@@ -187,6 +192,26 @@ int sig, code; struct sigcontext *scp;char *addr;
 RETSIGTYPE sigf( sig )\
 int sig;
 #endif
+
+#if defined(HAVE_SIGPROCMASK)
+static sigset_t mpir_oldset;
+#define SIGNAL_BLOCK(sig) {\
+    sigset_t newset;\
+    sigemptyset(&newset);\
+    sigaddset(&newset,sig);\
+    sigprocmask( SIG_BLOCK, &newset, &mpir_oldset );}
+
+#define SIGNAL_UNBLOCK() {\
+    sigprocmask( SIG_SETMASK, &mpir_oldset, (sigset_t *)0 );}
+#elif defined(HAVE_SIGMASK)
+static int _oldset;
+#define SIGNAL_BLOCK(sig) {int _mask = sigmask(sig);\
+	       _oldset = sigblock(_mask);}
+#define SIGNAL_UNBLOCK() sigblock(_oldset);
+#else
+
+#endif
+
 /* End of signal handler definitions */
 
 /*
@@ -198,7 +223,7 @@ int sig;
  * initiate a termination of the job.
  */
 static int MPID_child_pid[MPID_MAX_PROCS];
-static int MPID_numprocs = 0;
+static int MPID_numprocs = 0;   /* Number of CHILDREN processes */
 
 
 
@@ -228,6 +253,20 @@ SIGNAL_HAND_DECL(MPID_handle_abort)
   p2p_kill_procs();
 }
 
+SIGNAL_HAND_DECL(MPID_dump_internals)
+{
+  extern void MPID_SHMEM_Print_internals ANSI_ARGS(( FILE * ));
+  fprintf( stderr, "[%d] Got Signal to exit .. \n", MPID_myid);
+  MPID_SHMEM_Print_internals( stderr );
+  
+  /* Really need to block further signals until done ... */
+  p2p_clear_signal();
+  /* p2p_cleanup(); is done by p2p_kill_procs() */
+  p2p_kill_procs();
+
+  exit ((int) 1);
+}
+
 SIGNAL_HAND_DECL(MPID_handle_exit)
 {
   fprintf( stderr, "[%d] Got Signal to exit .. \n", MPID_myid);
@@ -240,6 +279,10 @@ SIGNAL_HAND_DECL(MPID_handle_exit)
   exit ((int) 1);
 }
 
+/*
+ * A child failure is ALWAYS fatal.  When in shutdown mode, this signal
+ * is cleared.
+ */
 SIGNAL_HAND_DECL(MPID_handle_child)
 {
   int prog_stat, pid;
@@ -257,10 +300,13 @@ SIGNAL_HAND_DECL(MPID_handle_child)
     for (i = 0; i<MPID_numprocs; i++) {
       if (MPID_child_pid[i] == pid) {
 	MPID_child_pid[i] = 0;
+#ifdef DYNAMIC_CHILDREM
 	if (WIFEXITED(prog_stat)) {
 	  MPID_child_status |= WEXITSTATUS(prog_stat);
 	}
-	else if (WIFSIGNALED(prog_stat)) {
+	else 
+#endif
+	if (WIFSIGNALED(prog_stat)) {
 	  /* If we're not exiting, cause an abort. */
 	    p2p_error( "Child process died unexpectedly from signal", 
 		       WTERMSIG(prog_stat) );
@@ -359,6 +405,9 @@ char **argv;
     int i, rc;
      
     /* set signal handler */
+#if defined(MPID_DEBUG_SPECIAL)
+    SIGNAL_HAND_SET( SIGINT,  MPID_dump_internals );
+#endif
 #if defined(MPID_SETUP_SIGNALS)
     SIGNAL_HAND_SET( SIGCHLD, MPID_handle_child );
 
@@ -430,6 +479,7 @@ char **argv;
 
     /* Make sure that the master process is process zero */
     p2p_lock( &MPID_shmem->globlock );
+/* This won't work for MPI_cspp (see shdef.h) */
     MPID_myid = MPID_shmem->globid++;
 
     SIGNAL_HAND_SET( SIGCHLD, MPID_handle_child );
@@ -440,6 +490,7 @@ char **argv;
      */
     SIGNAL_HAND_SET( SIGTRAP, SIG_IGN );
 #endif
+    SIGNAL_BLOCK(SIGCHLD);
     for (i = 0; i < numprocs; i++)
     {
 	/* Do this in the master to avoid race conditions */
@@ -455,6 +506,7 @@ char **argv;
 	else if (rc == 0)
 	  {
  	    MPID_myid = nextId;
+	    SIGNAL_UNBLOCK();
 	    /* Should we close stdin (fd==0)? */
 	    return;
 	  }
@@ -464,6 +516,7 @@ char **argv;
 	  MPID_numprocs     = i+1;
 	}
     }
+    SIGNAL_UNBLOCK(); /* on SIGCHLD */
     /* This prevents any of the newly created processes decrementing
      * the global ID before everyone has started
      */
@@ -597,7 +650,7 @@ void p2p_kill_procs()
     /* We are no longer interested in signals from the children */
     SIGNAL_HAND_SET( SIGCHLD, SIG_IGN );
     /* numprocs - 1 because the parent is not in the list */
-    for (i=0; i<MPID_numprocs-1; i++) {
+    for (i=0; i<MPID_numprocs; i++) {
       if (MPID_child_pid[i] > 0) 
 	kill( MPID_child_pid[i], SIGINT );
     }
@@ -726,3 +779,11 @@ void p2p_kill_procs()
 #endif /* PROCESS_CREATE_METH == PTHREAD_SX4 */
 
 
+/*
+ * We would like to control scheduling for the MPI processes.  In particular,
+ * gang scheduling for the created processes is often desirable.  
+ * Unfortunately, most OSes don't have natural object to schedule this way.
+ * For example, IRIX (SGI) provides schedctl(SCHEDMODE,SGS_GANG,0) for
+ * processes in a "share group"; this share group must be created with 
+ * sproc, and so isn't applicable to fork'ed processes.
+ */

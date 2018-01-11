@@ -59,21 +59,31 @@ dnl
 dnl PAC_GET_TYPE_SIZE(typename,var_for_size)
 dnl
 dnl sets var_for_size to the size.  Ignores if the size cannot be determined
+dnl Also sets typename_len to the size; if that is already set, just uses
+dnl that
 dnl
 define(PAC_GET_TYPE_SIZE,
-[AC_MSG_CHECKING([for size of $1])
-/bin/rm -f conftestval
-PAC_TEST_PROGRAM([#include <stdio.h>
+[Pac_name="$1"
+ Pac_varname=`echo "$Pac_name" | sed -e 's/ /_/g' -e 's/\*/star/g'`
+eval Pac_testval=\$"${Pac_varname}_len"
+if test -n "$Pac_testval" ; then
+    Pac_CV_NAME=$Pac_testval
+else
+ AC_MSG_CHECKING([for size of $Pac_name])
+ /bin/rm -f conftestval
+ PAC_TEST_PROGRAM([#include <stdio.h>
 main() { 
   FILE *f=fopen("conftestval","w");
   if (!f) exit(1);
-  fprintf( f, "%d\n", sizeof($1));
+  fprintf( f, "%d\n", sizeof($Pac_name));
   exit(0);
 }],Pac_CV_NAME=`cat conftestval`,Pac_CV_NAME="")
-if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
+ if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
     AC_MSG_RESULT($Pac_CV_NAME)
-else
+    eval ${Pac_varname}_len=$Pac_CV_NAME
+ else
     AC_MSG_RESULT(unavailable)
+ fi
 fi
 $2=$Pac_CV_NAME
 ])dnl
@@ -115,15 +125,47 @@ else
 fi
 ])dnl
 dnl
-dnl Define the test for the long long int type
+dnl Define the test for the long long type
+dnl This is made more interesting because some compilers implement it, 
+dnl but not correctly.  If they can't do it right, turn it off.
 define(PAC_LONG_LONG_INT,
 [AC_REQUIRE([AC_PROG_CC])dnl
-AC_MSG_CHECKING([for long long int])
+AC_MSG_CHECKING([for long long])
 AC_TEST_PROGRAM([int main() {
-/* See long double test; this handles the possibility that long long int 
+/* See long double test; this handles the possibility that long long
    has the same problem on some systems */
-exit(sizeof(long long int) < sizeof(long)); }],
-AC_DEFINE(HAVE_LONG_LONG_INT)AC_MSG_RESULT(yes),AC_MSG_RESULT(no))
+exit(sizeof(long long) < sizeof(long)); }],
+AC_MSG_RESULT(yes);has_long_long=1,AC_MSG_RESULT(no);has_long_long=0)
+if test "$has_long_long" = 1 ; then
+   AC_MSG_CHECKING(that compiler can handle loops with long long)
+   dnl We'd like to use AC_COMPILE_CHECK, but this example dies only when
+   dnl used with arrays ([]).
+   changequote(,)
+   cat > conftest.c <<EOF
+void MPIR_SUM_ext( invec, inoutvec, len )
+void *invec, *inoutvec;
+int  len;
+{
+    int i;
+    long long *a = (long long *)inoutvec; long long *b = (long long *)invec;
+    for ( i=0; i<len; i++ )
+      a[i] = a[i]+b[i];
+}
+int main(){return 0;}
+EOF
+    changequote([,])
+    if eval $compile ; then
+        rm -rf conftest*
+        AC_MSG_RESULT(yes)
+    else
+        rm -rf conftest*
+        AC_MSG_RESULT(no!)
+        has_long_long=0
+    fi
+fi
+if test "$has_long_long" = 1 ; then
+    AC_DEFINE(HAVE_LONG_LONG_INT)
+fi
 ])dnl
 dnl
 dnl The AC_LONG_DOUBLE macro is junk because it assumes that the
@@ -188,6 +230,9 @@ dnl It sets "wishloc" to the location that it found, or to the
 dnl empty string if it can't find wish.
 dnl Note that we need tk version 3.3 or later, so we don't check for the 
 dnl earlier versions
+dnl
+dnl Some systems are now (probably wisely, given the number of 
+dnl incompatibilities) using names like "wish4.2" or "wish-3.6" and the like.
 define(PAC_FIND_WISH,[wishloc=""
 AC_MSG_CHECKING([for wish])
 # Look for wish in the path
@@ -202,6 +247,14 @@ for dir in $PATH ; do
     elif test -x $dir/tcl7.4-tk4.0/bin/wish ; then
         wishloc=$dir/tcl7.4-tk4.0/bin/wish
 	break
+    else
+	for file in $dir/wish3.? $dir/wish-3.? $dir/wish4.? $dir/wish* ; do
+	    if test -x $file ; then
+		wishloc=$file
+		break
+	    fi
+	if test -n "$wishloc" ; then break ; fi
+	done
     fi
 done
 IFS="$saveifs"
@@ -252,16 +305,19 @@ if test -z "$TCL_DIR" ; then
 PAC_PROGRAM_CHECK(TCLSH,tclsh,1,,tclshloc)
 AC_MSG_CHECKING([for Tcl])
 # See if tclsh is in the path
+# If there is a tclsh, it MAY provide tk.
 if test -n "$tclshloc" ; then
     cat >conftest <<EOF
 puts stdout [\$]tcl_library
 EOF
-    tcllibloc=`$tclshloc conftest`
+    tcllibloc=`$tclshloc conftest 2>/dev/null`
     # The tcllibloc is the directory containing the .tcl files.  
     # The .a files may be one directory up
-    tcllibloc=`dirname $tcllibloc`
-    # and the lib directory one above that
-    tcllibs="$tcllibloc `dirname $tcllibloc`"
+    if test -n "$tcllibloc" ; then
+        tcllibloc=`dirname $tcllibloc`
+        # and the lib directory one above that
+        tcllibs="$tcllibloc `dirname $tcllibloc`"
+    fi
     /bin/rm -f conftest   
 fi
 for dir in $tcllibs \
@@ -290,6 +346,15 @@ for dir in $tcllibs \
     /usr/sgitcl \
     /local/encap/tcl-7.1 ; do
     if test -r $dir/include/tcl.h ; then 
+	# Check for correct version
+	changequote(,)
+	tclversion=`grep 'TCL_MAJOR_VERSION' $dir/include/tcl.h | \
+		sed -e 's/^.*TCL_MAJOR_VERSION[^0-9]*\([0-9]*\).*$/\1/'`
+	changequote([,])
+	if test "$tclversion" != "7" ; then
+	    # Skip if it is the wrong version
+	    continue
+	fi
         if test -r $dir/lib/libtcl.a -o -r $dir/lib/libtcl.so ; then
  	    TCL_DIR=$dir
 	    break
@@ -315,16 +380,27 @@ fi
 if test -z "$TK_DIR" ; then
 AC_MSG_CHECKING([for Tk])
 if test -n "$wishloc" ; then
-    cat >conftest <<EOF
-puts stdout [\$]tk_library
-exit
-EOF
-    tklibloc=`$wishloc -file conftest`
-    # The tklibloc is the directory containing the .k files.  
+    # Originally, we tried to run wish and get the tkversion from it
+    # unfortunately, this sometimes hung, probably waiting to get a display
+#    cat >conftest <<EOF
+#puts stdout [\$]tk_library
+#exit
+#EOF
+#    tklibloc=`$wishloc -file conftest 2>/dev/null`
+    tklibloc=`strings $wishloc | grep 'lib/tk'`
+    # The tklibloc is the directory containing the .tclk files.  
     # The .a files may be one directory up
-    tklibloc=`dirname $tklibloc`
-    # and the lib directory one above that
-    tklibs="$tklibloc `dirname $tklibloc`"
+    # There may be multiple lines in tklibloc now.  Make sure that we only
+    # test actual directories
+    if test -n "$tklibloc" ; then
+	for tkdirname in $tklibloc ; do
+    	    if test -d $tkdirname ; then
+                tkdirname=`dirname $tkdirname`
+                # and the lib directory one above that
+                tklibs="$tkdirname `dirname $tkdirname`"
+	    fi
+	done
+    fi
     /bin/rm -f conftest   
 fi
 for dir in $tklibs \
@@ -349,6 +425,15 @@ for dir in $tklibs \
     /usr/sgitcl \
     /local/encap/tk-3.4 $TCL_DIR ; do
     if test -r $dir/include/tk.h ; then 
+	# Check for correct version
+	changequote(,)
+	tkversion=`grep 'TK_MAJOR_VERSION' $dir/include/tk.h | \
+		sed -e 's/^.*TK_MAJOR_VERSION[^0-9]*\([0-9]*\).*$/\1/'`
+	changequote([,])
+	if test "$tkversion" != "3" ; then
+	    # Skip if it is the wrong version
+	    continue
+	fi
         if test -r $dir/lib/libtk.a -o -r $dir/lib/libtk.so ; then
 	    TK_DIR=$dir
 	    break
@@ -510,13 +595,16 @@ if test -z "$ac_echo_test" ; then
      print_error "1>&1 correctly.  Configure will work around this problem,"
      print_error "but you should report the problem to your vendor."
 fi
+define(pac_set_echo_n,1)dnl
 ])dnl
 dnl AC_MSG_CHECKING(FEATURE-DESCRIPTION)
 define(AC_FD_MSG,1)dnl
 define(AC_MSG_CHECKING,[dnl
+dnl ifdef(pac_set_echo_n,,[
 if test -z "$ac_echo_n" ; then
 AC_PROG_ECHO_N
 fi
+dnl ])
 if test -z "$ac_echo_test" -a AC_FD_MSG = 1 ; then
 echo $ac_n "checking $1""... $ac_c"
 else
@@ -526,9 +614,10 @@ dnl
 dnl AC_MSG(msg)
 dnl generates "msg..." (no newline)
 define(AC_MSG,[dnl
+ifdef(pac_set_echo_n,,[
 if test -z "$ac_echo_n" ; then
 AC_PROG_ECHO_N
-fi
+fi])
 if test -z "$ac_echo_test" -a AC_FD_MSG = 1 ; then
 echo $ac_n "$1""... $ac_c"
 else
@@ -876,9 +965,16 @@ dnl
 define(PAC_PROGRAMS_CHECK,
 [for p in $2
 do
-PAC_PROGRAM_CHECK($1, [$]p, [$]p, )
+PAC_PROGRAM_CHECK($1, [$]p, [$]p,,$5)
 test -n "[$]$1" && break
 done
+if test -z "[$]$1" ; then
+    # We have to set this outside of the loop lest the first failure in 
+    # PROGRAM_CHECK set the value (which then terminates the effect of the
+    # loop, since autoconf macros only set values that are null, they 
+    # don't override them
+    $1="$4"
+fi
 ifelse([$3],,, [test -n "[$]$1" || $1="$3"
 ])])dnl
 dnl
@@ -1094,14 +1190,30 @@ case $1 in
                     CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3d -DT3D" ; GCC="" 
                     if test -z "$USERCLINKER" ; then 
 	            CLINKER="$CC -Tcray-t3d" ; fi ;;
+   cray_t3e)        
+	# Some Cray's require -Ccray-t3e instead of -Tcray-t3e.  
+        # We have no diagnostic for this behavior yet.
+                    CC=/mpp/bin/cc ; CFLAGS="$CFLAGS -Tcray-t3e -DT3E" ; GCC="" 
+                    if test -z "$USERCLINKER" ; then 
+	            CLINKER="$CC -Tcray-t3e" ; fi ;;
    hpux) if test "`which ${CC-cc}`" = "/usr/convex/bin/cc" ; then 
         CFLAGS="$CFLAGS -or none -U_REENTRANT -D_POSIX_SOURCE -D_HPUX_SOURCE -DMPI_cspp"
          elif test "$CC" != "gcc" ; then
 	    # If cflags includes -Ae or -Aa, we don't need to add -Aa
             # In a perfect world, we might want to try -Ae
-	    hasarg=`echo A$CFLAGS | sed -n -e '/-Aa/p' -e '/-Ae/p'`
+            # There is also -Aportable...
+	    hasarg=`echo A$CFLAGS | sed -n -e '/-A/p'`
 	    if test -z "$hasarg" ; then
-                CFLAGS="$CFLAGS -Aa"
+		# Try to Add -Ae; add -Aa if that doesn't work
+	        PAC_CHECK_COMPILER_OPTION(-Ae,hasarg=1)
+		if test -n "$hasarg" ; then
+                    CFLAGS="$CFLAGS -Ae"
+                else
+ 	            PAC_CHECK_COMPILER_OPTION(-Aa,hasarg=1)
+		    if test -n "$hasarg" ; then
+			CFLAGS="$CFLAGS -Aa"
+		    fi
+                fi
 	    fi
             # We need these flags to get the correct system include
             # files.
@@ -1346,6 +1458,12 @@ EOF
 	# mgates reports that the +T option makes MPICH work on some HPUX
 	# platforms.  The documentation for +T is truely scary; it seems
 	# to imply that without it, a Fortran program will NOT run correctly.
+        # The hpux F90 compiler doesn't accept +T.  Since we currently set
+	# F90FLAGS to FFLAGS by default, 
+        if test -z "$USER_SET_F90FLAGS" -a -z "$F90FLAGS" ; then
+	    F90FLAGS="$FFLAGS"
+	    USER_SET_F90FLAGS=1
+	fi
 	FFLAGS="$FFLAGS +T"
     else
         # The Convex compiler needs to have optimization messages suppressed
@@ -1368,6 +1486,9 @@ EOF
       ;;
     ncube)   F77=nf77 ;;
     rs6000)  F77=xlf ;;
+    LINUX|linux) 
+      PAC_PROGRAMS_CHECK(F77,f77 fort77 g77)
+      ;;
 esac
 fi
 if test -z "$USERFLINKER" -a -z "$FLINKER" ; then
@@ -1429,15 +1550,15 @@ EOF
     # directly.
     if test $arch_CRAY ; then
      # Cray doesn't accept -a ...
-     nameform1=`strings confftest.o | grep mpir_init_fop_  | head -1`
-     nameform2=`strings confftest.o | grep MPIR_INIT_FOP   | head -1`
-     nameform3=`strings confftest.o | grep mpir_init_fop   | head -1`
-     nameform4=`strings confftest.o | grep mpir_init_fop__ | head -1`
+     nameform1=`strings confftest.o | grep mpir_init_fop_  | sed -n -e '1p'`
+     nameform2=`strings confftest.o | grep MPIR_INIT_FOP   | sed -n -e '1p'`
+     nameform3=`strings confftest.o | grep mpir_init_fop   | sed -n -e '1p'`
+     nameform4=`strings confftest.o | grep mpir_init_fop__ | sed -n -e '1p'`
     else
-     nameform1=`strings -a confftest.o | grep mpir_init_fop_  | head -1`
-     nameform2=`strings -a confftest.o | grep MPIR_INIT_FOP   | head -1`
-     nameform3=`strings -a confftest.o | grep mpir_init_fop   | head -1`
-     nameform4=`strings -a confftest.o | grep mpir_init_fop__ | head -1`
+     nameform1=`strings -a confftest.o | grep mpir_init_fop_  | sed -n -e '1p'`
+     nameform2=`strings -a confftest.o | grep MPIR_INIT_FOP   | sed -n -e '1p'`
+     nameform3=`strings -a confftest.o | grep mpir_init_fop   | sed -n -e '1p'`
+     nameform4=`strings -a confftest.o | grep mpir_init_fop__ | sed -n -e '1p'`
     fi
     /bin/rm -f confftest.f confftest.o
     if test -n "$nameform4" ; then
@@ -1574,7 +1695,7 @@ define(PAC_FIND_X11,[
            f_test=/usr/include/X11/Xlib.h
        fi
        if test ! -f $f_test ; then
-           no_x=yes
+           no_x=true
 	   print_error "X11 include files were not found in $f_test!"
        fi
    fi
@@ -1647,7 +1768,7 @@ dnl as STRING, since we don't control the changes between versions, and
 dnl only versions that we know should be tested.
 dnl Note that this may be important ONLY if you include tk.h .
 dnl
-dnl TK_LIB and XINCLUDES must be defined
+dnl TK_LIB and XINCLUDES must be defined (and no_x must NOT be true)
 dnl
 define(PAC_TK_VERSION,[
 AC_MSG_CHECKING(for version of TK)
@@ -1655,7 +1776,8 @@ AC_MSG_CHECKING(for version of TK)
 #
 # Some systems have a separate tcl dir; since we need both tcl and tk
 # we include both directories
-if test -n "$TK_DIR" -a -n "$TCL_DIR" ; then
+# Tk is going to load X11; if no X11, skip this step
+if test -z "$no_x" -a -n "$TK_DIR" -a -n "$TCL_DIR" ; then
   CFLAGSsave="$CFLAGS"
   CFLAGS="$CFLAGS -I$TK_DIR/include -I$TCL_DIR/include $XINCLUDES"
   PAC_TEST_PROGRAM([#include "tk.h"
@@ -1789,23 +1911,151 @@ if test "$3" = "-" ; then echo "$1=$2" ; else echo "$1=$2" >> $3 ; fi
 dnl
 dnl See if Fortran compiler accepts -Idirectory flag
 dnl 
-dnl PAC_FORTRAN_HAS_INCDIR(true-action,false-action)
+dnl PAC_FORTRAN_HAS_INCDIR(directory,true-action,false-action)
 dnl
 dnl Fortran compiler is F77 and is passed FFLAGS
 dnl
 define(PAC_FORTRAN_HAS_INCDIR,[
 AC_MSG_CHECKING([for Fortran include argument])
+cat > $1/conftestf.h <<EOF
+       call sub()
+EOF
 cat > conftest.f <<EOF
        program main
-       include 'mpif.h'
+       include 'conftestf.h'
        end
 EOF
-if $F77 $FFLAGS -c -Iinclude conftest.f > /dev/null 2>&1 ; then
+if $F77 $FFLAGS -c -I$1 conftest.f > /dev/null 2>&1 ; then
+    ifelse($2,,true,$2)
+    AC_MSG_RESULT([supports -I for include])
+else
+    ifelse($3,,true,$3)
+    AC_MSG_RESULT([does NOT support -I for include])
+fi
+/bin/rm -f conftest.f $1/conftestf.h
+])dnl
+dnl
+dnl PAC_FORTRAN_GET_INTEGER_SIZE(var_for_size)
+dnl
+dnl sets var_for_size to the size.  Ignores if the size cannot be determined
+dnl
+define(PAC_FORTRAN_GET_INTEGER_SIZE,
+[AC_MSG_CHECKING([for size of Fortran INTEGER])
+/bin/rm -f conftestval
+/bin/rm -f conftestf.f conftestf.o
+cat <<EOF > conftestf.f
+      subroutine isize( )
+      integer i(2)
+      call cisize( i(1), i(2) )
+      end
+EOF
+if $F77 $FFLAGS -c conftestf.f >/dev/null 2>&1 ; then 
+    SaveLIBS="$LIBS"
+    LIBS="conftestf.o $LIBS"
+    PAC_TEST_PROGRAM([#include <stdio.h>
+#ifdef FORTRANCAPS
+#define cisize_ CISIZE
+#define isize_  ISIZE
+#elif defined(FORTRANNOUNDERSCORE)
+#define cisize_ cisize
+#define isize_  isize
+#endif
+static int isize_val;
+void cisize_( i1p, i2p )
+char *i1p, *i2p;
+{
+	isize_val = (i2p - i1p) * sizeof(char);
+}
+main() { 
+  FILE *f=fopen("conftestval","w");
+  
+  if (!f) exit(1);
+  isize_();
+  fprintf( f, "%d\n", isize_val);
+  exit(0);
+}],Pac_CV_NAME=`cat conftestval`,Pac_CV_NAME="")
+LIBS="$SaveLIBS"
+else
+   :
+fi
+/bin/rm -f conftestf.f conftestf.o
+if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
+    AC_MSG_RESULT($Pac_CV_NAME)
+else
+    AC_MSG_RESULT(unavailable)
+fi
+$1=$Pac_CV_NAME
+])dnl
+dnl
+dnl PAC_FORTRAN_GET_REAL_SIZE(var_for_size)
+dnl
+dnl sets var_for_size to the size.  Ignores if the size cannot be determined
+dnl
+define(PAC_FORTRAN_GET_REAL_SIZE,
+[AC_MSG_CHECKING([for size of Fortran REAL])
+/bin/rm -f conftestval
+/bin/rm -f conftestf.f conftestf.o
+cat <<EOF > conftestf.f
+      subroutine isize( )
+      real i(2)
+      call cisize( i(1), i(2) )
+      end
+EOF
+if $F77 $FFLAGS -c conftestf.f >/dev/null 2>&1 ; then 
+    SaveLIBS="$LIBS"
+    LIBS="conftestf.o $LIBS"
+    PAC_TEST_PROGRAM([#include <stdio.h>
+#ifdef FORTRANCAPS
+#define cisize_ CISIZE
+#define isize_  ISIZE
+#elif defined(FORTRANNOUNDERSCORE)
+#define cisize_ cisize
+#define isize_  isize
+#endif
+static int isize_val;
+void cisize_( i1p, i2p )
+char *i1p, *i2p;
+{
+	isize_val = (i2p - i1p) * sizeof(char);
+}
+main() { 
+  FILE *f=fopen("conftestval","w");
+  
+  if (!f) exit(1);
+  isize_();
+  fprintf( f, "%d\n", isize_val);
+  exit(0);
+}],Pac_CV_NAME=`cat conftestval`,Pac_CV_NAME="")
+LIBS="$SaveLIBS"
+else
+   :
+fi
+/bin/rm -f conftestf.f conftestf.o
+if test -n "$Pac_CV_NAME" -a "$Pac_CV_NAME" != 0 ; then
+    AC_MSG_RESULT($Pac_CV_NAME)
+else
+    AC_MSG_RESULT(unavailable)
+fi
+$1=$Pac_CV_NAME
+])dnl
+dnl
+dnl See if Fortran accepts ! for comments
+dnl
+dnl PAC_FORTRAN_HAS_EXCLAM_COMMENTS(action-if-true,action-if-false)
+dnl
+define(PAC_FORTRAN_HAS_EXCLAM_COMMENTS,[
+AC_MSG_CHECKING([for Fortran accepts ! for comments])
+cat > conftest.f <<EOF
+       program main
+!      This is a comment
+       end
+EOF
+if $F77 $FFLAGS -c conftest.f > /dev/null 2>&1 ; then
     ifelse($1,,true,$1)
-    AC_MSG_RESULT([supports -I])
+    AC_MSG_RESULT([yes])
 else
     ifelse($2,,true,$2)
-    AC_MSG_RESULT([does NOT support -I])
+    AC_MSG_RESULT([no])
 fi
 /bin/rm -f conftest.f
 ])dnl
@@ -1841,6 +2091,7 @@ if eval $CC $CFLAGS -o conftest conftest.c > /dev/null 2>&1 ; then
 	AC_MSG_RESULT(yes)
     else
 	AC_MSG_RESULT(Signals reset when used!)
+	AC_DEFINE(SIGNALS_RESET_WHEN_USED)
     fi
 else
     AC_MSG_RESULT(Could not compile test program!)
@@ -1930,7 +2181,7 @@ define(PAC_GET_SPECIAL_SYSTEM_INFO,[
 # In particular, there are IRIX-like systems that do not have the 'hinv'
 # command.
 #
-if test -n "$arch_IRIX"; then
+if test -n "$arch_IRIX" ; then
    AC_MSG_CHECKING(for IRIX OS version)
    dnl Every version and machine under IRIX is incompatible with every other
    dnl version.  This block of code replaces a generic "IRIX" arch value 
@@ -1943,7 +2194,9 @@ if test -n "$arch_IRIX"; then
    dnl the macro quotes
    changequote(,)dnl
    dnl Get the second field (looking for 6.1)
-   osvminor=`uname -r | sed 's/[0-9]\.\([0-9]*\)\..*/\1/'`
+   dnl this handles 6.1.27
+   dnl   osvminor=`uname -r | sed 's/[0-9]\.\([0-9]*\)\..*/\1/'`
+   osvminor=`uname -r | sed 's/[0-9]\.\([0-9]*\).*/\1/'`
    AC_MSG_RESULT($osversion)
    dnl Get SGI processor count by quick hack
    dnl 7/13/95, bri@sgi.com
@@ -1961,6 +2214,8 @@ if test -n "$arch_IRIX"; then
      exit 1
    fi
    AC_MSG_RESULT($cpucount)
+   if test -z "$PROCESSOR_COUNT" ; then PROCESSOR_COUNT=$cpucount ; fi
+   AC_DEFINE(PROCESSOR_COUNT)
 
    dnl 
    dnl Check for fast SGI device
@@ -2108,8 +2363,10 @@ EOF
         print_error "Error in creating test program for ranlib test!"
     else
 	# Check that we can link the program
+	echo $CLINKER $CFLAGS $LDFLAGS conftest.o -o conftest foo.a $LIBS >> \
+		config.log
         if eval $CLINKER $CFLAGS $LDFLAGS conftest.o -o conftest foo.a $LIBS \
-		>/dev/null 2>&1 ; then
+		>>config.log 2>&1 ; then
 	    AC_MSG_RESULT(yes)
 	else
 	    AC_MSG_RESULT(no)
@@ -2290,7 +2547,7 @@ int t() {
 ; return 0; }
 EOF
 if test -z "$ac_link" ; then
-ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AC_FD_CC'
+ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >/dev/null 2>&1'
 fi
 if eval $ac_link; then
   ifelse([$3], , :, [rm -rf conftest*
@@ -2482,3 +2739,297 @@ fflush(stdout);
 return 0;
 }
 int main() { func( 1, 2 ); return 0;}],$1=1,$1=0)])
+dnl
+dnl From aclocal.m4 in MPITEST (configure for Intel Test Suite)
+dnl Added INTEGER*8
+dnl
+dnl PAC_TEST_FORTTYPES tests to see if the following fortran datatypes are
+dnl supported: INTEGER1, INTEGER2, INTEGER4, REAL4, REAL8, DOUBLE_COMPLEX
+dnl
+define(PAC_TEST_FORTTYPES,dnl
+   [
+FIX_FILE=0
+FORT_INT1=1
+FORT_INT2=1
+FORT_INT4=1
+FORT_INT8=1
+FORT_REAL4=1
+FORT_REAL8=1
+FORT_DOUBLE_COMPLEX=1
+COUNT=13
+AC_MSG_CHECKING(for integer * 1)
+cat > testfort.f <<EOF
+        subroutine forttype( a )
+        integer*1 a
+        return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_INT1=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for integer * 2)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        integer*2 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_INT2=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for integer * 4)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        integer*4 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_INT4=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for integer * 8)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        integer*8 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_INT8=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for integer * 16)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        integer*16 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_INT16=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for real * 4)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        real*4 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_REAL4=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for real * 8)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        real*8 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_REAL8=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for real * 16)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        real*16 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_REAL16=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for double complex)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        double complex a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_DOUBLE_COMPLEX=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for complex * 8)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        complex*8 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_COMPLEX8=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for complex * 16)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        complex*16 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_COMPLEX16=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+AC_MSG_CHECKING(for complex * 32)
+    cat > testfort.f <<EOF
+        subroutine forttype( a )
+        complex*32 a
+	return
+        end
+EOF
+   $F77 -c testfort.f > /dev/null 2>&1
+   if test ! -s testfort.o ; then
+       AC_MSG_RESULT(no)
+       FORT_COMPLEX32=0
+       FIX_FILE=1
+       COUNT=`expr ${COUNT} - 1`
+   else
+       AC_MSG_RESULT(yes)
+   fi
+   /bin/rm -f testfort.f testfort.o
+dnl
+   ])dnl
+dnl
+dnl
+dnl PAC_CHECK_COMPILER_OPTION(optionname,action-if-ok,action-if-fail)
+dnl This should actually check that compiler doesn't complain about it either,
+dnl by compiling the same program with two options, and diff'ing the output.
+dnl
+define([PAC_CHECK_COMPILER_OPTION],[
+AC_MSG_CHECKING([that C compiler accepts option $1])
+CFLAGSSAV="$CFLAGS"
+CFLAGS="$1 $CFLAGS"
+echo 'void f(){}' > conftest.c
+if test -z "`${CC-cc} $CFLAGS -c conftest.c 2>&1`"; then
+  AC_MSG_RESULT(yes)
+  $2
+else
+  AC_MSG_RESULT(no)
+  $3
+fi
+rm -f conftest*
+CFLAGS="$CFLAGSSAV"
+])
+dnl
+dnl PAC_CHECK_FC_COMPILER_OPTION is like PAC_CHECK_COMPILER_OPTION,
+dnl except for Fortran 
+dnl It is harder to do a test here since Fortran compilers tend to be very 
+dnl noisy.
+dnl
+define([PAC_CHECK_FC_COMPILER_OPTION],[
+AC_MSG_CHECKING([that Fortran compiler accepts option $1])
+FFLAGSSAV="$FFLAGS"
+FFLAGS="$1 $FFLAGS"
+cat >conftest.f <<EOF
+        program main
+        end
+EOF
+/bin/rm -f conftest1.out conftest2.out
+if $F77 $FFLAGS -c conftest.f > conftest1.out 2>&1 ; then
+    if $F77 $FFLAGSSAV -c conftest.f > conftest2.out 2>&1 ; then
+        if diff conftest2.out conftest1.out > /dev/null 2>&1 ; then
+            AC_MSG_RESULT(yes)
+            $2
+	else
+            AC_MSG_RESULT(no)
+            cat conftest2.out >> config.log
+            $3
+	fi
+    else
+        AC_MSG_RESULT(no)
+        cat conftest2.out >> config.log
+        $3
+    fi
+else
+    AC_MSG_RESULT(no)
+    cat conftest1.out >> config.log
+    $3
+fi
+rm -f conftest*
+FFLAGS="$FFLAGSSAV"
+])

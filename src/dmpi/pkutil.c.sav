@@ -1,5 +1,5 @@
 #ifndef LINT
-static char vcid[] = "$Id$";
+static char vcid[] = "$Id: pkutil.c.sav,v 1.1.1.1 1997/09/17 20:42:23 gropp Exp $";
 #endif
 
 /* 

@@ -1,6 +1,11 @@
 #ifndef MPID_BIND
 #define MPID_BIND
-/* These are the bindings of the ADI2 routines */
+/* These are the bindings of the ADI2 routines 
+ * 
+ * This is not necessarily a complete set.  Check the ADI2 documentation
+ * in http://www.mcs.anl.gov/mpi/mpich/workingnote/nextgen/note.html .
+ *
+ */
 
 void MPID_Init ANSI_ARGS(( int *, char ***, void *, int *));
 void MPID_End  ANSI_ARGS((void));
@@ -83,6 +88,30 @@ void MPID_Unpack ANSI_ARGS(( void *, int, MPID_Msgrep_t, int *,
 
 /* Requests */
 void MPID_Request_free ANSI_ARGS((MPI_Request));
+
+/* Communicators 
+ * These are often defined as simple macros.  These prototypes show how
+ * they should be defined if they are routines.
+ */
+#ifndef MPID_CommInit
+int MPID_CommInit ANSI_ARGS(( struct MPIR_COMMUNICATOR *, 
+			      struct MPIR_COMMUNICATOR * ));
+#endif
+#ifndef MPID_CommFree
+int MPID_CommFree ANSI_ARGS(( struct MPIR_COMMUNICATOR * ));
+#endif
+
+/*
+ * Miscellaneous routines
+ * These are often defined as simple macros.  These prototypes show how
+ * they should be defined if they are routines.
+ */
+#ifndef MPID_Wtime
+void MPID_Wtime ANSI_ARGS(( double * ));
+#endif
+#ifndef MPID_Wtick
+void MPID_Wtick ANSI_ARGS(( double * ));
+#endif
 
 /* 
  * These are debugging commands; they are exported so that the command-line

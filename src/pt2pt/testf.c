@@ -1,20 +1,7 @@
 /* test.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
-
-#ifdef MPI_ADI2
 #include "mpifort.h"
-#endif
-
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) a
-#define MPIR_FromPointer(a) a
-#define MPIR_RmPointer(a)
-#endif
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
@@ -37,19 +24,31 @@ extern void MPIR_RmPointer();
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_test_ ANSI_ARGS(( MPI_Request *, int *, MPI_Status *, int * ));
+void mpi_test_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                           MPI_Fint * ));
 
 void mpi_test_ ( request, flag, status, __ierr )
-MPI_Request  *request;
-int          *flag;
-MPI_Status   *status;
-int *__ierr;
+MPI_Fint *request;
+MPI_Fint *flag;
+MPI_Fint *status;
+MPI_Fint *__ierr;
 {
-    MPI_Request lrequest = (MPI_Request) MPIR_ToPointer(*(int*)request);
-    *__ierr = MPI_Test( &lrequest,flag,status);
+    int        l_flag;
+    MPI_Status c_status;
+    MPI_Request lrequest = MPI_Request_f2c(*request);
+
+    *__ierr = MPI_Test( &lrequest, &l_flag, &c_status);
+
+#ifdef OLD_POINTER
     if (lrequest == MPI_REQUEST_NULL) {
-	MPIR_RmPointer(*(int*)request);
-	*(int*)request = 0;
+	MPIR_RmPointer((int)lrequest);
+	*request = 0;
     }
-    *flag = MPIR_TO_FLOG(*flag);
+    else
+#endif
+        *request = MPI_Request_c2f(lrequest);
+
+    *flag = MPIR_TO_FLOG(l_flag);
+    if (l_flag) 
+	MPI_Status_c2f(&c_status, status);
 }

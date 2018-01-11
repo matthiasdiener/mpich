@@ -1,24 +1,20 @@
 /*
- *  $Id: group_union.c,v 1.22 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: group_union.c,v 1.3 1998/04/28 20:58:19 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
 MPI_Group_union - Produces a group by combining two groups
 
 Input Parameters:
-. group1 - first group (handle) 
-. group2 - second group (handle) 
++ group1 - first group (handle) 
+- group2 - second group (handle) 
 
 Output Parameter:
 . newgroup - union group (handle) 
@@ -71,7 +67,7 @@ MPI_Group group1, group2, *group_out;
   
   /* Create the new group */
   MPIR_ALLOC(new_group_ptr,NEW(struct MPIR_GROUP),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_UNION" );
+	     MPI_ERR_EXHAUSTED, "MPI_GROUP_UNION" );
   *group_out	      = (MPI_Group) MPIR_FromPointer( new_group_ptr );
   new_group_ptr->self = *group_out;
   MPIR_SET_COOKIE(new_group_ptr,MPIR_GROUP_COOKIE)
@@ -104,7 +100,7 @@ MPI_Group group1, group2, *group_out;
   new_group_ptr->np             = n;
   MPIR_ALLOC(new_group_ptr->lrank_to_grank,(int *) MALLOC( n * sizeof(int) ),
 	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-	     "Out of space in MPI_GROUP_UNION" );
+	     "MPI_GROUP_UNION" );
   
   /* Fill in the space */
   n = group1_ptr->np;
@@ -115,11 +111,7 @@ MPI_Group group1, group2, *group_out;
   
   /* Find the local rank only if local rank not defined in group 1 */
   if ( new_group_ptr->local_rank == MPI_UNDEFINED ) {
-#ifdef MPI_ADI2
       global_rank = MPID_MyWorldRank;
-#else
-      MPID_Myrank(MPIR_COMM_WORLD->ADIctx,&global_rank);
-#endif      
       for( i=group1_ptr->np; i<new_group_ptr->np; i++ )
 	  if ( global_rank == new_group_ptr->lrank_to_grank[i] ) {
 	      new_group_ptr->local_rank = i;

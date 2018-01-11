@@ -1,5 +1,5 @@
 /*
- *  $Id: inter_fns.c,v 1.4 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: inter_fns.c,v 1.1.1.1 1997/09/17 20:42:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

@@ -61,4 +61,12 @@ extern void MPID_UnpackMessageSetup ANSI_ARGS(( int, struct MPIR_DATATYPE *,
 						int, MPID_Msgrep_t, void **, 
 						int *, int * ));
 extern int MPID_UnpackMessageComplete ANSI_ARGS(( MPIR_RHANDLE * ));
+
+/* 
+   Devices that provide their own datatype handling may need to provide their
+   own MPI_Get_count and MPI_Get_elements routines.  They should provide
+   MPID_Get_count and MPID_Get_elements, and define the macros
+   MPID_HAS_GET_COUNT and MPID_HAS_GET_ELEMENTS in mpid.h .  The 
+   definitions of the MPID versions is exactly the same as the MPI versions.
+ */
 #endif

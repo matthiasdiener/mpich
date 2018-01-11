@@ -1,6 +1,7 @@
 /* scatterv.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
+#include "mpimem.h"
 
 #ifdef _CRAY
 #include <fortran.h>
@@ -107,26 +108,55 @@ if (_isfcd(recvbuf)) {
 #else
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_scatterv_ ANSI_ARGS(( void *, int *, int *, MPI_Datatype *,
-			       void *, int *, MPI_Datatype *, int *, MPI_Comm*,
-			       int * ));
+void mpi_scatterv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *,
+			       void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                               MPI_Fint *, MPI_Fint * ));
 
 void mpi_scatterv_ ( sendbuf, sendcnts, displs, sendtype, 
                    recvbuf, recvcnt,  recvtype, 
                    root, comm, __ierr )
-void             *sendbuf;
-int              *sendcnts;
-int              *displs;
-MPI_Datatype     *sendtype;
-void             *recvbuf;
-int*recvcnt;
-MPI_Datatype     *recvtype;
-int*root;
-MPI_Comm          *comm;
-int *__ierr;
+void     *sendbuf;
+MPI_Fint *sendcnts;
+MPI_Fint *displs;
+MPI_Fint *sendtype;
+void     *recvbuf;
+MPI_Fint *recvcnt;
+MPI_Fint *recvtype;
+MPI_Fint *root;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Scatterv(MPIR_F_PTR(sendbuf),sendcnts,displs,*sendtype,
-			   MPIR_F_PTR(recvbuf),*recvcnt,*recvtype,*root,
-			   *comm );
+    if (sizeof(MPI_Fint) == sizeof(int))
+        *__ierr = MPI_Scatterv(MPIR_F_PTR(sendbuf), sendcnts, displs,
+                           MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                           *recvcnt, MPI_Type_f2c(*recvtype),
+                           *root, MPI_Comm_f2c(*comm) );
+    else {
+	int size;
+        int *l_sendcnts;
+        int *l_displs;
+	int i;
+
+	MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+ 
+	MPIR_FALLOC(l_sendcnts,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Scatterv");
+	MPIR_FALLOC(l_displs,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Scatterv");
+	for (i=0; i<size; i++) {
+	    l_sendcnts[i] = (int)sendcnts[i];
+	    l_displs[i] = (int)displs[i];
+	}    
+
+        *__ierr = MPI_Scatterv(MPIR_F_PTR(sendbuf), l_sendcnts, l_displs,
+                               MPI_Type_f2c(*sendtype), MPIR_F_PTR(recvbuf),
+                               (int)*recvcnt, MPI_Type_f2c(*recvtype),
+                               (int)*root, MPI_Comm_f2c(*comm) );
+        FREE( l_sendcnts);
+        FREE( l_displs);
+    }
+
 }
 #endif

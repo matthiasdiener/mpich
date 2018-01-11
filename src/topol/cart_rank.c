@@ -1,5 +1,5 @@
 /*
- *  $Id: cart_rank.c,v 1.20 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: cart_rank.c,v 1.2 1998/04/29 14:28:36 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,8 +14,8 @@ MPI_Cart_rank - Determines process rank in communicator given Cartesian
                 location
 
 Input Parameters:
-. comm - communicator with cartesian structure (handle) 
-. coords - integer array (of size  'ndims') specifying the cartesian 
++ comm - communicator with cartesian structure (handle) 
+- coords - integer array (of size  'ndims') specifying the cartesian 
   coordinates of a process 
 
 Output Parameter:

@@ -1,4 +1,4 @@
-.TH mpirun 1 "4/14/1997" " " "MPI Commands"
+.TH mpirun 1 "6/5/1998" " " "MPI Commands"
 .SH NAME
 mpirun \-  Run mpi programs 
 .SH DESCRIPTION
@@ -15,6 +15,7 @@ mpirun typically works like this
 .nf
 mpirun -np <number of processes> <program name and arguments>
 .fi
+
 
 If mpirun cannot determine what kind of machine you are on, and it
 is supported by the mpi implementation, you can the -machine
@@ -37,6 +38,7 @@ without using a procgroup file. This script
 currently does not work well with interactive
 jobs)
 .fi
+
 You should only have to specify mr_arch if mpirun does not recognize
 your machine, the default value is wrong, or you are using the p4 or
 execer devices.  The full list of options is
@@ -129,14 +131,19 @@ Special Options for NEC - CENJU-3:
 .TP
 .B -stderr filename
 - Use filename as the standard error  for the program.
+Special Options for Nexus device:
 .PD 1
-
-.SH SPECIAL OPTIONS FOR NEXUS DEVICE
-.    -nexuspg filename
-Use the given Nexus startup file instead of creating one.
+.PD 0
+.TP
+.B -nexuspg filename
+- Use the given Nexus startup file instead of creating one.
 Overrides -np and -nolocal, selects -leave_pg.
-.    -nexusdb filename
-Use the given Nexus resource database.
+.PD 1
+.PD 0
+.TP
+.B -nexusdb filename
+- Use the given Nexus resource database.
+.PD 1
 
 .SH SPECIAL OPTIONS FOR WORKSTATION CLUSTERS
 
@@ -175,9 +182,9 @@ Overrides -np and -nolocal, selects -leave_pg.
 programs.  If num is 0, use the value of the 
 environment variable MPI_P4SSPORT.  Using the server can
 speed up process startup.  If MPI_USEP4SSPORT as well as
-.PD 1
 MPI_P4SSPORT are set, then that has the effect of giving
 mpirun the -p4ssport 0 parameters.
+.PD 1
 
 .SH SPECIAL OPTIONS FOR BATCH ENVIRONMENTS
 
@@ -265,6 +272,7 @@ the local machine being a sun4, use
 .nf
 mpirun -arch sun4 -np 2 -arch rs6000 -np 3 program
 .fi
+
 This assumes that program will run on both architectures.  If different
 executables are needed (as in this case), the string 
 .I %a
@@ -277,6 +285,7 @@ and
 .nf
 mpirun -arch sun4 -np 2 -arch rs6000 -np 3 program.%a
 .fi
+
 If instead the execuables are in different directories; for example,
 .I /tmp/me/sun4
 and 
@@ -285,6 +294,7 @@ and
 .nf
 mpirun -arch sun4 -np 2 -arch rs6000 -np 3 /tmp/me/%a/program
 .fi
+
 It is important to specify the architecture with 
 .I -arch
 .B before
@@ -313,4 +323,4 @@ device is to create a
 file directly.  See the MPICH Users Guide for more information.
 
 .SH LOCATION
-util/README
+/home/MPI/mansrc/commands

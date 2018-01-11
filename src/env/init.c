@@ -1,5 +1,5 @@
 /*
- *  $Id: init.c,v 1.87 1997/01/07 01:46:11 gropp Exp $
+ *  $Id: init.c,v 1.3 1998/02/02 22:53:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -23,11 +23,11 @@
    MPI specifies no command-line arguments but does allow an MPI 
    implementation to make use of them.
 
-.   -mpiqueue - print out the state of the message queues when 'MPI_FINALIZE'
+.  -mpiqueue - print out the state of the message queues when 'MPI_FINALIZE'
    is called.  All processors print; the output may be hard to decipher.  This
    is intended as a debugging aid.
 
-.   -mpiversion - print out the version of the implementation (`not` of MPI),
+.  -mpiversion - print out the version of the implementation (`not` of MPI),
     including the arguments that were used with configure.
 
 .  -mpinice nn - Increments the nice value by 'nn' (lowering the priority 
@@ -38,34 +38,9 @@
    detected by MPI or a normally fatal signal).  This works only if MPICH
    was configured with '-mpedbg'.
 
-.  -mpipktsize nn - Set the message length where the ADI changed to 
-   the long message protocol to 'nn'.  This only works if MPICH was 
-   configured with '-var_pkt'.
-
-   The following options are available only on the Chameleon device and
-   devices built with debugging code.  Normally, these should only be used
-   by MPICH implementors when debugging new ports.
-
-.  -mpichdebug - Print out the Chameleon device operations
-
-.  -mpidbfile filename - Like mpichdebug, but sends the output to the
-   specified file.  If the filename contains a '%d', then that part of
-   the filename is replaced with the rank in 'MPI_COMM_WORLD'.  For example,
-.vb
-   -mpidbfile log.%d 
-.ve
-   writes to 'log.0', 'log.1', etc.
-
-.  -mpichmemdebug - (Chameleon device only) Print out a list of unreclaimed
-   memory.  This requires that MPI be built with the '-DMPIR_DEBUG_MEM'
-   switch.  This is intended for debugging the MPI implementation itself.
-
 .  -mpimem - If MPICH was built with '-DMPIR_DEBUG_MEM', this checks all
     malloc and free operations (internal to MPICH) for signs of injury 
     to the memory allocation areas.
-
-.  -mpichmsg - Print out the number of messages 
-            received, by category, when the program exits.
 
 .  -mpidb options - Activate various debugging options.  Some require
    that MPICH have been built with special options.  These are intended 

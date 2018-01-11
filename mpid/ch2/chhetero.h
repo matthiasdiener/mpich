@@ -51,9 +51,14 @@ int MPID_Mem_XDR_len  ANSI_ARGS(( struct MPIR_DATATYPE *, int ));
 void MPID_Mem_XDR_Free ANSI_ARGS(( XDR * ));
 int MPID_Mem_XDR_Encode ANSI_ARGS(( unsigned char *, unsigned char *,
 				    xdrproc_t, int, int, XDR * ));
+int MPID_Mem_XDR_Encode_Logical ANSI_ARGS(( unsigned char *, unsigned char *,
+				    xdrproc_t, int, XDR * ));
 int MPID_Mem_XDR_ByteEncode ANSI_ARGS(( unsigned char *, unsigned char *,
 					int, XDR * ));
 int MPID_Mem_XDR_Decode ANSI_ARGS(( unsigned char *, unsigned char *,
+				    xdrproc_t, int, int, int, int *, int *, 
+				    XDR * ));
+int MPID_Mem_XDR_Decode_Logical ANSI_ARGS(( unsigned char *, unsigned char *,
 				    xdrproc_t, int, int, int, int *, int *, 
 				    XDR * ));
 int MPID_Mem_XDR_ByteDecode ANSI_ARGS(( unsigned char *, unsigned char *,

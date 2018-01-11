@@ -1,19 +1,15 @@
 /*
- *  $Id: finalize.c,v 1.40 1997/01/17 22:59:21 gropp Exp $
+ *  $Id: finalize.c,v 1.5 1998/04/06 20:04:28 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "reqalloc.h"
 #define MPIR_SBdestroy MPID_SBdestroy
 extern int MPIR_Dump_Mem;
-#else
-#include "mpisys.h"
 extern int MPIR_Print_queues;
-#endif
 
 #define DBG(a)
 
@@ -44,37 +40,20 @@ int MPI_Finalize()
 
     /* Complete any remaining buffered sends first */
     { void *a; int b;
-#ifdef MPI_ADI2
     MPIR_BsendRelease( &a, &b );
-#else
-    MPIR_FreeBuffer( &a, &b );
-#endif
     }	  
 
-#ifndef MPI_ADI2
-    /*  Dump final status of queues */
     if (MPIR_Print_queues) {
 	int i, np, rank;
-	(void) MPIR_Comm_rank( MPI_COMM_WORLD, &rank );
-	(void) MPIR_Comm_size( MPI_COMM_WORLD, &np );
-	for (i=0 ; i<np; i++) {
+	(void) MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+	(void) MPI_Comm_size( MPI_COMM_WORLD, &np );
+	for (i=0; i<np; i++) {
 	    MPI_Barrier( MPI_COMM_WORLD );
 	    if (i == rank) {
-		printf("[%d]Dumping recv queue...\n", rank );
-		MPIR_dump_queue( &MPIR_posted_recvs );
+		MPID_Dump_queues();
 		fflush( stdout );
-		}
 	    }
-	for (i=0 ; i<np; i++) {
-	    MPI_Barrier( MPI_COMM_WORLD );
-	    if (i == rank) {
-		printf("[%d]Dumping unexpected queue...\n", rank );
-		MPIR_dump_queue( &MPIR_unexpected_recvs );
-		fflush( stdout );
-		}
-	    }
-	}
-#endif
+	}}
 
 #ifdef MPID_END_NEEDS_BARRIER
     MPI_Barrier( MPI_COMM_WORLD );
@@ -193,8 +172,7 @@ int MPI_Finalize()
 	MPI_Keyval_free( &tmp );
 	tmp = MPIR_WTIME_IS_GLOBAL;
 	MPI_Keyval_free( &tmp );
-	}
-
+	} 
     {MPI_Errhandler tmp;
     tmp = MPI_ERRORS_RETURN;
     MPI_Errhandler_free( &tmp );
@@ -204,13 +182,15 @@ int MPI_Finalize()
     MPI_Errhandler_free( &tmp );
     }
 
-#ifdef MPI_ADI2
+    if (MPIR_Infotable) {
+        FREE(MPIR_Infotable);
+    }
+
 #ifdef MPID_HAS_PROC_INFO
     /* Release any space we allocated for the proc table */
     if (MPIR_proctable != 0) {
 	FREE(MPIR_proctable);
     }
-#endif
 #endif
     /* Tell device that we are done.  We place this here to allow
        the device to tell us about any memory leaks, since MPIR_SB... will
@@ -218,20 +198,11 @@ int MPI_Finalize()
      */
     DBG(FPRINTF( stderr, "About to close device\n" ); fflush( stderr );)
 
-#ifdef MPI_ADI2
     MPID_End();
-#else
-    MPID_END( ADIctx );
-#endif
 
     DBG(FPRINTF( stderr, "About to free SBstuff\n" ); fflush( stderr );)
 
     MPIR_SBdestroy( MPIR_dtes );
-#ifndef MPI_ADI2
-    MPIR_SBdestroy( MPIR_qels );
-    MPIR_SBdestroy( MPIR_shandles );
-    MPIR_SBdestroy( MPIR_rhandles );
-#endif
 
     MPIR_SBdestroy( MPIR_errhandlers );
 
@@ -239,7 +210,7 @@ int MPI_Finalize()
     MPIR_Topology_Free();
 
     MPIR_SENDQ_FINALIZE();
-#ifdef MPIR_MEMDEBUG
+#if defined(MPIR_MEMDEBUG) || defined(MPIR_PTRDEBUG)
     /* 
        This dumps the number of Fortran pointers still in use.  For this 
        to be useful, we should delete all of the one that were allocated
@@ -252,14 +223,9 @@ int MPI_Finalize()
     }
     MPIR_DestroyPointer();
 
-#ifdef MPI_ADI2
     if (MPIR_Dump_Mem) {
 	MPID_trdump( stdout );
     }
-#else
-    MPIR_trdump( stdout );
-#endif
-
 #endif    
     /* barrier */
     TR_POP;

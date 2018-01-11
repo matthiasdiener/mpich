@@ -11,6 +11,7 @@ int MPIR_FromPointer ANSI_ARGS(( void * ));
 void MPIR_RmPointer ANSI_ARGS(( int ));
 int MPIR_UsePointer ANSI_ARGS(( FILE * ));
 void MPIR_RegPointerIdx ANSI_ARGS(( int, void * ));
+void MPIR_PointerOpts ANSI_ARGS(( int ));
 
 /* 
  * Eventually, this should include a shortcut for ToPointer that takes the

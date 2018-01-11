@@ -23,16 +23,16 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_size_ ANSI_ARGS(( MPI_Datatype *, int *, int * ));
+void mpi_type_size_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_type_size_ ( datatype, size, __ierr )
-MPI_Datatype  *datatype;
-int           *size;
-int           *__ierr;
+MPI_Fint *datatype;
+MPI_Fint *size;
+MPI_Fint *__ierr;
 {
     /* MPI_Aint c_size;*/
     int c_size;
-    *__ierr = MPI_Type_size(*datatype, &c_size);
+    *__ierr = MPI_Type_size(MPI_Type_f2c(*datatype), &c_size);
     /* Should check for truncation */
-    *size = (int)c_size;
+    *size = (MPI_Fint)c_size;
 }

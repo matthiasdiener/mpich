@@ -2,16 +2,6 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
-#ifdef POINTER_64_BITS
-extern void *MPIR_ToPointer();
-extern int MPIR_FromPointer();
-extern void MPIR_RmPointer();
-#else
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_wait_ PMPI_WAIT
@@ -33,19 +23,27 @@ extern void MPIR_RmPointer();
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_wait_ ANSI_ARGS(( MPI_Request *, MPI_Status *, int * ));
+void mpi_wait_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_wait_ ( request, status, __ierr )
-MPI_Request  *request;
-MPI_Status   *status;
-int *__ierr;
+MPI_Fint *request;
+MPI_Fint *status;
+MPI_Fint *__ierr;
 {
-MPI_Request lrequest;
-lrequest = (MPI_Request)MPIR_ToPointer(*(int*)request);
-*__ierr = MPI_Wait(&lrequest,status);
-/* By checking for null, we handle persistant requests */
-if (lrequest == MPI_REQUEST_NULL) {
-    MPIR_RmPointer( *((int *)(request)) );
-    *(int *)request = 0;
+    MPI_Request lrequest;
+    MPI_Status c_status;
+
+    lrequest = MPI_Request_f2c(*request);
+    *__ierr = MPI_Wait(&lrequest, &c_status);
+#ifdef OLD_POINTER
+    /* By checking for null, we handle persistant requests */
+    if (lrequest == MPI_REQUEST_NULL) {
+        MPIR_RmPointer( ((int)(lrequest)) );
+        *request = 0;
     }
+    else
+#endif
+        *request = MPI_Request_c2f(lrequest);
+
+    MPI_Status_c2f(&c_status, status);
 }

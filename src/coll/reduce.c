@@ -1,5 +1,5 @@
 /*
- *  $Id: reduce.c,v 1.37 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: reduce.c,v 1.2 1998/04/28 18:51:01 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,12 +14,12 @@
 MPI_Reduce - Reduces values on all processes to a single value
 
 Input Parameters:
-. sendbuf - address of send buffer (choice) 
++ sendbuf - address of send buffer (choice) 
 . count - number of elements in send buffer (integer) 
 . datatype - data type of elements of send buffer (handle) 
 . op - reduce operation (handle) 
 . root - rank of root process (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice, 

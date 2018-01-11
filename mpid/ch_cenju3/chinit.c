@@ -1,5 +1,5 @@
 /*
- *  $Id: chinit.c,v 1.1 1996/04/12 20:17:08 gropp Exp $
+ *  $Id: chinit.c,v 1.1.1.1 1997/09/17 20:41:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

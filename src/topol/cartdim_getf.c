@@ -23,12 +23,15 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_cartdim_get_ ANSI_ARGS(( MPI_Comm *, int *, int * ));
+void mpi_cartdim_get_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_cartdim_get_ ( comm, ndims, __ierr )
-MPI_Comm  *comm;
-int      *ndims;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *ndims;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Cartdim_get( *comm, ndims );
+    int lndims;
+
+    *__ierr = MPI_Cartdim_get( MPI_Comm_f2c(*comm), &lndims );
+    *ndims = (MPI_Fint)lndims;
 }

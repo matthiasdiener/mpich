@@ -1,4 +1,5 @@
 #! /bin/sh
+exitstatus=1
 #
 DEFAULT_ARCH=#DEFAULT_ARCH#
 if [ -z "$MPIR_HOME" ] ; then 
@@ -46,6 +47,7 @@ if [ -z "$tcppgfile"  ] ; then
     # make sure the procgroup file was written
     if [ $just_testing = 0 -a \! -r "$tcppgfile" ] ; then
         echo Failed to write "$tcppgfile".  Exiting.
+	exitstatus=1
         exit 1
     fi
 
@@ -80,6 +82,8 @@ fi
 #
 MPIRUN_DEVICE="ch_tcp"
 export MPIRUN_DEVICE
+# No good way to get the exit status
+exitstatus=0
 if [ $just_testing = 1 ] ; then
   echo ""
   if [ $nolocal = 1 ] ; then
@@ -108,7 +112,3 @@ else
     /bin/rm "$tcppgfile"
   fi
 fi #just testing
-
-
-
-

@@ -2,6 +2,8 @@
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
 
+#include "mpimem.h"
+
 #ifdef _CRAY
 #include <fortran.h>
 #include <stdarg.h>
@@ -105,25 +107,71 @@ if (_isfcd(recvbuf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_alltoallv_ ANSI_ARGS(( void *, int *, int *, MPI_Datatype *, 
-				void *, int *, int *, MPI_Datatype *, 
-				MPI_Comm *, int * ));
+void mpi_alltoallv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+				void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+				MPI_Fint *, MPI_Fint * ));
 
 void mpi_alltoallv_ ( sendbuf, sendcnts, sdispls, sendtype, 
                     recvbuf, recvcnts, rdispls, recvtype, comm, __ierr )
-void             *sendbuf;
-int              *sendcnts;
-int              *sdispls;
-MPI_Datatype     *sendtype;
-void             *recvbuf;
-int              *recvcnts;
-int              *rdispls; 
-MPI_Datatype     *recvtype;
-MPI_Comm         *comm;
-int *__ierr;
+void     *sendbuf;
+MPI_Fint *sendcnts;
+MPI_Fint *sdispls;
+MPI_Fint *sendtype;
+void     *recvbuf;
+MPI_Fint *recvcnts;
+MPI_Fint *rdispls; 
+MPI_Fint *recvtype;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Alltoallv(MPIR_F_PTR(sendbuf),sendcnts,sdispls,*sendtype,
-			    MPIR_F_PTR(recvbuf),recvcnts,rdispls,*recvtype,
-			    *comm );
+    
+    if (sizeof(MPI_Fint) == sizeof(int))
+	*__ierr = MPI_Alltoallv(MPIR_F_PTR(sendbuf), sendcnts, 
+                                sdispls, MPI_Type_f2c(*sendtype),
+			        MPIR_F_PTR(recvbuf), recvcnts, 
+                                rdispls, MPI_Type_f2c(*recvtype),
+			        MPI_Comm_f2c(*comm) );
+    else {
+
+        int *l_sendcnts;
+        int *l_sdispls;
+        int *l_recvcnts;
+        int *l_rdispls;
+	int size;
+	int i;
+
+	MPI_Comm_size(MPI_Comm_f2c(*comm), &size);
+ 
+	MPIR_FALLOC(l_sendcnts,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Alltoallv");
+	MPIR_FALLOC(l_sdispls,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Alltoallv");
+	MPIR_FALLOC(l_recvcnts,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Alltoallv");
+	MPIR_FALLOC(l_rdispls,(int*)MALLOC(sizeof(int)* size),
+		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED,
+		    "MPI_Alltoallv");
+
+	for (i=0; i<size; i++) {
+	    l_sendcnts[i] = (int)sendcnts[i];
+	    l_sdispls[i] = (int)sdispls[i];
+	    l_recvcnts[i] = (int)recvcnts[i];
+	    l_rdispls[i] = (int)rdispls[i];
+	}    
+
+	*__ierr = MPI_Alltoallv(MPIR_F_PTR(sendbuf), l_sendcnts, 
+                                l_sdispls, MPI_Type_f2c(*sendtype),
+			        MPIR_F_PTR(recvbuf), l_recvcnts, 
+                                l_rdispls, MPI_Type_f2c(*recvtype),
+			        MPI_Comm_f2c(*comm) );
+	FREE( l_sendcnts);
+	FREE( l_sdispls );
+	FREE( l_recvcnts);
+	FREE( l_rdispls );
+    }
+
 }
 #endif

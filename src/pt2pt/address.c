@@ -1,14 +1,11 @@
 /*
- *  $Id: address.c,v 1.12 1996/06/07 15:00:33 gropp Exp $
+ *  $Id: address.c,v 1.2 1998/01/29 14:27:37 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Address - Gets the address of a location in memory  

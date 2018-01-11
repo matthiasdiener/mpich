@@ -81,18 +81,25 @@ if (_isfcd(buf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_recv_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, int *,
-			   MPI_Comm *, MPI_Status *, int * ));
+void mpi_recv_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                           MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                           MPI_Fint * ));
 
 void mpi_recv_( buf, count, datatype, source, tag, comm, status, __ierr )
-void             *buf;
-int              *count,*source,*tag;
-MPI_Datatype     *datatype;
-MPI_Comm         *comm;
-MPI_Status       *status;
-int *__ierr;
+void     *buf;
+MPI_Fint *count;
+MPI_Fint *source;
+MPI_Fint *tag;
+MPI_Fint *datatype;
+MPI_Fint *comm;
+MPI_Fint *status;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Recv(MPIR_F_PTR(buf),*count,*datatype,*source,*tag,
-		       *comm,status);
+    MPI_Status c_status;
+
+    *__ierr = MPI_Recv(MPIR_F_PTR(buf), (int)*count,MPI_Type_f2c(*datatype),
+                       (int)*source, (int)*tag,
+		       MPI_Comm_f2c(*comm), &c_status);
+    MPI_Status_c2f(&c_status, status);
 }
 #endif

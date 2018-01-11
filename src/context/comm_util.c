@@ -1,15 +1,11 @@
 /*
- *  $Id: comm_util.c,v 1.45 1997/02/20 20:43:51 lusk Exp $
+ *  $Id: comm_util.c,v 1.2 1998/01/29 14:26:27 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 /* For MPIR_COLLOPS */
 #include "mpicoll.h"
 
@@ -31,8 +27,8 @@ MPIR_COMM_TYPE comm_type;
   struct MPIR_COMMUNICATOR *new_comm;
   int      mpi_errno;
 
-  MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm,MPI_ERR_EXHAUSTED,
-			"Error creating new communicator" );
+  MPIR_ALLOC(new_comm,NEW(struct MPIR_COMMUNICATOR),comm,MPI_ERR_COMM_NAME,
+			"internal-Comm_make_coll" );
   MPIR_Comm_init( new_comm, comm, comm_type );
   MPIR_Attr_dup_tree ( comm, new_comm );
 
@@ -67,16 +63,11 @@ MPIR_COMM_TYPE comm_type;
 
   /* The MPID_Comm_init routine needs the size of the local group, and
      reads it from the new_comm structure */
-#ifdef MPI_ADI2
   if ((mpi_errno = MPID_CommInit( comm, new_comm ))) 
       return mpi_errno;
   /* Is that a storage leak ? Shouldn't we free new_comm if the init
    * fails ? (Or will it get freed higher up ??)
    */
-#else
-  if ((mpi_errno = MPID_Comm_init( new_comm->ADIctx, comm, new_comm ))) 
-      return mpi_errno;
-#endif
   
   new_comm->comm_name = 0;
 

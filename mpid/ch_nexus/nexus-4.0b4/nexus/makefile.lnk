@@ -1,7 +1,0 @@
-$(SHARED_LIB): $(OBJS)
-	if  test ! -d "${build_dir_lib}"; then \
-	   mkdir ${build_dir_lib}; \
-	fi
-	$(RM) -f $(SHARED_LIB)
-	$(CC) -o $(SHARED_LIB) $(SHARED_LDFLAGS) $(ALL_SHARED_OBJS) $(ALL_STATIC_OBJS)
-

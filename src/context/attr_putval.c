@@ -1,23 +1,21 @@
 /*
- *  $Id: attr_putval.c,v 1.25 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: attr_putval.c,v 1.3 1998/04/28 20:57:56 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "attr.h" 
-#endif
 
 /*@
 
 MPI_Attr_put - Stores attribute value associated with a key
 
 Input Parameters:
-. comm - communicator to which attribute will be attached (handle) 
++ comm - communicator to which attribute will be attached (handle) 
 . keyval - key value, as returned by  'MPI_KEYVAL_CREATE' (integer) 
-. attribute_val - attribute value 
+- attribute_val - attribute value 
 
 Notes:
 Values of the permanent attributes 'MPI_TAG_UB', 'MPI_HOST', 'MPI_IO', and

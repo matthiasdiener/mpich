@@ -1,24 +1,21 @@
 /*
- *  $Id: type_vec.c,v 1.16 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_vec.c,v 1.4 1998/04/28 21:47:31 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Type_vector - Creates a vector (strided) datatype
 
 Input Parameters:
-. count - number of blocks (nonnegative integer) 
++ count - number of blocks (nonnegative integer) 
 . blocklength - number of elements in each block 
 (nonnegative integer) 
 . stride - number of elements between start of each block (integer) 
-. oldtype - old datatype (handle) 
+- oldtype - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 
@@ -55,11 +52,13 @@ MPI_Datatype *newtype;
 	MPIR_CALL_POP(MPI_Type_contiguous ( 
 	    count * blocklen, old_type, newtype ),MPIR_COMM_WORLD,myname);
   }
-  /* Reduce this to the hvector case */
+  else {
+      /* Reduce this to the hvector case */
   
-  mpi_errno = MPI_Type_hvector ( count, blocklen, 
-				 (MPI_Aint)stride * old_dtype_ptr->extent,
-						    old_type, newtype );
+      mpi_errno = MPI_Type_hvector ( count, blocklen, 
+				     (MPI_Aint)stride * old_dtype_ptr->extent,
+				     old_type, newtype );
+  }
   MPIR_ERROR_POP(MPIR_COMM_WORLD);
   TR_POP;
   MPIR_RETURN(MPIR_COMM_WORLD,mpi_errno,myname);

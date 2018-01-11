@@ -1,4 +1,4 @@
-/* $Id: petsccfg.h,v 1.3 1994/12/19 21:02:16 gropp Exp $ */
+/* $Id: petsccfg.h,v 1.1.1.1 1997/09/17 20:38:19 gropp Exp $ */
 /* Configuration file for PETSc */
 /* The generic version is empty, except for indicating that X is not supported
    (some intel systems have X11, but many do not) */

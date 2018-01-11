@@ -1,5 +1,5 @@
 /*
- *  $Id: mpiimpl.h,v 1.37 1997/03/29 16:08:48 gropp Exp $
+ *  $Id: mpiimpl.h,v 1.9 1998/04/10 17:50:00 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -35,7 +35,6 @@
 #include "protofix.h"
 #endif
 
-#ifdef MPI_ADI2
 /* The device knows a lot about communicators, requests, etc. */
 #include "mpid.h"
 #include "sendq.h"
@@ -47,12 +46,20 @@ extern void *MPIR_errhandlers;  /* sbcnst Error handlers */
 /* MPIR_F_MPI_BOTTOM is the address of the Fortran MPI_BOTTOM value */
 extern void *MPIR_F_MPI_BOTTOM;
 
+/* MPIR_F_STATUS_IGNORE and MPIR_F_STATUS_IGNORE are special markers
+   used in Fortran instead of null pointers */
+extern void *MPIR_F_STATUS_IGNORE;
+extern void *MPIR_F_STATUSES_IGNORE;
+
 /* MPIR_F_PTR checks for the Fortran MPI_BOTTOM and provides the value 
    MPI_BOTTOM if found 
    See src/pt2pt/addressf.c for why MPIR_F_PTR(a) is just (a)
 */
 /*  #define MPIR_F_PTR(a) (((a)==(MPIR_F_MPI_BOTTOM))?MPI_BOTTOM:a) */
 #define MPIR_F_PTR(a) (a)
+
+/* use local array if count < MPIRUSE_LOCAL_ARRAY */
+#define MPIR_USE_LOCAL_ARRAY 32
 
 /* End of FROM MPIR.H */
 /* FROM MPI_BC.H */
@@ -62,6 +69,18 @@ extern void *MPIR_F_MPI_BOTTOM;
 /* This is the only global state in MPI */
 extern int MPIR_Has_been_initialized;
 /* End of FROM MPI_BC.H */
+
+/* info is a linked list of these structures */
+struct MPIR_Info {
+    int cookie;
+    char *key, *value;
+    struct MPIR_Info *next;
+};
+
+#define MPIR_INFO_COOKIE 5835657
+
+extern MPI_Info *MPIR_Infotable;
+extern int MPIR_Infotable_ptr, MPIR_Infotable_max;
 
 /* FROM DMPIATOM.H, used in group_diff, group_excl, group_inter,
    group_rexcl, group_union */
@@ -81,15 +100,15 @@ extern int MPIR_Has_been_initialized;
    the ones that need them. 
  */
 #include <stdio.h>
-#else
+
 /* NOT ADI2 */
-#include "dmpiatom.h"
-#include "mpi_bc.h"
-#include "dmpi.h"
-#include "mpir.h"
-#include "mpi_ad.h"
-#include "mpid.h"
-#endif /* If MPI_ADI2 */
+/*#include "dmpiatom.h" */
+/*#include "mpi_bc.h" */
+/*#include "dmpi.h"*/
+/*#include "mpir.h" */
+/*#include "mpi_ad.h" */
+/*#include "mpid.h"*/
+/* If MPI_ADI2 */
 
 /* 
    mpiprof contains the renamings for the profiling interface.  For it to
@@ -128,7 +147,6 @@ extern int MPIR_Has_been_initialized;
 #endif
 
 #endif
-
 extern struct MPIR_COMMUNICATOR *MPIR_COMM_WORLD;
 extern struct MPIR_GROUP *MPIR_GROUP_EMPTY;
 
@@ -225,28 +243,22 @@ void MPIR_Comm_init  ANSI_ARGS( ( struct MPIR_COMMUNICATOR *,
 				  MPIR_COMM_TYPE ) );
 
 /* pt2pt */
-#ifndef MPI_ADI2
-#include "mpipt2pt.h"
-#else
+void MPIR_Set_Status_error_array ANSI_ARGS(( MPI_Request [], int, int, int,
+					     MPI_Status [] ));
 void MPIR_Sendq_init ANSI_ARGS(( void ));
 void MPIR_Sendq_finalize ANSI_ARGS(( void ));
 void MPIR_Remember_send ANSI_ARGS(( MPIR_SHANDLE *, void *, int, MPI_Datatype,
 				    int, int, struct MPIR_COMMUNICATOR * ));
 void MPIR_Forget_send ANSI_ARGS(( MPIR_SHANDLE * ));
-#endif
-
-/* dmpi */
-#ifndef MPI_ADI2
-#include "mpidmpi.h"
-#endif
 
 /* env */
 int MPIR_Init ANSI_ARGS( ( int *, char *** ) );
 int MPIR_Op_setup ANSI_ARGS( ( MPI_User_function *, int, int, MPI_Op ) );
-void MPIR_Breakpoint ANSI_ARGS(( void ));
+void * MPIR_Breakpoint ANSI_ARGS(( void ));
 int MPIR_GetErrorMessage ANSI_ARGS(( int, char *, char ** ));
 void MPIR_Init_dtes ANSI_ARGS(( void ));
 void MPIR_Free_dtes ANSI_ARGS(( void ));
+void MPIR_Datatype_iscontig ANSI_ARGS(( MPI_Datatype, int * ));
 
 int MPIR_Errhandler_create ANSI_ARGS(( MPI_Handler_function *, 
 				       MPI_Errhandler ));
@@ -263,25 +275,8 @@ void MPIR_Topology_finalize ANSI_ARGS((void));
 void *MPIR_SBalloc ANSI_ARGS( ( void * ) );
 void MPIR_SBfree ANSI_ARGS( ( void *, void * ) );
  */
-#ifndef MPI_ADI2
-void MPIR_dump_rhandle ANSI_ARGS( ( MPIR_RHANDLE ) );
-void MPIR_dump_shandle ANSI_ARGS( ( MPIR_SHANDLE ) );
-void MPIR_dump_queue ANSI_ARGS( ( MPIR_QHDR * ) );
-int MPIR_enqueue ANSI_ARGS( ( MPIR_QHDR *, MPIR_COMMON *, MPIR_QEL_TYPE ) );
-int MPIR_dequeue ANSI_ARGS( ( MPIR_QHDR *, void * ) );
-int MPIR_search_posted_queue ANSI_ARGS( ( int, int, MPIR_CONTEXT, int *, int, 
-			     MPIR_RHANDLE ** ) );
-int MPIR_search_unexpected_queue ANSI_ARGS( ( int, int, MPIR_CONTEXT, int *, 
-					      int, MPIR_RHANDLE ** ) );
-int MPIR_flatten_dte ANSI_ARGS( ( MPI_Datatype, MPIR_FDTEL **, MPIR_FDTEL ***, int * ) );
-int MPIR_dump_flat_dte ANSI_ARGS( ( MPIR_FDTEL * ) );
-int MPIR_Tab ANSI_ARGS( ( int ) );
-void MPIR_ArgSqueeze ANSI_ARGS( ( int *, char ** ) );
-#else
 int MPIR_dump_dte ANSI_ARGS(( MPI_Datatype, int ));
-#endif
 
-#ifdef MPI_ADI2
 int MPIR_BsendInitBuffer ANSI_ARGS( ( void *, int ) );
 int MPIR_BsendRelease ANSI_ARGS( ( void **, int * ) );
 int MPIR_BsendBufferPrint ANSI_ARGS( ( void ) );
@@ -294,17 +289,6 @@ void MPIR_BsendFreeReq ANSI_ARGS( ( MPIR_SHANDLE * ) );
 void MPIR_IbsendDatatype ANSI_ARGS(( struct MPIR_COMMUNICATOR *, void *, int, 
 				     struct MPIR_DATATYPE *,
 				     int, int, int, int, MPI_Request, int * ));
-#else
-int  MPIR_SetBuffer ANSI_ARGS( ( void *, int ) );
-void MPIR_FreeBuffer ANSI_ARGS( ( void **, int *) );
-void MPIR_PrepareBuffer ANSI_ARGS( ( MPIR_SHANDLE * ) );
-int MPIR_GetBuffer ANSI_ARGS( ( int, MPI_Request, void *, int, MPI_Datatype, 
-				void ** ) );
-void MPIR_BufferFreeReq ANSI_ARGS( ( MPIR_SHANDLE * ) );
-void MPIR_BsendPersistent ANSI_ARGS( ( MPI_Request, int ) );
-int MPIR_DoBufferSend ANSI_ARGS( ( MPIR_SHANDLE * ) );
-int MPIR_BufferPrint ANSI_ARGS( ( void ) );
-#endif
 
 void MPIR_HBT_Free ANSI_ARGS((void));
 void MPIR_HBT_Init ANSI_ARGS((void));
@@ -343,6 +327,7 @@ int MPIR_fstr2cstr ANSI_ARGS( (char *, long, char *, long) );
 int MPIR_cstr2fstr ANSI_ARGS( (char *, long, char *) );
 
 #endif
+
 
 
 

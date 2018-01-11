@@ -1,4 +1,4 @@
-.TH MPI_Sendrecv 3 "2/18/1997" " " "MPI"
+.TH MPI_Sendrecv 3 "4/28/1998" " " "MPI"
 .SH NAME
 MPI_Sendrecv \-  Sends and receives a message 
 .SH SYNOPSIS
@@ -81,7 +81,6 @@ MPI_Status   *status;
 .B status 
 - status object (Status).  This refers to the receive operation.
 .PD 1
-
 .SH NOTES FOR FORTRAN
 All MPI routines in Fortran (except for 
 .I MPI_WTIME
@@ -148,10 +147,10 @@ non-negative; a count of zero is often valid.
 .TP
 .B MPI_ERR_TYPE 
 - Invalid datatype argument.  May be an uncommitted 
-.PD 1
 MPI_Datatype (see 
 .I MPI_Type_commit
 ).
+.PD 1
 .PD 0
 .TP
 .B MPI_ERR_TAG 

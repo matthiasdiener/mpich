@@ -23,11 +23,13 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_free_ ANSI_ARGS(( MPI_Datatype *, int * ));
+void mpi_type_free_ ANSI_ARGS(( MPI_Fint *, MPI_Fint * ));
 
 void mpi_type_free_ ( datatype, __ierr )
-MPI_Datatype *datatype;
-int *__ierr;
+MPI_Fint *datatype;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Type_free(datatype);
+    MPI_Datatype ldatatype = MPI_Type_f2c(*datatype);
+    *__ierr = MPI_Type_free(&ldatatype);
+    *datatype = MPI_Type_c2f(ldatatype);
 }

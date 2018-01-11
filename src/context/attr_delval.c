@@ -1,22 +1,20 @@
 /*
- *  $Id: attr_delval.c,v 1.23 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: attr_delval.c,v 1.3 1998/04/28 20:57:50 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "attr.h"
-#endif
 
 /*@
 
 MPI_Attr_delete - Deletes attribute value associated with a key
 
 Input Parameters:
-. comm - communicator to which attribute is attached (handle) 
-. keyval - The key value of the deleted attribute (integer) 
++ comm - communicator to which attribute is attached (handle) 
+- keyval - The key value of the deleted attribute (integer) 
 
 .N fortran
 

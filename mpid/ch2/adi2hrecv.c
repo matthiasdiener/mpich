@@ -1,5 +1,5 @@
 /*
- *  $Id: adi2hrecv.c,v 1.6 1997/01/07 01:49:41 gropp Exp $
+ *  $Id: adi2hrecv.c,v 1.2 1998/01/29 14:25:26 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -7,6 +7,7 @@
 
 #include "mpid.h"
 #include "mpiddev.h"
+#include "reqalloc.h"
 #include "../util/queue.h"
 
 /***************************************************************************/
@@ -29,6 +30,7 @@ MPI_Status   *status;
     MPI_Request  request = (MPI_Request)&rhandle;
 
     DEBUG_INIT_STRUCT(request,sizeof(rhandle));
+    MPID_RecvInit( &rhandle );
     /* rhandle.finish = 0; gets set in IrecvDatatype */
     *error_code = 0;
     MPID_IrecvDatatype( comm_ptr, buf, count, dtype_ptr, src_lrank, tag, 

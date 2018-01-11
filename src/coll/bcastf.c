@@ -79,17 +79,19 @@ if (_isfcd(buffer)) {
 #else
 /* Prototype to suppress warnings about missing prototypes */
 
-void mpi_bcast_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *, MPI_Comm *,
-			    int * ));
+void mpi_bcast_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                            MPI_Fint *, MPI_Fint * ));
 
 void mpi_bcast_ ( buffer, count, datatype, root, comm, __ierr )
-void             *buffer;
-int*count;
-MPI_Datatype      *datatype;
-int*root;
-MPI_Comm          *comm;
-int *__ierr;
+void     *buffer;
+MPI_Fint *count;
+MPI_Fint *datatype;
+MPI_Fint *root;
+MPI_Fint *comm;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Bcast(MPIR_F_PTR(buffer),*count,*datatype,*root,*comm);
+    *__ierr = MPI_Bcast(MPIR_F_PTR(buffer), (int)*count, 
+                        MPI_Type_f2c(*datatype), (int)*root,
+                        MPI_Comm_f2c(*comm));
 }
 #endif

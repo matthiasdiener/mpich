@@ -23,15 +23,16 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_type_ub_ ANSI_ARGS(( MPI_Datatype*, int *, int * ));
+void mpi_type_ub_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_type_ub_ ( datatype, displacement, __ierr )
-MPI_Datatype  *datatype;
-int           *displacement;
-int           *__ierr;
+MPI_Fint *datatype;
+MPI_Fint *displacement;
+MPI_Fint *__ierr;
 {
     MPI_Aint c_displacement;
-    *__ierr = MPI_Type_ub(*datatype,&c_displacement);
+
+    *__ierr = MPI_Type_ub(MPI_Type_f2c(*datatype), &c_displacement);
     /* Should check for truncation */
-    *displacement = (int)c_displacement;
+    *displacement = (MPI_Fint)c_displacement;
 }

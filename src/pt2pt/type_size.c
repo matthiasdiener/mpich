@@ -1,14 +1,11 @@
 /*
- *  $Id: type_size.c,v 1.12 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_size.c,v 1.2 1998/01/29 14:28:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifndef MPI_ADI2
-#include "mpisys.h"
-#endif
 
 
 /*@

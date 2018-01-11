@@ -1,16 +1,12 @@
 /*
- *  $Id: comm_free.c,v 1.47 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: comm_free.c,v 1.2 1998/01/29 14:26:19 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /* For MPIR_COLLOPS */
 #include "mpicoll.h"
@@ -91,11 +87,7 @@ MPI_Comm *commp;
       /* Remove it from the debuggers list of active communicators */
       MPIR_Comm_forget( comm );
 
-#ifdef MPI_ADI2
         (void)MPID_CommFree( comm );
-#else
-        (void)MPID_Comm_free( comm->ADIctx, comm );
-#endif
 
 	/* Delete the virtual function table if it was allocated and
 	 * is now no longer referenced. Ones which are statically

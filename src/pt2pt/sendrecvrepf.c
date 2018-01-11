@@ -7,12 +7,6 @@
 #include <stdarg.h>
 #endif
 
-#ifndef POINTER_64_BITS
-#define MPIR_ToPointer(a) (a)
-#define MPIR_FromPointer(a) (int)(a)
-#define MPIR_RmPointer(a)
-#endif
-
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
 #define mpi_sendrecv_replace_ PMPI_SENDRECV_REPLACE
@@ -90,20 +84,26 @@ if (_isfcd(buf)) {
 #endif
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_sendrecv_replace_ ANSI_ARGS(( void *, int *, MPI_Datatype *, int *,
-				       int *, int *, int *, MPI_Comm *, 
-				       MPI_Status *, int * ));
+void mpi_sendrecv_replace_ ANSI_ARGS(( void *, MPI_Fint *, MPI_Fint *, 
+                                       MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                       MPI_Fint *, MPI_Fint *, MPI_Fint *,
+                                       MPI_Fint * ));
 void mpi_sendrecv_replace_( buf, count, datatype, dest, sendtag, 
      source, recvtag, comm, status, __ierr )
-void          *buf;
-int           *count,*dest,*sendtag,*source,*recvtag;
-MPI_Datatype  *datatype;
-MPI_Comm      *comm;
-MPI_Status    *status;
-int *__ierr;
+void     *buf;
+MPI_Fint *count,*dest,*sendtag,*source,*recvtag;
+MPI_Fint *datatype;
+MPI_Fint *comm;
+MPI_Fint *status;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Sendrecv_replace(MPIR_F_PTR(buf),*count,
-			     *datatype,*dest,*sendtag,*source,*recvtag,
-				   *comm, status );
+    MPI_Status c_status;
+
+    *__ierr = MPI_Sendrecv_replace(MPIR_F_PTR(buf), (int)*count,
+			     MPI_Type_f2c(*datatype), (int)*dest, 
+                             (int)*sendtag, (int)*source, (int)*recvtag,
+				   MPI_Comm_f2c(*comm), &c_status );
+    MPI_Status_c2f(&c_status, status);
 }
 #endif
+

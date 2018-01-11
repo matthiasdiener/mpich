@@ -1,5 +1,5 @@
 /*
- *  $Id: ptrcvt.c,v 1.17 1997/03/13 03:03:53 gropp Exp $
+ *  $Id: ptrcvt.c,v 1.3 1998/01/29 14:29:48 gropp Exp $
  *
  *  (C) 1994 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -30,6 +30,27 @@
 
    To avoid the extra indirection, we could test for a 0 index and go 
    directly to the preallocated first block.
+
+   A comment on the use of (long) instead of (MPI_Aint) to cast pointers
+   for printf output: Unfortunately, printf must be given a length description
+   that matches the type.  It isn't possible (in C) to register a conversion
+   function for a user-defined type (like MPI_Aint).  Thus, to ensure that
+   the printf format specification matches the value passed, we cast
+   the pointers to (long).  This will be adequate for most but not all
+   systems; those that use long long will need to change both the cast
+   and the format specification (we could, of course, edit the format 
+   string or write out the pointer with a separate printf, but for this
+   code, it really isn't worth the effort).
+
+   As currently organized, each object must be explicitly freed with a 
+   call to RmPointer.  A better solution is to make this part of the 
+   object's free routine - when an index is registered, the object remembers
+   that and uses that to free the index.  This will be necessary for
+   implementing the request conversion routine (MPI_Request_c2f/f2c), since
+   there is no separate free handle routine.
+
+   Note that, in order to speed up the pointer-to-index lookup, many objects
+   already have a "self" field.  That really should be "self_index".
  */
 
 #include <stdio.h>
@@ -38,11 +59,7 @@
 /* Else we should define malloc somehow... */
 #endif
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "tr2.h"
-#else
-#include "mpisys.h"
-#endif
 #include "ptrcvt.h"
 
 typedef struct _PtrToIdx {
@@ -94,7 +111,9 @@ static void MPIR_InitPointer ANSI_ARGS((void))
     for (i=1; i<MAX_BLOCKS; i++) 
 	PtrBlocks[i] = 0;
     PtrBlocks[0] = PtrArray;
-    
+
+    /* Map null onto null */
+    PtrArray[0].ptr = 0;
     /* Don't start with the first one, whose index is 0. That could
        break some code. */
     /* In fact, start 128 into the array ... */
@@ -153,7 +172,7 @@ int idx;
 
     if (DebugFlag) {
 	PRINTF( "ToPointer is %d for pointer %lx in block %d\n", 
-		idx, (MPI_Aint)PtrBlocks[blocknum][blockidx].ptr, blocknum );
+		idx, (long)PtrBlocks[blocknum][blockidx].ptr, blocknum );
     }
     return PtrBlocks[blocknum][blockidx].ptr;
 }
@@ -185,7 +204,7 @@ void *ptr;
  */
 	if (DebugFlag) {
 	    PRINTF( "Pointer %lx has idx %d from avail list\n", 
-		    (MPI_Aint)ptr, idx );
+		    (long)ptr, idx );
 	}
 	return idx;
     }
@@ -218,7 +237,7 @@ void *ptr;
 
     if (DebugFlag) {
 	PRINTF( "Pointer %lx has idx %d from new block %d at %d\n",
-		(MPI_Aint)ptr, idx, blocknum, 1 );
+		(long)ptr, idx, blocknum, 1 );
     }
     return idx;
 }
@@ -253,6 +272,7 @@ int idx;
 	return;
     }
 #endif
+    /* Just skip null pointers */
     if (blocknum == 0 && blockidx == 0) return;
 
     ptridx = PtrBlocks[blocknum];
@@ -362,7 +382,7 @@ void *ptr;
     PtrArray[idx].next = 0;
 
     if (DebugFlag) {
-	PRINTF( "Registered index %d with pointer %lx\n", idx, (MPI_Aint)ptr );
+	PRINTF( "Registered index %d with pointer %lx\n", idx, (long)ptr );
     }
 }
 
@@ -407,7 +427,7 @@ FILE *fp;
 	for (idx = 0; idx < MAX_PTRS; idx++) {
 	    if (new[idx].ptr) {
 		FPRINTF( fp, "Index %d in use for pointer %lx",
-			 new[idx].idx, (MPI_Aint) new[idx].ptr );
+			 new[idx].idx, (long) new[idx].ptr );
 		/* We to print the object */
 		header = (int *)new[idx].ptr;
 		found_cookie = 0;

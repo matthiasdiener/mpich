@@ -1,11 +1,7 @@
 /* startall.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
@@ -28,32 +24,41 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_startall_ ANSI_ARGS(( int *, MPI_Request [], int * ));
+void mpi_startall_ ANSI_ARGS(( MPI_Fint *, MPI_Fint [], MPI_Fint * ));
 
 void mpi_startall_( count, array_of_requests, __ierr )
-int*count;
-MPI_Request array_of_requests[];
-int *__ierr;
-{
-#ifdef POINTER_64_BITS
-    int i;
-    MPI_Request *r;
+MPI_Fint *count;
+MPI_Fint array_of_requests[];
+MPI_Fint *__ierr;
 
-    if (*count > 0) {
-	MPIR_FALLOC(r,(MPI_Request*)MALLOC(sizeof(MPI_Request) * *count),
-		    MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-		    "Out of space in MPI_STARTALL" );
-	for (i=0; i<*count; i++) {
-	    r[i] = MPIR_ToPointer( *((int *)(array_of_requests)+i) );
+{ 
+   MPI_Request *lrequest;
+   MPI_Request local_lrequest[MPIR_USE_LOCAL_ARRAY];
+   int i;
+
+    if ((int)*count > 0) {
+	if ((int)*count > MPIR_USE_LOCAL_ARRAY) {
+	    MPIR_FALLOC(lrequest,(MPI_Request*)MALLOC(sizeof(MPI_Request) * (int)*count),
+		        MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
+		        "MPI_STARTALL" );
 	}
-	*__ierr = MPI_Startall(*count,r);
-	FREE( r );
+	else {
+	    lrequest = local_lrequest;
+	}
+	for (i=0; i<(int)*count; i++) {
+            lrequest[i] = MPI_Request_f2c( array_of_requests[i] );
+	}
+	*__ierr = MPI_Startall((int)*count,lrequest);
     }
     else 
-	*__ierr = MPI_Startall(*count,(MPI_Request *)0);
-#else
-    *__ierr = MPI_Startall(*count,array_of_requests);
-#endif
+	*__ierr = MPI_Startall((int)*count,(MPI_Request *)0);
+
+    for (i=0; i<(int)*count; i++) {
+        array_of_requests[i] = MPI_Request_c2f( lrequest[i]);
+    }
+    if ((int)*count > MPIR_USE_LOCAL_ARRAY) {
+	FREE( lrequest );
+    }
 }
 
 

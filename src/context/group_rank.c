@@ -1,5 +1,5 @@
 /*
- *  $Id: group_rank.c,v 1.15 1997/01/07 01:47:16 gropp Exp $
+ *  $Id: group_rank.c,v 1.1.1.1 1997/09/17 20:41:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

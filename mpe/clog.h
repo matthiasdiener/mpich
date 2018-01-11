@@ -164,7 +164,7 @@ extern int    CLOG_status;	/* initialized? logging currently active? */
 extern void   *CLOG_ptr;	/* pointer into current CLOG block */
 extern void   *CLOG_block_end;	/* pointer to end of current CLOG block */
 extern CLOG_BLOCK *CLOG_first, *CLOG_currbuff; /* blocks of buffer */
-extern int    intsperdouble, charsperdouble;
+extern int    CLOG_intsperdouble, CLOG_charsperdouble;
 extern int    CLOG_srcid;	/* next id for source code location */
 extern int    CLOG_nextevent;	/* next id for user-defined events */
 extern int    CLOG_nextstate;	/* next id for user-defined state  */
@@ -216,3 +216,6 @@ void CLOG_setup ANSI_ARGS(( void ));
 #define CLOG_not_init (fprintf(stderr, "CLOG used before being initialized\n"))
 
 #endif /* _CLOG */
+
+
+

@@ -1,16 +1,12 @@
 /*
- *  $Id: group_rincl.c,v 1.22 1997/01/17 22:59:30 gropp Exp $
+ *  $Id: group_rincl.c,v 1.3 1998/04/28 20:58:14 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
@@ -18,9 +14,9 @@ MPI_Group_range_incl - Creates a new group from ranges of ranks in an
         existing group
 
 Input Parameters:
-. group - group (handle) 
++ group - group (handle) 
 . n - number of triplets in array  'ranges' (integer) 
-. ranges - a one-dimensional array of integer triplets, of the 
+- ranges - a one-dimensional array of integer triplets, of the 
 form (first rank, last rank, stride) indicating ranks in
 'group'  or processes to be included in 'newgroup'  
 
@@ -95,7 +91,7 @@ int       n, ranges[][3];
 
   /* Create the new group */
   MPIR_ALLOC(new_group_ptr,NEW(struct MPIR_GROUP),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_GROUP_RANGE_INCL" );
+	     MPI_ERR_EXHAUSTED, "MPI_GROUP_RANGE_INCL" );
   *newgroup = (MPI_Group) MPIR_FromPointer( new_group_ptr ); 
   new_group_ptr->self = *newgroup;
   MPIR_SET_COOKIE(new_group_ptr,MPIR_GROUP_COOKIE)
@@ -106,7 +102,7 @@ int       n, ranges[][3];
   new_group_ptr->np             = np;
   MPIR_ALLOC(new_group_ptr->lrank_to_grank,(int *) MALLOC( np * sizeof(int) ),
 	     MPIR_COMM_WORLD, MPI_ERR_EXHAUSTED, 
-	     "Out of space in MPI_GROUP_RANGE_INCL" );
+	     "MPI_GROUP_RANGE_INCL" );
 
   /* Fill in the lrank_to_grank list */
   k = 0;

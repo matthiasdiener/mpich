@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.4 1997/03/29 16:08:28 gropp Exp $
+ *  $Id: shmeminit.c,v 1.2 1998/03/13 22:32:57 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -13,6 +13,7 @@
 #include "mpid.h"
 #include "mpiddev.h"
 #include "mpimem.h"
+#include "flow.h"
 #include <stdio.h>
 
 /* #define DEBUG(a) {a} */
@@ -69,6 +70,19 @@ int  short_len, long_len;
     MPID_SHMEM_init( argc, *argv );
     DEBUG_PRINT_MSG("Finished init");
 
+#ifdef MPID_FLOW_CONTROL
+    /* Try to get values for thresholds.  Note that everyone MUST have
+     the same values for this to work */
+    {int buf_thresh = 0, mem_thresh = 0;
+     char *val;
+     val = getenv( "MPI_BUF_THRESH" );
+     if (val) buf_thresh = atoi(val);
+     val = getenv( "MPI_MEM_THRESH" );
+     if (val) mem_thresh = atoi(val);
+    MPID_FlowSetup( buf_thresh, mem_thresh );
+    }
+#endif
+
     DEBUG_PRINT_MSG("Leaving MPID_SHMEM_InitMsgPass");
 
     return dev;
@@ -113,6 +127,11 @@ MPID_Device *dev;
     (dev->long_msg->delete)( dev->long_msg );
     (dev->vlong_msg->delete)( dev->vlong_msg );
     FREE( dev );
+
+#ifdef MPID_FLOW_CONTROL
+    MPID_FlowDelete();
+#endif
+
     /* We should really generate an error or warning message if there 
        are uncompleted operations... */
     MPID_SHMEM_finalize();

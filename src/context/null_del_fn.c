@@ -1,5 +1,5 @@
 /*
- *  $Id: null_del_fn.c,v 1.8 1996/01/08 19:49:07 gropp Exp $
+ *  $Id: null_del_fn.c,v 1.1.1.1 1997/09/17 20:41:51 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

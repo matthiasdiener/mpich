@@ -40,6 +40,10 @@ c------------------------------------------------------------------------------
 
       call MPI_Comm_rank( MPI_COMM_WORLD, rank, ierr )
       call MPI_Comm_size( MPI_COMM_WORLD, size, ierr )
+      if (size .ne. 2) then
+         print *, 'Allpair test requires exactly 2 processes'
+         call MPI_Abort( 1, MPI_COMM_WORLD, ierr )
+      endif
 C      print *, ' about to do dup'
       call MPI_Comm_dup( MPI_COMM_WORLD, dupcom, ierr )
 C      print *, ' did dup'
@@ -275,6 +279,9 @@ c
 
       call clear_test_data(recv_buf,TEST_SIZE)
 
+c
+c  This test needs work for comm_size > 2
+c
       if (rank .eq. 0) then
 
          call MPI_Irecv(recv_buf, TEST_SIZE, MPI_REAL,
@@ -328,6 +335,7 @@ c
          call rq_check( requests, 1, 'irsend and irecv' )
 
          end if
+
 c
 c     Nonblocking synchronous sends
 c
@@ -360,7 +368,7 @@ C            print *, 'flag = ', flag
          call rq_check( requests, 2, 'issend and irecv (testall)' )
 
          call msg_check( recv_buf, prev, tag, count, statuses(1,1),
-     $           TEST_SIZE, 'issend and recv' )
+     $           TEST_SIZE, 'issend and recv (testall)' )
 
       else
 
@@ -458,6 +466,7 @@ c
          call MPI_Startall(2, requests, ierr)
 
          index = -1
+
          do while (index .ne. 2)
             call MPI_Waitsome(2, requests, outcount,
      .                        indices, statuses, ierr)
@@ -478,7 +487,6 @@ c
          do while (.not. flag)
             call MPI_Test(requests(2), flag, status, ierr)
             end do
-
          call msg_check( recv_buf, prev, tag, count, status, TEST_SIZE,
      *                   'test' )
 
@@ -530,7 +538,6 @@ c
                   end if
                end do
             end do
-
       else
 
          call MPI_Start(requests(1), ierr)
@@ -540,7 +547,6 @@ c
             call MPI_Testany(1, requests(1), index, flag,
      .                       statuses(1,1), ierr)
             end do
-
          call msg_check( recv_buf, prev, tag, count, statuses(1,1),
      $           TEST_SIZE, 'testany' )
 

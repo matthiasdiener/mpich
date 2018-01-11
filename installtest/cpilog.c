@@ -13,9 +13,9 @@ int main(argc,argv)
 int argc;
 char *argv[];
 {
-    int  n, myid, numprocs, i, j, rc, repeat;
+    int  n, myid, numprocs, i, j;
     double PI25DT = 3.141592653589793238462643;
-    double mypi, pi, h, sum, x, a;
+    double mypi, pi, h, sum, x;
     double startwtime, endwtime;
     int namelen;
     char processor_name[MPI_MAX_PROCESSOR_NAME];
@@ -79,4 +79,6 @@ char *argv[];
 	printf("wall clock time = %f\n", endwtime-startwtime);	       
     }
     MPI_Finalize();
+
+    return 0;
 }

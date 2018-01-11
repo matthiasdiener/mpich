@@ -1,4 +1,4 @@
-.TH MPI_Scan 3 "1/6/1997" " " "MPI"
+.TH MPI_Scan 3 "4/28/1998" " " "MPI"
 .SH NAME
 MPI_Scan \-  Computes the scan (partial reductions) of data on a collection of processes 
 .SH SYNOPSIS
@@ -129,10 +129,10 @@ non-negative; a count of zero is often valid.
 .TP
 .B MPI_ERR_TYPE 
 - Invalid datatype argument.  May be an uncommitted 
-.PD 1
 MPI_Datatype (see 
 .I MPI_Type_commit
 ).
+.PD 1
 .PD 0
 .TP
 .B MPI_ERR_BUFFER 
@@ -149,7 +149,7 @@ indicates that two buffer arguments are
 describe overlapping storage (often the exact same storage).  This
 is prohibited in MPI (because it is prohibited by the Fortran 
 standard, and rather than have a separate case for C and Fortran, the
-.PD 1
 MPI Forum adopted the more restrictive requirements of Fortran).
+.PD 1
 .SH LOCATION
 scan.c

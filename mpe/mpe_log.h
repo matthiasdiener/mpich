@@ -44,6 +44,8 @@
 int MPE_Init_log _ANSI_ARGS_((void));
   /* call before calling any other logging functions */
 
+int MPE_Initialized_logging _ANSI_ARGS_ ((void));
+
 int MPE_Describe_state _ANSI_ARGS_(( int start, int end, char *name,
 				   char *color ));
   /* create state description lines */

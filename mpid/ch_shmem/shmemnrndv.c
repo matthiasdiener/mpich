@@ -2,6 +2,7 @@
 #include "mpiddev.h"
 #include "mpimem.h"
 #include "reqalloc.h"
+#include "sendq.h"	/* For MPIR_FORGET_SEND */
 
 /* Shared memory by rendezvous.  Messages are sent in one of two ways 
    (not counting the short in packet way):
@@ -104,6 +105,7 @@ MPID_Msgrep_t msgrep;
 
     DEBUG_INIT_STRUCT(&shandle,sizeof(shandle));
     MPIR_SET_COOKIE((&shandle),MPIR_REQUEST_COOKIE);
+    MPID_SendInit( &shandle );
     shandle.finish = 0;
     MPID_SHMEM_Rndvn_isend( buf, len, src_lrank, tag, context_id, dest,
 			 msgrep, &shandle );
@@ -172,10 +174,13 @@ int   from_grank;
 	/* Compute length available to send.  If this is it,
 	   remember so that we can mark the operation as complete */
 	len		 = shandle->bytes_as_contig - pkt->cur_offset;
-	is_done = 1;
 	if (len > pkt->len_avail) {
 	    len = pkt->len_avail;
 	    is_done = 0;
+	}
+	else {
+	    pkt->len_avail	 = len;
+	    is_done = 1;
 	}
 	    
 	if (len > 0) {
@@ -187,11 +192,18 @@ int   from_grank;
 				sizeof(MPID_PKT_GET_T), from_grank );
 	if (is_done) {
 	    MPID_n_pending--;
-	    pkt->len_avail	 = len;
 	    shandle->is_complete = 1;
 	    if (shandle->finish)
 		(shandle->finish)( shandle );
 	    /* ? clear wait/test */
+	    /* If the corresponding send request is orphaned, delete it */
+	    /* printf( "Completed rendezvous send shandle = %x (ref=%d)\n", 
+		    (long)shandle, shandle->ref_count ); */
+	    if (shandle->ref_count == 0) {
+		/* ? persistent requests? */
+	        MPIR_FORGET_SEND( shandle );
+		MPID_SendFree( shandle );
+	    }
 	}
     }
     else if (pkt->mode == MPID_PKT_CONT_GET) {
@@ -215,6 +227,8 @@ int   from_grank;
 	    /* We have all the data; the transfer is complete and
 	       we can release the packet and the memory */
 	    rhandle->is_complete = 1;
+	    if (rhandle->finish) 
+		(rhandle->finish)( rhandle );
 	    MPID_FreeGetAddress( pkt->address );
 	    MPID_SHMEM_FreeRecvPkt( (MPID_PKT_T*)pkt );
 	}
@@ -373,7 +387,7 @@ int MPID_SHMEM_Rndvn_unxrecv_end( rhandle )
 MPIR_RHANDLE *rhandle;
 {
     while (!rhandle->is_complete) {
-	MPID_DeviceCheck( 1 );
+	MPID_DeviceCheck( MPID_BLOCKING );
     }
     if (rhandle->finish) 
 	(rhandle->finish)( rhandle );
@@ -394,7 +408,7 @@ MPIR_RHANDLE *rhandle;
 	    (rhandle->finish)( rhandle );
     }
     else 
-	MPID_DeviceCheck( 0 );
+	MPID_DeviceCheck( MPID_NOTBLOCKING );
 
     return MPI_SUCCESS;
 }

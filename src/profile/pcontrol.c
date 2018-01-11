@@ -1,5 +1,5 @@
 /*
- *  $Id: pcontrol.c,v 1.8 1996/11/24 20:20:27 gropp Exp $
+ *  $Id: pcontrol.c,v 1.1.1.1 1997/09/17 20:42:42 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.

@@ -1,5 +1,5 @@
 /*
- *  $Id: allreduce.c,v 1.22 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: allreduce.c,v 1.2 1998/04/28 18:50:43 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -15,11 +15,11 @@ MPI_Allreduce - Combines values from all processes and distribute the result
                 back to all processes
 
 Input Parameters:
-. sendbuf - starting address of send buffer (choice) 
++ sendbuf - starting address of send buffer (choice) 
 . count - number of elements in send buffer (integer) 
 . datatype - data type of elements of send buffer (handle) 
 . op - operation (handle) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - starting address of receive buffer (choice) 

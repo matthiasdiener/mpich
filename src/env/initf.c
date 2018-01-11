@@ -1,5 +1,5 @@
 /*
- *  $Id: initf.c,v 1.17 1997/02/18 23:06:23 gropp Exp $
+ *  $Id: initf.c,v 1.5 1998/04/13 14:59:13 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,11 +7,7 @@
 
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpimem.h"
-#else
-#include "mpisys.h"
-#endif
 
 #ifdef MPI_CRAY
 /* Cray requires special code for sending strings to/from Fortran */
@@ -48,18 +44,20 @@
 /* #define DEBUG(a) {a}  */
 #define DEBUG(a)
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_init_ ANSI_ARGS(( int * ));
-int mpir_iargc_ ANSI_ARGS((void));
+void mpi_init_ ANSI_ARGS(( MPI_Fint * ));
+MPI_Fint mpir_iargc_ ANSI_ARGS((void));
+
 #ifdef MPI_CRAY
-void mpir_getarg_ ANSI_ARGS(( int *, _fcd ));
+void mpir_getarg_ ANSI_ARGS(( MPI_Fint *, _fcd ));
 #else
-void mpir_getarg_ ANSI_ARGS(( int *, char *, int ));
+void mpir_getarg_ ANSI_ARGS(( MPI_Fint *, char *, MPI_Fint ));
 #endif
 
 void mpi_init_( ierr )
-int *ierr;
+MPI_Fint *ierr;
 {
-    int  Argc, i, argsize = 1024;
+    int  Argc;
+    MPI_Fint i, argsize = 1024;
     char **Argv, *p;
     int  ArgcSave;           /* Save the argument count */
     char **ArgvSave,         /* Save the pointer to the argument vector */
@@ -74,7 +72,7 @@ int *ierr;
     ArgvValSave	= (char **)MALLOC( Argc * sizeof(char *) );
     if (!Argv || !ArgvValSave) {
 	*ierr = MPIR_ERROR( (struct MPIR_COMMUNICATOR *)0, MPI_ERR_EXHAUSTED, 
-			    "Out of space in MPI_INIT" );
+			    "MPI_INIT" );
 	return;
     }
     for (i=0; i<Argc; i++) {
@@ -82,7 +80,7 @@ int *ierr;
 	if (!Argv[i]) {
 	    *ierr = MPIR_ERROR( (struct MPIR_COMMUNICATOR *)0, 
 				MPI_ERR_EXHAUSTED, 
-				"Out of space in MPI_INIT" );
+				"MPI_INIT" );
 	    return;
         }
 #ifdef MPI_CRAY
@@ -120,3 +118,6 @@ int *ierr;
     FREE( ArgvSave );
     FREE( ArgvValSave );
 }
+
+
+

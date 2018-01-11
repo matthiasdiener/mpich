@@ -1,0 +1,94 @@
+#! /bin/sh
+#
+# Simple script to build shared libraries
+#
+kind=""
+for arg in "$@" ; do
+    case $arg in
+	-lib=*) lib=`echo A$arg | sed -e 's/A-lib=//g'`
+	SHLIBS="$SHLIBS $lib"
+	;;
+	-kind=*) kind=`echo A$arg | sed -e 's/A-kind=//g'`
+	;;
+	*)
+	echo "Unrecognized option $arg"
+	exit 1
+	;;	
+    esac
+done
+
+#
+# This is the default
+if test "$kind" = "ignore" ; then
+    exit 0
+fi
+
+if test -z "$slsuffix" ; then
+    slsuffix=so.1.0
+fi
+if test -z "$AR" ; then
+    AR=ar
+fi
+if test -z "$LD" ; then
+    LD=ld
+fi
+if test -z "$CLINKER" ; then
+    if test -n "$CC" ; then
+        CLINKER=$CC
+    else
+	echo "No C linker or C compiler specified!"
+	exit 1
+    fi
+fi
+if test -z "$SHLIBS" ; then
+    echo "No libraries specified!"
+    exit 1
+fi
+case $kind in
+    gcc)
+    for libname in $SHLIBS ; do
+        mkdir .tmp
+        cd .tmp
+        $AR x ../$libname
+        $CLINKER -shared -Wl,-soname,$libname.$slsuffix \
+		-o ../$libname.$slsuffix *.o
+        cd ..
+        rm -rf .tmp
+    done
+    ;;
+    solaris)
+    for libname in $SHLIBS ; do
+        mkdir .tmp
+        cd .tmp
+        $AR x ../$libname
+        $LD -G -h $libname.$slsuffix -o ../$libname.$slsuffix *.o
+        cd ..
+        rm -rf .tmp
+    done
+    ;;
+
+    rs6000|aix|aix-4)
+    # Untested
+    for libname in $SHLIBS ; do
+        mkdir .tmp
+        cd .tmp
+        ar x ../$libname
+        nm -g -p *.o | awk '{ if ($2 == "T") { print $1 ; }}' | \
+	    sed -e 's/^\.//g' >  $libname.exp
+        # xlC doesn't work with this!
+        # cc misses the iargc/getarg libraries
+        xlf -o ../$libname.so *.o -bE:$libname.exp -bM:SRE -bnoentry
+        # create new shared file name
+        newfile=`basename $libname`
+        newfile="${newfile}shared.a"
+        /bin/rm -f $newfile
+        ar qv $newfile ../$libname.so
+        /bin/rm -f *.o
+        cd ..
+        /bin/rm -rf .tmp
+    done
+    *)
+    echo "Unknown shared library type $kind"
+    exit 1
+    ;;
+esac

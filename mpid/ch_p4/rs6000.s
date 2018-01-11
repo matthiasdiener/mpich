@@ -1,8 +1,11 @@
-# $Id: UTP_readTime-rs6000.s,v 1.1 1994/10/25 20:03:06 kohr Exp $
+# $Id: rs6000.s,v 1.1.1.1 1997/09/17 20:39:43 gropp Exp $
 #
-# $Source: /home/kohr/Work/Benchmarking/UTP/RCS/UTP_readTime-rs6000.s,v $
+# $Source: /home/MPI/cvsMaster/mpich/mpid/ch_p4/rs6000.s,v $
 #
-# $Log: UTP_readTime-rs6000.s,v $
+# $Log: rs6000.s,v $
+# Revision 1.1.1.1  1997/09/17 20:39:43  gropp
+# MPICH
+#
 # Revision 1.1  1994/10/25  20:03:06  kohr
 # Initial revision
 #

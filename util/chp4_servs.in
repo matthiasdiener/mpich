@@ -79,7 +79,7 @@ serverloc=$MPIR_HOME/lib/$LARCH/ch_p4/$server_name
 sed -e 's/^\([^:]*\):.*$/\1/g' -e '/^#/d' $filename > .tmp1
 if test "$do_kill" = 1 ; then	
     /bin/rm -f .tmp
-    awk '{     printf( "#RSH_COMMAND# %s %c(ps auxww | grep serv_p4 | grep -v grep | awk %c{printf(%ckill -2 %%s\\n%c, \\$2);}%c -)%c\n", $1, 34, 39, 34, 34, 39, 34 );
+    awk '{     printf( "#RSHCOMMAND# %s %c(ps auxww | grep serv_p4 | grep -v grep | awk %c{printf(%ckill -2 %%s\\n%c, \\$2);}%c -)%c\n", $1, 34, 39, 34, 34, 39, 34 );
     }' .tmp1 > .tmp
     $do_script .tmp
 #    /bin/rm -f .tmp
@@ -88,7 +88,7 @@ elif test "$do_hunt" = 1 ; then
     # would read part of the file and exit).
     /bin/rm -f .tmp
     awk '{ printf( "echo %s\n", $1 );
-printf( "#RSH_COMMAND# %s %c(ps auxww | grep serv_p4 | grep -v grep | grep -v #RSH_COMMAND# )%c\n", $1, 34, 34 );
+printf( "#RSHCOMMAND# %s %c(ps auxww | grep serv_p4 | grep -v grep | grep -v #RSHCOMMAND# )%c\n", $1, 34, 34 );
 	}' .tmp1 > .tmp
      $do_script .tmp
      /bin/rm -f .tmp
@@ -98,7 +98,7 @@ else
     echo "$defport $serverloc" | awk '{ if (NR==1) { PORT=$1;SERV=$2;} else {
 	if (machine[$1]=="") {
 	    machine[$1]=PORT;
-	    printf( "#RSH_COMMAND# %s %s -o -p %s &\n", $1, SERV, PORT );
+	    printf( "#RSHCOMMAND# %s %s -o -p %s &\n", $1, SERV, PORT );
 	    printf( "echo starting %s on %s with %s\n", SERV, $1, PORT );
 	}}}' - .tmp1 | $do_script
 fi

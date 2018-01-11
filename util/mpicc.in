@@ -1,4 +1,12 @@
 #! /bin/sh
+#
+# Script to compile and link MPI programs
+# We'd like to just add a few libraries to the link line and an include
+# directory to the compile line, but some systems that MPICH supports make
+# that difficult because the compiler and the linker are different programs.
+# Thus, this code tries to figure out which options go where, at least for
+# things that are different between compile and link steps.
+#
 DoLink=1
 DoCompile=0
 MPILOG=
@@ -10,15 +18,17 @@ linkobjs=
 gettinglinkarg=0
 HasDashC=0
 UsesPmpi=0
-if [ -z "@CPP_COMPILE@" -o -z "@CCLINKER@" ] ; then
-    echo "No C++ compiler and linker specified when MPICH configured."
-    exit 1
-fi
+verbose=0
+proflib=-lp@MPILIBNAME@
+proflibfullname=@MPIR_HOME@/lib/@ARCH@/@COMM@/libp@MPILIBNAME@.a
+CC=${MPICH_CC-@CC@}
+CLINKER=${MPICH_CLINKER-@CLINKER@}
 for arg in "$@" ; do
 #    echo procssing arg $arg
     # Special processing for -o name
     if [ $gettinglinkarg = 1 ] ; then
 	linkargs="$linkargs $arg"
+	outputfilename="$arg"
 	gettinglinkarg=0
 	continue
     fi
@@ -27,6 +37,12 @@ for arg in "$@" ; do
 	# If -c is NOT specified, then we need to perform a link step.
 	allargs="$allargs $arg"
 	compileargs="$compileargs $arg"
+        # If -o was set, then we need to move the output file option
+        # to the compile line (note that this is non-standard, and should
+        # not be used in portable codes)
+        if [ $DoLink = 1 -a -n "$outputfilename" ] ; then
+	    compileargs="$compileargs -o $outputfilename"
+        fi
 	DoLink=0
 	HasDashC=1
 	;;
@@ -39,7 +55,6 @@ for arg in "$@" ; do
             compileargs="$compileargs $arg"	
         else
 	    linkargs="$linkargs $arg"
-	    compileargs="$compileargs -c"
 	    # Still need to add the target of the -o
 	    gettinglinkarg=1
 	    DoLink=1
@@ -50,6 +65,15 @@ for arg in "$@" ; do
 	linkargs="$linkargs $arg"
 	allargs="$allargs $arg"
 	;;
+	
+	-E|-M)
+	# For compilers that support -E as a way to get at the C preprocessor
+	# Also, for compilers that support -M for creating dependencies
+	allargs="$allargs $arg"
+	compileargs="$compileargs $arg"
+	DoLink=0
+	;;
+
 	-mpilog)
 	if [ $UsesPmpi = 1 ] ; then
 	    echo "Only one of -mpilog, -mpitrace, or -mpianim may be used."
@@ -95,8 +119,13 @@ for arg in "$@" ; do
 	-show)
 	Show=echo
 	;;
+	-v)
+	verbose=1
+	compileargs="$compileargs -v"
+	linkargs="$linkargs -v"
+	;;
 	-help)
-	echo "This is a program to compile or link C++ MPI programs"
+	echo "This is a program to compile or link MPI programs"
 	echo "In addition, the following special options are supported"
 	echo "    -mpilog    - Build version that generate MPE log files"
 	echo "    -mpitrace  - Build version that generates traces"
@@ -107,13 +136,13 @@ for arg in "$@" ; do
 	echo "    -help      - Give this help"
 	echo "    -echo      - Show exactly what this program is doing."
 	echo "                 This option should normally not be used."
-	echo "This should be used just like the usual C++ compiler"
+	echo "This should be used just like the usual C compiler"
 	echo "For example,"
-	echo "   $0 -c foo.C "
+	echo "   $0 -c foo.c "
 	echo "and"
 	echo "   $0 -o foo foo.o"
 	echo "Combining compilation and linking in a single command"
-	echo "   $0 -o foo foo.C"
+	echo "   $0 -o foo foo.c"
 	echo "may not work on some systems, and is not recommended."
 	exit 1
 	;;
@@ -125,10 +154,10 @@ for arg in "$@" ; do
         *) allargs="$allargs $arg"
 	if [ -s "$arg" ] ; then
 	    ext=`expr "$arg" : '.*\(\..*\)'`
-	    if [ "$ext" = ".C" ] ; then
+	    if [ "$ext" = ".c" ] ; then
 	        DoCompile=1
 	        compileargs="$compileargs $arg"
-	        fname=`basename $arg .C`
+	        fname=`basename $arg .c`
 	        linkobjs="$linkobjs $fname.o"
 	    elif [ "$ext" = ".o" ] ; then
 		if [ $HasDashC = 1 ] ; then
@@ -154,18 +183,24 @@ if [ $DoCompile = 1 ] ; then
     if [ $HasDashC != 1 ] ; then
         compileargs="-c $compileargs"
     fi
-    $Show @CPP_COMPILER@ @CCFLAGS@ -DMPI_@ARCH@ -I@MPIR_HOME@/include \
-	$compileargs
+    $Show $CC @USER_CFLAGS@ @ROMIO_TCFLAGS@ -I@MPIR_HOME@/include \
+	-I@MPIR_HOME@/lib/@ARCH@/@COMM@ $compileargs
     status=$?
     if [ $status != 0 ] ; then 
 	exit $status
     fi
 fi
 if [ $DoLink = 1 ] ; then
+    # If the profiling library doesn't exist, or MPICH_NO_PROF environment
+    # variable is set, skip the profiling library.
+    if [ -n "$MPICH_NO_PROF" -o ! -s "$proflibfullname" ] ; then
+        proflib=""
+    fi
     if [ -n "$MPILOG" ] ; then
-        $Show @CCLINKER@ @LIB_PATH@ $linkobjs -l@MPILIBNAME@++ $MPILOG $linkargs -lp@MPILIBNAME@ @LIB_LIST@
+        $Show $CLINKER @ROMIO_LFLAGS@ @LIB_PATH@ $linkobjs $MPILOG $linkargs $proflib @LIB_LIST@
     else
-        $Show @CCLINKER@ @LIB_PATH@ $linkobjs $linkargs -l@MPILIBNAME@++ @LIB_LIST@
+	# linkargs needs to be after linkobjs for things like "-lm"
+        $Show $CLINKER @ROMIO_LFLAGS@ @LIB_PATH@ $linkobjs $linkargs $proflib @LIB_LIST@
     fi
     status=$?
 fi

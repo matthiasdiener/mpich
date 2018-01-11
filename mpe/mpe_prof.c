@@ -3,6 +3,7 @@
 #endif
 #include <stdio.h>
 #include "mpi.h"
+#include "mpe_log.h"
 
 #define S_SEND_EVENT      256
 #define E_SEND_EVENT      257
@@ -124,7 +125,6 @@ MPI_Comm comm;
 {
   char mesgStr[100];
   int result;
-  static int ncalls=0;
 
   ++Send_ncalls;
   sprintf( mesgStr, "start send mesg %d sent from %d to %d", tag, procid, dest );

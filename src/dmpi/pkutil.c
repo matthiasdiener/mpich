@@ -1,5 +1,5 @@
 /*
- *  $Id: pkutil.c,v 1.18 1997/02/20 20:43:30 lusk Exp $
+ *  $Id: pkutil.c,v 1.4 1998/03/09 22:08:46 gropp Exp $
  *
  *  (C) 1995 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -46,15 +46,12 @@
 #define MPID_INCLUDE_STDIO
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #ifdef malloc
 #undef malloc
 #undef free
 #undef calloc
 #endif
-#endif
 
-#ifdef MPI_ADI2
 #include "mpidmpi.h"
 #define MPIR_Type_XDR_encode MPID_Type_XDR_encode
 #define MPIR_Type_XDR_decode MPID_Type_XDR_decode
@@ -67,7 +64,6 @@ int MPIR_Type_XDR_decode ANSI_ARGS(( unsigned char *, int,
 				     struct MPIR_DATATYPE*, int, 
 			  unsigned char *, int, int *, int *, void * ));
 
-#endif
 #ifdef MPID_HAS_HETERO
 #ifdef HAS_XDR
 #include "rpc/rpc.h"
@@ -78,7 +74,6 @@ int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
 				   struct MPIR_DATATYPE *, int, void *));
 #endif
 
-#ifdef MPI_ADI2
 #define MPIR_MSGFORM_XDR MPID_MSG_XDR
 #define MPIR_MSGFORM_OK  MPID_MSG_OK
 /* Need to determine swap form? */
@@ -92,7 +87,6 @@ int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
 #define MPIR_Mem_convert_len MPID_Mem_convert_len
 int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
 				   struct MPIR_DATATYPE *, int, void *));
-#endif
 
 /*
    This code assumes that we can use char * pointers (previous code 
@@ -107,70 +101,6 @@ int MPIR_Type_swap_copy ANSI_ARGS((unsigned char *, unsigned char *,
 
    The same would be true for code that truncated 8 byte longs to 4 bytes.
  */
-
-#ifndef MPI_ADI2
-/* 
-    A point-to-point version can also use the general pack2 by also detecting
-
-	packcontig = MPIR_Type_swap_copy;
-
-    dest_type is REPRESENTATION type for the destination (i.e., XDR, 
-    Byte swapped) 
- */
-int MPIR_Pack( comm, dest_type, buf, count, type, dest, destsize, totlen )
-MPI_Comm comm;
-void *buf;
-int dest_type, count, destsize;
-MPI_Datatype type;
-void *dest;
-int  *totlen;
-{
-int (*packcontig) ANSI_ARGS((unsigned char *, unsigned char *, 
-			     struct MPIR_DATATYPE *, 
-			     int, void * )) = 0;
-void *packctx = 0;
-int err;
-int outlen;
-#ifdef HAS_XDR
-XDR xdr_ctx;
-#endif
-
-/* MPIR_GET_REAL_DATATYPE(type) */
-#ifdef MPID_HAS_HETERO
-    switch (dest_type) {
-	case MPIR_MSGFORM_XDR:
-#if HAS_XDR
-	/* Need to initialize xdr buffer */
-	MPIR_Mem_XDR_Init( dest, destsize, XDR_ENCODE, &xdr_ctx );
-	packctx	   = (void *)&xdr_ctx;
-	packcontig = MPIR_Type_XDR_encode;
-	/* Could set a free function ... */
-#else
-	return MPIR_ERROR( comm, MPI_ERR_TYPE, 
-		      "Conversion requires XDR which is not available" );
-#endif
-	break;
-
-	case MPIR_MSGFORM_SWAP:
-	packcontig = MPIR_Type_swap_copy;
-	break;
-
-	case MPIR_MSGFORM_OK:
-	/* Use default routines */
-	break;
-	}
-#endif
-outlen = 0;
-*totlen = 0;
-err = MPIR_Pack2( buf, count, maxcount, type, packcontig, packctx, dest, 
-		  &outlen, totlen );
-#if HAS_XDR
-if (packcontig == MPIR_Type_XDR_encode) 
-    MPIR_Mem_XDR_Free( &xdr_ctx ); 
-#endif
-return err;
-}
-#endif
 
 /* Unpack may need to know more about whether the buffer is packed in some
    particular format.
@@ -189,11 +119,7 @@ int MPIR_Unpack ( comm_ptr, src, srcsize, count, dtype_ptr, msgrep,
 struct MPIR_COMMUNICATOR *comm_ptr;
 void         *src, *dest;
 int          srcsize, count;
-#ifdef MPI_ADI2
 MPID_Msgrep_t msgrep;
-#else
-int          msgrep;
-#endif
 struct MPIR_DATATYPE *dtype_ptr;
 int          *act_len, *dest_len;
 {
@@ -265,42 +191,6 @@ int          count, dest, *decode;
 return MPIR_Pack2( sbuf, count, maxcount, type, packcontig, packctx, dbuf, &outlen, &totlen );
 }
 #endif
-#endif
-
-#ifndef MPI_ADI2
-/*+
-    MPIR_Pack_size - Returns the exact amount of space needed to 
-	                 pack a message (well, almost; returns
-			 the space the will be enough)
-
-			 dest_type gives the format to use.  0 is unconverted
-+*/
-int MPIR_Pack_size ( incount, type, comm, dest_type, size )
-int           incount, dest_type;
-MPI_Datatype  type;
-MPI_Comm      comm;
-int          *size;
-{
-struct MPIR_DATATYPE *dtype_ptr;
-
-/*MPIR_GET_REAL_DATATYPE(type) */
-  /* 
-     Figure out size needed to pack type.  This uses the same logic as
-     MPIR_Pack, except that it can handle, through dest_type, 
-     specific formats for specific destinations. 
-   */
-if(dest_type > MPIR_MSGREP_SENDER) 
-    /* Dest type is SWAP (a MSGFORM, not MSGREP).  Change to receiver rep */
-    dest_type = MPIR_MSGREP_RECEIVER;
-#ifdef MPID_HAS_HETERO
-  (*size) = MPIR_Mem_convert_len( dest_type, type, incount );
-#else
-dtype_ptr   = MPIR_GET_DTYPE_PTR(type);
-
-  (*size) = dtype_ptr->size * incount;
-#endif
-return MPI_SUCCESS;
-}
 #endif
 
 /* 
@@ -555,8 +445,14 @@ int          *used_len;
 #endif
 	    {
 	    if (type->old_type->is_contig && !unpackcontig) {
+		len	     = type->size * count;
+		/* If the length is greater than supplied, process only what is
+		   available */
+		if (len > srclen) {
+		    count = srclen / type->size;
+		    len   = count * type->size;
+		}
 		MPIR_UnPack_Hvector( src, count, type, -1, dest );
-		len	   = count * type->size;
 		*dest_len += len;
 		*used_len = len;
 	        return MPI_SUCCESS;

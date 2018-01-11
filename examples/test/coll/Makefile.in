@@ -10,6 +10,7 @@ F77         = @MPIF77@
 FLINKER     = @MPIF77@
 OPTFLAGS    = @OPTFLAGS@
 MPIFDEP     = @MPIFDEP@
+MAKE        = @MAKE@
 
 ### End User configurable options ###
 
@@ -26,7 +27,7 @@ FLIBS =
 EXECS = coll1 coll2 coll3 coll4 coll5 coll6 coll7 coll8 coll9 \
 	coll10 coll11 coll12 coll13 bcastbug bcastbug2 grouptest redtst \
 	barrier bcast allred scatterv allredf redscat alltoallv assocf \
-	allredmany longuser
+	allredmany longuser scattern bcastvec
 
 default: $(EXECS)
 
@@ -73,6 +74,8 @@ bcastbug2: bcastbug2.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bcastbug2 bcastbug2.o test.o $(LIBS)
 bcastbug: bcastbug.o test.o
 	$(CLINKER) $(OPTFLAGS) -o bcastbug bcastbug.o test.o $(LIBS)
+bcastvec: bcastvec.o test.o 
+	$(CLINKER) $(OPTFLAGS) -o bcastvec bcastvec.o test.o $(LIBS)
 grouptest: grouptest.o test.o
 	$(CLINKER) $(OPTFLAGS) -o grouptest grouptest.o test.o $(LIBS)
 redtst: redtst.o test.o
@@ -85,6 +88,8 @@ allred: allred.o ../pt2pt/gcomm.o
 	$(CLINKER) $(OPTFLAGS) -o allred allred.o ../pt2pt/gcomm.o $(LIBS) -lm
 scatterv: scatterv.o
 	$(CLINKER) $(OPTFLAGS) -o scatterv scatterv.o $(LIBS) -lm
+scattern: scattern.o
+	$(CLINKER) $(OPTFLAGS) -o scattern scattern.o $(LIBS) -lm
 redscat: redscat.o
 	$(CLINKER) $(OPTFLAGS) -o redscat redscat.o $(LIBS) -lm
 alltoallv: alltoallv.o
@@ -100,22 +105,19 @@ longuser: longuser.o
 	$(CLINKER) $(OPTFLAGS) -o longuser longuser.o $(LIBS)
 
 ../pt2pt/gcomm.o:
-	(cd ../pt2pt ; make gcomm.o )
+	(cd ../pt2pt ; $(MAKE) gcomm.o )
 ../pt2pt/dtypes.o:
-	(cd ../pt2pt ; make dtypes.o )
+	(cd ../pt2pt ; $(MAKE) dtypes.o )
 
-mpif.h: $(MPIR_HOME)/include/mpif.h
-	if test \! -f mpif.h ; then \
-	    /bin/rm -f mpif.h ; \
-	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
-	fi
+#mpif.h: $(MPIR_HOME)/include/mpif.h
+#	if test \! -f mpif.h ; then \
+#	    /bin/rm -f mpif.h ; \
+#	    ln -s $(MPIR_HOME)/include/mpif.h . ; \
+#	fi
 clean:
-	/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff *.trace
+	@-/bin/rm -f *.o *~ PI* $(EXECS) core *.out coll.diff *.trace
 
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
-#
-#$(MPIR_HOME)/util/mpirun:
-#	(cd $(MPIR_HOME) ; make mpirun )

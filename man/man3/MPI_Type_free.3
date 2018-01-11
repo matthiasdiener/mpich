@@ -1,4 +1,4 @@
-.TH MPI_Type_free 3 "1/6/1997" " " "MPI"
+.TH MPI_Type_free 3 "1/29/1998" " " "MPI"
 .SH NAME
 MPI_Type_free \-  Frees the datatype 
 .SH SYNOPSIS
@@ -21,6 +21,7 @@ The MPI standard states that (in Opaque Objects)
 MPI provides certain predefined opaque objects and predefined, static handles
 to these objects. Such objects may not be destroyed.
 .fi
+
 
 Thus, it is an error to free a predefined datatype.  The same section makes
 it clear that it is an error to free a null datatype.
@@ -77,10 +78,10 @@ an error.
 .TP
 .B MPI_ERR_TYPE 
 - Invalid datatype argument.  May be an uncommitted 
-.PD 1
 MPI_Datatype (see 
 .I MPI_Type_commit
 ).
+.PD 1
 .PD 0
 .TP
 .B MPI_ERR_ARG 

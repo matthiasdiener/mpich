@@ -3,7 +3,7 @@
 
 
 #ifndef lint 
-static char vcid[] = "$Id: getopts.c,v 1.2 1994/10/28 22:48:18 gropp Exp $";
+static char vcid[] = "$Id: getopts.c,v 1.2 1998/04/29 15:15:41 swider Exp $";
 #endif
 
 /* 
@@ -43,9 +43,9 @@ if (!argv[i-1]) i--;
    SYArgFindName -  Find a name in an argument list.
 
    Input Parameters:
-.  argc - number of arguments
++  argc - number of arguments
 .  argv - argument vector
-.  name - name to find
+-  name - name to find
 
    Returns:
    index in argv of name; -1 if name is not in argv
@@ -67,10 +67,10 @@ return -1;
   SYArgGetInt - Get the value (integer) of a named parameter.
   
   Input Parameters:
-. Argc  - pointer to argument count
++ Argc  - pointer to argument count
 . argv  - argument vector
 . rflag - if true, remove the argument and its value from argv
-. val   - pointer to value (will be set only if found)
+- val   - pointer to value (will be set only if found)
 
   Returns:
   1 on success
@@ -118,10 +118,10 @@ return 1;
   SYArgGetDouble - Get the value (double) of a named parameter.
   
   Input Parameters:
-. Argc  - pointer to argument count
++ Argc  - pointer to argument count
 . argv  - argument vector
 . rflag - if true, remove the argument and its value from argv
-. val   - pointer to value (will be set only if found)
+- val   - pointer to value (will be set only if found)
 
   Returns:
   1 on success
@@ -155,11 +155,11 @@ return 1;
   SYArgGetString - Get the value (string) of a named parameter.
   
   Input Parameters:
-. Argc  - pointer to argument count
++ Argc  - pointer to argument count
 . argv  - argument vector
 . rflag - if true, remove the argument and its value from argv
 . val   - pointer to buffer to hold value (will be set only if found).
-. vallen- length of val
+- vallen- length of val
  
   Returns:
   1 on success
@@ -191,10 +191,10 @@ return 1;
   SYArgHasName - Return 1 if name is in argument list
   
   Input Parameters:
-. Argc  - pointer to argument count
++ Argc  - pointer to argument count
 . argv  - argument vector
 . rflag - if true, remove the argument and its value from argv
-. name  - name to search for
+- name  - name to search for
 
   Returns:
   1 on success
@@ -219,11 +219,11 @@ return 1;
   SYArgGetIntVec - Get the value (integers) of a named parameter.
   
   Input Parameters:
-. Argc  - pointer to argument count
++ Argc  - pointer to argument count
 . argv  - argument vector
 . rflag - if true, remove the argument and its value from argv
 . n     - number of values to read
-. val   - pointer to value (will be set only if found)
+- val   - pointer to value (will be set only if found)
 
   Note: 
   The form of input is "-name n1 n2 n3 ..."
@@ -263,11 +263,11 @@ return 1;
   SYArgGetIntList - Get the value (integers) of a named parameter.
   
   Input Parameters:
-. Argc  - pointer to argument count
++ Argc  - pointer to argument count
 . argv  - argument vector
 . rflag - if true, remove the argument and its value from argv
 . n     - maximum number of values to read
-. val   - pointer to values (will be set only if found)
+- val   - pointer to values (will be set only if found)
 
   Note: 
   The form of input is "-name n1,n2,n3 ..."

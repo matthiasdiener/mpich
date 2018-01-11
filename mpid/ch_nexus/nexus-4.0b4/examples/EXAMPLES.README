@@ -1,8 +1,0 @@
-This subdirectory contains:
-
-Makefile.sample	A sample Makefile for nexus-4.0
-client_server/  A simple program demonstrating how to use nexus_attach()
-ring/		A program that passes a value around a ring of the nodes
-		    that were started up from the command line.
-
-NOTE: The examples in this directory have NOT yet been updated for nexus-4.0

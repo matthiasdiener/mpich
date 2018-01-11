@@ -1,5 +1,5 @@
 /*
- *  $Id: getpnamef.c,v 1.17 1997/04/08 19:36:49 gropp Exp $
+ *  $Id: getpnamef.c,v 1.3 1998/01/29 14:27:15 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -50,11 +50,7 @@ _fcd name_fcd;
     long reslen= _fcdlen(name_fcd);
     char cres[MPI_MAX_PROCESSOR_NAME];
 
-#ifdef MPI_ADI2
     MPID_Node_name( cres, MPI_MAX_PROCESSOR_NAME );
-#else
-    MPID_NODE_NAME( MPI_COMM_WORLD->ADIctx, cres, MPI_MAX_PROCESSOR_NAME );
-#endif
 
     /* This handles blank padding required by Fortran */
     MPIR_cstr2fstr(name, reslen, cres );
@@ -64,23 +60,27 @@ _fcd name_fcd;
 
 #else
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_get_processor_name_ ANSI_ARGS(( char *, int *, int *, int ));
+void mpi_get_processor_name_ ANSI_ARGS(( char *, MPI_Fint *, 
+                                         MPI_Fint *, MPI_Fint ));
 
 void mpi_get_processor_name_( name, len, ierr, d )
-int *len, *ierr, d;
-char *name;
+char     *name;
+MPI_Fint *len;
+MPI_Fint *ierr;
+MPI_Fint d;
+
+
 {
   char cres[MPI_MAX_PROCESSOR_NAME];
+  int l_len;
 
-#ifdef MPI_ADI2
     MPID_Node_name( cres, MPI_MAX_PROCESSOR_NAME );
-#else
-    MPID_NODE_NAME( MPI_COMM_WORLD->ADIctx, cres, MPI_MAX_PROCESSOR_NAME );
-#endif
 
     /* This handles blank padding required by Fortran */
-    MPIR_cstr2fstr( name, d, cres );
-    *len  = LOCAL_MIN( strlen( cres ), d );
+    MPIR_cstr2fstr( name, (int)d, cres );
+    l_len  = LOCAL_MIN( strlen( cres ), (int)d );
+    *len = l_len;
     *ierr = MPI_SUCCESS;
 }
 #endif
+

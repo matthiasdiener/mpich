@@ -1,5 +1,5 @@
 /*
- *  $Id: shmeminit.c,v 1.2 1997/02/18 23:09:04 gropp Exp $
+ *  $Id: shmeminit.c,v 1.1.1.1 1997/09/17 20:39:30 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

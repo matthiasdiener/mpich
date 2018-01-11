@@ -23,9 +23,7 @@ SHELL = /bin/sh
 
 DEVICE_INCLUDE = ../../mpid/$(DEVICE)/dmch.h
 
-MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
-                 ../../include/mpir.h ../../include/mpi_ad.h \
-		 ../../include/mpisys.h
+MPI_INCLUDE    = ../../include/mpi.h
 DEVICE_LIB = 
 CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) \
 	-DMPI_$(ARCH) $(MPIPROFILE)

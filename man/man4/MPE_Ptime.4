@@ -1,4 +1,4 @@
-.TH MPE_Ptime 4 "12/20/1995" " " "MPE"
+.TH MPE_Ptime 4 "9/17/1997" " " "MPE"
 .SH NAME
 MPE_Ptime \-  Returns process time stamp 
 .SH SYNOPSIS
@@ -9,7 +9,11 @@ double MPE_Ptime()
 .fi
 .SH NOTES
 This routine returns the CPU time charged to the process only if the
-PETSC package is available (it uses the PETSc routine 'SYGetCPUTime').
-Otherwise, it returns 'MPI_Wtime' (wall-clock time).
+PETSC package is available (it uses the PETSc routine 
+.I SYGetCPUTime
+).
+Otherwise, it returns 
+.I MPI_Wtime
+(wall-clock time).
 .SH LOCATION
 timers.c

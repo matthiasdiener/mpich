@@ -1,5 +1,5 @@
 /*
- *  $Id: errset.c,v 1.11 1997/01/07 01:46:11 gropp Exp $
+ *  $Id: errset.c,v 1.2 1998/04/28 21:08:54 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -11,8 +11,8 @@
   MPI_Errhandler_set - Sets the error handler for a communicator
 
 Input Parameters:
-. comm - communicator to set the error handler for (handle) 
-. errhandler - new MPI error handler for communicator (handle) 
++ comm - communicator to set the error handler for (handle) 
+- errhandler - new MPI error handler for communicator (handle) 
 
 .N fortran
 

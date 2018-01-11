@@ -1,5 +1,5 @@
 /*
- *  $Id: shmemchkdev.c,v 1.1 1996/06/07 15:14:41 gropp Exp $
+ *  $Id: shmemchkdev.c,v 1.1.1.1 1997/09/17 20:41:21 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.

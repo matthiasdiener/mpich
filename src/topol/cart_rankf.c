@@ -23,12 +23,41 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_cart_rank_ ANSI_ARGS(( MPI_Comm *, int *, int *, int * ));
+void mpi_cart_rank_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                                MPI_Fint * ));
 void mpi_cart_rank_ ( comm, coords, rank, __ierr )
-MPI_Comm *comm;
-int *coords;
-int *rank;
-int *__ierr;
+MPI_Fint *comm;
+MPI_Fint *coords;
+MPI_Fint *rank;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Cart_rank( *comm, coords,rank);
+    MPI_Comm l_comm;
+    int lcoords[20];
+    int lrank;
+    int ndims;
+    int i;
+
+    l_comm = MPI_Comm_f2c(*comm);
+    if (l_comm == MPI_COMM_NULL) {
+	struct MPIR_COMMUNICATOR *comm_ptr;
+	comm_ptr = MPIR_GET_COMM_PTR(MPI_Comm_f2c(*comm));
+	*__ierr = MPIR_ERROR( comm_ptr, MPI_ERR_COMM, "Null Communicator");
+	return;
+	}
+	
+    MPI_Cartdim_get( MPI_Comm_f2c(*comm), &ndims);
+  
+    if (ndims > 20) {
+	struct MPIR_COMMUNICATOR *comm_ptr;
+	comm_ptr = MPIR_GET_COMM_PTR(MPI_Comm_f2c(*comm));
+	*__ierr = MPIR_ERROR( comm_ptr, MPI_ERR_LIMIT, "Too many dimensions" );
+	return;
+	}
+ 
+    for (i=0; i<ndims; i++)
+	lcoords[i] = (int)coords[i];
+    *__ierr = MPI_Cart_rank( MPI_Comm_f2c(*comm), lcoords, &lrank);
+    *rank = (MPI_Fint)lrank;
+
 }
+

@@ -29,3 +29,8 @@ int *__ierr;
 {
 *__ierr = MPI_Type_count( *(int*)(datatype) ),count);
 }
+
+
+
+
+

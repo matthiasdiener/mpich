@@ -1,5 +1,5 @@
 /*
- *  $Id: scatter.c,v 1.26 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: scatter.c,v 1.4 1998/04/28 18:51:06 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -14,7 +14,7 @@
 MPI_Scatter - Sends data from one task to all other tasks in a group
 
 Input Parameters:
-. sendbuf - address of send buffer (choice, significant 
++ sendbuf - address of send buffer (choice, significant 
 only at 'root') 
 . sendcount - number of elements sent to each process 
 (integer, significant only at 'root') 
@@ -23,7 +23,7 @@ only at 'root')
 . recvcount - number of elements in receive buffer (integer) 
 . recvtype - data type of receive buffer elements (handle) 
 . root - rank of sending process (integer) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
@@ -66,6 +66,13 @@ MPI_Comm          comm;
 
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr,myname);
+
+#ifdef FOO
+/* Only check for matching signature */
+  /* Check for mismatched receive/send types - Debbie Swider 11/20/97 */
+  if (recvtype != sendtype)
+    return MPIR_ERROR(comm_ptr, MPI_ERR_TYPE, myname);
+#endif
 
   MPIR_ERROR_PUSH(comm_ptr);
   mpi_errno = comm_ptr->collops->Scatter(sendbuf, sendcnt, stype_ptr, 

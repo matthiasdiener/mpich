@@ -1,1 +1,0 @@
-../nexus/./nx_ver.h

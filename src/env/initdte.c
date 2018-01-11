@@ -1,5 +1,5 @@
 /*
- *  $Id: initdte.c,v 1.6 1997/01/07 01:46:11 gropp Exp $
+ *  $Id: initdte.c,v 1.4 1998/05/15 16:17:42 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,7 +7,6 @@
 
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 /* MPIR_Type_xxx routines are prototyped in mpipt2pt.h */
 #include "mpipt2pt.h"
 #include "sbcnst2.h"
@@ -15,9 +14,6 @@
 #define MPIR_SBalloc MPID_SBalloc
 #define MPIR_SBfree MPID_SBfree
 #define MPIR_trmalloc MPID_trmalloc
-#else
-#include "mpisys.h"
-#endif
 
 /* #define DEBUG(a) {a}  */
 #define DEBUG(a)
@@ -180,6 +176,13 @@ void MPIR_Init_dtes()
 			      MPIR_COMPLEX, 2 * MPIR_FSIZE_R );
     MPIR_I_COMPLEX.align  = MPIR_FSIZE_R;
     /* Hunt for Fortran real size */
+    /* The original code here depended on Fortran being correctly 
+       implemented.  Unfortunately, some vendors (e.g., Cray for the T3x)
+       choose to have REAL = 8 bytes but don't want to have DOUBLE PRECISION
+       = 16 bytes.  This is SPECIFICALLY prohibited by the Fortran standard
+       (which requires that double precision be exactly twice the size of
+       real).  
+     */
     if (sizeof(float) == MPIR_FSIZE_R) {
 	MPIR_Setup_base_datatype( MPI_REAL, &MPIR_I_REAL, MPIR_FLOAT,
 				  MPIR_FSIZE_R );
@@ -188,8 +191,7 @@ void MPIR_Init_dtes()
     else if (sizeof(double) == MPIR_FSIZE_R) {
 	MPIR_Setup_base_datatype( MPI_REAL, &MPIR_I_REAL, MPIR_DOUBLE,
 				  MPIR_FSIZE_R );
-	MPIR_Type_contiguous( 2, MPI_DOUBLE, &MPIR_I_2DOUBLE, 
-			      MPI_2DOUBLE_PRECISION );
+	MPIR_Type_contiguous( 2, MPI_DOUBLE, &MPIR_I_2DOUBLE, MPI_2REAL );
 	}
     else {
 	/* This won't be right */
@@ -234,7 +236,8 @@ void MPIR_Init_dtes()
 				  MPIR_DOUBLE_COMPLEX, 2 * MPIR_FSIZE_D );
 	MPIR_I_DCOMPLEX.align = MPIR_FSIZE_D;
 
-	MPIR_Type_contiguous( 2, MPI_DOUBLE, &MPIR_I_2FLOAT, MPI_2REAL );
+	MPIR_Type_contiguous( 2, MPI_DOUBLE, &MPIR_I_2FLOAT, 
+			      MPI_2DOUBLE_PRECISION );
 	}
 
     MPIR_Setup_base_datatype( MPI_LONG, &MPIR_I_LONG, 
@@ -342,7 +345,7 @@ void MPIR_Init_dtes()
 
 #if defined(HAVE_LONG_LONG_INT)
     MPIR_Setup_base_datatype( MPI_LONG_LONG_INT, &MPIR_I_LONG_LONG_INT,
-			      MPIR_LONGLONGINT, sizeof(long long int) );
+			      MPIR_LONGLONGINT, sizeof(long long) );
 #else
     MPIR_Setup_base_datatype( MPI_LONG_LONG_INT, &MPIR_I_LONG_LONG_INT,
 			      MPIR_LONGLONGINT, 2*sizeof(long) );

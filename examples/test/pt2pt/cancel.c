@@ -69,6 +69,10 @@ char **argv;
 	MPI_Cancel( &r1 );
 	MPI_Test( &r1, &flag, &status );
 	MPI_Test_cancelled( &status, &flag );
+	/* It is technically possible for the cancel to succeed, even though
+	   the message was (at least partially) delivered.  I'm leaving
+	   this test in since most of the MPICH devices provide this
+	   behavior. */
 	if (flag) {
 	    err++;
 	    printf( "Cancel of a receive succeeded where it shouldn't.\n" );

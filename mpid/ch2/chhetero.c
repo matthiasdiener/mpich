@@ -1,5 +1,5 @@
 /*
- *  $Id: chhetero.c,v 1.5 1996/12/01 23:34:41 gropp Exp $
+ *  $Id: chhetero.c,v 1.3 1997/09/25 21:59:33 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -83,16 +83,34 @@ char ***argv;
 #endif
     use_xdr = 0;
     /* PRINTF ("Checking args for -mpixdr\n" ); */
+    /* PRINTF( "[%d] 1\n", MPID_MyWorldRank ); fflush(stdout); */
     for (i=1; i<*argc; i++) {
 	/* PRINTF( "Arg[%d] is %s\n", i, (*argv)[i] ? (*argv)[i] : "<NULL>" ); */
+	/* 
+        PRINTF( "[%d] about to test arg value %d\n", MPID_MyWorldRank, i );
+	PRINTF( "[%d] argv is %lx\n", MPID_MyWorldRank, argv ); 
+	if (!argv) PRINTF( "argv not set\n" );
+	PRINTF( "[%d] *argv is %lx\n", MPID_MyWorldRank, *argv );
+	if (!(*argv)) PRINTF( "*argv not set\n" );
+	PRINTF( "[%d] (*argv)[%d] is %lx\n", MPID_MyWorldRank, i, (*argv)[i] );
+	if (!(*argv)[i]) PRINTF( "(*argv)[%d] not set\n", i );
+	PRINTF( "arg is %s\n", (*argv)[i] ); fflush( stdout );
+         */
 	if ((*argv)[i] && strcmp( (*argv)[i], "-mpixdr" ) == 0) {
 	    /* PRINTF( "Found -mpixdr\n" ); */
 	    use_xdr = 1;
+	    /* PRINTF( "[%d] about to set argv[%d]\n", 
+	       MPID_MyWorldRank, i ); */
 	    (*argv)[i] = 0;
+	    /* PRINTF( "[%d] about squeeze args\n", 
+		    MPID_MyWorldRank ); */
 	    MPID_ArgSqueeze( argc, *argv );
+	    /* PRINTF( "[%d] done squeeze args\n", 
+		    MPID_MyWorldRank ); */
 	    break;
 	}
     }
+    /* PRINTF( "[%d] 2\n", MPID_MyWorldRank ); fflush(stdout); */
     if (use_xdr) 
 	MPID_byte_order = MPID_H_XDR;
     else {
@@ -130,7 +148,7 @@ char ***argv;
 	     (sizeof(MPID_INFO)/sizeof(int)) * MPID_MyWorldSize, 
 	     work, PSAllProcs );
     FREE( work );
-
+    /* PRINTF( "3\n" ); */
 /* See if they are all the same and different from XDR*/
     MPID_IS_HETERO = MPID_procinfo[0].byte_order == MPID_H_XDR;
     for (i=1; i<MPID_MyWorldSize; i++) {
@@ -333,13 +351,19 @@ int MPID_CH_Hetero_free()
     return MPI_SUCCESS;
 }
 
+/* The following routine uses unions to satisfy VERY picky C compilers).
+   Thanks to Martin Frost for the following code */
 int MPID_GetByteOrder( )
 {
-    int l = 1;
-    char *b = (char *)&l;
+    union { 
+	int l;
+	char b[sizeof(int)];
+    } u;
 
-    if (b[0] == 1) return 1;
-    if (b[sizeof(int)-1] == 1) return 2;
+    u.l = 1;
+
+    if (u.b[0] == 1) return 1;
+    if (u.b[sizeof(int)-1] == 1) return 2;
     return 0;
 }
 

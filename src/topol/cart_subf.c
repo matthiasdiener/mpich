@@ -1,10 +1,7 @@
 /* cart_sub.c */
 /* Custom Fortran interface file */
 #include "mpiimpl.h"
-
-#ifdef MPI_ADI2
 #include "mpifort.h"
-#endif
 
 #ifdef MPI_BUILD_PROFILING
 #ifdef FORTRANCAPS
@@ -27,25 +24,30 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_cart_sub_ ANSI_ARGS(( MPI_Comm *, int *, int *, int * ));
+void mpi_cart_sub_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint *, 
+                               MPI_Fint * ));
 
 void mpi_cart_sub_ ( comm, remain_dims, comm_new, __ierr )
-MPI_Comm *comm;
-int      *remain_dims;
-int      *comm_new;
-int      *__ierr;
+MPI_Fint *comm;
+MPI_Fint *remain_dims;
+MPI_Fint *comm_new;
+MPI_Fint *__ierr;
 {
     int lremain_dims[20], i, ndims;
+    MPI_Comm lcomm_new;
 
-    MPI_Cartdim_get( *comm, &ndims );
+    MPI_Cartdim_get( MPI_Comm_f2c(*comm), &ndims );
     if (ndims > 20) {
 	struct MPIR_COMMUNICATOR *comm_ptr;
-	comm_ptr = MPIR_GET_COMM_PTR(*comm);
+	comm_ptr = MPIR_GET_COMM_PTR(MPI_Comm_f2c(*comm));
 	*__ierr = MPIR_ERROR( comm_ptr, MPI_ERR_LIMIT, "Too many dimensions" );
 	return;
 	}
     for (i=0; i<ndims; i++) 
 	lremain_dims[i] = MPIR_FROM_FLOG(remain_dims[i]);
 
-    *__ierr = MPI_Cart_sub( *comm, lremain_dims, comm_new );
+    *__ierr = MPI_Cart_sub( MPI_Comm_f2c(*comm), lremain_dims, 
+                            &lcomm_new);
+    *comm_new = MPI_Comm_c2f(lcomm_new);
 }
+

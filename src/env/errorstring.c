@@ -1,5 +1,5 @@
 /*
- *  $Id: errorstring.c,v 1.13 1997/01/07 01:46:11 gropp Exp $
+ *  $Id: errorstring.c,v 1.6 1998/07/01 19:56:09 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,10 +7,10 @@
 
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
-#else
-#include "mpisys.h"
+#if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
+#include <string.h>
 #endif
+
 
 /*
  *                ************ IMPORTANT NOTE *************
@@ -27,8 +27,8 @@ Input Parameters:
 . errorcode - Error code returned by an MPI routine or an MPI error class
 
 Output Parameter:
-. string - Text that corresponds to the errorcode 
-. resultlen - Length of string 
++ string - Text that corresponds to the errorcode 
+- resultlen - Length of string 
 
 Notes:  Error codes are the values return by MPI routines (in C) or in the
 'ierr' argument (in Fortran).  These can be converted into error classes 
@@ -136,6 +136,10 @@ Special bit pattern %x in communicator is incorrect.  May indicate an \n\
 out-of-order argument or a freed communicator" );
 	    error_case = 0;
 	}
+	else if (error_case == MPIR_ERR_COMM_NAME) {
+	    strcpy( string, "Error setting communicator name" );
+	    error_case = 0;
+	}
 	break;
     case MPI_ERR_RANK:
         strcpy( string, "Invalid rank %d" );
@@ -172,7 +176,7 @@ out-of-order argument or a freed group" );
 	strcpy( string, "Invalid topology" );
 	break;
     case MPI_ERR_DIMS:
-        strcpy( string, "Illegal dimension argument" );
+        strcpy( string, "Illegal dimension argument %d" );
 	break;
     case MPI_ERR_ARG:
 	strcpy( string, "Invalid argument" );
@@ -214,6 +218,12 @@ out-of-order argument or a freed group" );
 ": MPI_Errhandler argument is not a valid errorhandler\n\
 Special bit pattern %x in errhandler is incorrect.  May indicate an \n\
 out-of-order argument or a deleted error handler" );
+	    error_case = 0;
+	}
+/* MPI2 */
+	else if (error_case == MPIR_ERR_STATUS_IGNORE) {
+	    strcat( string, ": Illegal use of MPI_STATUS_IGNORE or \
+MPI_STATUSES_IGNORE" );
 	    error_case = 0;
 	}
 	break;

@@ -1,4 +1,4 @@
-.TH MPI_Bsend 3 "1/6/1997" " " "MPI"
+.TH MPI_Bsend 3 "4/28/1998" " " "MPI"
 .SH NAME
 MPI_Bsend \-  Basic send with user-specified buffering 
 .SH SYNOPSIS
@@ -64,6 +64,7 @@ for (i=0; i<m; i++) {
 MPI_Bsend( buf, n, MPI_DOUBLE, ... );
 }
 .fi
+
 because only enough buffer space is provided for a single send, and the
 loop may start a second 
 .I MPI_Bsend
@@ -76,6 +77,7 @@ force the messages to be delivered by
 MPI_Buffer_detach( &b, &n );
 MPI_Buffer_attach( b, n );
 .fi
+
 (The 
 .I MPI_Buffer_detach
 will not complete until all buffered messages are
@@ -147,10 +149,10 @@ non-negative; a count of zero is often valid.
 .TP
 .B MPI_ERR_TYPE 
 - Invalid datatype argument.  May be an uncommitted 
-.PD 1
 MPI_Datatype (see 
 .I MPI_Type_commit
 ).
+.PD 1
 .PD 0
 .TP
 .B MPI_ERR_RANK 

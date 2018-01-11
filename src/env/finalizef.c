@@ -22,10 +22,11 @@
 #endif
 #endif
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_finalize_ ANSI_ARGS(( int * ));
+void mpi_finalize_ ANSI_ARGS(( MPI_Fint * ));
 
 void mpi_finalize_(__ierr )
-int *__ierr;
+MPI_Fint *__ierr;
 {
     *__ierr = MPI_Finalize();
+
 }

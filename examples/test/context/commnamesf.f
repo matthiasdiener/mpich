@@ -4,7 +4,7 @@ C
 
       include 'mpif.h'
 
-      integer error
+      integer error, namelen
       character*40 the_name
       character*40 other_name
 
@@ -12,7 +12,7 @@ C
       
       call xify(the_name)
 
-      call mpi_comm_get_name (MPI_COMM_WORLD, the_name, error)
+      call mpi_comm_get_name (MPI_COMM_WORLD, the_name, namelen, error)
       if (error .ne. mpi_success) then
          print *,'Failed to get the name from MPI_COMM_WORLD'
          call MPI_Abort( MPI_COMM_WORLD, 1, error )
@@ -25,6 +25,7 @@ C
 
       other_name = 'foobarH'
       call mpi_comm_set_name(MPI_COMM_WORLD, other_name(1:6), error)
+
       if (error .ne. mpi_success) then
          print *,'Failed to put a name onto MPI_COMM_WORLD'
          call MPI_Abort( MPI_COMM_WORLD, 1, error )
@@ -32,7 +33,7 @@ C
       
       call xify(the_name)
 
-      call mpi_comm_get_name (MPI_COMM_WORLD, the_name, error)
+      call mpi_comm_get_name (MPI_COMM_WORLD, the_name, namelen, error)
       if (error .ne. mpi_success) then
          print *,'Failed to get the name from MPI_COMM_WORLD ',
      $        'after setting it'

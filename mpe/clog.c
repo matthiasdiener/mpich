@@ -9,7 +9,7 @@ int    CLOG_Comm;		/* Default communicator */
 void   *CLOG_ptr;		/* pointer into buffer, where next rec goes */
 void   *CLOG_block_end;		/* pointer to end of buffer */
 CLOG_BLOCK *CLOG_first, *CLOG_currbuff; /* blocks of buffer */
-int    intsperdouble, charsperdouble;
+int    CLOG_intsperdouble, CLOG_charsperdouble;
 int    CLOG_srcid = 900;	/* next id for source code location */
 int    CLOG_nextevent = CLOG_MAXEVENT;
 int    CLOG_nextstate = CLOG_MAXSTATE;
@@ -24,8 +24,8 @@ void CLOG_Init( )
     CLOG_timeinit();		/* initialize timer */
     CLOG_newbuff(&CLOG_first);	/* get first buffer */
     CLOG_status	  &= 0x01;	/* set initialized  */
-    intsperdouble  = sizeof(double) / sizeof(int);
-    charsperdouble = sizeof(double) / sizeof(char);
+    CLOG_intsperdouble  = sizeof(double) / sizeof(int);
+    CLOG_charsperdouble = sizeof(double) / sizeof(char);
 }
 
 /*@

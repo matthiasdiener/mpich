@@ -23,12 +23,14 @@
 #endif
 
 /* Prototype to suppress warnings about missing prototypes */
-void mpi_group_size_ ANSI_ARGS(( MPI_Group *, int *, int * ));
+void mpi_group_size_ ANSI_ARGS(( MPI_Fint *, MPI_Fint *, MPI_Fint * ));
 
 void mpi_group_size_ ( group, size, __ierr )
-MPI_Group *group;
-int *size;
-int *__ierr;
+MPI_Fint *group;
+MPI_Fint *size;
+MPI_Fint *__ierr;
 {
-    *__ierr = MPI_Group_size( *group, size );
+    int l_size;
+    *__ierr = MPI_Group_size( MPI_Group_f2c(*group), &l_size );
+    *size = l_size;
 }

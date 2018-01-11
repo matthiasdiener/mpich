@@ -59,7 +59,3 @@ clean:
 	$(CC) $(CFLAGS) -c $*.c
 .f.o:
 	$(F77) $(FFLAGS) -c $*.f
-
-# MPICH specific
-#$(MPIR_HOME)/util/mpirun:
-#	(cd $(MPIR_HOME) ; $(MAKE) mpirun )

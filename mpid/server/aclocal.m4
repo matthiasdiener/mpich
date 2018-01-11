@@ -1,3 +1,7 @@
+dnl
+dnl To Have Kerberos for the purposes of the server, we need the 
+dnl programming interface as well as the /usr/kerberos directories.
+dnl 
 AC_DEFUN(AC_CHECK_KERBEROS,
 [AC_MSG_CHECKING(for Kerberos (/usr/kerberos))
     AC_CACHE_VAL(ac_cv_sys_kerberos, [dnl
@@ -28,6 +32,10 @@ AC_DEFUN(AC_CHECK_AFS,
     AC_MSG_RESULT($ac_cv_sys_afs)
 ])
 
+dnl
+dnl It is NEVER a good idea to use the configure cache!
+dnl (This is really intended for builds on the SAME platform with different
+dnl options)
 AC_DEFUN(AC_CHECK_SSL,
 [AC_MSG_CHECKING(for SSL in cache)
     found_ssl_in_cache="yes"
@@ -40,7 +48,9 @@ AC_DEFUN(AC_CHECK_SSL,
     else
 	AC_MSG_RESULT($ac_cv_sys_ssl)
     fi
-
+    if test "$ac_cv_sys_ssl" = "yes"; then
+        AC_FIND_USER_INCLUDE(ssllib,,ac_cvs_sys_ssl="yes",ac_cv_sys_ssl="no")
+    fi
     if test "$ac_cv_sys_ssl" = "yes"; then
 	AC_DEFINE(HAVE_SSL)
     fi
@@ -116,6 +126,8 @@ dnl	fi
 done
 if test -n "$ac_find_inc_dir" ; then
   AC_MSG_RESULT(found $ac_find_inc_dir)
+  dnl Must add to the search path
+  CFLAGS="$CFLAGS -I$ac_find_inc_dir"
   ifelse([$3],,,[$3])
 else
   AC_MSG_RESULT(no)

@@ -1,11 +1,12 @@
 
 ##### User configurable options #####
 
+SHELL       = /bin/sh
 ARCH        = @ARCH@
 COMM        = @COMM@
-CC          = @CC@
-CLINKER     = @CLINKER@
 MPIR_HOME   = @MPIR_HOME@
+CC          = @MPICC@
+CLINKER     = $(CC)
 OPTFLAGS    = @OPTFLAGS@
 #
 LIB_PATH    = @LIB_PATH@ @X_LIB@

@@ -24,16 +24,14 @@ SHELL = /bin/sh
 
 DEVICE_INCLUDE = ../../mpid/$(DEVICE)/dmch.h
 
-MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
-                 ../../include/mpir.h ../../include/mpi_ad.h \
-		 ../../include/mpisys.h 
+MPI_INCLUDE    = ../../include/mpi.h
 DEVICE_LIB = 
 CFLAGS = @CFLAGS@ $(OPTFLAGS) @OPTFLAGSC@ $(INCLUDE_DIR) $(MPIPROFILE)
 
 LIBS = ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a $(DEVICE_LIB)
-MPI_CSOURCES = util_hbt.c mpirutil.c sbcnst.c ptrcvt.c bsendutil.c tr.c
+MPI_CSOURCES = util_hbt.c mpirutil.c ptrcvt.c bsendutil2.c
 MPI_SOURCES =  $(MPI_CSOURCES)
-MPI_COBJECTS = util_hbt.o mpirutil.o sbcnst.o ptrcvt.o bsendutil.o tr.o
+MPI_COBJECTS = util_hbt.o mpirutil.o ptrcvt.o bsendutil2.o
 MPI_OBJECTS =  $(MPI_COBJECTS)
 MPI_WOBJECTS = 
 default: ../../lib/$(ARCH)/$(COMM)/lib@MPILIBNAME@.a

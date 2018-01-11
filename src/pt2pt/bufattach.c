@@ -1,5 +1,5 @@
 /*
- *  $Id: bufattach.c,v 1.10 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: bufattach.c,v 1.3 1998/04/28 21:46:41 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,8 +12,8 @@
   MPI_Buffer_attach - Attaches a user-defined buffer for sending
 
 Input Parameters:
-. buffer - initial buffer address (choice) 
-. size - buffer size, in bytes (integer) 
++ buffer - initial buffer address (choice) 
+- size - buffer size, in bytes (integer) 
 
 Notes:
 The size given should be the sum of the sizes of all outstanding Bsends that
@@ -58,13 +58,8 @@ int  size;
 	MPIR_ERROR_PUSH_ARG(&size);
 	return MPIR_ERROR( MPIR_COMM_WORLD, MPI_ERR_BUFFER_SIZE, myname );
     }
-#ifdef MPI_ADI2
     if ((mpi_errno = MPIR_BsendInitBuffer( buffer, size )))
 	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
-#else
-    if ((mpi_errno = MPIR_SetBuffer( buffer, size )))
-	return MPIR_ERROR( MPIR_COMM_WORLD, mpi_errno, myname );
-#endif
     TR_POP;
     return MPI_SUCCESS;
 }

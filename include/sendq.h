@@ -1,5 +1,5 @@
 /*
- *  $Id: sendq.h,v 1.3 1997/01/07 01:50:00 gropp Exp $
+ *  $Id: sendq.h,v 1.2 1998/01/29 14:25:23 gropp Exp $
  *
  *  (C) 1996 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
@@ -12,7 +12,6 @@
 #ifndef _SENDQ_INCLUDED
 #define _SENDQ_INCLUDED
 
-#ifdef MPI_ADI2
 /* These macros are used to keep the shadow data structures if we 
  * want to provide more debug information for the user about pending
  * sends.
@@ -53,7 +52,5 @@ extern void MPIR_Forget_send();
 #define MPIR_SENDQ_INIT()         ((void)0)
 #define MPIR_SENDQ_FINALIZE()     ((void)0)
 #endif /* KEEP_SEND_QUEUE */
-
-#endif /* ADI2 */
 
 #endif /* SENDQ_INCLUDED */

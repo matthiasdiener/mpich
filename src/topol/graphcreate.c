@@ -1,5 +1,5 @@
 /*
- *  $Id: graphcreate.c,v 1.5 1997/01/07 01:48:01 gropp Exp $
+ *  $Id: graphcreate.c,v 1.4 1998/04/29 14:28:49 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,12 +7,8 @@
 
 #include "mpiimpl.h"
 #include "mpitopo.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
-#else
-#include "mpisys.h"
-#endif
 
 /*@
 
@@ -20,11 +16,11 @@ MPI_Graph_create - Makes a new communicator to which topology information
                  has been attached
 
 Input Parameters:
-. comm_old - input communicator without topology (handle) 
++ comm_old - input communicator without topology (handle) 
 . nnodes - number of nodes in graph (integer) 
 . index - array of integers describing node degrees (see below) 
 . edges - array of integers describing graph edges (see below) 
-. reorder - ranking may be reordered (true) or not (false) (logical) 
+- reorder - ranking may be reordered (true) or not (false) (logical) 
 
 Output Parameter:
 . comm_graph - communicator with graph topology added (handle) 
@@ -52,7 +48,7 @@ MPI_Comm *comm_graph;
   MPI_Group group_old, group;
   int i, num_ranks = 1;
   int mpi_errno = MPI_SUCCESS;
-  int flag, size;
+  int flag, size, j;
   MPIR_TOPOLOGY *topo;
   struct MPIR_COMMUNICATOR *comm_old_ptr;
   static char myname[] = "MPI_GRAPH_CREATE";
@@ -66,6 +62,14 @@ MPI_Comm *comm_graph;
       MPIR_TEST_ARG(edges) || 
       ((nnodes     <  1)             && (mpi_errno = MPI_ERR_ARG))   )
     return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
+
+  /*** Check that edge number is not out of range, ***
+   *** Check that edge number is not negative - Debbie Swider 11/18/97 ***/
+  for (j=0; j<index[nnodes-1]; j++) {    
+    if ( ((edges[j] > nnodes) && (mpi_errno = MPI_ERR_TOPOLOGY)) ||
+         ((edges[j] < 0) && (mpi_errno = MPI_ERR_TOPOLOGY)) )
+	return MPIR_ERROR( comm_old_ptr, mpi_errno, myname );
+  } 
 
   /* Check for Intra-communicator */
   MPI_Comm_test_inter ( comm_old, &flag );

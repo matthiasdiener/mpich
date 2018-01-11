@@ -1,4 +1,5 @@
 #! /bin/sh
+exitstatus=1
 if [ "$MPIR_HOME" = "" ] ; then 
     MPIR_HOME=#MPIR_HOME#
 fi
@@ -26,14 +27,18 @@ export MPIRUN_DEVICE
 # Handle debuggers
 #
 #startpgm="eval"
-startpgm="$progname $cmdLineArgs -np $np"
+MPICH_NP=$np
+export MPICH_NP
+# If MPICH_NP doesn't work, use -np $np
+startpgm="$progname $cmdLineArgs"
 
 if [ "$debugger" != "" ] ; then
     if [ "$debugger" = "totalview" ] ; then
         if [ "$TOTALVIEW" = "" ] ; then
 	   TOTALVIEW="totalview"
         fi
-        startpgm="$TOTALVIEW $progname -a $cmdLineArgs -np $np -mpichtv"
+        # We need to put -mpichtv into an environment variable
+        startpgm="$TOTALVIEW $progname -a $cmdLineArgs -mpichtv"
     else
 	# There should be a way to specify a debugger startup method, for
         # special vendor-specific debuggers (like SGI's cvd) etc.
@@ -58,10 +63,12 @@ if [ "$debugger" != "" ] ; then
     #	cat $HOME/.gdbini > $dbgfile
     #    fi
         # handle USR1 pass for gdb; add an initial break 
-        if [ "$debugger" = "gdb" -o "$debugger" = "xxgdb" ] ; then
+        if [ "$debugger" = "gdb" -o "$debugger" = "xxgdb" -o \
+	     "$debugger" = "ddd" ] ; then
 	    echo "handle SIGUSR1 nostop pass" >> $dbgfile
 	    echo "br MPI_Init" >> $dbgfile
-	    echo "set args $cmdLineArgs -np $np" >> $dbgfile
+	    #echo "set args $cmdLineArgs -np $np" >> $dbgfile
+	    echo "set args $cmdLineArgs" >> $dbgfile
 	    echo "run" >> $dbgfile
         else 
             echo "ignore USR1" >> $dbgfile
@@ -71,7 +78,8 @@ if [ "$debugger" != "" ] ; then
 	    # with run command args.
 	    echo "debug $progname" >> $dbgfile
    	    echo "stop in MPI_Init" >> $dbgfile
-	    echo "run $cmdLineArgs -np $np" >> $dbgfile
+#	    echo "run $cmdLineArgs -np $np" >> $dbgfile
+	    echo "run $cmdLineArgs" >> $dbgfile
         fi
     #	cat >> $dbgfile <<.
     ## Use this command to start your programm:
@@ -98,3 +106,5 @@ if [ $nolocal = 1 ] ; then
 fi
 
 $doitall $startpgm
+exitstatus=$?
+exit $exitstatus

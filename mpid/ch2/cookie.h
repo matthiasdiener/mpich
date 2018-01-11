@@ -9,8 +9,6 @@
 *  still be identified after it has been freed                               *
 *****************************************************************************/
 
-#define MPIR_HAS_COOKIES
-
 #ifdef MPIR_HAS_COOKIES
 #define MPIR_COOKIE unsigned long cookie;
 #define MPIR_SET_COOKIE(obj,value) (obj)->cookie = (value);

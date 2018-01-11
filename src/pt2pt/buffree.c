@@ -1,5 +1,5 @@
 /*
- *  $Id: buffree.c,v 1.11 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: buffree.c,v 1.3 1998/04/28 21:46:42 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -12,8 +12,8 @@
   MPI_Buffer_detach - Removes an existing buffer (for use in MPI_Bsend etc)
 
 Output Parameters:
-. buffer - initial buffer address (choice) 
-. size - buffer size, in bytes (integer) 
++ buffer - initial buffer address (choice) 
+- size - buffer size, in bytes (integer) 
 
 Notes:
     The reason that 'MPI_Buffer_detach' returns the address and size of the
@@ -65,11 +65,6 @@ int MPI_Buffer_detach( bufferptr, size )
 void *bufferptr;
 int  *size;
 {
-#ifdef MPI_ADI2
     return MPIR_BsendRelease( (void **)bufferptr, size );
-#else
-    MPIR_FreeBuffer( (void **)bufferptr, size );
-    return MPI_SUCCESS;
-#endif
 }
 

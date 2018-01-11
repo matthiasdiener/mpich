@@ -6,14 +6,14 @@
 
 
 /*
- *  $Id: chsend.c,v 1.40 1996/01/08 19:51:50 gropp Exp $
+ *  $Id: meikosend.c,v 1.1.1.1 1997/09/17 20:40:45 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      All rights reserved.  See COPYRIGHT in top-level directory.
  */
 
 #ifndef lint
-static char vcid[] = "$Id: chsend.c,v 1.40 1996/01/08 19:51:50 gropp Exp $";
+static char vcid[] = "$Id: meikosend.c,v 1.1.1.1 1997/09/17 20:40:45 gropp Exp $";
 #endif
 
 #include "mpid.h"

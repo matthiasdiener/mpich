@@ -1,5 +1,5 @@
 /*
- *  $Id: allgather.c,v 1.24 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: allgather.c,v 1.3 1998/04/28 18:50:38 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,12 +13,12 @@
 MPI_Allgather - Gathers data from all tasks and distribute it to all 
 
 Input Parameters:
-. sendbuf - starting address of send buffer (choice) 
++ sendbuf - starting address of send buffer (choice) 
 . sendcount - number of elements in send buffer (integer) 
 . sendtype - data type of send buffer elements (handle) 
 . recvcount - number of elements received from any process (integer) 
 . recvtype - data type of receive buffer elements (handle) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
@@ -71,6 +71,10 @@ MPI_Comm          comm;
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
 
+  /*** Check for mismatched send/recieve types - Debbie Swider 11/20/97 ***/
+  if (sendtype != recvtype)
+    return MPIR_ERROR( comm_ptr, MPI_ERR_TYPE, myname ); 
+ 
   /* Check for invalid arguments */
   if ( MPIR_TEST_COUNT(comm,sendcount) ||
        MPIR_TEST_COUNT(comm,recvcount) ) 

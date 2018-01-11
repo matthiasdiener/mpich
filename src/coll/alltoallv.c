@@ -1,5 +1,5 @@
 /*
- *  $Id: alltoallv.c,v 1.26 1997/01/07 01:47:46 gropp Exp $
+ *  $Id: alltoallv.c,v 1.3 1998/04/28 18:50:46 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -13,7 +13,7 @@
 MPI_Alltoallv - Sends data from all to all processes, with a displacement
 
 Input Parameters:
-. sendbuf - starting address of send buffer (choice) 
++ sendbuf - starting address of send buffer (choice) 
 . sendcounts - integer array equal to the group size 
 specifying the number of elements to send to each processor 
 . sdispls - integer array (of length group size). Entry 
@@ -27,7 +27,7 @@ each processor
  'i'  specifies the displacement (relative to recvbuf  at
 which to place the incoming data from process  'i'  
 . recvtype - data type of receive buffer elements (handle) 
-. comm - communicator (handle) 
+- comm - communicator (handle) 
 
 Output Parameter:
 . recvbuf - address of receive buffer (choice) 
@@ -67,6 +67,10 @@ MPI_Comm          comm;
 
   rtype_ptr = MPIR_GET_DTYPE_PTR(recvtype);
   MPIR_TEST_DTYPE(recvtype,rtype_ptr,comm_ptr, myname );
+
+  /* Check for mismatched receive/send types - Debbie Swider 11/20/97 */
+  if (recvtype != sendtype)
+      return MPIR_ERROR(comm_ptr, MPI_ERR_TYPE, myname);
 
   /* Check for invalid arguments */
   MPIR_ERROR_PUSH(comm_ptr);

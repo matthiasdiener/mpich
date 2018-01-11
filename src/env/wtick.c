@@ -1,5 +1,5 @@
 /*
- *  $Id: wtick.c,v 1.6 1996/04/11 20:31:04 gropp Exp $
+ *  $Id: wtick.c,v 1.2 1998/01/29 14:27:26 gropp Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
@@ -7,9 +7,7 @@
 
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "mpid_time.h"
-#endif
 
 /*@
   MPI_Wtick - Returns the resolution of MPI_Wtime
@@ -23,11 +21,7 @@
 @*/
 double MPI_Wtick()
 {
-#ifdef MPI_ADI2
     double t1;
     MPID_Wtick( &t1 );
     return t1;
-#else
-    return MPID_WTICK( MPI_COMM_WORLD->ADIctx );
-#endif
 }

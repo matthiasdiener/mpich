@@ -1,29 +1,25 @@
 /*
- *  $Id: type_hvec.c,v 1.25 1997/01/07 01:45:29 gropp Exp $
+ *  $Id: type_hvec.c,v 1.3 1998/04/28 21:47:26 swider Exp $
  *
  *  (C) 1993 by Argonne National Laboratory and Mississipi State University.
  *      See COPYRIGHT in top-level directory.
  */
 
 #include "mpiimpl.h"
-#ifdef MPI_ADI2
 #include "sbcnst2.h"
 #define MPIR_SBalloc MPID_SBalloc
 /* pt2pt for MPIR_Type_dup */
 #include "mpipt2pt.h"
-#else
-#include "mpisys.h"
-#endif
 
 /*@
     MPI_Type_hvector - Creates a vector (strided) datatype with offset in bytes
 
 Input Parameters:
-. count - number of blocks (nonnegative integer) 
++ count - number of blocks (nonnegative integer) 
 . blocklength - number of elements in each block 
 (nonnegative integer) 
 . stride - number of bytes between start of each block (integer) 
-. old_type - old datatype (handle) 
+- old_type - old datatype (handle) 
 
 Output Parameter:
 . newtype - new datatype (handle) 
@@ -71,7 +67,7 @@ MPI_Datatype *newtype;
 
   /* Create and fill in the datatype */
   MPIR_ALLOC(dteptr,(struct MPIR_DATATYPE *) MPIR_SBalloc( MPIR_dtes ),MPIR_COMM_WORLD, 
-	     MPI_ERR_EXHAUSTED, "Out of space in MPI_TYPE_HVECTOR" );
+	     MPI_ERR_EXHAUSTED, "MPI_TYPE_HVECTOR" );
   *newtype = (MPI_Datatype) MPIR_FromPointer( dteptr );
   dteptr->self = *newtype;
   MPIR_SET_COOKIE(dteptr,MPIR_DATATYPE_COOKIE)

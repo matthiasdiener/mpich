@@ -23,9 +23,7 @@ SHELL = /bin/sh
 
 DEVICE_INCLUDE = ../../mpid/$(DEVICE)/dmch.h
 
-MPI_INCLUDE    = ../../include/mpi.h ../../include/mpi_bc.h \
-                 ../../include/mpir.h ../../include/mpi_ad.h \
-		 ../../include/mpisys.h 
+MPI_INCLUDE    = ../../include/mpi.h  
 DEVICE_LIB = 
 CFLAGS = @CFLAGS@ @OPTFLAGSC@ $(OPTFLAGS) $(INCLUDE_DIR) \
 	-DMPI_$(ARCH) $(MPIPROFILE)
@@ -41,7 +39,7 @@ MPI_CSOURCES = mperror.c isend.c irecv.c wait.c test.c \
 	       ibsend.c issend.c irsend.c \
 	       waitsome.c testsome.c testcancel.c bsend_init.c \
 	       rsend_init.c ssend_init.c sendutil.c \
-	       startall.c initsend.c initrecv.c \
+	       startall.c \
 	       type_commit.c type_contig.c \
 	       type_extent.c type_free.c type_hind.c \
 	       type_hvec.c type_ind.c type_lb.c type_size.c \
@@ -75,7 +73,7 @@ MPI_COBJECTS = isend.o irecv.o wait.o test.o mperror.o \
 	       bsend.o ssend.o rsend.o bufattach.o buffree.o \
 	       ibsend.o issend.o irsend.o waitsome.o testsome.o \
 	       testcancel.o bsend_init.o rsend_init.o ssend_init.o \
-	       startall.o initsend.o initrecv.o sendutil.o \
+	       startall.o sendutil.o \
 	       type_commit.o type_contig.o \
 	       type_extent.o type_free.o type_hind.o \
 	       type_hvec.o type_ind.o type_lb.o type_size.o \

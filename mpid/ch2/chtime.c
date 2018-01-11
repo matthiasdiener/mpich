@@ -15,7 +15,19 @@
 void MPID_CH_Wtime( seconds )
 double *seconds;
 {
-#if defined(HAVE_BSDGETTIMEOFDAY)
+#if defined(USE_ALPHA_CYCLE_COUNTER)
+/* Code from LinuxJournal #42 (Oct-97), p50; 
+   thanks to Dave Covey dnc@gi.alaska.edu
+   Untested; we don't have a Linux alpha
+   Also 
+ */
+    unsigned long cc
+    asm volatile( "rpcc %0" : "=r"(cc) : : "memory" );
+    /* Convert to time.  Scale cc by 1024 incase it would overflow a double;
+       consider using long double as well */
+    *seconds = 1024.0 * ((double)(cc/1024) / (double)CLOCK_FREQ_HZ);
+
+#elif defined(HAVE_BSDGETTIMEOFDAY)
     struct timeval tp;
     struct timezone tzp;
 
